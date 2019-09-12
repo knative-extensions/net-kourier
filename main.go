@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc"
 	v12 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -30,6 +31,7 @@ import (
 	"time"
 
 	"path/filepath"
+	k8s_cache "k8s.io/client-go/tools/cache"
 )
 
 var (
@@ -58,6 +60,68 @@ func init() {
 
 	// Only log the warning severity or above.
 	log.SetLevel(log.InfoLevel)
+}
+
+// Pushes an event to the "events" channel received when an serving is added/deleted/updated.
+func watchChangesInServings(servingClient *servingv1alpha1.ServingV1alpha1Client, namespace string, events chan<- string, stopChan <-chan struct{}) {
+	restClient := servingClient.RESTClient()
+
+	watchlist := k8s_cache.NewListWatchFromClient(restClient, "services", namespace,
+		fields.Everything())
+
+	_, controller := k8s_cache.NewInformer(
+		watchlist,
+		&v1alpha1.Service{},
+		time.Second*1,
+		k8s_cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				events <- "change"
+			},
+
+			DeleteFunc: func(obj interface{}) {
+				events <- "change"
+			},
+
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				if oldObj != newObj {
+					events <- "change"
+				}
+			},
+		},
+	)
+
+	controller.Run(stopChan)
+}
+
+// Pushes an event to the "events" channel received when an endpoint is added/deleted/updated.
+func watchChangesInEndpoints(kubernetesClient *kubernetes.Clientset, namespace string, events chan<- string, stopChan <-chan struct{}) {
+	restClient := kubernetesClient.CoreV1().RESTClient()
+
+	watchlist := k8s_cache.NewListWatchFromClient(restClient, "endpoints", namespace,
+		fields.Everything())
+
+	_, controller := k8s_cache.NewInformer(
+		watchlist,
+		&v12.Endpoints{},
+		time.Second*1,
+		k8s_cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				events <- "change"
+			},
+
+			DeleteFunc: func(obj interface{}) {
+				events <- "change"
+			},
+
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				if oldObj != newObj {
+					events <- "change"
+				}
+			},
+		},
+	)
+
+	controller.Run(stopChan)
 }
 
 func main() {
@@ -97,6 +161,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	eventsChan := make(chan string)
+
+	stopChanEndpoints := make(chan struct{})
+	go watchChangesInEndpoints(k8sClient, "serverless", eventsChan, stopChanEndpoints)
+
+	stopChanServings := make(chan struct{})
+	go watchChangesInServings(servingClient, "serverless", eventsChan, stopChanServings)
 
 	for {
 		serviceList, err := servingClient.Services("serverless").List(v1.ListOptions{})
@@ -286,7 +358,7 @@ func main() {
 			log.Error(err)
 		}
 
-		time.Sleep(5 * time.Second)
+		<- eventsChan // Block until there's a change in the endpoints or servings
 	}
 }
 
