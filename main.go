@@ -126,7 +126,6 @@ func watchChangesInEndpoints(kubernetesClient *kubernetes.Clientset, namespace s
 
 func main() {
 
-	var clusterCache []cache.Resource
 	var kubeconfig *string
 	version := 1
 	ctx := context.Background()
@@ -177,132 +176,148 @@ func main() {
 		}
 
 		virtualHosts := []*route.VirtualHost{}
-		routeCache := []cache.Resource{}
+		var routeCache []cache.Resource
+		var clusterCache []cache.Resource
 
 		for _, service := range serviceList.Items {
-			log.WithFields(log.Fields{"name": service.GetName(), "host": service.Status.URL.Host}, ).Info("Knative serving service found")
 
-			listOptions := v1.ListOptions{LabelSelector: "serving.knative.dev/service=" + service.Name}
-			endpointList, err := k8sClient.CoreV1().Endpoints("serverless").List(listOptions)
-			if err != nil {
-				panic(err)
-			}
-
-			r := route.Route{
-				Match: &route.RouteMatch{
-					PathSpecifier: &route.RouteMatch_Prefix{
-						Prefix: "/",
-					},
-				},
-				Action: &route.Route_Route{
-					Route: &route.RouteAction{
-						ClusterSpecifier: &route.RouteAction_Cluster{
-							Cluster: "knative_" + service.GetName(),
-						},
-					},
-				},
-			}
-
-			routeCache = append(routeCache, &r)
-
-			revision, err := getRevision(service)
-
-			if err != nil {
-				log.Errorf("%s", err)
+			if service.Status.URL == nil {
+				log.Infof("Empty URL skipping")
 				break
 			}
 
-			virtualHost := route.VirtualHost{
-				Name:    service.GetName(),
-				Domains: []string{service.Status.URL.Host},
-				Routes:  []*route.Route{&r},
-				RequestHeadersToAdd: []*core.HeaderValueOption{{
-					Header: &core.HeaderValue{
-						Key:   "Knative-Serving-Namespace",
-						Value: service.Namespace,
+
+			log.WithFields(log.Fields{"name": service.GetName(), "host": service.Status.URL.Host}, ).Info("Knative serving service found")
+
+			r := route.Route{}
+			wrs := []*route.WeightedCluster_ClusterWeight{}
+			for _, traffic := range service.Status.Traffic {
+				connectTimeout := 5 * time.Second
+
+				listOptions := v1.ListOptions{LabelSelector: "serving.knative.dev/revision=" + traffic.RevisionName}
+				endpointList, err := k8sClient.CoreV1().Endpoints(service.Namespace).List(listOptions)
+
+				if err != nil {
+					log.Errorf("%s", err)
+					break
+				}
+
+				lbEndpoints := []*envoyEndpoint.LbEndpoint{}
+
+				for _, endpoint := range endpointList.Items {
+					for _, subset := range endpoint.Subsets {
+
+						port, err := getHTTPPort(subset)
+
+						if err != nil {
+							break
+						}
+
+						for _, address := range subset.Addresses {
+
+							serviceEndpoint := &core.Address{
+								Address: &core.Address_SocketAddress{
+									SocketAddress: &core.SocketAddress{
+										Protocol: core.TCP,
+										Address:  address.IP,
+										PortSpecifier: &core.SocketAddress_PortValue{
+											PortValue: port,
+										},
+										Ipv4Compat: true,
+									},
+								},
+							}
+
+							lbEndpoint := envoyEndpoint.LbEndpoint{
+								HostIdentifier: &envoyEndpoint.LbEndpoint_Endpoint{
+									Endpoint: &envoyEndpoint.Endpoint{
+										Address: serviceEndpoint,
+									},
+								},
+							}
+							lbEndpoints = append(lbEndpoints, &lbEndpoint)
+
+						}
+
+					}
+				}
+
+
+				cluster := envoyv2.Cluster{
+					Name: "knative_" + traffic.RevisionName,
+					//AltStatName: "",
+					ClusterDiscoveryType: &envoyv2.Cluster_Type{
+						Type: envoyv2.Cluster_STRICT_DNS,
 					},
-					Append: &types.BoolValue{
-						Value: true,
+					ConnectTimeout: &connectTimeout,
+					LoadAssignment: &envoyv2.ClusterLoadAssignment{
+						ClusterName: "knative_" + traffic.RevisionName,
+						Endpoints: []*envoyEndpoint.LocalityLbEndpoints{
+							{
+								LbEndpoints: lbEndpoints,
+							},
+						},
 					},
-				},
-					{
+				}
+
+				clusterCache = append(clusterCache, &cluster)
+
+				wr := route.WeightedCluster_ClusterWeight{
+					Name: "knative_" + traffic.RevisionName,
+					Weight: &types.UInt32Value{
+						Value: uint32(traffic.Percent),
+					},
+					RequestHeadersToAdd: []*core.HeaderValueOption{{
 						Header: &core.HeaderValue{
-							Key:   "Knative-Serving-Revision",
-							Value: revision,
+							Key:   "Knative-Serving-Namespace",
+							Value: service.Namespace,
 						},
 						Append: &types.BoolValue{
 							Value: true,
 						},
 					},
+						{
+							Header: &core.HeaderValue{
+								Key:   "Knative-Serving-Revision",
+								Value: traffic.RevisionName,
+							},
+							Append: &types.BoolValue{
+								Value: true,
+							},
+						},
+					},
+				}
+
+				wrs = append(wrs, &wr)
+
+			}
+
+			r = route.Route{
+				Name: "knative_" + service.Name,
+				Match: &route.RouteMatch{
+					PathSpecifier: &route.RouteMatch_Prefix{
+						Prefix: "/",
+					},
 				},
+				Action: &route.Route_Route{Route: &route.RouteAction{
+					ClusterSpecifier:            &route.RouteAction_WeightedClusters{
+						WeightedClusters: &route.WeightedCluster{
+							Clusters:             wrs,
+						},
+					},
+				}},
+			}
+
+			routeCache = append(routeCache, &r)
+
+			virtualHost := route.VirtualHost{
+				Name:    service.GetName(),
+				Domains: []string{service.Status.URL.Host},
+				Routes:  []*route.Route{&r},
 			}
 
 			virtualHosts = append(virtualHosts, &virtualHost)
 
-			lbEndpoints := []*envoyEndpoint.LbEndpoint{}
-
-			for _, endpoint := range endpointList.Items {
-				log.Info(endpoint.Name)
-
-				for _, subset := range endpoint.Subsets {
-
-					port, err := getHTTPPort(subset)
-
-					if err != nil {
-						break
-					}
-
-					for _, address := range subset.Addresses {
-
-						serviceEndpoint := &core.Address{
-							Address: &core.Address_SocketAddress{
-								SocketAddress: &core.SocketAddress{
-									Protocol: core.TCP,
-									Address:  address.IP,
-									PortSpecifier: &core.SocketAddress_PortValue{
-										PortValue: port,
-									},
-									Ipv4Compat: true,
-								},
-							},
-						}
-
-						lbEndpoint := envoyEndpoint.LbEndpoint{
-							HostIdentifier: &envoyEndpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoyEndpoint.Endpoint{
-									Address: serviceEndpoint,
-								},
-							},
-						}
-						lbEndpoints = append(lbEndpoints, &lbEndpoint)
-
-					}
-
-				}
-
-			}
-
-			connectTimeout := 5 * time.Second
-
-			cluster := envoyv2.Cluster{
-				Name:        "knative_" + service.GetName(),
-				AltStatName: "",
-				ClusterDiscoveryType: &envoyv2.Cluster_Type{
-					Type: envoyv2.Cluster_STATIC,
-				},
-				ConnectTimeout: &connectTimeout,
-				LoadAssignment: &envoyv2.ClusterLoadAssignment{
-					ClusterName: "knative_" + service.GetName(),
-					Endpoints: []*envoyEndpoint.LocalityLbEndpoints{
-						{
-							LbEndpoints: lbEndpoints,
-						},
-					},
-				},
-			}
-			log.Info(cluster)
-
-			clusterCache = append(clusterCache, &cluster)
 		}
 
 		manager := &hcm.HttpConnectionManager{
