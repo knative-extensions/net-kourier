@@ -88,7 +88,7 @@ func (envoyXdsServer *EnvoyXdsServer) RunManagementServer() {
 	log.Printf("Starting Management Server on Port %d\n", port)
 	go func() {
 		if err = grpcServer.Serve(lis); err != nil {
-			fmt.Errorf("%s", err)
+			log.Errorf("%s", err)
 		}
 	}()
 	<-envoyXdsServer.ctx.Done()
@@ -138,10 +138,14 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForKnativeServices(nodeId strin
 				break
 			}
 
-			lbEndpoints := lbEndpointsForKubeEndpoints(endpointList)
+			lbEndpoints := lbEndpointsForKubeEndpoints(service, endpointList)
 
 			connectTimeout := 5 * time.Second
 			cluster := clusterForRevision(traffic.RevisionName, connectTimeout, lbEndpoints)
+
+			if ServiceHTTP2Enabled(service) {
+				cluster.Http2ProtocolOptions = &core.Http2ProtocolOptions{}
+			}
 			clusterCache = append(clusterCache, &cluster)
 
 			weightedCluster := weightedCluster(
@@ -172,9 +176,9 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForKnativeServices(nodeId strin
 
 	manager := hTTPConnectionManager(virtualHosts)
 
-	listener := envoy_listener(&manager)
+	l := envoy_listener(&manager)
 
-	listenerCache := []cache.Resource{&listener}
+	listenerCache := []cache.Resource{&l}
 
 	snapshot := cache.NewSnapshot(
 		fmt.Sprintf("%d", envoyXdsServer.currentSnapshotVersion), nil, clusterCache, routeCache, listenerCache,
@@ -189,13 +193,13 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForKnativeServices(nodeId strin
 	}
 }
 
-func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList) []*endpoint.LbEndpoint {
+func lbEndpointsForKubeEndpoints(service v1alpha1.Service, kubeEndpoints *kubev1.EndpointsList) []*endpoint.LbEndpoint {
 	result := []*endpoint.LbEndpoint{}
 
 	for _, kubeEndpoint := range kubeEndpoints.Items {
 		for _, subset := range kubeEndpoint.Subsets {
 
-			port, err := HTTPPortForEndpointSubset(subset)
+			port, err := HTTPPortForEndpointSubset(service, subset)
 
 			if err != nil {
 				break

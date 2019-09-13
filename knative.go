@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/rest"
@@ -26,6 +28,48 @@ func NewKnativeClient(config *rest.Config) KNativeClient {
 
 func (kNativeClient *KNativeClient) Services(namespace string) (*v1alpha1.ServiceList, error) {
 	return kNativeClient.client.Services(namespace).List(v1.ListOptions{})
+}
+
+func ServiceHTTP2Enabled(service v1alpha1.Service) bool {
+
+	container := service.Spec.Template.Spec.GetContainer()
+	if len(container.Ports) > 0 {
+		if container.Ports[0].Name == "http2" || container.Ports[0].Name == "h2c" {
+			return true
+		}
+	}
+	return false
+}
+
+func HTTPPortForEndpointSubset(service v1alpha1.Service, subset corev1.EndpointSubset) (uint32, error) {
+
+	desiredPortName := ""
+	// This is here for debug and development purpose, remove once we are sure this kinda works.
+	if len(service.Spec.Template.Spec.GetContainer().Ports) > 1 {
+		log.Infof("service %s has more than 1 container specified", service.Name)
+	}
+
+	if ServiceHTTP2Enabled(service) {
+		desiredPortName = "http2"
+	}
+
+	switch desiredPortName {
+	case "http2":
+		for _, port := range subset.Ports {
+			if port.Name == "http2" || port.Name == "h2c" {
+				return uint32(port.Port), nil
+			}
+		}
+	default:
+		for _, port := range subset.Ports {
+			if port.Name == "http" || port.Name == "http1" {
+				return uint32(port.Port), nil
+			}
+		}
+
+	}
+
+	return 0, fmt.Errorf("http port not found")
 }
 
 func DomainsFromService(service *v1alpha1.Service) ([]string, error) {

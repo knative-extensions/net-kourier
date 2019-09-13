@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -65,16 +64,6 @@ func Config() *rest.Config {
 func (kubernetesClient *KubernetesClient) EndpointsForRevision(namespace string, revisionName string) (*v1.EndpointsList, error) {
 	listOptions := meta_v1.ListOptions{LabelSelector: labelPrefix + revisionName}
 	return kubernetesClient.client.CoreV1().Endpoints(namespace).List(listOptions)
-}
-
-func HTTPPortForEndpointSubset(subset v1.EndpointSubset) (uint32, error) {
-	for _, port := range subset.Ports {
-		if port.Name == "http" {
-			return uint32(port.Port), nil
-		}
-	}
-
-	return 0, fmt.Errorf("http port not found")
 }
 
 // Pushes an event to the "events" channel received when an endpoint is added/deleted/updated.
