@@ -1,7 +1,9 @@
-package main
+package envoy
 
 import (
 	"context"
+	"courier/pkg/knative"
+	"courier/pkg/kubernetes"
 	"fmt"
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -24,6 +26,7 @@ import (
 )
 
 const (
+	grpcMaxConcurrentStreams = 1000000
 	namespaceHeader = "Knative-Serving-Namespace"
 	revisionHeader  = "Knative-Serving-Revision"
 )
@@ -31,7 +34,7 @@ const (
 type EnvoyXdsServer struct {
 	gatewayPort            uint
 	managementPort         uint
-	kubeClient             KubernetesClient // TODO: let's try to remove this coupling later
+	kubeClient             kubernetes.KubernetesClient // TODO: let's try to remove this coupling later
 	ctx                    context.Context
 	server                 xds.Server
 	currentSnapshotVersion int // TODO: overflow?
@@ -49,7 +52,7 @@ func (h Hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient KubernetesClient) EnvoyXdsServer {
+func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubernetes.KubernetesClient) EnvoyXdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, Hasher{}, nil)
 	srv := xds.NewServer(snapshotCache, nil)
@@ -143,7 +146,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForKnativeServices(nodeId strin
 			connectTimeout := 5 * time.Second
 			cluster := clusterForRevision(traffic.RevisionName, connectTimeout, lbEndpoints)
 
-			if ServiceHTTP2Enabled(service) {
+			if knative.ServiceHTTP2Enabled(service) {
 				cluster.Http2ProtocolOptions = &core.Http2ProtocolOptions{}
 			}
 			clusterCache = append(clusterCache, &cluster)
@@ -158,7 +161,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForKnativeServices(nodeId strin
 		r := routeWithWeightedClusters(service.Name, wrs)
 		routeCache = append(routeCache, &r)
 
-		domains, err := DomainsFromService(&service)
+		domains, err := knative.DomainsFromService(&service)
 
 		if err != nil {
 			log.Errorf("cannot get domains for service %s : %s", service.Name, err)
@@ -174,9 +177,9 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForKnativeServices(nodeId strin
 
 	}
 
-	manager := hTTPConnectionManager(virtualHosts)
+	manager := httpConnectionManager(virtualHosts)
 
-	l := envoy_listener(&manager)
+	l := envoyListener(&manager)
 
 	listenerCache := []cache.Resource{&l}
 
@@ -199,7 +202,7 @@ func lbEndpointsForKubeEndpoints(service v1alpha1.Service, kubeEndpoints *kubev1
 	for _, kubeEndpoint := range kubeEndpoints.Items {
 		for _, subset := range kubeEndpoint.Subsets {
 
-			port, err := HTTPPortForEndpointSubset(service, subset)
+			port, err := knative.HTTPPortForEndpointSubset(service, subset)
 
 			if err != nil {
 				break
@@ -299,7 +302,7 @@ func routeWithWeightedClusters(serviceName string, weightedClusters []*route.Wei
 	}
 }
 
-func hTTPConnectionManager(virtualHosts []*route.VirtualHost) v2.HttpConnectionManager {
+func httpConnectionManager(virtualHosts []*route.VirtualHost) v2.HttpConnectionManager {
 	return v2.HttpConnectionManager{
 		CodecType:  v2.AUTO,
 		StatPrefix: "ingress_http",
@@ -317,7 +320,7 @@ func hTTPConnectionManager(virtualHosts []*route.VirtualHost) v2.HttpConnectionM
 	}
 }
 
-func envoy_listener(httpConnectionManager *v2.HttpConnectionManager) envoyv2.Listener {
+func envoyListener(httpConnectionManager *v2.HttpConnectionManager) envoyv2.Listener {
 	pbst, err := util.MessageToStruct(httpConnectionManager)
 	if err != nil {
 		panic(err)
