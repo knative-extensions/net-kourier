@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/rest"
@@ -25,6 +26,20 @@ func NewKnativeClient(config *rest.Config) KNativeClient {
 
 func (kNativeClient *KNativeClient) Services(namespace string) (*v1alpha1.ServiceList, error) {
 	return kNativeClient.client.Services(namespace).List(v1.ListOptions{})
+}
+
+func DomainsFromService(service *v1alpha1.Service) ([]string, error) {
+	var domains []string
+
+	if service.Status.URL == nil {
+		return nil, fmt.Errorf("url is empty")
+	}
+	domains = append(domains, fmt.Sprintf("%s.%s", service.Name, service.Namespace))
+	domains = append(domains, fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace))
+	domains = append(domains, service.Status.URL.Host)
+	domains = append(domains, service.Status.Address.GetURL().Host)
+
+	return domains, nil
 }
 
 // Pushes an event to the "events" channel received when an serving is added/deleted/updated.

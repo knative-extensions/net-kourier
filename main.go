@@ -208,9 +208,15 @@ func main() {
 
 			routeCache = append(routeCache, &r)
 
+			domains, err := DomainsFromService(&service)
+
+			if err != nil {
+				log.Errorf("cannot get domains for service %s : %s", service.Name, err)
+			}
+
 			virtualHost := route.VirtualHost{
 				Name:    service.GetName(),
-				Domains: []string{service.Status.URL.Host},
+				Domains: domains,
 				Routes:  []*route.Route{&r},
 			}
 
