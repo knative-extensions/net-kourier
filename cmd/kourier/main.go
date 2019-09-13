@@ -1,12 +1,14 @@
 package main
 
 import (
+	"courier/pkg/envoy"
+	"courier/pkg/knative"
+	"courier/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"os"
 )
 
 const (
-	grpcMaxConcurrentStreams = 1000000
 	nodeID                   = "3scale-courier"
 	gatewayPort              = 19001
 	managementPort           = 18000
@@ -25,10 +27,10 @@ func init() {
 }
 
 func main() {
-	namespace := "serverless"
-	config := Config()
-	kubernetesClient := NewKubernetesClient(config)
-	knativeClient := NewKnativeClient(config)
+	namespace := ""
+	config := kubernetes.Config()
+	kubernetesClient := kubernetes.NewKubernetesClient(config)
+	knativeClient := knative.NewKnativeClient(config)
 
 	eventsChan := make(chan string)
 
@@ -38,7 +40,7 @@ func main() {
 	stopChanServings := make(chan struct{})
 	go knativeClient.WatchChangesInServices(namespace, eventsChan, stopChanServings)
 
-	envoyXdsServer := NewEnvoyXdsServer(gatewayPort, managementPort, kubernetesClient)
+	envoyXdsServer := envoy.NewEnvoyXdsServer(gatewayPort, managementPort, kubernetesClient)
 	go envoyXdsServer.RunManagementServer()
 	go envoyXdsServer.RunGateway()
 
