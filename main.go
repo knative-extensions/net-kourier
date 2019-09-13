@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -17,25 +16,10 @@ import (
 	"github.com/gogo/protobuf/types"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	v12 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"knative.dev/serving/pkg/apis/serving/v1alpha1"
-	servingv1alpha1 "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
 	"net"
 	"net/http"
 	"os"
 	"time"
-
-	"path/filepath"
-	k8s_cache "k8s.io/client-go/tools/cache"
-)
-
-var (
-	config cache.SnapshotCache
 )
 
 const (
@@ -62,71 +46,7 @@ func init() {
 	log.SetLevel(log.InfoLevel)
 }
 
-// Pushes an event to the "events" channel received when an serving is added/deleted/updated.
-func watchChangesInServings(servingClient *servingv1alpha1.ServingV1alpha1Client, namespace string, events chan<- string, stopChan <-chan struct{}) {
-	restClient := servingClient.RESTClient()
-
-	watchlist := k8s_cache.NewListWatchFromClient(restClient, "services", namespace,
-		fields.Everything())
-
-	_, controller := k8s_cache.NewInformer(
-		watchlist,
-		&v1alpha1.Service{},
-		time.Second*1,
-		k8s_cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				events <- "change"
-			},
-
-			DeleteFunc: func(obj interface{}) {
-				events <- "change"
-			},
-
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				if oldObj != newObj {
-					events <- "change"
-				}
-			},
-		},
-	)
-
-	controller.Run(stopChan)
-}
-
-// Pushes an event to the "events" channel received when an endpoint is added/deleted/updated.
-func watchChangesInEndpoints(kubernetesClient *kubernetes.Clientset, namespace string, events chan<- string, stopChan <-chan struct{}) {
-	restClient := kubernetesClient.CoreV1().RESTClient()
-
-	watchlist := k8s_cache.NewListWatchFromClient(restClient, "endpoints", namespace,
-		fields.Everything())
-
-	_, controller := k8s_cache.NewInformer(
-		watchlist,
-		&v12.Endpoints{},
-		time.Second*1,
-		k8s_cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				events <- "change"
-			},
-
-			DeleteFunc: func(obj interface{}) {
-				events <- "change"
-			},
-
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				if oldObj != newObj {
-					events <- "change"
-				}
-			},
-		},
-	)
-
-	controller.Run(stopChan)
-}
-
 func main() {
-
-	var kubeconfig *string
 	version := 1
 	ctx := context.Background()
 	xdsConf := cache.NewSnapshotCache(true, Hasher{}, nil)
@@ -136,41 +56,22 @@ func main() {
 	go RunManagementServer(ctx, srv, 18000)
 	go RunManagementGateway(ctx, srv, 19001)
 
-	// Get the config, $HOME/.kube/config
-	// TODO: Read from env var
-	if home := homeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
-	flag.Parse()
+	namespace := "serverless"
 
-	var config *rest.Config
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		config, _ = rest.InClusterConfig()
-	}
-
-	servingClient, err := servingv1alpha1.NewForConfig(config)
-	if err != nil {
-		panic(err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err)
-	}
+	config := Config()
+	kubernetesClient := NewKubernetesClient(config)
+	knativeClient := NewKnativeClient(config)
 
 	eventsChan := make(chan string)
 
 	stopChanEndpoints := make(chan struct{})
-	go watchChangesInEndpoints(k8sClient, "serverless", eventsChan, stopChanEndpoints)
+	go kubernetesClient.WatchChangesInEndpoints(namespace, eventsChan, stopChanEndpoints)
 
 	stopChanServings := make(chan struct{})
-	go watchChangesInServings(servingClient, "serverless", eventsChan, stopChanServings)
+	go knativeClient.WatchChangesInServices(namespace, eventsChan, stopChanServings)
 
 	for {
-		serviceList, err := servingClient.Services("serverless").List(v1.ListOptions{})
+		serviceList, err := knativeClient.Services(namespace)
 		if err != nil {
 			panic(err)
 		}
@@ -186,16 +87,14 @@ func main() {
 				break
 			}
 
-
-			log.WithFields(log.Fields{"name": service.GetName(), "host": service.Status.URL.Host}, ).Info("Knative serving service found")
+			log.WithFields(log.Fields{"name": service.GetName(), "host": service.Status.URL.Host}).Info("Knative serving service found")
 
 			r := route.Route{}
 			wrs := []*route.WeightedCluster_ClusterWeight{}
 			for _, traffic := range service.Status.Traffic {
 				connectTimeout := 5 * time.Second
 
-				listOptions := v1.ListOptions{LabelSelector: "serving.knative.dev/revision=" + traffic.RevisionName}
-				endpointList, err := k8sClient.CoreV1().Endpoints(service.Namespace).List(listOptions)
+				endpointList, err := kubernetesClient.EndpointsForRevision(service.Namespace, traffic.RevisionName)
 
 				if err != nil {
 					log.Errorf("%s", err)
@@ -207,7 +106,7 @@ func main() {
 				for _, endpoint := range endpointList.Items {
 					for _, subset := range endpoint.Subsets {
 
-						port, err := getHTTPPort(subset)
+						port, err := HTTPPortForEndpointSubset(subset)
 
 						if err != nil {
 							break
@@ -241,7 +140,6 @@ func main() {
 
 					}
 				}
-
 
 				cluster := envoyv2.Cluster{
 					Name: "knative_" + traffic.RevisionName,
@@ -300,9 +198,9 @@ func main() {
 					},
 				},
 				Action: &route.Route_Route{Route: &route.RouteAction{
-					ClusterSpecifier:            &route.RouteAction_WeightedClusters{
+					ClusterSpecifier: &route.RouteAction_WeightedClusters{
 						WeightedClusters: &route.WeightedCluster{
-							Clusters:             wrs,
+							Clusters: wrs,
 						},
 					},
 				}},
@@ -373,7 +271,7 @@ func main() {
 			log.Error(err)
 		}
 
-		<- eventsChan // Block until there's a change in the endpoints or servings
+		<-eventsChan // Block until there's a change in the endpoints or servings
 	}
 }
 
@@ -429,26 +327,4 @@ func (h Hasher) ID(node *core.Node) string {
 		return "unknown"
 	}
 	return node.Id
-}
-
-func getHTTPPort(subset v12.EndpointSubset) (uint32, error) {
-
-	for _, port := range subset.Ports {
-		if port.Name == "http" {
-			return uint32(port.Port), nil
-		}
-	}
-
-	return 0, fmt.Errorf("http port not found")
-
-}
-
-func getRevision(service v1alpha1.Service) (string, error) {
-	for _, traffic := range service.Status.Traffic {
-		if traffic.Percent == 100 {
-			return traffic.RevisionName, nil
-		}
-	}
-
-	return "", fmt.Errorf("no revision with 100% of traffic")
 }
