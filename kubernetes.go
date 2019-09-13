@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -27,6 +28,13 @@ func NewKubernetesClient(config *rest.Config) KubernetesClient {
 	}
 
 	return KubernetesClient{client: k8sClient}
+}
+
+func homeDir() string {
+	if h := os.Getenv("HOME"); h != "" {
+		return h
+	}
+	return os.Getenv("USERPROFILE") // windows
 }
 
 func Config() *rest.Config {
