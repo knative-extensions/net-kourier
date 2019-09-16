@@ -16,6 +16,7 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/pkg/server"
 	"github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/types"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	kubev1 "k8s.io/api/core/v1"
@@ -32,13 +33,12 @@ const (
 )
 
 type EnvoyXdsServer struct {
-	gatewayPort            uint
-	managementPort         uint
-	kubeClient             kubernetes.KubernetesClient // TODO: let's try to remove this coupling later
-	ctx                    context.Context
-	server                 xds.Server
-	currentSnapshotVersion int // TODO: overflow?
-	snapshotCache          cache.SnapshotCache
+	gatewayPort    uint
+	managementPort uint
+	kubeClient     kubernetes.KubernetesClient // TODO: let's try to remove this coupling later
+	ctx            context.Context
+	server         xds.Server
+	snapshotCache  cache.SnapshotCache
 }
 
 // Hasher returns node ID as an ID
@@ -58,13 +58,12 @@ func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kuberne
 	srv := xds.NewServer(snapshotCache, nil)
 
 	return EnvoyXdsServer{
-		gatewayPort:            gatewayPort,
-		managementPort:         managementPort,
-		kubeClient:             kubeClient,
-		ctx:                    ctx,
-		server:                 srv,
-		currentSnapshotVersion: 1,
-		snapshotCache:          snapshotCache,
+		gatewayPort:    gatewayPort,
+		managementPort: managementPort,
+		kubeClient:     kubeClient,
+		ctx:            ctx,
+		server:         srv,
+		snapshotCache:  snapshotCache,
 	}
 }
 
@@ -183,16 +182,21 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForKnativeServices(nodeId strin
 
 	listenerCache := []cache.Resource{&l}
 
+	snapshotVersion, errUUID := uuid.NewUUID()
+
+	if errUUID != nil {
+		log.Error(errUUID)
+		return
+	}
+
 	snapshot := cache.NewSnapshot(
-		fmt.Sprintf("%d", envoyXdsServer.currentSnapshotVersion), nil, clusterCache, routeCache, listenerCache,
+		snapshotVersion.String(), nil, clusterCache, routeCache, listenerCache,
 	)
 
 	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeId, snapshot)
 
 	if err != nil {
 		log.Error(err)
-	} else {
-		envoyXdsServer.currentSnapshotVersion++
 	}
 }
 
