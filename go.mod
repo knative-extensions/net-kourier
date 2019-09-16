@@ -8,6 +8,7 @@ require (
 	github.com/evanphx/json-patch v4.2.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.0
 	github.com/google/go-containerregistry v0.0.0-20190905201708-e0cc78fd4835 // indirect
+	github.com/google/uuid v1.0.0
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/json-iterator/go v1.1.7 // indirect
