@@ -27,8 +27,8 @@ import (
 
 const (
 	grpcMaxConcurrentStreams = 1000000
-	namespaceHeader = "Knative-Serving-Namespace"
-	revisionHeader  = "Knative-Serving-Revision"
+	namespaceHeader          = "Knative-Serving-Namespace"
+	revisionHeader           = "Knative-Serving-Revision"
 )
 
 type EnvoyXdsServer struct {

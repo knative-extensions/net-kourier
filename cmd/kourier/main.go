@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	nodeID                   = "3scale-courier"
-	gatewayPort              = 19001
-	managementPort           = 18000
+	nodeID         = "3scale-courier"
+	gatewayPort    = 19001
+	managementPort = 18000
 )
 
 func init() {
