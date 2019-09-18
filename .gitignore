@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-
+build/
 # Test binary, build with `go test -c`
 *.test
 
@@ -14,3 +14,4 @@
 # Vendoring
 /vendor/
 vendor/
+

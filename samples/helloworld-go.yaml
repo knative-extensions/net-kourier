@@ -1,8 +1,7 @@
    apiVersion: serving.knative.dev/v1alpha1
    kind: Service
    metadata:
-     name: helloworld-go2
-     namespace: serverless
+     name: helloworld-go
    spec:
      template:
        spec:
@@ -10,4 +9,4 @@
            - image: gcr.io/knative-samples/helloworld-go
              env:
                - name: TARGET
-                 value: Go Sample v2
+                 value: Go Sample v1
