@@ -338,7 +338,7 @@ func envoyListener(httpConnectionManager *v2.HttpConnectionManager) envoyv2.List
 					Protocol: core.TCP,
 					Address:  "0.0.0.0",
 					PortSpecifier: &core.SocketAddress_PortValue{
-						PortValue: uint32(80),
+						PortValue: uint32(8080),
 					},
 				},
 			},
