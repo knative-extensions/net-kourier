@@ -10,6 +10,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	accesslogv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
@@ -319,6 +320,27 @@ func httpConnectionManager(virtualHosts []*route.VirtualHost) v2.HttpConnectionM
 		HttpFilters: []*v2.HttpFilter{
 			{
 				Name: util.Router,
+			},
+		},
+
+		AccessLog: accessLogs(),
+	}
+}
+
+// Outputs to /dev/stdout using the default format
+func accessLogs() []*accesslogv2.AccessLog {
+	accessLogConfigFields := make(map[string]*types.Value)
+	accessLogConfigFields["path"] = &types.Value{
+		Kind: &types.Value_StringValue{
+			StringValue: "/dev/stdout",
+		},
+	}
+
+	return []*accesslogv2.AccessLog{
+		{
+			Name: "envoy.file_access_log",
+			ConfigType: &accesslogv2.AccessLog_Config{
+				Config: &types.Struct{Fields: accessLogConfigFields},
 			},
 		},
 	}
