@@ -66,6 +66,10 @@ func (kubernetesClient *KubernetesClient) EndpointsForRevision(namespace string,
 	return kubernetesClient.client.CoreV1().Endpoints(namespace).List(listOptions)
 }
 
+func (kubernetesClient *KubernetesClient) ServiceForRevision(namespace string, revisionName string) (*v1.Service, error) {
+	return kubernetesClient.client.CoreV1().Services(namespace).Get(revisionName, meta_v1.GetOptions{})
+}
+
 // Pushes an event to the "events" channel received when an endpoint is added/deleted/updated.
 func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace string, events chan<- string, stopChan <-chan struct{}) {
 	restClient := kubernetesClient.client.CoreV1().RESTClient()
@@ -76,7 +80,7 @@ func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace stri
 	_, controller := cache.NewInformer(
 		watchlist,
 		&v1.Endpoints{},
-		time.Second*1,
+		time.Second*30,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				events <- "change"
