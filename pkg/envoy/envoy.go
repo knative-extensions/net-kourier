@@ -2,7 +2,7 @@ package envoy
 
 import (
 	"context"
-	"courier/pkg/kubernetes"
+	"kourier/pkg/kubernetes"
 	"fmt"
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"

@@ -1,16 +1,16 @@
 package main
 
 import (
-	"courier/pkg/envoy"
-	"courier/pkg/knative"
-	"courier/pkg/kubernetes"
+	"kourier/pkg/envoy"
+	"kourier/pkg/knative"
+	"kourier/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"os"
 )
 
 const (
-	nodeID         = "3scale-courier"
+	nodeID         = "3scale-kourier"
 	gatewayPort    = 19001
 	managementPort = 18000
 )
