@@ -2,7 +2,6 @@ package envoy
 
 import (
 	"context"
-	"kourier/pkg/kubernetes"
 	"fmt"
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -21,6 +20,7 @@ import (
 	"google.golang.org/grpc"
 	kubev1 "k8s.io/api/core/v1"
 	v1alpha12 "knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"kourier/pkg/kubernetes"
 	"net"
 	"net/http"
 	"strconv"
@@ -181,7 +181,17 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 
 				}
 
-				r := createRouteForRevision(routeName, i, path, wrs)
+				attempts := 0
+				var perTryTimeout time.Duration
+				if httpPath.Retries != nil {
+					attempts = httpPath.Retries.Attempts
+
+					if httpPath.Retries.PerTryTimeout != nil {
+						perTryTimeout = httpPath.Retries.PerTryTimeout.Duration
+					}
+				}
+
+				r := createRouteForRevision(routeName, i, path, wrs, attempts, perTryTimeout)
 
 				ruleRoute = append(ruleRoute, &r)
 				routeCache = append(routeCache, &r)
@@ -217,7 +227,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 	}
 }
 
-func createRouteForRevision(routeName string, i int, path string, wrs []*route.WeightedCluster_ClusterWeight) route.Route {
+func createRouteForRevision(routeName string, i int, path string, wrs []*route.WeightedCluster_ClusterWeight, attempts int, perTryTimeout time.Duration) route.Route {
 	r := route.Route{
 		Name: routeName + "_" + strconv.Itoa(i),
 		Match: &route.RouteMatch{
@@ -231,9 +241,25 @@ func createRouteForRevision(routeName string, i int, path string, wrs []*route.W
 					Clusters: wrs,
 				},
 			},
+			RetryPolicy: createRetryPolicy(attempts, perTryTimeout),
 		}},
 	}
+
 	return r
+}
+
+func createRetryPolicy(attempts int, perTryTimeout time.Duration) *route.RetryPolicy {
+	if attempts > 0 {
+		return &route.RetryPolicy{
+			RetryOn: "5xx",
+			NumRetries: &types.UInt32Value{
+				Value: uint32(attempts),
+			},
+			PerTryTimeout: &perTryTimeout,
+		}
+	} else {
+		return nil
+	}
 }
 
 func getRouteNamespace(ingress v1alpha12.IngressAccessor) string {
