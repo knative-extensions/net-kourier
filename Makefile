@@ -7,7 +7,7 @@ run: ## runs kourier locally with "go run"
 	@echo "[i] Remember to have a valid kubeconfig in $(HOME)/.kube/config"
 	@go run ./cmd/kourier/main.go
 
-docker-run-envoy: docker-run ## Runs envoy in a docker
+docker-run-envoy: ## Runs envoy in a docker
 	docker run --rm  -p 19000:19000 -p 10000:10000 --link kourier --name kourier_envoy -v $(PWD)/conf/:/tmp/conf -ti envoyproxy/envoy-alpine:latest -c /tmp/conf/envoy-bootstrap.yaml
 
 docker-run: docker-build ## Runs kourier in a docker

@@ -37,20 +37,20 @@ func main() {
 	stopChanEndpoints := make(chan struct{})
 	go kubernetesClient.WatchChangesInEndpoints(namespace, eventsChan, stopChanEndpoints)
 
-	stopChanServings := make(chan struct{})
-	go knativeClient.WatchChangesInServices(namespace, eventsChan, stopChanServings)
+	stopChanClusterIngress := make(chan struct{})
+	go knativeClient.WatchChangesInClusterIngress(namespace, eventsChan, stopChanClusterIngress)
 
 	envoyXdsServer := envoy.NewEnvoyXdsServer(gatewayPort, managementPort, kubernetesClient)
 	go envoyXdsServer.RunManagementServer()
 	go envoyXdsServer.RunGateway()
 
 	for {
-		serviceList, err := knativeClient.Services(namespace)
+		clusterIngresses, err := knativeClient.ClusterIngresses()
 		if err != nil {
 			panic(err)
 		}
 
-		envoyXdsServer.SetSnapshotForKnativeServices(nodeID, serviceList)
+		envoyXdsServer.SetSnapshotForClusterIngresses(nodeID, clusterIngresses)
 
 		<-eventsChan // Block until there's a change in the endpoints or servings
 	}

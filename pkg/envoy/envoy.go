@@ -2,7 +2,6 @@ package envoy
 
 import (
 	"context"
-	"courier/pkg/knative"
 	"courier/pkg/kubernetes"
 	"fmt"
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -21,9 +20,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	kubev1 "k8s.io/api/core/v1"
-	"knative.dev/serving/pkg/apis/serving/v1alpha1"
+	v1alpha12 "knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -118,100 +118,140 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForKnativeServices(nodeId string, services *v1alpha1.ServiceList) {
-	virtualHosts := []*route.VirtualHost{}
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId string, clusterIngresses *v1alpha12.ClusterIngressList) {
+	var virtualHosts []*route.VirtualHost
 	var routeCache []cache.Resource
 	var clusterCache []cache.Resource
 
-	for _, service := range services.Items {
+	for i, clusterIngress := range clusterIngresses.Items {
 
-		if service.Status.URL == nil {
-			log.Infof("Empty URL skipping")
-			break
-		}
+		routeName := getRouteName(clusterIngress)
+		routeNamespace := getRouteNamespace(clusterIngress)
+		log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative ClusterIngress found")
 
-		log.WithFields(log.Fields{"name": service.GetName(), "host": service.Status.URL.Host}).Info("Knative serving service found")
+		for _, rule := range clusterIngress.Spec.Rules {
 
-		wrs := []*route.WeightedCluster_ClusterWeight{}
-		for _, traffic := range service.Status.Traffic {
-			endpointList, err := envoyXdsServer.kubeClient.EndpointsForRevision(service.Namespace, traffic.RevisionName)
+			var ruleRoute []*route.Route
+			domains := rule.Hosts
 
-			if err != nil {
-				log.Errorf("%s", err)
-				break
+			for _, httpPath := range rule.HTTP.Paths {
+
+				path := "/"
+				if httpPath.Path != "" {
+					path = httpPath.Path
+				}
+
+				headers := httpPath.AppendHeaders
+
+				var wrs []*route.WeightedCluster_ClusterWeight
+
+				for _, split := range httpPath.Splits {
+
+					endpointList, err := envoyXdsServer.kubeClient.EndpointsForRevision(split.ServiceNamespace, split.ServiceName)
+
+					if err != nil {
+						log.Errorf("%s", err)
+						break
+					}
+
+					service, err := envoyXdsServer.kubeClient.ServiceForRevision(split.ServiceNamespace, split.ServiceName)
+
+					if err != nil {
+						log.Errorf("%s", err)
+						break
+					}
+
+					var targetPort int32
+					http2 := false
+					for _, port := range service.Spec.Ports {
+						if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
+							targetPort = port.TargetPort.IntVal
+							http2 = port.Name == "http2" || port.Name == "h2c"
+						}
+					}
+
+					lbEndpoints := lbEndpointsForKubeEndpoints(endpointList, targetPort)
+
+					connectTimeout := 5 * time.Second
+					cluster := clusterForRevision(split.ServiceName, connectTimeout, lbEndpoints, http2, path)
+					clusterCache = append(clusterCache, &cluster)
+
+					weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headers)
+
+					wrs = append(wrs, &weightedCluster)
+
+				}
+
+				r := createRouteForRevision(routeName, i, path, wrs)
+
+				ruleRoute = append(ruleRoute, &r)
+				routeCache = append(routeCache, &r)
+
 			}
 
-			lbEndpoints := lbEndpointsForKubeEndpoints(service, endpointList)
-
-			connectTimeout := 5 * time.Second
-			cluster := clusterForRevision(traffic.RevisionName, connectTimeout, lbEndpoints)
-
-			if knative.ServiceHTTP2Enabled(service) {
-				cluster.Http2ProtocolOptions = &core.Http2ProtocolOptions{}
+			virtualHost := route.VirtualHost{
+				Name:    routeName,
+				Domains: domains,
+				Routes:  ruleRoute,
 			}
-			clusterCache = append(clusterCache, &cluster)
 
-			weightedCluster := weightedCluster(
-				traffic.RevisionName, service.Namespace, uint32(traffic.Percent),
-			)
-			wrs = append(wrs, &weightedCluster)
-
+			virtualHosts = append(virtualHosts, &virtualHost)
 		}
-
-		r := routeWithWeightedClusters(service.Name, wrs)
-		routeCache = append(routeCache, &r)
-
-		domains, err := knative.DomainsFromService(&service)
-
-		if err != nil {
-			log.Errorf("cannot get domains for service %s : %s", service.Name, err)
-		}
-
-		virtualHost := route.VirtualHost{
-			Name:    service.GetName(),
-			Domains: domains,
-			Routes:  []*route.Route{&r},
-		}
-
-		virtualHosts = append(virtualHosts, &virtualHost)
 
 	}
 
 	manager := httpConnectionManager(virtualHosts)
-
 	l := envoyListener(&manager)
-
 	listenerCache := []cache.Resource{&l}
 
 	snapshotVersion, errUUID := uuid.NewUUID()
-
 	if errUUID != nil {
 		log.Error(errUUID)
 		return
 	}
 
-	snapshot := cache.NewSnapshot(
-		snapshotVersion.String(), nil, clusterCache, routeCache, listenerCache,
-	)
+	snapshot := cache.NewSnapshot(snapshotVersion.String(), nil, clusterCache, routeCache, listenerCache)
 
 	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeId, snapshot)
-
 	if err != nil {
 		log.Error(err)
 	}
 }
 
-func lbEndpointsForKubeEndpoints(service v1alpha1.Service, kubeEndpoints *kubev1.EndpointsList) []*endpoint.LbEndpoint {
-	result := []*endpoint.LbEndpoint{}
+func createRouteForRevision(routeName string, i int, path string, wrs []*route.WeightedCluster_ClusterWeight) route.Route {
+	r := route.Route{
+		Name: routeName + "_" + strconv.Itoa(i),
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Prefix{
+				Prefix: path,
+			},
+		},
+		Action: &route.Route_Route{Route: &route.RouteAction{
+			ClusterSpecifier: &route.RouteAction_WeightedClusters{
+				WeightedClusters: &route.WeightedCluster{
+					Clusters: wrs,
+				},
+			},
+		}},
+	}
+	return r
+}
+
+func getRouteNamespace(ingress v1alpha12.ClusterIngress) string {
+
+	return ingress.Labels["serving.knative.dev/routeNamespace"]
+}
+
+func getRouteName(ingress v1alpha12.ClusterIngress) string {
+
+	return ingress.Labels["serving.knative.dev/route"]
+}
+
+func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList, targetPort int32) []*endpoint.LbEndpoint {
+	var result []*endpoint.LbEndpoint
 
 	for _, kubeEndpoint := range kubeEndpoints.Items {
 		for _, subset := range kubeEndpoint.Subsets {
-
-			port, err := knative.HTTPPortForEndpointSubset(service, subset)
-
-			if err != nil {
-				break
-			}
 
 			for _, address := range subset.Addresses {
 
@@ -221,7 +261,7 @@ func lbEndpointsForKubeEndpoints(service v1alpha1.Service, kubeEndpoints *kubev1
 							Protocol: core.TCP,
 							Address:  address.IP,
 							PortSpecifier: &core.SocketAddress_PortValue{
-								PortValue: port,
+								PortValue: uint32(targetPort),
 							},
 							Ipv4Compat: true,
 						},
@@ -243,15 +283,16 @@ func lbEndpointsForKubeEndpoints(service v1alpha1.Service, kubeEndpoints *kubev1
 	return result
 }
 
-func clusterForRevision(revisionName string, connectTimeout time.Duration, lbEndpoints []*endpoint.LbEndpoint) envoyv2.Cluster {
-	return envoyv2.Cluster{
-		Name: "knative_" + revisionName,
+func clusterForRevision(revisionName string, connectTimeout time.Duration, lbEndpoints []*endpoint.LbEndpoint, http2 bool, path string) envoyv2.Cluster {
+
+	cluster := envoyv2.Cluster{
+		Name: revisionName + path,
 		ClusterDiscoveryType: &envoyv2.Cluster_Type{
 			Type: envoyv2.Cluster_STRICT_DNS,
 		},
 		ConnectTimeout: &connectTimeout,
 		LoadAssignment: &envoyv2.ClusterLoadAssignment{
-			ClusterName: "knative_" + revisionName,
+			ClusterName: revisionName + path,
 			Endpoints: []*endpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: lbEndpoints,
@@ -259,51 +300,40 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, lbEnd
 			},
 		},
 	}
+
+	if http2 {
+		cluster.Http2ProtocolOptions = &core.Http2ProtocolOptions{}
+	}
+
+	return cluster
 }
 
-func weightedCluster(revisionName string, namespace string, trafficPerc uint32) route.WeightedCluster_ClusterWeight {
-	return route.WeightedCluster_ClusterWeight{
-		Name: "knative_" + revisionName,
-		Weight: &types.UInt32Value{
-			Value: trafficPerc,
-		},
-		RequestHeadersToAdd: []*core.HeaderValueOption{{
+func weightedCluster(revisionName string, trafficPerc uint32, path string, headersToAdd map[string]string) route.WeightedCluster_ClusterWeight {
+
+	var headers []*core.HeaderValueOption
+
+	for k, v := range headersToAdd {
+
+		header := core.HeaderValueOption{
 			Header: &core.HeaderValue{
-				Key:   namespaceHeader,
-				Value: namespace,
+				Key:   k,
+				Value: v,
 			},
 			Append: &types.BoolValue{
 				Value: true,
 			},
-		},
-			{
-				Header: &core.HeaderValue{
-					Key:   revisionHeader,
-					Value: revisionName,
-				},
-				Append: &types.BoolValue{
-					Value: true,
-				},
-			},
-		},
-	}
-}
+		}
 
-func routeWithWeightedClusters(serviceName string, weightedClusters []*route.WeightedCluster_ClusterWeight) route.Route {
-	return route.Route{
-		Name: "knative_" + serviceName,
-		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Prefix{
-				Prefix: "/",
-			},
+		headers = append(headers, &header)
+
+	}
+
+	return route.WeightedCluster_ClusterWeight{
+		Name: revisionName + path,
+		Weight: &types.UInt32Value{
+			Value: trafficPerc,
 		},
-		Action: &route.Route_Route{Route: &route.RouteAction{
-			ClusterSpecifier: &route.RouteAction_WeightedClusters{
-				WeightedClusters: &route.WeightedCluster{
-					Clusters: weightedClusters,
-				},
-			},
-		}},
+		RequestHeadersToAdd: headers,
 	}
 }
 
