@@ -29,8 +29,6 @@ import (
 
 const (
 	grpcMaxConcurrentStreams = 1000000
-	namespaceHeader          = "Knative-Serving-Namespace"
-	revisionHeader           = "Knative-Serving-Revision"
 )
 
 type EnvoyXdsServer struct {
@@ -118,18 +116,19 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId string, clusterIngresses *v1alpha12.ClusterIngressList) {
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId string, Ingresses []v1alpha12.IngressAccessor) {
 	var virtualHosts []*route.VirtualHost
 	var routeCache []cache.Resource
 	var clusterCache []cache.Resource
 
-	for i, clusterIngress := range clusterIngresses.Items {
+	for i, ingress := range Ingresses {
 
-		routeName := getRouteName(clusterIngress)
-		routeNamespace := getRouteNamespace(clusterIngress)
-		log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative ClusterIngress found")
+		routeName := getRouteName(ingress)
+		routeNamespace := getRouteNamespace(ingress)
 
-		for _, rule := range clusterIngress.Spec.Rules {
+		log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative Ingress found")
+
+		for _, rule := range ingress.GetSpec().Rules {
 
 			var ruleRoute []*route.Route
 			domains := rule.Hosts
@@ -237,14 +236,12 @@ func createRouteForRevision(routeName string, i int, path string, wrs []*route.W
 	return r
 }
 
-func getRouteNamespace(ingress v1alpha12.ClusterIngress) string {
-
-	return ingress.Labels["serving.knative.dev/routeNamespace"]
+func getRouteNamespace(ingress v1alpha12.IngressAccessor) string {
+	return ingress.GetLabels()["serving.knative.dev/routeNamespace"]
 }
 
-func getRouteName(ingress v1alpha12.ClusterIngress) string {
-
-	return ingress.Labels["serving.knative.dev/route"]
+func getRouteName(ingress v1alpha12.IngressAccessor) string {
+	return ingress.GetLabels()["serving.knative.dev/route"]
 }
 
 func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList, targetPort int32) []*endpoint.LbEndpoint {

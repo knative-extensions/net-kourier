@@ -5,6 +5,7 @@ import (
 	"courier/pkg/knative"
 	"courier/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"os"
 )
 
@@ -34,23 +35,38 @@ func main() {
 
 	eventsChan := make(chan string)
 
-	stopChanEndpoints := make(chan struct{})
-	go kubernetesClient.WatchChangesInEndpoints(namespace, eventsChan, stopChanEndpoints)
-
-	stopChanClusterIngress := make(chan struct{})
-	go knativeClient.WatchChangesInClusterIngress(namespace, eventsChan, stopChanClusterIngress)
+	stopChan := make(chan struct{})
+	go kubernetesClient.WatchChangesInEndpoints(namespace, eventsChan, stopChan)
+	go knativeClient.WatchChangesInClusterIngress(namespace, eventsChan, stopChan)
+	go knativeClient.WatchChangesInIngress(namespace, eventsChan, stopChan)
 
 	envoyXdsServer := envoy.NewEnvoyXdsServer(gatewayPort, managementPort, kubernetesClient)
 	go envoyXdsServer.RunManagementServer()
 	go envoyXdsServer.RunGateway()
 
 	for {
-		clusterIngresses, err := knativeClient.ClusterIngresses()
+
+		ingresses, err := knativeClient.Ingresses()
 		if err != nil {
-			panic(err)
+			log.Error(err)
 		}
 
-		envoyXdsServer.SetSnapshotForClusterIngresses(nodeID, clusterIngresses)
+		clusterIngresses, err := knativeClient.ClusterIngresses()
+		if err != nil {
+			log.Error(err)
+		}
+
+		var ingressList []v1alpha1.IngressAccessor
+
+		for i, _ := range ingresses {
+			ingressList = append(ingressList, v1alpha1.IngressAccessor(&ingresses[i]))
+		}
+
+		for i, _ := range clusterIngresses {
+			ingressList = append(ingressList, v1alpha1.IngressAccessor(&clusterIngresses[i]))
+		}
+
+		envoyXdsServer.SetSnapshotForClusterIngresses(nodeID, ingressList)
 
 		<-eventsChan // Block until there's a change in the endpoints or servings
 	}
