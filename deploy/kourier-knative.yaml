@@ -129,7 +129,7 @@ data:
         ads: {}
     node:
       cluster: test-cluster
-      id: 3scale-courier
+      id: 3scale-kourier
     static_resources:
       clusters:
         - connect_timeout: 1s

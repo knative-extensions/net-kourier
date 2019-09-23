@@ -1,4 +1,4 @@
-module courier
+module kourier
 
 go 1.13
 

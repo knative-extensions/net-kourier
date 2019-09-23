@@ -12,14 +12,14 @@ docker-run-envoy: ## Runs envoy in a docker
 
 docker-run: docker-build ## Runs kourier in a docker
 	@echo "[i] Remember to have a valid kubeconfig in $(HOME)/.kube/config"
-	docker run --rm  --name kourier -v $(HOME)/.kube:/tmp/.kube -ti 3scale-courier:test -kubeconfig /tmp/.kube/config
+	docker run --rm  --name kourier -v $(HOME)/.kube:/tmp/.kube -ti 3scale-kourier:test -kubeconfig /tmp/.kube/config
 
 build: ## Builds kourier binary, outputs binary to ./build
 	mkdir -p ./build
 	go build -o build/kourier cmd/kourier/main.go 
 
 docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
-	docker build -t 3scale-courier:test ./
+	docker build -t 3scale-kourier:test ./
 
 help: ## Print this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-39s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
