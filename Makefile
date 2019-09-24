@@ -21,5 +21,8 @@ build: ## Builds kourier binary, outputs binary to ./build
 docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 	docker build -t 3scale-kourier:test ./
 
+local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
+	./utils/setup.sh
+
 help: ## Print this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-39s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
