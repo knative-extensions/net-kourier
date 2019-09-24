@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: 3scale-kourier
+  namespace: knative-serving
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -73,6 +74,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: 3scale-kourier
+  namespace: knative-serving
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -91,6 +93,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kourier
+  namespace: knative-serving
 spec:
   ports:
     - port: 8080
@@ -106,6 +109,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kourier-bootstrap
+  namespace: knative-serving
 data:
   envoy-bootstrap.yaml: |
     admin:
