@@ -140,8 +140,6 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 					path = httpPath.Path
 				}
 
-				headersRev := httpPath.AppendHeaders
-
 				var wrs []*route.WeightedCluster_ClusterWeight
 
 				for _, split := range httpPath.Splits {
@@ -183,17 +181,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 
 				}
 
-				attempts := 0
-				var perTryTimeout time.Duration
-				if httpPath.Retries != nil {
-					attempts = httpPath.Retries.Attempts
-
-					if httpPath.Retries.PerTryTimeout != nil {
-						perTryTimeout = httpPath.Retries.PerTryTimeout.Duration
-					}
-				}
-
-				r := createRouteForRevision(routeName, i, path, wrs, attempts, perTryTimeout, headersRev)
+				r := createRouteForRevision(routeName, i, &httpPath, wrs)
 
 				ruleRoute = append(ruleRoute, &r)
 				routeCache = append(routeCache, &r)
@@ -229,25 +217,15 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 	}
 }
 
-func createRouteForRevision(routeName string, i int, path string, wrs []*route.WeightedCluster_ClusterWeight, attempts int, perTryTimeout time.Duration, headersToAdd map[string]string) route.Route {
+func createRouteForRevision(routeName string, i int, httpPath *v1alpha12.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) route.Route {
+	path := "/"
+	if httpPath.Path != "" {
+		path = httpPath.Path
+	}
 
-	// TODO: extract header generation
-	var headers []*core.HeaderValueOption
-
-	for k, v := range headersToAdd {
-
-		header := core.HeaderValueOption{
-			Header: &core.HeaderValue{
-				Key:   k,
-				Value: v,
-			},
-			Append: &types.BoolValue{
-				Value: true,
-			},
-		}
-
-		headers = append(headers, &header)
-
+	var routeTimeout time.Duration
+	if httpPath.Timeout != nil {
+		routeTimeout = httpPath.Timeout.Duration
 	}
 
 	r := route.Route{
@@ -263,15 +241,47 @@ func createRouteForRevision(routeName string, i int, path string, wrs []*route.W
 					Clusters: wrs,
 				},
 			},
-			RetryPolicy: createRetryPolicy(attempts, perTryTimeout),
+			Timeout:     &routeTimeout,
+			RetryPolicy: createRetryPolicyForRoute(httpPath),
 		}},
-		RequestHeadersToAdd:     headers,
+		RequestHeadersToAdd: headersToAdd(httpPath.AppendHeaders),
 	}
 
 	return r
 }
 
-func createRetryPolicy(attempts int, perTryTimeout time.Duration) *route.RetryPolicy {
+func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
+	var res []*core.HeaderValueOption
+
+	for headerName, headerVal := range headers {
+		header := core.HeaderValueOption{
+			Header: &core.HeaderValue{
+				Key:   headerName,
+				Value: headerVal,
+			},
+			Append: &types.BoolValue{
+				Value: true,
+			},
+		}
+
+		res = append(res, &header)
+
+	}
+
+	return res
+}
+
+func createRetryPolicyForRoute(httpPath *v1alpha12.HTTPIngressPath) *route.RetryPolicy {
+	attempts := 0
+	var perTryTimeout time.Duration
+	if httpPath.Retries != nil {
+		attempts = httpPath.Retries.Attempts
+
+		if httpPath.Retries.PerTryTimeout != nil {
+			perTryTimeout = httpPath.Retries.PerTryTimeout.Duration
+		}
+	}
+
 	if attempts > 0 {
 		return &route.RetryPolicy{
 			RetryOn: "5xx",
@@ -354,32 +364,13 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, lbEnd
 	return cluster
 }
 
-func weightedCluster(revisionName string, trafficPerc uint32, path string, headersToAdd map[string]string) route.WeightedCluster_ClusterWeight {
-
-	var headers []*core.HeaderValueOption
-
-	for k, v := range headersToAdd {
-
-		header := core.HeaderValueOption{
-			Header: &core.HeaderValue{
-				Key:   k,
-				Value: v,
-			},
-			Append: &types.BoolValue{
-				Value: true,
-			},
-		}
-
-		headers = append(headers, &header)
-
-	}
-
+func weightedCluster(revisionName string, trafficPerc uint32, path string, headers map[string]string) route.WeightedCluster_ClusterWeight {
 	return route.WeightedCluster_ClusterWeight{
 		Name: revisionName + path,
 		Weight: &types.UInt32Value{
 			Value: trafficPerc,
 		},
-		RequestHeadersToAdd: headers,
+		RequestHeadersToAdd: headersToAdd(headers),
 	}
 }
 
