@@ -193,7 +193,12 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 					}
 				}
 
-				r := createRouteForRevision(routeName, i, path, wrs, attempts, perTryTimeout, headersRev)
+				var routeTimeout time.Duration
+				if httpPath.Timeout != nil {
+					routeTimeout = httpPath.Timeout.Duration
+				}
+
+				r := createRouteForRevision(routeName, i, path, wrs, attempts, perTryTimeout, routeTimeout, headersRev)
 
 				ruleRoute = append(ruleRoute, &r)
 				routeCache = append(routeCache, &r)
@@ -229,7 +234,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 	}
 }
 
-func createRouteForRevision(routeName string, i int, path string, wrs []*route.WeightedCluster_ClusterWeight, attempts int, perTryTimeout time.Duration, headersToAdd map[string]string) route.Route {
+func createRouteForRevision(routeName string, i int, path string, wrs []*route.WeightedCluster_ClusterWeight, attempts int, perTryTimeout time.Duration, timeout time.Duration, headersToAdd map[string]string) route.Route {
 
 	// TODO: extract header generation
 	var headers []*core.HeaderValueOption
@@ -263,9 +268,10 @@ func createRouteForRevision(routeName string, i int, path string, wrs []*route.W
 					Clusters: wrs,
 				},
 			},
+			Timeout:     &timeout,
 			RetryPolicy: createRetryPolicy(attempts, perTryTimeout),
 		}},
-		RequestHeadersToAdd:     headers,
+		RequestHeadersToAdd: headers,
 	}
 
 	return r
