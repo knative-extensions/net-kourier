@@ -140,11 +140,13 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 					path = httpPath.Path
 				}
 
-				headers := httpPath.AppendHeaders
+				headersRev := httpPath.AppendHeaders
 
 				var wrs []*route.WeightedCluster_ClusterWeight
 
 				for _, split := range httpPath.Splits {
+
+					headersSplit := split.AppendHeaders
 
 					endpointList, err := envoyXdsServer.kubeClient.EndpointsForRevision(split.ServiceNamespace, split.ServiceName)
 
@@ -175,7 +177,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 					cluster := clusterForRevision(split.ServiceName, connectTimeout, lbEndpoints, http2, path)
 					clusterCache = append(clusterCache, &cluster)
 
-					weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headers)
+					weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headersSplit)
 
 					wrs = append(wrs, &weightedCluster)
 
@@ -191,7 +193,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 					}
 				}
 
-				r := createRouteForRevision(routeName, i, path, wrs, attempts, perTryTimeout)
+				r := createRouteForRevision(routeName, i, path, wrs, attempts, perTryTimeout, headersRev)
 
 				ruleRoute = append(ruleRoute, &r)
 				routeCache = append(routeCache, &r)
@@ -227,7 +229,27 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 	}
 }
 
-func createRouteForRevision(routeName string, i int, path string, wrs []*route.WeightedCluster_ClusterWeight, attempts int, perTryTimeout time.Duration) route.Route {
+func createRouteForRevision(routeName string, i int, path string, wrs []*route.WeightedCluster_ClusterWeight, attempts int, perTryTimeout time.Duration, headersToAdd map[string]string) route.Route {
+
+	// TODO: extract header generation
+	var headers []*core.HeaderValueOption
+
+	for k, v := range headersToAdd {
+
+		header := core.HeaderValueOption{
+			Header: &core.HeaderValue{
+				Key:   k,
+				Value: v,
+			},
+			Append: &types.BoolValue{
+				Value: true,
+			},
+		}
+
+		headers = append(headers, &header)
+
+	}
+
 	r := route.Route{
 		Name: routeName + "_" + strconv.Itoa(i),
 		Match: &route.RouteMatch{
@@ -243,6 +265,7 @@ func createRouteForRevision(routeName string, i int, path string, wrs []*route.W
 			},
 			RetryPolicy: createRetryPolicy(attempts, perTryTimeout),
 		}},
+		RequestHeadersToAdd:     headers,
 	}
 
 	return r
