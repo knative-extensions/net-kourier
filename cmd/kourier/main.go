@@ -63,7 +63,7 @@ func main() {
 	go knativeClient.WatchChangesInClusterIngress(namespace, eventsChan, stopChan)
 	go knativeClient.WatchChangesInIngress(namespace, eventsChan, stopChan)
 
-	envoyXdsServer := envoy.NewEnvoyXdsServer(gatewayPort, managementPort, kubernetesClient)
+	envoyXdsServer := envoy.NewEnvoyXdsServer(gatewayPort, managementPort, kubernetesClient, knativeClient)
 	go envoyXdsServer.RunManagementServer()
 	go envoyXdsServer.RunGateway()
 

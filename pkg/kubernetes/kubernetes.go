@@ -14,7 +14,7 @@ import (
 const labelPrefix = "serving.knative.dev/revision="
 
 type KubernetesClient struct {
-	client *kubernetes.Clientset
+	Client *kubernetes.Clientset
 }
 
 func NewKubernetesClient(config *rest.Config) KubernetesClient {
@@ -23,7 +23,7 @@ func NewKubernetesClient(config *rest.Config) KubernetesClient {
 		panic(err)
 	}
 
-	return KubernetesClient{client: k8sClient}
+	return KubernetesClient{Client: k8sClient}
 }
 
 func Config(kubeConfigPath string) *rest.Config {
@@ -39,16 +39,16 @@ func Config(kubeConfigPath string) *rest.Config {
 
 func (kubernetesClient *KubernetesClient) EndpointsForRevision(namespace string, revisionName string) (*v1.EndpointsList, error) {
 	listOptions := meta_v1.ListOptions{LabelSelector: labelPrefix + revisionName}
-	return kubernetesClient.client.CoreV1().Endpoints(namespace).List(listOptions)
+	return kubernetesClient.Client.CoreV1().Endpoints(namespace).List(listOptions)
 }
 
 func (kubernetesClient *KubernetesClient) ServiceForRevision(namespace string, revisionName string) (*v1.Service, error) {
-	return kubernetesClient.client.CoreV1().Services(namespace).Get(revisionName, meta_v1.GetOptions{})
+	return kubernetesClient.Client.CoreV1().Services(namespace).Get(revisionName, meta_v1.GetOptions{})
 }
 
 // Pushes an event to the "events" channel received when an endpoint is added/deleted/updated.
 func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace string, events chan<- string, stopChan <-chan struct{}) {
-	restClient := kubernetesClient.client.CoreV1().RESTClient()
+	restClient := kubernetesClient.Client.CoreV1().RESTClient()
 
 	watchlist := cache.NewListWatchFromClient(restClient, "endpoints", namespace,
 		fields.Everything())
