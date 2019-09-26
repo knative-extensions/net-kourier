@@ -1,12 +1,14 @@
 package main
 
 import (
+	"flag"
 	log "github.com/sirupsen/logrus"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"kourier/pkg/envoy"
 	"kourier/pkg/knative"
 	"kourier/pkg/kubernetes"
 	"os"
+	"path/filepath"
 )
 
 const (
@@ -14,6 +16,15 @@ const (
 	gatewayPort    = 19001
 	managementPort = 18000
 )
+
+func homeDir() string {
+	if h := os.Getenv("HOME"); h != "" {
+		return h
+	}
+	return os.Getenv("USERPROFILE") // windows
+}
+
+var kubeconfig *string
 
 func init() {
 	// Log as JSON instead of the default ASCII formatter.
@@ -25,11 +36,23 @@ func init() {
 
 	// Only log the warning severity or above.
 	log.SetLevel(log.InfoLevel)
+
+	// Parse flags
+	if home := homeDir(); home != "" {
+		kubeconfig = flag.String(
+			"kubeconfig",
+			filepath.Join(home, ".kube", "config"),
+			"(optional) absolute path to the kubeconfig file",
+		)
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	}
+	flag.Parse()
 }
 
 func main() {
 	namespace := ""
-	config := kubernetes.Config()
+	config := kubernetes.Config(*kubeconfig)
 	kubernetesClient := kubernetes.NewKubernetesClient(config)
 	knativeClient := knative.NewKnativeClient(config)
 
