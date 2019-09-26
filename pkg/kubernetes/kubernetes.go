@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"flag"
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -9,8 +8,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -29,31 +26,10 @@ func NewKubernetesClient(config *rest.Config) KubernetesClient {
 	return KubernetesClient{client: k8sClient}
 }
 
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
-}
-
-func Config() *rest.Config {
-	// Get the config, $HOME/.kube/config
-	// TODO: Read from env var
-	var kubeconfig *string
-	if home := homeDir(); home != "" {
-		kubeconfig = flag.String(
-			"kubeconfig",
-			filepath.Join(home, ".kube", "config"),
-			"(optional) absolute path to the kubeconfig file",
-		)
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
-	flag.Parse()
-
+func Config(kubeConfigPath string) *rest.Config {
 	var config *rest.Config
 	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	if err != nil {
 		config, _ = rest.InClusterConfig()
 	}
