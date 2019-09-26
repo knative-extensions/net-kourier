@@ -15,8 +15,8 @@ import (
 )
 
 type KNativeClient struct {
-	servingClient    *servingClientSet.ServingV1alpha1Client
-	networkingClient *networkingClientSet.NetworkingV1alpha1Client
+	ServingClient    *servingClientSet.ServingV1alpha1Client
+	NetworkingClient *networkingClientSet.NetworkingV1alpha1Client
 }
 
 func NewKnativeClient(config *rest.Config) KNativeClient {
@@ -28,23 +28,23 @@ func NewKnativeClient(config *rest.Config) KNativeClient {
 	if err != nil {
 		panic(err)
 	}
-	return KNativeClient{servingClient: servingClient, networkingClient: networkingClient}
+	return KNativeClient{ServingClient: servingClient, NetworkingClient: networkingClient}
 }
 
 func (kNativeClient *KNativeClient) Services(namespace string) (*v1alpha1.ServiceList, error) {
-	return kNativeClient.servingClient.Services(namespace).List(v1.ListOptions{})
+	return kNativeClient.ServingClient.Services(namespace).List(v1.ListOptions{})
 }
 
 func (kNativeClient *KNativeClient) ClusterIngresses() ([]networkingv1alpha1.ClusterIngress, error) {
 
-	list, err := kNativeClient.networkingClient.ClusterIngresses().List(v1.ListOptions{})
+	list, err := kNativeClient.NetworkingClient.ClusterIngresses().List(v1.ListOptions{})
 
 	return list.Items, err
 }
 
 func (kNativeClient *KNativeClient) Ingresses() ([]networkingv1alpha1.Ingress, error) {
 
-	list, err := kNativeClient.networkingClient.Ingresses("").List(v1.ListOptions{})
+	list, err := kNativeClient.NetworkingClient.Ingresses("").List(v1.ListOptions{})
 
 	return list.Items, err
 }
@@ -52,7 +52,7 @@ func (kNativeClient *KNativeClient) Ingresses() ([]networkingv1alpha1.Ingress, e
 // Pushes an event to the "events" channel received when theres a change in a ClusterIngress is added/deleted/updated.
 func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace string, events chan<- string, stopChan <-chan struct{}) {
 
-	restClient := kNativeClient.networkingClient.RESTClient()
+	restClient := kNativeClient.NetworkingClient.RESTClient()
 
 	watchlist := cache.NewListWatchFromClient(restClient, "clusteringresses", namespace,
 		fields.Everything())
@@ -81,11 +81,10 @@ func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace strin
 	controller.Run(stopChan)
 }
 
-
 // Pushes an event to the "events" channel received when theres a change in a Ingress is added/deleted/updated.
 func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, events chan<- string, stopChan <-chan struct{}) {
 
-	restClient := kNativeClient.networkingClient.RESTClient()
+	restClient := kNativeClient.NetworkingClient.RESTClient()
 
 	watchlist := cache.NewListWatchFromClient(restClient, "ingresses", namespace,
 		fields.Everything())
