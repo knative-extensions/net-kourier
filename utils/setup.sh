@@ -34,4 +34,4 @@ while [[ $(kubectl get pods -n knative-serving -l app=3scale-kourier -o 'jsonpat
   retries=$[$retries+1]
 done
 
-kubectl port-forward --namespace knative-serving $(kubectl get pod -n knative-serving -l "app=3scale-kourier" --output=jsonpath="{.items[0].metadata.name}") 8080:8080 19000:19000
+kubectl port-forward --namespace knative-serving $(kubectl get pod -n knative-serving -l "app=3scale-kourier" --output=jsonpath="{.items[0].metadata.name}") 8080:8080 19000:19000 &>/dev/null &
