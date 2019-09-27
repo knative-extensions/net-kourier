@@ -155,7 +155,6 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 						log.Errorf("%s", err)
 						break
 					}
-
 					service, err := envoyXdsServer.kubeClient.ServiceForRevision(split.ServiceNamespace, split.ServiceName)
 
 					if err != nil {
@@ -172,10 +171,10 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 						}
 					}
 
-					lbEndpoints := lbEndpointsForKubeEndpoints(endpointList, targetPort)
+					privateLbEndpoints, publicLbEndpoints := lbEndpointsForKubeEndpoints(endpointList, targetPort)
 
 					connectTimeout := 5 * time.Second
-					cluster := clusterForRevision(split.ServiceName, connectTimeout, lbEndpoints, http2, path)
+					cluster := clusterForRevision(split.ServiceName, connectTimeout, privateLbEndpoints, publicLbEndpoints, http2, path)
 					clusterCache = append(clusterCache, &cluster)
 
 					weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headersSplit)
@@ -233,11 +232,12 @@ func markIngressReady(ingress v1alpha12.IngressAccessor, envoyXdsServer *EnvoyXd
 	//  but that is not exactly true, it can take a while until envoy exposes the routes. Is there a way to get a "callback" from envoy?
 	var err error
 	status := ingress.GetStatus()
-	if ingress.GetGeneration() != status.ObservedGeneration && !ingress.GetStatus().IsReady() {
+	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
 
 		status.InitializeConditions()
 		status.MarkLoadBalancerReady(nil, nil, nil)
 		status.MarkNetworkConfigured()
+		status.ObservedGeneration = ingress.GetGeneration()
 		status.ObservedGeneration = ingress.GetGeneration()
 		ingress.SetStatus(*status)
 
@@ -344,10 +344,10 @@ func getRouteName(ingress v1alpha12.IngressAccessor) string {
 	return ingress.GetLabels()["serving.knative.dev/route"]
 }
 
-func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList, targetPort int32) []*endpoint.LbEndpoint {
-	var result []*endpoint.LbEndpoint
+func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList, targetPort int32) (privateLbEndpoints []*endpoint.LbEndpoint, publicLbEndpoints []*endpoint.LbEndpoint) {
 
 	for _, kubeEndpoint := range kubeEndpoints.Items {
+
 		for _, subset := range kubeEndpoint.Subsets {
 
 			for _, address := range subset.Addresses {
@@ -372,15 +372,20 @@ func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList, targetPort
 						},
 					},
 				}
-				result = append(result, &lbEndpoint)
+
+				if kubeEndpoint.Labels["networking.internal.knative.dev/serviceType"] == "Private" {
+					privateLbEndpoints = append(privateLbEndpoints, &lbEndpoint)
+				} else if kubeEndpoint.Labels["networking.internal.knative.dev/serviceType"] == "Public" {
+					publicLbEndpoints = append(publicLbEndpoints, &lbEndpoint)
+				}
 			}
 		}
 	}
 
-	return result
+	return privateLbEndpoints, publicLbEndpoints
 }
 
-func clusterForRevision(revisionName string, connectTimeout time.Duration, lbEndpoints []*endpoint.LbEndpoint, http2 bool, path string) envoyv2.Cluster {
+func clusterForRevision(revisionName string, connectTimeout time.Duration, privateLbEndpoints, publicLbEndpoints []*endpoint.LbEndpoint, http2 bool, path string) envoyv2.Cluster {
 
 	cluster := envoyv2.Cluster{
 		Name: revisionName + path,
@@ -392,7 +397,12 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, lbEnd
 			ClusterName: revisionName + path,
 			Endpoints: []*endpoint.LocalityLbEndpoints{
 				{
-					LbEndpoints: lbEndpoints,
+					LbEndpoints: publicLbEndpoints,
+					Priority:    1,
+				},
+				{
+					LbEndpoints: privateLbEndpoints,
+					Priority:    0,
 				},
 			},
 		},
