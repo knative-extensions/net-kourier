@@ -1,0 +1,30 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    machine:
+      image: ubuntu-1604:201903-01
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    working_directory: /home/circleci/go/src/github.com/3scale/kourier
+    steps:
+      - checkout
+
+      # Remove existing go and install 1.13.
+      - run: sudo apt-get remove golang-go && sudo rm -rf /usr/local/go
+      - run: wget https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz
+      - run: sudo tar -C /usr/local -xzf go1.13.1.linux-amd64.tar.gz
+      - run: export PATH=$PATH:/usr/local/go/bin
+
+      - run: curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/linux/amd64/kubectl
+      - run: chmod +x ./kubectl
+      - run: sudo mv ./kubectl /usr/local/bin/kubectl
+
+      - run: curl -s https://raw.githubusercontent.com/rancher/k3d/master/install.sh | bash
+
+      - run: make test
