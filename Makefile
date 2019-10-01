@@ -24,6 +24,11 @@ docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
 	./utils/setup.sh
 
+test: test-unit test-integration ## Runs all the tests
+
+test-unit: ## Runs unit tests
+	go test $(shell go list ./... | grep -v kourier/test)
+
 test-integration: local-setup ## Runs integration tests
 	go test test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
 
