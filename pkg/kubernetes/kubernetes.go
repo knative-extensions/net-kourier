@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -73,6 +74,12 @@ func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace stri
 			},
 		},
 	)
+
+	// Wait until caches are sync'd to avoid receiving many events at boot
+	sync := cache.WaitForCacheSync(stopChan, controller.HasSynced)
+	if !sync {
+		log.Error("Error while waiting for caches sync")
+	}
 
 	controller.Run(stopChan)
 }
