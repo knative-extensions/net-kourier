@@ -1,16 +1,15 @@
 package knative
 
 import (
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
-
 	networkingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
-
 	"time"
 )
 
@@ -77,6 +76,12 @@ func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace strin
 			},
 		},
 	)
+
+	// Wait until caches are sync'd to avoid receiving many events at boot
+	sync := cache.WaitForCacheSync(stopChan, controller.HasSynced)
+	if !sync {
+		log.Error("Error while waiting for caches sync")
+	}
 
 	controller.Run(stopChan)
 }
