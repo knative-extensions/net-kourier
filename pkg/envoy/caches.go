@@ -4,7 +4,6 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslogv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
@@ -14,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"os"
 	"strconv"
 	"time"
 )
@@ -28,6 +28,7 @@ type Caches struct {
 type KubeClient interface {
 	EndpointsForRevision(namespace string, serviceName string) (*kubev1.EndpointsList, error)
 	ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error)
+	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
 
 func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient) Caches {
@@ -113,8 +114,12 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 	}
 
 	manager := httpConnectionManager(virtualHosts)
-	l := envoyListener(&manager)
-	listenerCache := []cache.Resource{&l}
+	envoyListener, err := newEnvoyListener(useHTTPSListener(), &manager, kubeClient)
+	if err != nil {
+		panic(err)
+	}
+
+	listenerCache := []cache.Resource{envoyListener}
 
 	return Caches{
 		endpoints: []cache.Resource{},
@@ -291,32 +296,9 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, priva
 	return cluster
 }
 
-func envoyListener(httpConnectionManager *httpconnectionmanagerv2.HttpConnectionManager) v2.Listener {
-	pbst, err := util.MessageToStruct(httpConnectionManager)
-	if err != nil {
-		panic(err)
-	}
-
-	return v2.Listener{
-		Name: "listener_0",
-		Address: &core.Address{
-			Address: &core.Address_SocketAddress{
-				SocketAddress: &core.SocketAddress{
-					Protocol: core.TCP,
-					Address:  "0.0.0.0",
-					PortSpecifier: &core.SocketAddress_PortValue{
-						PortValue: uint32(8080),
-					},
-				},
-			},
-		},
-		FilterChains: []*listener.FilterChain{{
-			Filters: []*listener.Filter{{
-				Name:       util.HTTPConnectionManager,
-				ConfigType: &listener.Filter_Config{Config: pbst},
-			}},
-		}},
-	}
+func useHTTPSListener() bool {
+	return os.Getenv(envCertsSecretNamespace) != "" &&
+		os.Getenv(envCertsSecretName) != ""
 }
 
 func httpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
