@@ -2,18 +2,16 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-#sudo snap install microk8s --classic
-
-
 if ! command -v microk8s.kubectl >/dev/null; then
   echo "You need to install microk8s"
   exit 1
 fi
 
 tag="test_$(git rev-parse --abbrev-ref HEAD)"
-
-sleep 30
-microk8s.kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/serving-core.yaml
+microk8s.kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/serving-core.yaml || true
+mkdir -p "$HOME"/.kube/
+microk8s.kubectl config view --raw > "$HOME"/.kube/config
+chown -R circleci "$HOME"/.kube
 
 docker build -t 3scale-kourier:"$tag" ./
 docker image save 3scale-kourier:"$tag" > image.tar
@@ -31,5 +29,6 @@ while [[ $(microk8s.kubectl get pods -n knative-serving -l app=3scale-kourier -o
   fi
   retries=$[$retries+1]
 done
+
 
 microk8s.kubectl port-forward --namespace knative-serving $(microk8s.kubectl get pod -n knative-serving -l "app=3scale-kourier" --output=jsonpath="{.items[0].metadata.name}") 8080:8080 19000:19000 &>/dev/null &

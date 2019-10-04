@@ -25,7 +25,7 @@ local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative
 	./utils/setup.sh
 
 circleci-setup: ## Builds and deploys kourier locally in a microk8s cluster with knative, forwards the local 8080 to kourier/envoy
-	./utils/setup-circleci.sh
+	sudo ./utils/setup-circleci.sh
 
 test-circleci: test-unit test-integration-circleci ## Runs all the tests for circleCI use.
 
@@ -38,7 +38,7 @@ test-integration: local-setup ## Runs integration tests
 	go test test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
 
 test-integration-circleci: circleci-setup ## Runs integration tests for circleCI
-	go test test/* -args -kubeconfig="$HOME/.kube/config"
+	go test test/* -args -kubeconfig="$(HOME)/.kube/config"
 
 help: ## Print this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-39s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)

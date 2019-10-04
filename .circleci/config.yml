@@ -1,7 +1,7 @@
 # Golang CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
-version: 2
+version: 2.1
 jobs:
   build:
     machine:
@@ -17,14 +17,7 @@ jobs:
 
       # Remove existing go and install 1.13.
       - run: sudo apt-get remove golang-go && sudo rm -rf /usr/local/go
-      - run: wget https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz
-      - run: sudo tar -C /usr/local -xzf go1.13.1.linux-amd64.tar.gz
-      - run: export PATH=$PATH:/usr/local/go/bin
-
-      - run: curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/linux/amd64/kubectl
-      - run: chmod +x ./kubectl
-      - run: sudo mv ./kubectl /usr/local/bin/kubectl
-
-      - run: curl -s https://raw.githubusercontent.com/rancher/k3d/master/install.sh | bash
-
-      - run: make test
+      - run: wget https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz -O /tmp/go1.13.1.linux-amd64.tar.gz
+      - run: sudo tar -C /usr/local -xzf /tmp/go1.13.1.linux-amd64.tar.gz
+      - run: sudo snap install microk8s --classic
+      - run: PATH=$PATH:/usr/local/go/bin:/snap/bin/ make test-circleci
