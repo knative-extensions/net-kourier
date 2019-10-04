@@ -56,7 +56,7 @@ func main() {
 	kubernetesClient := kubernetes.NewKubernetesClient(config)
 	knativeClient := knative.NewKnativeClient(config)
 
-	eventsChan := make(chan string)
+	eventsChan := make(chan struct{})
 
 	stopChan := make(chan struct{})
 	go kubernetesClient.WatchChangesInEndpoints(namespace, eventsChan, stopChan)

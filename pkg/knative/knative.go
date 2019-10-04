@@ -49,7 +49,7 @@ func (kNativeClient *KNativeClient) Ingresses() ([]networkingv1alpha1.Ingress, e
 }
 
 // Pushes an event to the "events" channel received when theres a change in a ClusterIngress is added/deleted/updated.
-func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace string, events chan<- string, stopChan <-chan struct{}) {
+func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace string, events chan<- struct{}, stopChan <-chan struct{}) {
 
 	restClient := kNativeClient.NetworkingClient.RESTClient()
 
@@ -62,16 +62,16 @@ func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace strin
 		time.Second*30, //TODO: Review resync time and adjust.
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				events <- "change"
+				events <- struct{}{}
 			},
 
 			DeleteFunc: func(obj interface{}) {
-				events <- "change"
+				events <- struct{}{}
 			},
 
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				if oldObj != newObj {
-					events <- "change"
+					events <- struct{}{}
 				}
 			},
 		},
@@ -87,7 +87,7 @@ func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace strin
 }
 
 // Pushes an event to the "events" channel received when theres a change in a Ingress is added/deleted/updated.
-func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, events chan<- string, stopChan <-chan struct{}) {
+func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, events chan<- struct{}, stopChan <-chan struct{}) {
 
 	restClient := kNativeClient.NetworkingClient.RESTClient()
 
@@ -100,16 +100,16 @@ func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, even
 		time.Second*30, //TODO: Review resync time and adjust.
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				events <- "change"
+				events <- struct{}{}
 			},
 
 			DeleteFunc: func(obj interface{}) {
-				events <- "change"
+				events <- struct{}{}
 			},
 
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				if oldObj != newObj {
-					events <- "change"
+					events <- struct{}{}
 				}
 			},
 		},

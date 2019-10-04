@@ -52,7 +52,7 @@ func (kubernetesClient *KubernetesClient) GetSecret(namespace string, secretName
 }
 
 // Pushes an event to the "events" channel received when an endpoint is added/deleted/updated.
-func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace string, events chan<- string, stopChan <-chan struct{}) {
+func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace string, events chan<- struct{}, stopChan <-chan struct{}) {
 	restClient := kubernetesClient.Client.CoreV1().RESTClient()
 
 	watchlist := cache.NewListWatchFromClient(restClient, "endpoints", namespace,
@@ -64,16 +64,16 @@ func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace stri
 		time.Second*30,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				events <- "change"
+				events <- struct{}{}
 			},
 
 			DeleteFunc: func(obj interface{}) {
-				events <- "change"
+				events <- struct{}{}
 			},
 
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				if oldObj != newObj {
-					events <- "change"
+					events <- struct{}{}
 				}
 			},
 		},
