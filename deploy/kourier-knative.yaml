@@ -43,6 +43,11 @@ spec:
           resources: {}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
+          env:
+            - name: CERTS_SECRET_NAMESPACE
+              value: ""
+            - name: CERTS_SECRET_NAME
+              value: ""
       volumes:
         - name: config-volume
           configMap:
@@ -61,7 +66,7 @@ metadata:
   namespace: knative-serving
 rules:
   - apiGroups: [""]
-    resources: [ "endpoints", "namespaces", "services" ]
+    resources: [ "endpoints", "namespaces", "services", "secrets"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["networking.internal.knative.dev"]
     resources: ["clusteringresses","ingresses"]

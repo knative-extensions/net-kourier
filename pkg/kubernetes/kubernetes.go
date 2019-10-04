@@ -47,6 +47,10 @@ func (kubernetesClient *KubernetesClient) ServiceForRevision(namespace string, r
 	return kubernetesClient.Client.CoreV1().Services(namespace).Get(revisionName, meta_v1.GetOptions{})
 }
 
+func (kubernetesClient *KubernetesClient) GetSecret(namespace string, secretName string) (*v1.Secret, error) {
+	return kubernetesClient.Client.CoreV1().Secrets(namespace).Get(secretName, meta_v1.GetOptions{})
+}
+
 // Pushes an event to the "events" channel received when an endpoint is added/deleted/updated.
 func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace string, events chan<- string, stopChan <-chan struct{}) {
 	restClient := kubernetesClient.Client.CoreV1().RESTClient()

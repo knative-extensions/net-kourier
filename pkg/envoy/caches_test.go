@@ -140,6 +140,10 @@ func (kubeClient *mockedKubeClient) ServiceForRevision(namespace string, service
 	return &service, nil
 }
 
+func (kubeClient *mockedKubeClient) GetSecret(namespace string, secretName string) (*kubev1.Secret, error) {
+	return nil, nil
+}
+
 func newMockedKubeClient() *mockedKubeClient {
 	return new(mockedKubeClient)
 }
