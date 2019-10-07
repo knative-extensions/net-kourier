@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+const (
+	internalDomain = "3scale-kourier.knative-serving.svc.cluster.local"
+)
+
 type KNativeClient struct {
 	ServingClient    *servingClientSet.ServingV1alpha1Client
 	NetworkingClient *networkingClientSet.NetworkingV1alpha1Client
@@ -127,7 +131,14 @@ func (kNativeClient *KNativeClient) MarkIngressReady(ingress networkingv1alpha1.
 	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
 
 		status.InitializeConditions()
-		status.MarkLoadBalancerReady(nil, nil, nil)
+		status.MarkLoadBalancerReady(
+			[]networkingv1alpha1.LoadBalancerIngressStatus{
+				{
+					DomainInternal: internalDomain,
+				},
+			},
+			nil,
+			nil)
 		status.MarkNetworkConfigured()
 		status.ObservedGeneration = ingress.GetGeneration()
 		status.ObservedGeneration = ingress.GetGeneration()
