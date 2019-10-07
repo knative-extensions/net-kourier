@@ -132,41 +132,10 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 		log.Error(err)
 	} else {
 		for _, ingress := range Ingresses {
-			err := markIngressReady(ingress, envoyXdsServer)
+			err := envoyXdsServer.knativeClient.MarkIngressReady(ingress)
 			if err != nil {
 				log.Error(err)
 			}
 		}
 	}
-}
-
-func markIngressReady(ingress v1alpha12.IngressAccessor, envoyXdsServer *EnvoyXdsServer) error {
-	// TODO: Improve. Currently once we go trough the generation of the envoy cache, we mark the objects as Ready,
-	//  but that is not exactly true, it can take a while until envoy exposes the routes. Is there a way to get a "callback" from envoy?
-	var err error
-	status := ingress.GetStatus()
-	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
-
-		status.InitializeConditions()
-		status.MarkLoadBalancerReady(nil, nil, nil)
-		status.MarkNetworkConfigured()
-		status.ObservedGeneration = ingress.GetGeneration()
-		status.ObservedGeneration = ingress.GetGeneration()
-		ingress.SetStatus(*status)
-
-		// Handle both types of ingresses
-		switch ingress.(type) {
-		case *v1alpha12.ClusterIngress:
-			in := ingress.(*v1alpha12.ClusterIngress)
-			_, err = envoyXdsServer.knativeClient.NetworkingClient.ClusterIngresses().UpdateStatus(in)
-			return err
-		case *v1alpha12.Ingress:
-			in := ingress.(*v1alpha12.Ingress)
-			_, err = envoyXdsServer.knativeClient.NetworkingClient.Ingresses(ingress.GetNamespace()).UpdateStatus(in)
-			return err
-		default:
-			return fmt.Errorf("can't update object, not Ingress or ClusterIngress")
-		}
-	}
-	return nil
 }

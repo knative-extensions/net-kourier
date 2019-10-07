@@ -1,6 +1,7 @@
 package knative
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -116,4 +117,35 @@ func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, even
 	)
 
 	controller.Run(stopChan)
+}
+
+func (kNativeClient *KNativeClient) MarkIngressReady(ingress networkingv1alpha1.IngressAccessor) error {
+	// TODO: Improve. Currently once we go trough the generation of the envoy cache, we mark the objects as Ready,
+	//  but that is not exactly true, it can take a while until envoy exposes the routes. Is there a way to get a "callback" from envoy?
+	var err error
+	status := ingress.GetStatus()
+	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
+
+		status.InitializeConditions()
+		status.MarkLoadBalancerReady(nil, nil, nil)
+		status.MarkNetworkConfigured()
+		status.ObservedGeneration = ingress.GetGeneration()
+		status.ObservedGeneration = ingress.GetGeneration()
+		ingress.SetStatus(*status)
+
+		// Handle both types of ingresses
+		switch ingress.(type) {
+		case *networkingv1alpha1.ClusterIngress:
+			in := ingress.(*networkingv1alpha1.ClusterIngress)
+			_, err = kNativeClient.NetworkingClient.ClusterIngresses().UpdateStatus(in)
+			return err
+		case *networkingv1alpha1.Ingress:
+			in := ingress.(*networkingv1alpha1.Ingress)
+			_, err = kNativeClient.NetworkingClient.Ingresses(ingress.GetNamespace()).UpdateStatus(in)
+			return err
+		default:
+			return fmt.Errorf("can't update object, not Ingress or ClusterIngress")
+		}
+	}
+	return nil
 }
