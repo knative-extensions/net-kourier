@@ -202,7 +202,13 @@ func createRouteForRevision(routeName string, i int, httpPath *v1alpha1.HTTPIngr
 					Clusters: wrs,
 				},
 			},
-			Timeout:     &routeTimeout,
+			Timeout: &routeTimeout,
+			UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
+				UpgradeType: "websocket",
+				Enabled: &types.BoolValue{
+					Value: true,
+				},
+			},},
 			RetryPolicy: createRetryPolicyForRoute(httpPath),
 		}},
 		RequestHeadersToAdd: headersToAdd(httpPath.AppendHeaders),
