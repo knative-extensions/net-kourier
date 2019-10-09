@@ -46,7 +46,15 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 		for _, rule := range ingress.GetSpec().Rules {
 
 			var ruleRoute []*route.Route
-			domains := rule.Hosts
+			var domains []string
+
+			// Somehow envoy doesn't match properly gRPC authorities with ports.
+			// This is the fix...
+			// More info https://github.com/envoyproxy/envoy/issues/886
+			for _, host := range rule.Hosts {
+				domains = append(domains, host)
+				domains = append(domains, host+":*")
+			}
 
 			for _, httpPath := range rule.HTTP.Paths {
 
