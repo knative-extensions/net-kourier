@@ -40,15 +40,21 @@ func (kNativeClient *KNativeClient) Services(namespace string) (*v1alpha1.Servic
 }
 
 func (kNativeClient *KNativeClient) ClusterIngresses() ([]networkingv1alpha1.ClusterIngress, error) {
-
 	list, err := kNativeClient.NetworkingClient.ClusterIngresses().List(v1.ListOptions{})
+
+	if err != nil {
+		return nil, err
+	}
 
 	return list.Items, err
 }
 
 func (kNativeClient *KNativeClient) Ingresses() ([]networkingv1alpha1.Ingress, error) {
-
 	list, err := kNativeClient.NetworkingClient.Ingresses("").List(v1.ListOptions{})
+
+	if err != nil {
+		return nil, err
+	}
 
 	return list.Items, err
 }
