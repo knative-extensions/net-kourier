@@ -43,6 +43,22 @@ $(kubectl get pod -n knative-serving -l "app=3scale-kourier"
 - TLS
 
 
+
+## Setup TLS certificate
+
+Create a secret containing your TLS certificate and Private key:
+
+```
+kubectl create secret tls ${CERT_NAME} --key ${KEY_FILE} --cert ${CERT_FILE}
+```
+
+Add the following env vars to 3scale-Kourier in the "kourier" container : 
+
+```
+CERTS_SECRET_NAMESPACE: ${NAMESPACES_WHERE_THE_SECRET_HAS_BEEN_CREATED}
+CERTS_SECRET_NAME: ${CERT_NAME}
+```
+
 ## Development
 
 - Run the test suite:
