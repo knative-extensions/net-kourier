@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"fmt"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -15,30 +16,35 @@ const (
 	envCertsSecretName      = "CERTS_SECRET_NAME"
 	certFieldInSecret       = "tls.crt"
 	keyFieldInSecret        = "tls.key"
-	httpPort                = uint32(8080)
-	httpsPort               = uint32(8443)
+	httpPortExternal        = uint32(8080)
+	httpPortInternal        = uint32(8081)
+	httpsPortExternal       = uint32(8443)
 )
 
-func newEnvoyListener(https bool,
+func newExternalEnvoyListener(https bool,
 	manager *httpconnmanagerv2.HttpConnectionManager,
 	kubeClient KubeClient) (*v2.Listener, error) {
 
 	if https {
-		return envoyHTTPSListener(manager, kubeClient)
+		return envoyHTTPSListener(manager, kubeClient, httpsPortExternal)
 	} else {
-		return envoyHTTPListener(manager)
+		return envoyHTTPListener(manager, httpPortExternal)
 	}
 }
 
-func envoyHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
+func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
+	return envoyHTTPListener(manager, httpPortInternal)
+}
+
+func envoyHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint32) (*v2.Listener, error) {
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
 	}
 
 	envoyListener := &v2.Listener{
-		Name:    "listener_0",
-		Address: createAddress(httpPort),
+		Name:    fmt.Sprintf("listener_%d", port),
+		Address: createAddress(port),
 		FilterChains: []*listener.FilterChain{
 			{
 				Filters: filters,
@@ -50,7 +56,8 @@ func envoyHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Li
 }
 
 func envoyHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
-	kubeClient KubeClient) (*v2.Listener, error) {
+	kubeClient KubeClient,
+	port uint32) (*v2.Listener, error) {
 
 	secret, err := kubeClient.GetSecret(os.Getenv(envCertsSecretNamespace),
 		os.Getenv(envCertsSecretName))
@@ -67,8 +74,8 @@ func envoyHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 	}
 
 	envoyListener := v2.Listener{
-		Name:    "listener_0",
-		Address: createAddress(httpsPort),
+		Name:    fmt.Sprintf("listener_%d", port),
+		Address: createAddress(port),
 		FilterChains: []*listener.FilterChain{
 			{
 				TlsContext: createTLSContext(certificateChain, privateKey),

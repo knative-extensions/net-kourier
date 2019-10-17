@@ -32,14 +32,17 @@ type KubeClient interface {
 }
 
 func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient) Caches {
-	var virtualHosts []*route.VirtualHost
+	var clusterLocalVirtualHosts []*route.VirtualHost
+	var externalVirtualHosts []*route.VirtualHost
+
 	var routeCache []cache.Resource
 	var clusterCache []cache.Resource
 
 	for i, ingress := range Ingresses {
-
 		routeName := getRouteName(ingress)
 		routeNamespace := getRouteNamespace(ingress)
+
+		ingressVisibility := ingress.GetSpec().Visibility
 
 		log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative Ingress found")
 
@@ -116,18 +119,37 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 				Routes:  ruleRoute,
 			}
 
-			virtualHosts = append(virtualHosts, &virtualHost)
+			switch rule.Visibility {
+			case v1alpha1.IngressVisibilityExternalIP:
+				externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
+				clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &virtualHost)
+			case v1alpha1.IngressVisibilityClusterLocal:
+				clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &virtualHost)
+			default:
+				if ingressVisibility == v1alpha1.IngressVisibilityClusterLocal {
+					clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &virtualHost)
+				} else { // KNative defaults to external
+					externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
+					clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &virtualHost)
+				}
+			}
 		}
-
 	}
 
-	manager := httpConnectionManager(virtualHosts)
-	envoyListener, err := newEnvoyListener(useHTTPSListener(), &manager, kubeClient)
+	externalManager := httpConnectionManager(externalVirtualHosts)
+	internalManager := httpConnectionManager(clusterLocalVirtualHosts)
+
+	externalEnvoyListener, err := newExternalEnvoyListener(useHTTPSListener(), &externalManager, kubeClient)
 	if err != nil {
 		panic(err)
 	}
 
-	listenerCache := []cache.Resource{envoyListener}
+	internalEnvoyListener, err := newInternalEnvoyListener(&internalManager)
+	if err != nil {
+		panic(err)
+	}
+
+	listenerCache := []cache.Resource{externalEnvoyListener, internalEnvoyListener}
 
 	return Caches{
 		endpoints: []cache.Resource{},
@@ -216,7 +238,7 @@ func createRouteForRevision(routeName string, i int, httpPath *v1alpha1.HTTPIngr
 				Enabled: &types.BoolValue{
 					Value: true,
 				},
-			},},
+			}},
 			RetryPolicy: createRetryPolicyForRoute(httpPath),
 		}},
 		RequestHeadersToAdd: headersToAdd(httpPath.AppendHeaders),
