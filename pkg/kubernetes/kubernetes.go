@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -9,6 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/workqueue"
 	"time"
 )
 
@@ -51,8 +51,8 @@ func (kubernetesClient *KubernetesClient) GetSecret(namespace string, secretName
 	return kubernetesClient.Client.CoreV1().Secrets(namespace).Get(secretName, meta_v1.GetOptions{})
 }
 
-// Pushes an event to the "events" channel received when an endpoint is added/deleted/updated.
-func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace string, events chan<- struct{}, stopChan <-chan struct{}) {
+// Pushes an event to the "events" queue received when an endpoint is added/deleted/updated.
+func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace string, eventsQueue *workqueue.Type, stopChan <-chan struct{}) {
 	restClient := kubernetesClient.Client.CoreV1().RESTClient()
 
 	watchlist := cache.NewListWatchFromClient(restClient, "endpoints", namespace,
@@ -64,26 +64,20 @@ func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace stri
 		time.Second*30,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				events <- struct{}{}
+				eventsQueue.Add(struct{}{})
 			},
 
 			DeleteFunc: func(obj interface{}) {
-				events <- struct{}{}
+				eventsQueue.Add(struct{}{})
 			},
 
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				if oldObj != newObj {
-					events <- struct{}{}
+					eventsQueue.Add(struct{}{})
 				}
 			},
 		},
 	)
-
-	// Wait until caches are sync'd to avoid receiving many events at boot
-	sync := cache.WaitForCacheSync(stopChan, controller.HasSynced)
-	if !sync {
-		log.Error("Error while waiting for caches sync")
-	}
 
 	controller.Run(stopChan)
 }

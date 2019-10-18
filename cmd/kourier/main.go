@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/util/workqueue"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"kourier/pkg/envoy"
 	"kourier/pkg/knative"
@@ -56,18 +57,30 @@ func main() {
 	kubernetesClient := kubernetes.NewKubernetesClient(config)
 	knativeClient := knative.NewKnativeClient(config)
 
-	eventsChan := make(chan struct{})
+	eventsQueue := workqueue.New()
 
 	stopChan := make(chan struct{})
-	go kubernetesClient.WatchChangesInEndpoints(namespace, eventsChan, stopChan)
-	go knativeClient.WatchChangesInClusterIngress(namespace, eventsChan, stopChan)
-	go knativeClient.WatchChangesInIngress(namespace, eventsChan, stopChan)
+	go kubernetesClient.WatchChangesInEndpoints(namespace, eventsQueue, stopChan)
+	go knativeClient.WatchChangesInClusterIngress(namespace, eventsQueue, stopChan)
+	go knativeClient.WatchChangesInIngress(namespace, eventsQueue, stopChan)
 
 	envoyXdsServer := envoy.NewEnvoyXdsServer(gatewayPort, managementPort, kubernetesClient, knativeClient)
 	go envoyXdsServer.RunManagementServer()
 	go envoyXdsServer.RunGateway()
 
+	// To make sure that the config is going to load at the start
+	eventsQueue.Add(struct{}{})
+
 	for {
+		// Wait until there's an event to refresh the config.
+		// For now, we don't act differently according to the type of event, we
+		// just refresh the whole config.
+		refreshConfigEvent, shutdown := eventsQueue.Get()
+		eventsQueue.Done(refreshConfigEvent)
+
+		if shutdown { // The queue was closed. Should never happen.
+			panic("The events queue was closed")
+		}
 
 		ingresses, err := knativeClient.Ingresses()
 		if err != nil {
@@ -90,7 +103,5 @@ func main() {
 		}
 
 		envoyXdsServer.SetSnapshotForClusterIngresses(nodeID, ingressList)
-
-		<-eventsChan // Block until there's a change in the endpoints or servings
 	}
 }
