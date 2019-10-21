@@ -2,11 +2,11 @@ package knative
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
 	networkingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
@@ -59,8 +59,8 @@ func (kNativeClient *KNativeClient) Ingresses() ([]networkingv1alpha1.Ingress, e
 	return list.Items, err
 }
 
-// Pushes an event to the "events" channel received when theres a change in a ClusterIngress is added/deleted/updated.
-func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace string, events chan<- struct{}, stopChan <-chan struct{}) {
+// Pushes an event to the "events" queue received when theres a change in a ClusterIngress is added/deleted/updated.
+func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace string, eventsQueue *workqueue.Type, stopChan <-chan struct{}) {
 
 	restClient := kNativeClient.NetworkingClient.RESTClient()
 
@@ -73,32 +73,26 @@ func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace strin
 		time.Second*30, //TODO: Review resync time and adjust.
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				events <- struct{}{}
+				eventsQueue.Add(struct{}{})
 			},
 
 			DeleteFunc: func(obj interface{}) {
-				events <- struct{}{}
+				eventsQueue.Add(struct{}{})
 			},
 
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				if oldObj != newObj {
-					events <- struct{}{}
+					eventsQueue.Add(struct{}{})
 				}
 			},
 		},
 	)
 
-	// Wait until caches are sync'd to avoid receiving many events at boot
-	sync := cache.WaitForCacheSync(stopChan, controller.HasSynced)
-	if !sync {
-		log.Error("Error while waiting for caches sync")
-	}
-
 	controller.Run(stopChan)
 }
 
-// Pushes an event to the "events" channel received when theres a change in a Ingress is added/deleted/updated.
-func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, events chan<- struct{}, stopChan <-chan struct{}) {
+// Pushes an event to the "events" queue received when theres a change in a Ingress is added/deleted/updated.
+func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, eventsQueue *workqueue.Type, stopChan <-chan struct{}) {
 
 	restClient := kNativeClient.NetworkingClient.RESTClient()
 
@@ -111,16 +105,16 @@ func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, even
 		time.Second*30, //TODO: Review resync time and adjust.
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				events <- struct{}{}
+				eventsQueue.Add(struct{}{})
 			},
 
 			DeleteFunc: func(obj interface{}) {
-				events <- struct{}{}
+				eventsQueue.Add(struct{}{})
 			},
 
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				if oldObj != newObj {
-					events <- struct{}{}
+					eventsQueue.Add(struct{}{})
 				}
 			},
 		},
