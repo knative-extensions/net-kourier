@@ -14,7 +14,7 @@ func TestCreateHTTPListener(t *testing.T) {
 	manager := httpConnectionManager([]*route.VirtualHost{})
 	KubeClient := newMockedKubeClientListener("", "")
 
-	l, err := newEnvoyListener(false, &manager, KubeClient)
+	l, err := newExternalEnvoyListener(false, &manager, KubeClient)
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,7 +37,7 @@ func TestCreateHTTPSListener(t *testing.T) {
 
 	manager := httpConnectionManager([]*route.VirtualHost{})
 
-	l, err := newEnvoyListener(true, &manager, KubeClient)
+	l, err := newExternalEnvoyListener(true, &manager, KubeClient)
 	if err != nil {
 		t.Error(err)
 	}
