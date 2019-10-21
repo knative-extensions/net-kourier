@@ -1,8 +1,32 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+spec:
+status:
+  phase: Active
+---
+apiVersion: v1
 kind: Service
 metadata:
-  name: kourier
-  namespace: knative-serving
+  name: istio-ingressgateway
+  namespace: istio-system
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: 3scale-kourier
+  type: LoadBalancer
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier-external
+  namespace: istio-system
 spec:
   ports:
     - port: 80
@@ -14,11 +38,27 @@ spec:
 status:
   loadBalancer: {}
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier-internal
+  namespace: istio-system
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8081
+  selector:
+    app: 3scale-kourier
+  type: ClusterIP
+status:
+  loadBalancer: {}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: 3scale-kourier
-  namespace: knative-serving
+  namespace: istio-system
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -82,7 +122,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: 3scale-kourier
-  namespace: knative-serving
+  namespace: istio-system
 rules:
   - apiGroups: [""]
     resources: [ "endpoints", "namespaces", "services", "secrets"]
@@ -101,7 +141,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: 3scale-kourier
-  namespace: knative-serving
+  namespace: istio-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -114,48 +154,16 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: 3scale-kourier
-    namespace: knative-serving
+    namespace: istio-system
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: kourier
-  namespace: knative-serving
+  namespace: istio-system
 spec:
   ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 8080
-  selector:
-    app: 3scale-kourier
-  type: ClusterIP
-status:
-  loadBalancer: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kourier-internal
-  namespace: knative-serving
-spec:
-  ports:
-    - port: 80
-      protocol: TCP
-      targetPort: 8081
-  selector:
-    app: 3scale-kourier
-  type: ClusterIP
-status:
-  loadBalancer: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kourier-external
-  namespace: knative-serving
-spec:
-  ports:
-    - port: 80
+    - port: 8080
       protocol: TCP
       targetPort: 8080
   selector:
@@ -168,7 +176,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kourier-bootstrap
-  namespace: knative-serving
+  namespace: istio-system
 data:
   envoy-bootstrap.yaml: |
     admin:
