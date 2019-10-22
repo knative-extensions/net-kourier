@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"fmt"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -32,6 +33,9 @@ type KubeClient interface {
 	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
 
+// TODO: read from /etc/resolv.conf
+const defaultDomainName = "cluster.local"
+
 func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient) Caches {
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
@@ -50,7 +54,8 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 		for _, rule := range ingress.GetSpec().Rules {
 
 			var ruleRoute []*route.Route
-			var domains []string
+			var externalDomains []string
+			var internalDomains []string
 
 			// Somehow envoy doesn't match properly gRPC authorities with ports.
 			// This is the fix...
@@ -60,17 +65,20 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 				// Generates :
 				// 		* subroute_host.namespace
 				//		* subroute_host.namespace.svc
-				if strings.Contains(host, ".svc.cluster.local") {
+				if strings.Contains(host, defaultDomainName) {
 					splits := strings.Split(host, ".")
 					domain := splits[0] + "." + splits[1]
-					domains = append(domains, domain)
-					domains = append(domains, domain+":*")
+					internalDomains = append(internalDomains, domain)
+					internalDomains = append(internalDomains, domain+":*")
 					domain = splits[0] + "." + splits[1] + ".svc"
-					domains = append(domains, domain)
-					domains = append(domains, domain+":*")
+					internalDomains = append(internalDomains, domain)
+					internalDomains = append(internalDomains, domain+":*")
+					internalDomains = append(internalDomains, host)
+					internalDomains = append(internalDomains, host+":*")
+				} else {
+					externalDomains = append(externalDomains, host)
+					externalDomains = append(externalDomains, host+":*")
 				}
-				domains = append(domains, host)
-				domains = append(domains, host+":*")
 			}
 
 			for _, httpPath := range rule.HTTP.Paths {
@@ -129,22 +137,32 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 			virtualHost := route.VirtualHost{
 				Name:    routeName,
-				Domains: domains,
+				Domains: externalDomains,
 				Routes:  ruleRoute,
 			}
+
+			internalDomains = append(internalDomains, externalDomains...)
+			internalVirtualHost := route.VirtualHost{
+				Name:    routeName,
+				Domains: internalDomains,
+				Routes:  ruleRoute,
+			}
+
+			fmt.Printf("INTERNAL: %s\n", internalDomains)
+			fmt.Printf("EXTERNAL: %s\n", externalDomains)
 
 			switch rule.Visibility {
 			case v1alpha1.IngressVisibilityExternalIP:
 				externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
-				clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &virtualHost)
+				clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
 			case v1alpha1.IngressVisibilityClusterLocal:
-				clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &virtualHost)
+				clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
 			default:
 				if ingressVisibility == v1alpha1.IngressVisibilityClusterLocal {
-					clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &virtualHost)
+					clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
 				} else { // KNative defaults to external
 					externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
-					clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &virtualHost)
+					clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
 				}
 			}
 		}

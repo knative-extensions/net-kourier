@@ -22,6 +22,7 @@ has been deployed. "utils/setup.sh" can be used to do that.
 */
 const namespace string = "default"
 const clusterURL string = "http://localhost:8080"
+const domain string = "example.com"
 
 var kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 
@@ -42,7 +43,7 @@ func TestSimpleScenario(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Host = fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, namespace)
+	req.Host = fmt.Sprintf("%s.%s.%s", service.Name, namespace, domain)
 
 	// Do the request
 	resp, err := client.Do(req)
