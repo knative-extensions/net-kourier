@@ -7,7 +7,7 @@ Kourier consists of an Envoy proxy and a control plane for it. Kourier is meant
 to be a lightweight replacement for the Istio ingress. In the future, it
 will provide API management capabilities.
 
-This project is under early development. We are working on passing all the
+This project is under early development, but it already passes all the
 end-to-end tests of the Knative suite.
 
 - [**Getting started**](#getting-started)
