@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/util/workqueue"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"kourier/pkg/envoy"
@@ -52,7 +53,8 @@ func init() {
 }
 
 func main() {
-	namespace := ""
+	namespace := v1.NamespaceAll
+
 	config := kubernetes.Config(*kubeconfig)
 	kubernetesClient := kubernetes.NewKubernetesClient(config)
 	knativeClient := knative.NewKnativeClient(config)

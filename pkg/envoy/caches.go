@@ -15,6 +15,7 @@ import (
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -55,6 +56,19 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 			// This is the fix...
 			// More info https://github.com/envoyproxy/envoy/issues/886
 			for _, host := range rule.Hosts {
+				// TODO: Improve hosts generation code
+				// Generates :
+				// 		* subroute_host.namespace
+				//		* subroute_host.namespace.svc
+				if strings.Contains(host, ".svc.cluster.local") {
+					splits := strings.Split(host, ".")
+					domain := splits[0] + "." + splits[1]
+					domains = append(domains, domain)
+					domains = append(domains, domain+":*")
+					domain = splits[0] + "." + splits[1] + ".svc"
+					domains = append(domains, domain)
+					domains = append(domains, domain+":*")
+				}
 				domains = append(domains, host)
 				domains = append(domains, host+":*")
 			}

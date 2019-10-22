@@ -2,6 +2,7 @@ package knative
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/rest"
@@ -11,19 +12,29 @@ import (
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
 	networkingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
+	"os"
 	"time"
 )
 
 const (
-	internalDomain = "3scale-kourier.knative-serving.svc.cluster.local"
+	internalServiceName = "kourier-internal"
+	externalServiceName = "kourier-external"
+	namespaceEnv        = "KOURIER_NAMESPACE"
 )
 
 type KNativeClient struct {
 	ServingClient    *servingClientSet.ServingV1alpha1Client
 	NetworkingClient *networkingClientSet.NetworkingV1alpha1Client
+	KourierNamespace string
 }
 
 func NewKnativeClient(config *rest.Config) KNativeClient {
+	kourierNamespace := os.Getenv(namespaceEnv)
+	if kourierNamespace == "" {
+		log.Info("Env KOURIER_NAMESPACE empty, using default: \"knative-serving\"")
+		kourierNamespace = "knative-serving"
+	}
+
 	servingClient, err := servingClientSet.NewForConfig(config)
 	if err != nil {
 		panic(err)
@@ -32,7 +43,7 @@ func NewKnativeClient(config *rest.Config) KNativeClient {
 	if err != nil {
 		panic(err)
 	}
-	return KNativeClient{ServingClient: servingClient, NetworkingClient: networkingClient}
+	return KNativeClient{ServingClient: servingClient, NetworkingClient: networkingClient, KourierNamespace: kourierNamespace}
 }
 
 func (kNativeClient *KNativeClient) Services(namespace string) (*v1alpha1.ServiceList, error) {
@@ -130,15 +141,26 @@ func (kNativeClient *KNativeClient) MarkIngressReady(ingress networkingv1alpha1.
 	status := ingress.GetStatus()
 	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
 
+		internalDomain := internalServiceName + "." + kNativeClient.KourierNamespace + ".svc.cluster.local"
+		externalDomain := externalServiceName + "." + kNativeClient.KourierNamespace + ".svc.cluster.local"
+
 		status.InitializeConditions()
 		status.MarkLoadBalancerReady(
 			[]networkingv1alpha1.LoadBalancerIngressStatus{
 				{
-					DomainInternal: internalDomain,
+					DomainInternal: externalDomain,
 				},
 			},
-			nil,
-			nil)
+			[]networkingv1alpha1.LoadBalancerIngressStatus{
+				{
+					DomainInternal: externalDomain,
+				},
+			},
+			[]networkingv1alpha1.LoadBalancerIngressStatus{
+				{
+					DomainInternal: internalDomain,
+				},
+			})
 		status.MarkNetworkConfigured()
 		status.ObservedGeneration = ingress.GetGeneration()
 		status.ObservedGeneration = ingress.GetGeneration()
