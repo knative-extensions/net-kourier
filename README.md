@@ -1,6 +1,7 @@
 # Kourier
 
 [![CircleCI](https://circleci.com/gh/3scale/kourier.svg?style=svg)](https://circleci.com/gh/3scale/kourier)
+[![Docker Repository on Quay](https://quay.io/repository/3scale/kourier/status "Docker Repository on Quay")](https://quay.io/repository/3scale/kourier)
 
 Kourier is an Ingress for [Knative](https://knative.dev/). A deployment of
 Kourier consists of an Envoy proxy and a control plane for it. Kourier is meant
