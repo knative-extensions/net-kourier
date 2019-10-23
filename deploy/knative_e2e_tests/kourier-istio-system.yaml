@@ -92,7 +92,7 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /tmp/config
-        - image: quay.io/3scale/kourier:v0.0.1
+        - image: quay.io/3scale/kourier:v0.1.0
           imagePullPolicy: Always
           name: kourier
           resources: {}
