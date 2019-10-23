@@ -13,9 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"kourier/pkg/knative"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -31,9 +31,6 @@ type KubeClient interface {
 	ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error)
 	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
-
-// TODO: read from /etc/resolv.conf
-const defaultDomainName = "cluster.local"
 
 func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient) Caches {
 	var clusterLocalVirtualHosts []*route.VirtualHost
@@ -51,32 +48,6 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 		for _, rule := range ingress.GetSpec().Rules {
 
 			var ruleRoute []*route.Route
-			var externalDomains []string
-			var internalDomains []string
-
-			// Somehow envoy doesn't match properly gRPC authorities with ports.
-			// This is the fix...
-			// More info https://github.com/envoyproxy/envoy/issues/886
-			for _, host := range rule.Hosts {
-				// TODO: Improve hosts generation code
-				// Generates :
-				// 		* subroute_host.namespace
-				//		* subroute_host.namespace.svc
-				if strings.Contains(host, defaultDomainName) {
-					splits := strings.Split(host, ".")
-					domain := splits[0] + "." + splits[1]
-					internalDomains = append(internalDomains, domain)
-					internalDomains = append(internalDomains, domain+":*")
-					domain = splits[0] + "." + splits[1] + ".svc"
-					internalDomains = append(internalDomains, domain)
-					internalDomains = append(internalDomains, domain+":*")
-					internalDomains = append(internalDomains, host)
-					internalDomains = append(internalDomains, host+":*")
-				} else {
-					externalDomains = append(externalDomains, host)
-					externalDomains = append(externalDomains, host+":*")
-				}
-			}
 
 			for _, httpPath := range rule.HTTP.Paths {
 
@@ -132,20 +103,22 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 			}
 
+			externalDomains := knative.ExternalDomains(&rule)
 			virtualHost := route.VirtualHost{
 				Name:    routeName,
 				Domains: externalDomains,
 				Routes:  ruleRoute,
 			}
 
-			internalDomains = append(internalDomains, externalDomains...)
+			// External should also be accessible internally
+			internalDomains := append(knative.InternalDomains(&rule), externalDomains...)
 			internalVirtualHost := route.VirtualHost{
 				Name:    routeName,
 				Domains: internalDomains,
 				Routes:  ruleRoute,
 			}
 
-			if ingressRuleIsExternal(rule, ingress.GetSpec().Visibility) {
+			if knative.RuleIsExternal(&rule, ingress.GetSpec().Visibility) {
 				externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
 			}
 			clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
@@ -181,17 +154,6 @@ func getRouteNamespace(ingress v1alpha1.IngressAccessor) string {
 
 func getRouteName(ingress v1alpha1.IngressAccessor) string {
 	return ingress.GetLabels()["serving.knative.dev/route"]
-}
-
-func ingressRuleIsExternal(ingressRule v1alpha1.IngressRule, ingressLevelVisibility v1alpha1.IngressVisibility) bool {
-	switch ingressRule.Visibility {
-	case v1alpha1.IngressVisibilityExternalIP:
-		return true
-	case v1alpha1.IngressVisibilityClusterLocal:
-		return false
-	default: // If there is not anything set, Knative defaults to "external"
-		return ingressLevelVisibility != v1alpha1.IngressVisibilityClusterLocal
-	}
 }
 
 func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList, targetPort int32) (privateLbEndpoints []*endpoint.LbEndpoint, publicLbEndpoints []*endpoint.LbEndpoint) {
