@@ -18,6 +18,8 @@ docker image save 3scale-kourier:"$tag" > image.tar
 microk8s.ctr -n k8s.io images import image.tar
 microk8s.kubectl apply -f deploy/kourier-knative.yaml
 microk8s.kubectl patch deployment 3scale-kourier -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
+microk8s.kubectl patch configmap/config-domain -n knative-serving --type merge -p '{"data":{"127.0.0.1.nip.io":"\"\""}}'
+microk8s.kubectl patch configmap/config-network -n knative-serving --type merge -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev","ingress.class":"kourier.ingress.networking.knative.dev"}}'
 
 retries=0
 while [[ $(microk8s.kubectl get pods -n knative-serving -l app=3scale-kourier -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
