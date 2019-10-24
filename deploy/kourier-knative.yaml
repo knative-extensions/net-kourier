@@ -17,7 +17,7 @@ status:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: 3scale-kourier
+  name: 3scale-kourier-gateway
   namespace: knative-serving
 spec:
   progressDeadlineSeconds: 600
@@ -25,7 +25,7 @@ spec:
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: 3scale-kourier
+      app: 3scale-kourier-gateway
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -34,7 +34,7 @@ spec:
   template:
     metadata:
       labels:
-        app: 3scale-kourier
+        app: 3scale-kourier-gateway
     spec:
       containers:
         - args:
@@ -42,7 +42,7 @@ spec:
             - /tmp/config/envoy-bootstrap.yaml
           image: envoyproxy/envoy-alpine:latest
           imagePullPolicy: Always
-          name: envoy
+          name: kourier-gateway
           ports:
             - containerPort: 8080
               protocol: TCP
@@ -52,9 +52,42 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /tmp/config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: kourier-bootstrap
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: 3scale-kourier-control
+  namespace: knative-serving
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: 3scale-kourier-control
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: 3scale-kourier-control
+    spec:
+      containers:
         - image: quay.io/3scale/kourier:v0.1.0
           imagePullPolicy: Always
-          name: kourier
+          name: kourier-control
           resources: {}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
@@ -67,10 +100,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-      volumes:
-        - name: config-volume
-          configMap:
-            name: kourier-bootstrap
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -127,7 +156,7 @@ spec:
       protocol: TCP
       targetPort: 8080
   selector:
-    app: 3scale-kourier
+    app: 3scale-kourier-gateway
   type: ClusterIP
 status:
   loadBalancer: {}
@@ -143,7 +172,7 @@ spec:
       protocol: TCP
       targetPort: 8081
   selector:
-    app: 3scale-kourier
+    app: 3scale-kourier-gateway
   type: ClusterIP
 status:
   loadBalancer: {}
@@ -159,7 +188,23 @@ spec:
       protocol: TCP
       targetPort: 8080
   selector:
-    app: 3scale-kourier
+    app: 3scale-kourier-gateway
+  type: ClusterIP
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier-control
+  namespace: knative-serving
+spec:
+  ports:
+    - port: 18000
+      protocol: TCP
+      targetPort: 18000
+  selector:
+    app: 3scale-kourier-control
   type: ClusterIP
 status:
   loadBalancer: {}
@@ -188,14 +233,14 @@ data:
       lds_config:
         ads: {}
     node:
-      cluster: test-cluster
-      id: 3scale-kourier
+      cluster: kourier-knative
+      id: 3scale-kourier-gateway
     static_resources:
       clusters:
         - connect_timeout: 1s
           hosts:
             - socket_address:
-                address: "127.0.0.1"
+                address: "kourier-control"
                 port_value: 18000
           http2_protocol_options: {}
           name: xds_cluster

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	nodeID         = "3scale-kourier"
+	nodeID         = "3scale-kourier-gateway"
 	gatewayPort    = 19001
 	managementPort = 18000
 )
