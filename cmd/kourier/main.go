@@ -5,7 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/util/workqueue"
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"kourier/pkg/envoy"
 	"kourier/pkg/knative"
 	"kourier/pkg/kubernetes"
@@ -84,26 +83,11 @@ func main() {
 			panic("The events queue was closed")
 		}
 
-		ingresses, err := knativeClient.Ingresses()
+		ingressAccessors, err := knativeClient.IngressAccessors()
 		if err != nil {
 			log.Error(err)
 		}
 
-		clusterIngresses, err := knativeClient.ClusterIngresses()
-		if err != nil {
-			log.Error(err)
-		}
-
-		var ingressList []v1alpha1.IngressAccessor
-
-		for i, _ := range ingresses {
-			ingressList = append(ingressList, v1alpha1.IngressAccessor(&ingresses[i]))
-		}
-
-		for i, _ := range clusterIngresses {
-			ingressList = append(ingressList, v1alpha1.IngressAccessor(&clusterIngresses[i]))
-		}
-
-		envoyXdsServer.SetSnapshotForClusterIngresses(nodeID, ingressList)
+		envoyXdsServer.SetSnapshotForClusterIngresses(nodeID, ingressAccessors)
 	}
 }
