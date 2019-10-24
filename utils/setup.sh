@@ -22,7 +22,7 @@ kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/ser
 kubectl scale deployment traefik --replicas=0 -n kube-system
 kubectl apply -f deploy/kourier-knative.yaml
 kubectl patch deployment 3scale-kourier -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
-kubectl patch configmap/config-domain -n knative-serving --type merge -p '{"data":{"127.0.0.1.nip.io":"\"\""}}'
+kubectl patch configmap/config-domain -n knative-serving --type merge -p '{"data":{"127.0.0.1.nip.io":""}}'
 kubectl patch configmap/config-network -n knative-serving --type merge -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev","ingress.class":"kourier.ingress.networking.knative.dev"}}'
 
 retries=0
