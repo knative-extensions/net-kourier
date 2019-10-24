@@ -8,18 +8,21 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"knative.dev/serving/pkg/apis/networking"
 	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
 	networkingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
+	"knative.dev/serving/pkg/reconciler"
 	"os"
 	"time"
 )
 
 const (
-	internalServiceName = "kourier-internal"
-	externalServiceName = "kourier-external"
-	namespaceEnv        = "KOURIER_NAMESPACE"
+	internalServiceName     = "kourier-internal"
+	externalServiceName     = "kourier-external"
+	namespaceEnv            = "KOURIER_NAMESPACE"
+	kourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
 
 type KNativeClient struct {
@@ -82,19 +85,22 @@ func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace strin
 		watchlist,
 		&networkingv1alpha1.ClusterIngress{},
 		time.Second*30, //TODO: Review resync time and adjust.
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				eventsQueue.Add(struct{}{})
-			},
-
-			DeleteFunc: func(obj interface{}) {
-				eventsQueue.Add(struct{}{})
-			},
-
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				if oldObj != newObj {
+		cache.FilteringResourceEventHandler{
+			FilterFunc: kourierIngressClassNameFilterFunc(),
+			Handler: cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
 					eventsQueue.Add(struct{}{})
-				}
+				},
+
+				DeleteFunc: func(obj interface{}) {
+					eventsQueue.Add(struct{}{})
+				},
+
+				UpdateFunc: func(oldObj, newObj interface{}) {
+					if oldObj != newObj {
+						eventsQueue.Add(struct{}{})
+					}
+				},
 			},
 		},
 	)
@@ -114,19 +120,22 @@ func (kNativeClient *KNativeClient) WatchChangesInIngress(namespace string, even
 		watchlist,
 		&networkingv1alpha1.Ingress{},
 		time.Second*30, //TODO: Review resync time and adjust.
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				eventsQueue.Add(struct{}{})
-			},
-
-			DeleteFunc: func(obj interface{}) {
-				eventsQueue.Add(struct{}{})
-			},
-
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				if oldObj != newObj {
+		cache.FilteringResourceEventHandler{
+			FilterFunc: kourierIngressClassNameFilterFunc(),
+			Handler: cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
 					eventsQueue.Add(struct{}{})
-				}
+				},
+
+				DeleteFunc: func(obj interface{}) {
+					eventsQueue.Add(struct{}{})
+				},
+
+				UpdateFunc: func(oldObj, newObj interface{}) {
+					if oldObj != newObj {
+						eventsQueue.Add(struct{}{})
+					}
+				},
 			},
 		},
 	)
@@ -181,4 +190,12 @@ func (kNativeClient *KNativeClient) MarkIngressReady(ingress networkingv1alpha1.
 		}
 	}
 	return nil
+}
+
+func kourierIngressClassNameFilterFunc() func(interface{}) bool {
+	return reconciler.AnnotationFilterFunc(
+		networking.IngressClassAnnotationKey,
+		kourierIngressClassName,
+		true,
+	)
 }
