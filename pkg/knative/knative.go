@@ -53,24 +53,28 @@ func (kNativeClient *KNativeClient) Services(namespace string) (*v1alpha1.Servic
 	return kNativeClient.ServingClient.Services(namespace).List(v1.ListOptions{})
 }
 
-func (kNativeClient *KNativeClient) ClusterIngresses() ([]networkingv1alpha1.ClusterIngress, error) {
-	list, err := kNativeClient.NetworkingClient.ClusterIngresses().List(v1.ListOptions{})
-
+func (kNativeClient *KNativeClient) IngressAccessors() ([]networkingv1alpha1.IngressAccessor, error) {
+	ingresses, err := kNativeClient.ingresses()
 	if err != nil {
 		return nil, err
 	}
 
-	return list.Items, err
-}
-
-func (kNativeClient *KNativeClient) Ingresses() ([]networkingv1alpha1.Ingress, error) {
-	list, err := kNativeClient.NetworkingClient.Ingresses("").List(v1.ListOptions{})
-
+	clusterIngresses, err := kNativeClient.clusterIngresses()
 	if err != nil {
 		return nil, err
 	}
 
-	return list.Items, err
+	var ingressList []networkingv1alpha1.IngressAccessor
+
+	for i, _ := range ingresses {
+		ingressList = append(ingressList, networkingv1alpha1.IngressAccessor(&ingresses[i]))
+	}
+
+	for i, _ := range clusterIngresses {
+		ingressList = append(ingressList, networkingv1alpha1.IngressAccessor(&clusterIngresses[i]))
+	}
+
+	return ingressList, nil
 }
 
 // Pushes an event to the "events" queue received when theres a change in a ClusterIngress is added/deleted/updated.
@@ -198,4 +202,24 @@ func kourierIngressClassNameFilterFunc() func(interface{}) bool {
 		kourierIngressClassName,
 		true,
 	)
+}
+
+func (kNativeClient *KNativeClient) clusterIngresses() ([]networkingv1alpha1.ClusterIngress, error) {
+	list, err := kNativeClient.NetworkingClient.ClusterIngresses().List(v1.ListOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return list.Items, err
+}
+
+func (kNativeClient *KNativeClient) ingresses() ([]networkingv1alpha1.Ingress, error) {
+	list, err := kNativeClient.NetworkingClient.Ingresses(v1.NamespaceAll).List(v1.ListOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return list.Items, err
 }
