@@ -53,6 +53,8 @@ func (kNativeClient *KNativeClient) Services(namespace string) (*v1alpha1.Servic
 	return kNativeClient.ServingClient.Services(namespace).List(v1.ListOptions{})
 }
 
+// IngressAccessors returns both the Ingresses and ClusterIngresses that have
+// the Kourier ingressClass in the Annotations
 func (kNativeClient *KNativeClient) IngressAccessors() ([]networkingv1alpha1.IngressAccessor, error) {
 	ingresses, err := kNativeClient.ingresses()
 	if err != nil {
@@ -74,7 +76,7 @@ func (kNativeClient *KNativeClient) IngressAccessors() ([]networkingv1alpha1.Ing
 		ingressList = append(ingressList, networkingv1alpha1.IngressAccessor(&clusterIngresses[i]))
 	}
 
-	return ingressList, nil
+	return filterByIngressClass(ingressList), nil
 }
 
 // Pushes an event to the "events" queue received when theres a change in a ClusterIngress is added/deleted/updated.
@@ -222,4 +224,22 @@ func (kNativeClient *KNativeClient) ingresses() ([]networkingv1alpha1.Ingress, e
 	}
 
 	return list.Items, err
+}
+
+func filterByIngressClass(ingressAccessors []networkingv1alpha1.IngressAccessor) []networkingv1alpha1.IngressAccessor {
+	var res []networkingv1alpha1.IngressAccessor
+
+	for _, ingressAccessor := range ingressAccessors {
+		ingressClass := ingressClass(ingressAccessor)
+
+		if ingressClass == kourierIngressClassName {
+			res = append(res, ingressAccessor)
+		}
+	}
+
+	return res
+}
+
+func ingressClass(ingressAccessor networkingv1alpha1.IngressAccessor) string {
+	return ingressAccessor.GetObjectMeta().GetAnnotations()[networking.IngressClassAnnotationKey]
 }
