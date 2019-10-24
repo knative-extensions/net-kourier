@@ -17,14 +17,14 @@ dynamic_resources:
   lds_config:
     ads: {}
 node:
-  cluster: test-cluster
-  id: 3scale-kourier
+  cluster: kourier-knative
+  id: 3scale-kourier-gateway
 static_resources:
   clusters:
     - connect_timeout: 1s
       hosts:
         - socket_address:
-            address: "kourier"
+            address: "kourier-control"
             port_value: 18000
       http2_protocol_options: {}
       name: xds_cluster
