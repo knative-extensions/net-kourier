@@ -22,7 +22,7 @@ has been deployed. "utils/setup.sh" can be used to do that.
 */
 const namespace string = "default"
 const clusterURL string = "http://localhost:8080"
-const domain string = "example.com"
+const domain string = "127.0.0.1.nip.io"
 
 var kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 
