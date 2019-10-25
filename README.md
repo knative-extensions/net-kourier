@@ -26,7 +26,7 @@ kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/ser
 
 - Then install Kourier:
 ```bash
-kubectl -f apply deploy/kourier-knative.yaml
+kubectl apply -f deploy/kourier-knative.yaml
 ```
 
 - Configure Knative Serving to use the proper "ingress.class":
@@ -43,7 +43,7 @@ kubectl patch configmap/config-network \
  kubectl patch configmap/config-domain \
   -n knative-serving \
   --type merge \
-  -p '{"data":{"127.0.0.1.nip.io":"\"\""}}'
+  -p '{"data":{"127.0.0.1.nip.io":""}}'
 ```
 
 - (OPTIONAL) Deploy a sample hello world app:
@@ -54,11 +54,9 @@ kubectl apply -f ./samples/helloworld-go.yaml
 - (OPTIONAL) For testing purposes, you can use port-forwarding to make requests to Kourier
 from your machine:
 ```bash
-kubectl port-forward --namespace knative-serving
-$(kubectl get pod -n knative-serving -l "app=3scale-kourier"
---output=jsonpath="{.items[0].metadata.name}") 8080:8080 19000:19000 8443:8443`
+kubectl port-forward --namespace knative-serving $(kubectl get pod -n knative-serving -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}") 8080:8080 19000:19000 8443:8443
 
-curl -v -H "Host: 127.0.0.1.nip.io" http://localhost:8080 
+curl -v -H "Host: helloworld-go.default.127.0.0.1.nip.io" http://localhost:8080 
 ```
 
 ## Features
