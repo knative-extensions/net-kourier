@@ -26,25 +26,20 @@ docker build -t 3scale-kourier:my_tests ./
 
 k3d import-images 3scale-kourier:my_tests --name='kourier-integration'
 
-kubectl patch deployment 3scale-kourier -n istio-system --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier\",\"image\": \"3scale-kourier:my_tests\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
+kubectl patch deployment 3scale-kourier-control -n istio-system --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-control\",\"image\": \"3scale-kourier:my_tests\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
 ```
 
 - Clean-up some things that are not needed:
 ```bash
-kubectl delete deployment 3scale-kourier -n knative-serving
-kubectl delete service kourier -n knative-serving
+kubectl delete deployment 3scale-kourier-control 3scale-kourier-gateway -n knative-serving
+kubectl delete service kourier kourier-control kourier-external kourier-internal -n knative-serving
 kubectl delete service traefik -n kube-system
-```
-
-- Edit the config domain adding `127.0.0.1.nip.io: ""` just below `data:`
-```bash
-kubectl edit configmap config-domain -n knative-serving
 ```
 
 - Port-forward Kourier. Make sure you do not have anything else on these ports,
 otherwise, it will fail:
 ```bash
-sudo kubectl port-forward --namespace istio-system $(kubectl get pod -n istio-system -l "app=3scale-kourier" --output=jsonpath="{.items[0].metadata.name}") 80:8080 8081:8081 19000:19000 8443:8443
+sudo kubectl port-forward --namespace istio-system $(kubectl get pod -n istio-system -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}") 80:8080 8081:8081 19000:19000 8443:8443
 ```
 
 ## Run the Knative tests
