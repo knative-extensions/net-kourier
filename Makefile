@@ -8,7 +8,7 @@ run: ## runs kourier locally with "go run"
 	@go run ./cmd/kourier/main.go
 
 docker-run-envoy: ## Runs envoy in a docker
-	docker run --rm  -p 19000:19000 -p 10000:10000 --link kourier --name kourier_envoy -v $(PWD)/conf/:/tmp/conf -ti envoyproxy/envoy-alpine:latest -c /tmp/conf/envoy-bootstrap.yaml
+	docker run --rm  -p 19000:19000 -p 10000:10000 --link kourier --name kourier_envoy -v $(PWD)/conf/:/tmp/conf -ti quay.io/3scale/kourier-gateway:v0.1.0 -c /tmp/conf/envoy-bootstrap.yaml
 
 docker-run: docker-build ## Runs kourier in a docker
 	@echo "[i] Remember to have a valid kubeconfig in $(HOME)/.kube/config"
@@ -20,6 +20,9 @@ build: ## Builds kourier binary, outputs binary to ./build
 
 docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 	docker build -t 3scale-kourier:test ./
+
+docker-build-gateway: ## Builds kourier docker, tagged by default as 3scale-kourier:test
+	docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:test ./
 
 local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
 	./utils/setup.sh
