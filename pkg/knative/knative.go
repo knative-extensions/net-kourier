@@ -68,11 +68,11 @@ func (kNativeClient *KNativeClient) IngressAccessors() ([]networkingv1alpha1.Ing
 
 	var ingressList []networkingv1alpha1.IngressAccessor
 
-	for i, _ := range ingresses {
+	for i := range ingresses {
 		ingressList = append(ingressList, networkingv1alpha1.IngressAccessor(&ingresses[i]))
 	}
 
-	for i, _ := range clusterIngresses {
+	for i := range clusterIngresses {
 		ingressList = append(ingressList, networkingv1alpha1.IngressAccessor(&clusterIngresses[i]))
 	}
 
