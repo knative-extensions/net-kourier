@@ -9,19 +9,24 @@ fi
 
 tag="test_$(git rev-parse --abbrev-ref HEAD)"
 
-docker build -t 3scale-kourier:"$tag" ./
-
 k3d d --name=kourier-integration || true
 
 k3d c --name kourier-integration
 sleep 60
 export KUBECONFIG="$(k3d get-kubeconfig --name='kourier-integration')"
-k3d import-images 3scale-kourier:"$tag" --name='kourier-integration'
 
+# Builds and imports the kourier and gateway images from docker into the k8s cluster
+docker build -t 3scale-kourier:"$tag" ./
+docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:"$tag" ./
+k3d import-images 3scale-kourier:"$tag" --name='kourier-integration'
+k3d import-images 3scale-kourier-gateway:"$tag" --name='kourier-integration'
+
+# Deploys kourier and patches it.
 kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/serving.yaml || true
 kubectl scale deployment traefik --replicas=0 -n kube-system
 kubectl apply -f deploy/kourier-knative.yaml
 kubectl patch deployment 3scale-kourier-control -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-control\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
+kubectl patch deployment 3scale-kourier-gateway -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-gateway\",\"image\": \"3scale-kourier-gateway:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
 kubectl patch configmap/config-domain -n knative-serving --type merge -p '{"data":{"127.0.0.1.nip.io":""}}'
 kubectl patch configmap/config-network -n knative-serving --type merge -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev","ingress.class":"kourier.ingress.networking.knative.dev"}}'
 
