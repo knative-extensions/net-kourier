@@ -33,7 +33,7 @@ while [[ $(kubectl get pods -n knative-serving -l app=3scale-kourier-control -o 
     echo "timedout waiting for kourier control pod"
     exit 1
   fi
-  retries=$[$retries+1]
+  retries=$((retries + 1))
 done
 
 retries=0
@@ -44,7 +44,8 @@ while [[ $(kubectl get pods -n knative-serving -l app=3scale-kourier-gateway -o 
     echo "timedout waiting for kourier gateway pod"
     exit 1
   fi
-  retries=$[$retries+1]
+  retries=$((retries + 1))
 done
 
-kubectl port-forward --namespace knative-serving $(kubectl get pod -n knative-serving -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}") 8080:8080 8081:8081 19000:19000 8443:8443 &>/dev/null &
+# shellcheck disable=SC2046
+kubectl port-forward --namespace knative-serving "$(kubectl get pod -n knative-serving -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}")" 8080:8080 8081:8081 19000:19000 8443:8443 &>/dev/null &
