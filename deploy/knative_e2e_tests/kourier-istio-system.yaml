@@ -21,6 +21,7 @@ spec:
   type: LoadBalancer
 status:
   loadBalancer: {}
+---
 apiVersion: v1
 kind: Service
 metadata:
