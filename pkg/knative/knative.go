@@ -2,6 +2,9 @@ package knative
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -14,8 +17,6 @@ import (
 	networkingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
 	"knative.dev/serving/pkg/reconciler"
-	"os"
-	"time"
 )
 
 const (

@@ -3,17 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gotest.tools/assert"
 	"io/ioutil"
+	"net/http"
+	"regexp"
+	"testing"
+	"time"
+
+	"gotest.tools/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
-	"net/http"
-	"regexp"
-	"testing"
-	"time"
 )
 
 /*

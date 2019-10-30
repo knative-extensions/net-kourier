@@ -3,6 +3,11 @@ package envoy
 import (
 	"context"
 	"fmt"
+	"kourier/pkg/knative"
+	"kourier/pkg/kubernetes"
+	"net"
+	"net/http"
+
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -12,10 +17,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	v1alpha12 "knative.dev/serving/pkg/apis/networking/v1alpha1"
-	"kourier/pkg/knative"
-	"kourier/pkg/kubernetes"
-	"net"
-	"net/http"
 )
 
 const (

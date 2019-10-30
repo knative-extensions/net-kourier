@@ -1,6 +1,8 @@
 package envoy
 
 import (
+	"testing"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
@@ -9,7 +11,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
-	"testing"
 )
 
 // Tests that when there is a traffic split defined in the ingress:
