@@ -43,5 +43,9 @@ test-integration: local-setup ## Runs integration tests
 test-integration-circleci: circleci-setup ## Runs integration tests for circleCI
 	go test test/* -args -kubeconfig="$(HOME)/.kube/config"
 
+.PHONY: fmt
+fmt: # Runs code formatting
+	goimports -w $$(find . -type f -name '*.go' -not -path "./vendor/*")
+
 help: ## Print this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-39s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
