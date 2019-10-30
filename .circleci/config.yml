@@ -14,10 +14,14 @@ jobs:
     working_directory: /home/circleci/go/src/github.com/3scale/kourier
     steps:
       - checkout
+      - run: 
+          name: install goimports
+          command: |
+            go get golang.org/x/tools/cmd/goimports
       - run:
           name: Run formatting check
           command: |
-            unmatched_files=$(PATH=$PATH:/usr/local/go/bin goimports -l $(find . -type f -name '*.go' -not -path './vendor/*'))
+            unmatched_files=$(goimports -l $(find . -type f -name '*.go' -not -path './vendor/*'))
             if [[ -n "${unmatched_files}" ]]
             then
               echo "Formatting issues exist. Run 'make fmt'"
