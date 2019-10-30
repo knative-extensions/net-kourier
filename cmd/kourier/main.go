@@ -2,14 +2,15 @@ package main
 
 import (
 	"flag"
-	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/util/workqueue"
 	"kourier/pkg/envoy"
 	"kourier/pkg/knative"
 	"kourier/pkg/kubernetes"
 	"os"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/util/workqueue"
 )
 
 const (

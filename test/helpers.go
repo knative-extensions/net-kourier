@@ -1,12 +1,13 @@
 package main
 
 import (
+	"kourier/pkg/kubernetes"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
-	"kourier/pkg/kubernetes"
 )
 
 // Returns a simple "Hello World" Knative Service. It returns "Hello World!"

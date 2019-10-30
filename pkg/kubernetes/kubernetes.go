@@ -1,6 +1,8 @@
 package kubernetes
 
 import (
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -9,7 +11,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
-	"time"
 )
 
 const labelPrefix = "serving.knative.dev/revision="

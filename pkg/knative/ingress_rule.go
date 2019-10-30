@@ -1,8 +1,9 @@
 package knative
 
 import (
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"strings"
+
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
 // TODO: read from some Knative method or /etc/resolv.conf

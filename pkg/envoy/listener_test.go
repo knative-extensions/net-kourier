@@ -1,13 +1,14 @@
 package envoy
 
 import (
+	"os"
+	"testing"
+
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
 	v1 "k8s.io/api/core/v1"
-	"os"
-	"testing"
 )
 
 func TestCreateHTTPListener(t *testing.T) {

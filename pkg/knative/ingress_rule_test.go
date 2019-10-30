@@ -1,10 +1,11 @@
 package knative
 
 import (
-	"gotest.tools/assert"
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"sort"
 	"testing"
+
+	"gotest.tools/assert"
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
 var testRule = v1alpha1.IngressRule{
