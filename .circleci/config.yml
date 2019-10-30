@@ -15,6 +15,16 @@ jobs:
     steps:
       - checkout
 
+      - run:
+          name: Run formatting check
+          command: |
+            unmatched_files=$(goimports -l $(find . -type f -name '*.go' -not -path './vendor/*'))
+            if [[ -n "${unmatched_files}" ]]
+            then
+              echo "Formatting issues exist. Run 'make fmt'"
+              exit 1
+            fi
+
       # Remove existing go and install 1.13.
       - run: sudo apt-get remove golang-go && sudo rm -rf /usr/local/go
       - run: wget https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz -O /tmp/go1.13.1.linux-amd64.tar.gz
