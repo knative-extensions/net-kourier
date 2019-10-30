@@ -152,7 +152,8 @@ metadata:
   namespace: knative-serving
 spec:
   ports:
-    - port: 80
+    - name: http2
+      port: 80
       protocol: TCP
       targetPort: 8080
   selector:
@@ -168,7 +169,8 @@ metadata:
   namespace: knative-serving
 spec:
   ports:
-    - port: 80
+    - name: http2
+      port: 80
       protocol: TCP
       targetPort: 8081
   selector:
@@ -184,7 +186,8 @@ metadata:
   namespace: knative-serving
 spec:
   ports:
-    - port: 80
+    - name: http2
+      port: 80
       protocol: TCP
       targetPort: 8080
   selector:
