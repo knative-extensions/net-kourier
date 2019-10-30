@@ -9,6 +9,11 @@ fi
 
 tag="test_$(git rev-parse --abbrev-ref HEAD)"
 
+# In CircleCI, PR branches that come from forks have the format "pull/n", where
+# n is the PR number. "/" is not accepted in docker tags, so we need to replace
+# it.
+tag=$(echo "$tag" | tr / -)
+
 k3d d --name=kourier-integration || true
 
 k3d c --name kourier-integration

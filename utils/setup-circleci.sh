@@ -8,6 +8,11 @@ if ! command -v microk8s.kubectl >/dev/null; then
 fi
 
 tag="test_$(git rev-parse --abbrev-ref HEAD)"
+# In CircleCI, PR branches that come from forks have the format "pull/n", where
+# n is the PR number. "/" is not accepted in docker tags, so we need to replace
+# it.
+tag=$(echo "$tag" | tr / -)
+
 microk8s.kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/serving-core.yaml || true
 mkdir -p "$HOME"/.kube/
 microk8s.kubectl config view --raw >"$HOME"/.kube/config
