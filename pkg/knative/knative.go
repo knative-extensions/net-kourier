@@ -161,10 +161,18 @@ func (kNativeClient *KNativeClient) MarkIngressReady(ingress networkingv1alpha1.
 		externalDomain := externalServiceName + "." + kNativeClient.KourierNamespace + ".svc.cluster.local"
 
 		status.InitializeConditions()
+		var domain string
+
+		if ingress.GetSpec().Visibility == networkingv1alpha1.IngressVisibilityClusterLocal {
+			domain = internalDomain
+		} else {
+			domain = externalDomain
+		}
+
 		status.MarkLoadBalancerReady(
 			[]networkingv1alpha1.LoadBalancerIngressStatus{
 				{
-					DomainInternal: externalDomain,
+					DomainInternal: domain,
 				},
 			},
 			[]networkingv1alpha1.LoadBalancerIngressStatus{
