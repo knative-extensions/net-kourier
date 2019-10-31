@@ -84,6 +84,7 @@ func TestTrafficSplits(t *testing.T) {
 	caches := CachesForClusterIngresses(
 		[]v1alpha1.IngressAccessor{v1alpha1.IngressAccessor(&ingress)},
 		newMockedKubeClient(),
+		"cluster.local",
 	)
 	assert.Equal(t, 1, len(caches.routes))
 
