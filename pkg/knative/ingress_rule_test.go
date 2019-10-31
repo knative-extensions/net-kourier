@@ -16,7 +16,7 @@ var testRule = v1alpha1.IngressRule{
 }
 
 func TestExternalDomains(t *testing.T) {
-	externalDomains := ExternalDomains(&testRule)
+	externalDomains := ExternalDomains(&testRule, "cluster.local")
 
 	expected := []string{
 		"helloworld-go.default.example.com",
@@ -28,7 +28,7 @@ func TestExternalDomains(t *testing.T) {
 }
 
 func TestInternalDomains(t *testing.T) {
-	internalDomains := InternalDomains(&testRule)
+	internalDomains := InternalDomains(&testRule, "cluster.local")
 
 	expected := []string{
 		"helloworld-go.default",

@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 
+	"knative.dev/pkg/network"
+
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -117,7 +119,9 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 		return
 	}
 
-	caches := CachesForClusterIngresses(Ingresses, &envoyXdsServer.kubeClient)
+	localDomainName := network.GetClusterDomainName()
+
+	caches := CachesForClusterIngresses(Ingresses, &envoyXdsServer.kubeClient, localDomainName)
 
 	snapshot := cache.NewSnapshot(
 		snapshotVersion.String(),

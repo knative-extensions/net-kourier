@@ -6,19 +6,16 @@ import (
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
-// TODO: read from some Knative method or /etc/resolv.conf
-const defaultDomainName = "cluster.local"
-
 // Somehow envoy doesn't match properly gRPC authorities with ports.
 // The fix is to include ":*" in the domains.
 // This applies both for internal and external domains.
 // More info https://github.com/envoyproxy/envoy/issues/886
 
-func ExternalDomains(rule *v1alpha1.IngressRule) []string {
+func ExternalDomains(rule *v1alpha1.IngressRule, localDomainName string) []string {
 	var res []string
 
 	for _, host := range rule.Hosts {
-		if !strings.Contains(host, defaultDomainName) {
+		if !strings.Contains(host, localDomainName) {
 			res = append(res, host)
 			res = append(res, host+":*")
 		}
@@ -32,11 +29,11 @@ func ExternalDomains(rule *v1alpha1.IngressRule) []string {
 // 	- sub-route_host.namespace
 // 	- sub-route_host.namespace.svc
 // 	- Each of the previous ones with ":*" appended
-func InternalDomains(rule *v1alpha1.IngressRule) []string {
+func InternalDomains(rule *v1alpha1.IngressRule, localDomainName string) []string {
 	var res []string
 
 	for _, host := range rule.Hosts {
-		if strings.Contains(host, defaultDomainName) {
+		if strings.Contains(host, localDomainName) {
 			res = append(res, host)
 			res = append(res, host+":*")
 

@@ -33,7 +33,7 @@ type KubeClient interface {
 	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
 
-func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient) Caches {
+func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient, localDomainName string) Caches {
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 
@@ -104,7 +104,7 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 			}
 
-			externalDomains := knative.ExternalDomains(&rule)
+			externalDomains := knative.ExternalDomains(&rule, localDomainName)
 			virtualHost := route.VirtualHost{
 				Name:    routeName,
 				Domains: externalDomains,
@@ -112,7 +112,7 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 			}
 
 			// External should also be accessible internally
-			internalDomains := append(knative.InternalDomains(&rule), externalDomains...)
+			internalDomains := append(knative.InternalDomains(&rule, localDomainName), externalDomains...)
 			internalVirtualHost := route.VirtualHost{
 				Name:    routeName,
 				Domains: internalDomains,
