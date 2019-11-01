@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/envoyproxy/go-control-plane/pkg/conversion"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/util"
 )
 
 const (
@@ -92,7 +94,7 @@ func createAddress(port uint32) *core.Address {
 	return &core.Address{
 		Address: &core.Address_SocketAddress{
 			SocketAddress: &core.SocketAddress{
-				Protocol: core.TCP,
+				Protocol: core.SocketAddress_TCP,
 				Address:  "0.0.0.0",
 				PortSpecifier: &core.SocketAddress_PortValue{
 					PortValue: port,
@@ -103,14 +105,14 @@ func createAddress(port uint32) *core.Address {
 }
 
 func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listener.Filter, error) {
-	pbst, err := util.MessageToStruct(manager)
+	pbst, err := conversion.MessageToStruct(manager)
 	if err != nil {
 		return []*listener.Filter{}, err
 	}
 
 	filters := []*listener.Filter{
 		{
-			Name:       util.HTTPConnectionManager,
+			Name:       wellknown.HTTPConnectionManager,
 			ConfigType: &listener.Filter_Config{Config: pbst},
 		},
 	}

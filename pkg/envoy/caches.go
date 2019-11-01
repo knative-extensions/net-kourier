@@ -7,14 +7,16 @@ import (
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslogv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
-	"github.com/envoyproxy/go-control-plane/pkg/util"
-	"github.com/gogo/protobuf/types"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
+	pstruct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
@@ -168,7 +170,7 @@ func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList, targetPort
 				serviceEndpoint := &core.Address{
 					Address: &core.Address_SocketAddress{
 						SocketAddress: &core.SocketAddress{
-							Protocol: core.TCP,
+							Protocol: core.SocketAddress_TCP,
 							Address:  address.IP,
 							PortSpecifier: &core.SocketAddress_PortValue{
 								PortValue: uint32(targetPort),
@@ -222,12 +224,10 @@ func createRouteForRevision(routeName string, i int, httpPath *v1alpha1.HTTPIngr
 					Clusters: wrs,
 				},
 			},
-			Timeout: &routeTimeout,
+			Timeout: ptypes.DurationProto(routeTimeout),
 			UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
 				UpgradeType: "websocket",
-				Enabled: &types.BoolValue{
-					Value: true,
-				},
+				Enabled:     &wrappers.BoolValue{Value: true},
 			}},
 			RetryPolicy: createRetryPolicyForRoute(httpPath),
 		}},
@@ -240,7 +240,7 @@ func createRouteForRevision(routeName string, i int, httpPath *v1alpha1.HTTPIngr
 func weightedCluster(revisionName string, trafficPerc uint32, path string, headers map[string]string) route.WeightedCluster_ClusterWeight {
 	return route.WeightedCluster_ClusterWeight{
 		Name: revisionName + path,
-		Weight: &types.UInt32Value{
+		Weight: &wrappers.UInt32Value{
 			Value: trafficPerc,
 		},
 		RequestHeadersToAdd: headersToAdd(headers),
@@ -256,7 +256,7 @@ func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
 				Key:   headerName,
 				Value: headerVal,
 			},
-			Append: &types.BoolValue{
+			Append: &wrappers.BoolValue{
 				Value: true,
 			},
 		}
@@ -282,10 +282,10 @@ func createRetryPolicyForRoute(httpPath *v1alpha1.HTTPIngressPath) *route.RetryP
 	if attempts > 0 {
 		return &route.RetryPolicy{
 			RetryOn: "5xx",
-			NumRetries: &types.UInt32Value{
+			NumRetries: &wrappers.UInt32Value{
 				Value: uint32(attempts),
 			},
-			PerTryTimeout: &perTryTimeout,
+			PerTryTimeout: ptypes.DurationProto(perTryTimeout),
 		}
 	} else {
 		return nil
@@ -299,7 +299,7 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, priva
 		ClusterDiscoveryType: &v2.Cluster_Type{
 			Type: v2.Cluster_STRICT_DNS,
 		},
-		ConnectTimeout: &connectTimeout,
+		ConnectTimeout: ptypes.DurationProto(connectTimeout),
 		LoadAssignment: &v2.ClusterLoadAssignment{
 			ClusterName: revisionName + path,
 			Endpoints: []*endpoint.LocalityLbEndpoints{
@@ -329,7 +329,7 @@ func useHTTPSListener() bool {
 
 func httpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
 	return httpconnectionmanagerv2.HttpConnectionManager{
-		CodecType:  httpconnectionmanagerv2.AUTO,
+		CodecType:  httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix: "ingress_http",
 		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_RouteConfig{
 			RouteConfig: &v2.RouteConfiguration{
@@ -339,7 +339,7 @@ func httpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmana
 		},
 		HttpFilters: []*httpconnectionmanagerv2.HttpFilter{
 			{
-				Name: util.Router,
+				Name: wellknown.Router,
 			},
 		},
 
@@ -349,9 +349,9 @@ func httpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmana
 
 // Outputs to /dev/stdout using the default format
 func accessLogs() []*accesslogv2.AccessLog {
-	accessLogConfigFields := make(map[string]*types.Value)
-	accessLogConfigFields["path"] = &types.Value{
-		Kind: &types.Value_StringValue{
+	accessLogConfigFields := make(map[string]*pstruct.Value)
+	accessLogConfigFields["path"] = &pstruct.Value{
+		Kind: &pstruct.Value_StringValue{
 			StringValue: "/dev/stdout",
 		},
 	}
@@ -360,7 +360,7 @@ func accessLogs() []*accesslogv2.AccessLog {
 		{
 			Name: "envoy.file_access_log",
 			ConfigType: &accesslogv2.AccessLog_Config{
-				Config: &types.Struct{Fields: accessLogConfigFields},
+				Config: &pstruct.Struct{Fields: accessLogConfigFields},
 			},
 		},
 	}
