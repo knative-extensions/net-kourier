@@ -240,11 +240,19 @@ data:
       id: 3scale-kourier-gateway
     static_resources:
       clusters:
-        - connect_timeout: 1s
-          hosts:
-            - socket_address:
-                address: "kourier-control"
-                port_value: 18000
+        - connect_timeout: 0.2s
+          load_assignment:
+            cluster_name: xds_cluster
+            endpoints:
+              - lb_endpoints:
+                - endpoint:
+                    address:
+                      socket_address:
+                        address: kourier-control
+                        port_value: 18000
           http2_protocol_options: {}
+          upstream_connection_options:
+            tcp_keepalive: {}
+          lb_policy: ROUND_ROBIN
           name: xds_cluster
           type: STRICT_DNS
