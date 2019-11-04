@@ -187,7 +187,6 @@ func (kNativeClient *KNativeClient) MarkIngressReady(ingress networkingv1alpha1.
 			})
 		status.MarkNetworkConfigured()
 		status.ObservedGeneration = ingress.GetGeneration()
-		status.ObservedGeneration = ingress.GetGeneration()
 		ingress.SetStatus(*status)
 
 		// Handle both types of ingresses
