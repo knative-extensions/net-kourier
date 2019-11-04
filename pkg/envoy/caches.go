@@ -90,13 +90,13 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 					privateLbEndpoints, publicLbEndpoints := lbEndpointsForKubeEndpoints(endpointList, targetPort)
 
-					serviceName := splitServiceNameFromRevision(split.ServiceName, i)
+					clusterName := clusterNameFromServiceName(split.ServiceName, i)
 
 					connectTimeout := 5 * time.Second
-					cluster := clusterForRevision(serviceName, connectTimeout, privateLbEndpoints, publicLbEndpoints, http2, path)
+					cluster := clusterForRevision(clusterName, connectTimeout, privateLbEndpoints, publicLbEndpoints, http2, path)
 					clusterCache = append(clusterCache, &cluster)
 
-					weightedCluster := weightedCluster(serviceName, uint32(split.Percent), path, headersSplit)
+					weightedCluster := weightedCluster(clusterName, uint32(split.Percent), path, headersSplit)
 
 					wrs = append(wrs, &weightedCluster)
 				}
@@ -368,7 +368,7 @@ func accessLogs() []*accesslogv2.AccessLog {
 	}
 }
 
-func splitServiceNameFromRevision(fullServiceName string, i int) string {
+func clusterNameFromServiceName(fullServiceName string, i int) string {
 	serviceNameSplitted := strings.Split(fullServiceName, "-")
 	serviceNameWithoutRevision := serviceNameSplitted[:len(serviceNameSplitted)-1]
 	return strings.Join(serviceNameWithoutRevision, "-") + strconv.Itoa(i)
