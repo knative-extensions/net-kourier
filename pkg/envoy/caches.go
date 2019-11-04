@@ -4,6 +4,7 @@ import (
 	"kourier/pkg/knative"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -61,7 +62,7 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 				var wrs []*route.WeightedCluster_ClusterWeight
 
-				for _, split := range httpPath.Splits {
+				for i, split := range httpPath.Splits {
 
 					headersSplit := split.AppendHeaders
 
@@ -89,14 +90,15 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 					privateLbEndpoints, publicLbEndpoints := lbEndpointsForKubeEndpoints(endpointList, targetPort)
 
+					serviceName := splitServiceNameFromRevision(split.ServiceName, i)
+
 					connectTimeout := 5 * time.Second
-					cluster := clusterForRevision(split.ServiceName, connectTimeout, privateLbEndpoints, publicLbEndpoints, http2, path)
+					cluster := clusterForRevision(serviceName, connectTimeout, privateLbEndpoints, publicLbEndpoints, http2, path)
 					clusterCache = append(clusterCache, &cluster)
 
-					weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headersSplit)
+					weightedCluster := weightedCluster(serviceName, uint32(split.Percent), path, headersSplit)
 
 					wrs = append(wrs, &weightedCluster)
-
 				}
 
 				r := createRouteForRevision(routeName, i, &httpPath, wrs)
@@ -364,4 +366,10 @@ func accessLogs() []*accesslogv2.AccessLog {
 			},
 		},
 	}
+}
+
+func splitServiceNameFromRevision(fullServiceName string, i int) string {
+	serviceNameSplitted := strings.Split(fullServiceName, "-")
+	serviceNameWithoutRevision := serviceNameSplitted[:len(serviceNameSplitted)-1]
+	return strings.Join(serviceNameWithoutRevision, "-") + strconv.Itoa(i)
 }
