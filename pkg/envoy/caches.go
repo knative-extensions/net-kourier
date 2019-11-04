@@ -11,12 +11,8 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	accesslogv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
-	pstruct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
@@ -130,8 +126,8 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 		}
 	}
 
-	externalManager := httpConnectionManager(externalVirtualHosts)
-	internalManager := httpConnectionManager(clusterLocalVirtualHosts)
+	externalManager := newHttpConnectionManager(externalVirtualHosts)
+	internalManager := newHttpConnectionManager(clusterLocalVirtualHosts)
 
 	externalEnvoyListener, err := newExternalEnvoyListener(useHTTPSListener(), &externalManager, kubeClient)
 	if err != nil {
@@ -327,45 +323,6 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, priva
 func useHTTPSListener() bool {
 	return os.Getenv(envCertsSecretNamespace) != "" &&
 		os.Getenv(envCertsSecretName) != ""
-}
-
-func httpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
-	return httpconnectionmanagerv2.HttpConnectionManager{
-		CodecType:  httpconnectionmanagerv2.HttpConnectionManager_AUTO,
-		StatPrefix: "ingress_http",
-		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_RouteConfig{
-			RouteConfig: &v2.RouteConfiguration{
-				Name:         "local_route",
-				VirtualHosts: virtualHosts,
-			},
-		},
-		HttpFilters: []*httpconnectionmanagerv2.HttpFilter{
-			{
-				Name: wellknown.Router,
-			},
-		},
-
-		AccessLog: accessLogs(),
-	}
-}
-
-// Outputs to /dev/stdout using the default format
-func accessLogs() []*accesslogv2.AccessLog {
-	accessLogConfigFields := make(map[string]*pstruct.Value)
-	accessLogConfigFields["path"] = &pstruct.Value{
-		Kind: &pstruct.Value_StringValue{
-			StringValue: "/dev/stdout",
-		},
-	}
-
-	return []*accesslogv2.AccessLog{
-		{
-			Name: "envoy.file_access_log",
-			ConfigType: &accesslogv2.AccessLog_Config{
-				Config: &pstruct.Struct{Fields: accessLogConfigFields},
-			},
-		},
-	}
 }
 
 func clusterNameFromServiceName(fullServiceName string, i int) string {
