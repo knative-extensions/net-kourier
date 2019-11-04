@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.1] - 2019-11-04
+### Changed
+- Updated envoy go control plane dependency to v0.9.0
+- Get the cluster local domain automatically from the "/etc/resolv.conf" file
+- Replaced deprecated instructions from envoy bootstrap config.
+### Fixed
+- Fix for a "missing Route" issue when revisions where replaced/modified too quickly.
 
 ## [0.2.0] - 2019-10-25
 ### Added
