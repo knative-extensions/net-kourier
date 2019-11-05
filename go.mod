@@ -12,6 +12,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/sirupsen/logrus v1.4.2
 	go.opencensus.io v0.22.1 // indirect
 	go.uber.org/atomic v1.4.0 // indirect
