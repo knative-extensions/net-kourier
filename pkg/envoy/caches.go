@@ -14,6 +14,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	gocache "github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
@@ -26,6 +27,40 @@ type Caches struct {
 	listeners []cache.Resource
 }
 
+type ClustersHistoric struct {
+	clusters *gocache.Cache
+}
+
+func NewClustersHistoric() ClustersHistoric {
+	goCache := gocache.New(5*time.Minute, 10*time.Minute)
+	return ClustersHistoric{clusters: goCache}
+}
+
+func (ch *ClustersHistoric) Add(serviceWithRevisionName string, path string, namespace string, cluster cache.Resource) {
+	key := key(serviceWithRevisionName, path, namespace)
+	ch.clusters.Set(key, cluster, gocache.DefaultExpiration)
+}
+
+func (ch *ClustersHistoric) List() []cache.Resource {
+	var res []cache.Resource
+
+	for _, cluster := range ch.clusters.Items() {
+		res = append(res, cluster.Object.(cache.Resource))
+	}
+
+	return res
+}
+
+func key(serviceWithRevisionName string, path string, namespace string) string {
+	return strings.Join([]string{namespace, serviceWithRevisionName, path}, ":")
+}
+
+// We need this because there might be Envoy clusters used by draining
+// Listeners. The info of those clusters no longer appears in the Ingress
+// object, so we need to store it.
+// This is temporary. This should be extracted into its own module.
+var clustersHistoric = NewClustersHistoric()
+
 type KubeClient interface {
 	EndpointsForRevision(namespace string, serviceName string) (*kubev1.EndpointsList, error)
 	ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error)
@@ -37,7 +72,6 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 	var externalVirtualHosts []*route.VirtualHost
 
 	var routeCache []cache.Resource
-	var clusterCache []cache.Resource
 
 	for i, ingress := range Ingresses {
 		routeName := getRouteName(ingress)
@@ -58,7 +92,7 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 				var wrs []*route.WeightedCluster_ClusterWeight
 
-				for i, split := range httpPath.Splits {
+				for _, split := range httpPath.Splits {
 
 					headersSplit := split.AppendHeaders
 
@@ -86,13 +120,12 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 					privateLbEndpoints, publicLbEndpoints := lbEndpointsForKubeEndpoints(endpointList, targetPort)
 
-					clusterName := clusterNameFromServiceName(split.ServiceName, i)
-
 					connectTimeout := 5 * time.Second
-					cluster := clusterForRevision(clusterName, connectTimeout, privateLbEndpoints, publicLbEndpoints, http2, path)
-					clusterCache = append(clusterCache, &cluster)
+					cluster := clusterForRevision(split.ServiceName, connectTimeout, privateLbEndpoints, publicLbEndpoints, http2, path)
 
-					weightedCluster := weightedCluster(clusterName, uint32(split.Percent), path, headersSplit)
+					clustersHistoric.Add(split.ServiceName, path, split.ServiceNamespace, &cluster)
+
+					weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headersSplit)
 
 					wrs = append(wrs, &weightedCluster)
 				}
@@ -143,7 +176,7 @@ func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient 
 
 	return Caches{
 		endpoints: []cache.Resource{},
-		clusters:  clusterCache,
+		clusters:  clustersHistoric.List(),
 		routes:    routeCache,
 		listeners: listenerCache,
 	}
@@ -323,10 +356,4 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, priva
 func useHTTPSListener() bool {
 	return os.Getenv(envCertsSecretNamespace) != "" &&
 		os.Getenv(envCertsSecretName) != ""
-}
-
-func clusterNameFromServiceName(fullServiceName string, i int) string {
-	serviceNameSplitted := strings.Split(fullServiceName, "-")
-	serviceNameWithoutRevision := serviceNameSplitted[:len(serviceNameSplitted)-1]
-	return strings.Join(serviceNameWithoutRevision, "-") + strconv.Itoa(i)
 }
