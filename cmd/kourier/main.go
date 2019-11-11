@@ -63,7 +63,6 @@ func main() {
 
 	stopChan := make(chan struct{})
 	go kubernetesClient.WatchChangesInEndpoints(namespace, eventsQueue, stopChan)
-	go knativeClient.WatchChangesInClusterIngress(namespace, eventsQueue, stopChan)
 	go knativeClient.WatchChangesInIngress(namespace, eventsQueue, stopChan)
 
 	envoyXdsServer := envoy.NewEnvoyXdsServer(gatewayPort, managementPort, kubernetesClient, knativeClient)
@@ -89,6 +88,6 @@ func main() {
 			log.Error(err)
 		}
 
-		envoyXdsServer.SetSnapshotForClusterIngresses(nodeID, ingressAccessors)
+		envoyXdsServer.SetSnapshotForIngresses(nodeID, ingressAccessors)
 	}
 }

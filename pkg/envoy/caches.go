@@ -37,7 +37,7 @@ type KubeClient interface {
 	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
 
-func CachesForClusterIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient, localDomainName string) Caches {
+func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient, localDomainName string) Caches {
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 

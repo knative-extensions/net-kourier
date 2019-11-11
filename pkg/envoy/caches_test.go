@@ -81,7 +81,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	// Check that there is one route in the result
-	caches := CachesForClusterIngresses(
+	caches := CachesForIngresses(
 		[]v1alpha1.IngressAccessor{v1alpha1.IngressAccessor(&ingress)},
 		newMockedKubeClient(),
 		"cluster.local",
