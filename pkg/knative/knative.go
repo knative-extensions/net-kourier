@@ -54,15 +54,11 @@ func (kNativeClient *KNativeClient) Services(namespace string) (*v1alpha1.Servic
 	return kNativeClient.ServingClient.Services(namespace).List(v1.ListOptions{})
 }
 
-// IngressAccessors returns both the Ingresses and ClusterIngresses that have
-// the Kourier ingressClass in the Annotations
+// IngressAccessors returns the Ingresses that have Kourier ingressClass in the Annotations
+// We keep this interface to decouple with the actual Ingress object so it could be changed or replaced
+// with other iterations.
 func (kNativeClient *KNativeClient) IngressAccessors() ([]networkingv1alpha1.IngressAccessor, error) {
 	ingresses, err := kNativeClient.ingresses()
-	if err != nil {
-		return nil, err
-	}
-
-	clusterIngresses, err := kNativeClient.clusterIngresses()
 	if err != nil {
 		return nil, err
 	}
@@ -73,46 +69,7 @@ func (kNativeClient *KNativeClient) IngressAccessors() ([]networkingv1alpha1.Ing
 		ingressList = append(ingressList, networkingv1alpha1.IngressAccessor(&ingresses[i]))
 	}
 
-	for i := range clusterIngresses {
-		ingressList = append(ingressList, networkingv1alpha1.IngressAccessor(&clusterIngresses[i]))
-	}
-
 	return filterByIngressClass(ingressList), nil
-}
-
-// Pushes an event to the "events" queue received when theres a change in a ClusterIngress is added/deleted/updated.
-func (kNativeClient *KNativeClient) WatchChangesInClusterIngress(namespace string, eventsQueue *workqueue.Type, stopChan <-chan struct{}) {
-
-	restClient := kNativeClient.NetworkingClient.RESTClient()
-
-	watchlist := cache.NewListWatchFromClient(restClient, "clusteringresses", namespace,
-		fields.Everything())
-
-	_, controller := cache.NewInformer(
-		watchlist,
-		&networkingv1alpha1.ClusterIngress{},
-		time.Second*30, //TODO: Review resync time and adjust.
-		cache.FilteringResourceEventHandler{
-			FilterFunc: kourierIngressClassNameFilterFunc(),
-			Handler: cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					eventsQueue.Add(struct{}{})
-				},
-
-				DeleteFunc: func(obj interface{}) {
-					eventsQueue.Add(struct{}{})
-				},
-
-				UpdateFunc: func(oldObj, newObj interface{}) {
-					if oldObj != newObj {
-						eventsQueue.Add(struct{}{})
-					}
-				},
-			},
-		},
-	)
-
-	controller.Run(stopChan)
 }
 
 // Pushes an event to the "events" queue received when theres a change in a Ingress is added/deleted/updated.
@@ -191,16 +148,12 @@ func (kNativeClient *KNativeClient) MarkIngressReady(ingress networkingv1alpha1.
 
 		// Handle both types of ingresses
 		switch ingress.(type) {
-		case *networkingv1alpha1.ClusterIngress:
-			in := ingress.(*networkingv1alpha1.ClusterIngress)
-			_, err = kNativeClient.NetworkingClient.ClusterIngresses().UpdateStatus(in)
-			return err
 		case *networkingv1alpha1.Ingress:
 			in := ingress.(*networkingv1alpha1.Ingress)
 			_, err = kNativeClient.NetworkingClient.Ingresses(ingress.GetNamespace()).UpdateStatus(in)
 			return err
 		default:
-			return fmt.Errorf("can't update object, not Ingress or ClusterIngress")
+			return fmt.Errorf("can't update object, not Ingress")
 		}
 	}
 	return nil
@@ -212,16 +165,6 @@ func kourierIngressClassNameFilterFunc() func(interface{}) bool {
 		kourierIngressClassName,
 		true,
 	)
-}
-
-func (kNativeClient *KNativeClient) clusterIngresses() ([]networkingv1alpha1.ClusterIngress, error) {
-	list, err := kNativeClient.NetworkingClient.ClusterIngresses().List(v1.ListOptions{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return list.Items, err
 }
 
 func (kNativeClient *KNativeClient) ingresses() ([]networkingv1alpha1.Ingress, error) {

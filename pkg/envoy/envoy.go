@@ -112,7 +112,7 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId string, Ingresses []v1alpha12.IngressAccessor) {
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []v1alpha12.IngressAccessor) {
 	snapshotVersion, errUUID := uuid.NewUUID()
 	if errUUID != nil {
 		log.Error(errUUID)
@@ -121,7 +121,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForClusterIngresses(nodeId stri
 
 	localDomainName := network.GetClusterDomainName()
 
-	caches := CachesForClusterIngresses(Ingresses, &envoyXdsServer.kubeClient, localDomainName)
+	caches := CachesForIngresses(Ingresses, &envoyXdsServer.kubeClient, localDomainName)
 
 	snapshot := cache.NewSnapshot(
 		snapshotVersion.String(),
