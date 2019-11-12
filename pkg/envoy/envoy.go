@@ -139,7 +139,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 		for _, ingress := range Ingresses {
 			err := envoyXdsServer.knativeClient.MarkIngressReady(ingress)
 			if err != nil {
-				log.Error(err)
+				log.Debug("Tried to mark an ingress as ready, but it no longer exists: ", err)
 			}
 		}
 	}
