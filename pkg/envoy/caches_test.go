@@ -85,6 +85,7 @@ func TestTrafficSplits(t *testing.T) {
 		[]v1alpha1.IngressAccessor{v1alpha1.IngressAccessor(&ingress)},
 		newMockedKubeClient(),
 		"cluster.local",
+		"snapshot-version",
 	)
 	assert.Equal(t, 1, len(caches.routes))
 

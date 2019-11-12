@@ -7,6 +7,9 @@ import (
 	"kourier/pkg/kubernetes"
 	"net"
 	"net/http"
+	"time"
+
+	v1 "k8s.io/api/core/v1"
 
 	"knative.dev/pkg/network"
 
@@ -121,8 +124,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 
 	localDomainName := network.GetClusterDomainName()
 
-	caches := CachesForIngresses(Ingresses, &envoyXdsServer.kubeClient, localDomainName)
-
+	caches := CachesForIngresses(Ingresses, &envoyXdsServer.kubeClient, localDomainName, snapshotVersion.String())
 	snapshot := cache.NewSnapshot(
 		snapshotVersion.String(),
 		caches.endpoints,
@@ -135,12 +137,39 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 
 	if err != nil {
 		log.Error(err)
-	} else {
-		for _, ingress := range Ingresses {
-			err := envoyXdsServer.knativeClient.MarkIngressReady(ingress)
-			if err != nil {
-				log.Debug("Tried to mark an ingress as ready, but it no longer exists: ", err)
-			}
-		}
+		return
 	}
+
+	gwPods, _ := envoyXdsServer.kubeClient.GetKourierGatewayPODS(v1.NamespaceAll)
+
+	retries := 0
+	for {
+		if retries > 3 {
+			log.Errorf("Failed to mark latest snapshot as ready after %d retries", retries)
+			break
+		}
+
+		inSync, err := envoyXdsServer.kubeClient.CheckGatewaySnapshot(gwPods, snapshotVersion.String())
+		if err != nil {
+			log.Error(err)
+			break
+		}
+
+		if inSync {
+			for _, ingress := range Ingresses {
+
+				err := envoyXdsServer.knativeClient.MarkIngressReady(ingress)
+				if err != nil {
+					log.Debug("Tried to mark an ingress as ready, but it no longer exists: ", err)
+					break
+				}
+			}
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+		retries++
+
+	}
+
 }

@@ -13,7 +13,9 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-const labelPrefix = "serving.knative.dev/revision="
+const (
+	labelPrefix = "serving.knative.dev/revision="
+)
 
 type KubernetesClient struct {
 	Client *kubernetes.Clientset
