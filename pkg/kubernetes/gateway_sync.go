@@ -44,8 +44,11 @@ func (kubernetesClient *KubernetesClient) CheckGatewaySnapshot(gwPods *v1.PodLis
 	var ips []string
 
 	for _, pod := range gwPods.Items {
-		ips = append(ips, pod.Status.PodIP)
+		if pod.Status.PodIP != "" {
+			ips = append(ips, pod.Status.PodIP)
+		}
 	}
+
 	if len(ips) == 0 {
 		return false, nil
 	}
@@ -64,6 +67,7 @@ func (kubernetesClient *KubernetesClient) CheckGatewaySnapshot(gwPods *v1.PodLis
 	}
 
 	for _, ip := range ips {
+
 		go func() {
 			defer wg.Done()
 
@@ -99,7 +103,7 @@ func getCurrentGWSnapshot(ip string, client http.Client) (string, error) {
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		return resp.Header.Get(internalKourierDomain), nil
+		return resp.Header.Get(internalKourierHeader), nil
 	}
 
 	return "", fmt.Errorf("status code %d", resp.StatusCode)
