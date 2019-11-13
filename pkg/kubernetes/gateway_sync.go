@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"kourier/pkg/config"
 	"net/http"
 	"strconv"
 	"sync"
@@ -13,13 +14,9 @@ import (
 )
 
 const (
-	gatewayLabelSelector  = "app=3scale-kourier-gateway"
-	httpClientTimeout     = 2 * time.Second
-	gatewaySyncTimeout    = 3 * time.Second
-	httpPortInternal      = uint32(8081)
-	internalKourierPath   = "/__internalkouriersnapshot"
-	internalKourierDomain = "internalkourier"
-	internalKourierHeader = "kourier-snapshot-id"
+	gatewayLabelSelector = "app=3scale-kourier-gateway"
+	httpClientTimeout    = 2 * time.Second
+	gatewaySyncTimeout   = 3 * time.Second
 )
 
 var (
@@ -103,7 +100,7 @@ func getCurrentGWSnapshot(ip string, client http.Client) (string, error) {
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		return resp.Header.Get(internalKourierHeader), nil
+		return resp.Header.Get(config.InternalKourierHeader), nil
 	}
 
 	return "", fmt.Errorf("status code %d", resp.StatusCode)
@@ -127,12 +124,12 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 
 func buildInternalKourierRequest(ip string) (*http.Request, error) {
 
-	port := strconv.Itoa(int(httpPortInternal))
-	req, err := http.NewRequest("GET", "http://"+ip+":"+port+internalKourierPath, nil)
+	port := strconv.Itoa(int(config.HttpPortInternal))
+	req, err := http.NewRequest("GET", "http://"+ip+":"+port+config.InternalKourierPath, nil)
 	if err != nil {
 		return &http.Request{}, err
 	}
-	req.Host = internalKourierDomain
+	req.Host = config.InternalKourierDomain
 
 	return req, nil
 }
