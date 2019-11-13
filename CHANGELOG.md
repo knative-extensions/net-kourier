@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.5] - 2019-11-13
+### Changed
+- Added readiness probe to the kourier gateway pod.
+
 ## [0.2.4] - 2019-11-13
 ### Fixed
 - Now a knative Ingress is not marked as ready until all the kourier gateways are in sync with the latest configuration version.
@@ -36,6 +40,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.2.5]: https://github.com/3scale/kourier/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/3scale/kourier/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/3scale/kourier/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/3scale/kourier/compare/v0.2.1...v0.2.2
