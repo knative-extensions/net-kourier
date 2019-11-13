@@ -123,7 +123,7 @@ metadata:
   namespace: istio-system
 rules:
   - apiGroups: [""]
-    resources: [ "endpoints", "namespaces", "services", "secrets"]
+    resources: ["pods", "endpoints", "namespaces", "services", "secrets"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["networking.internal.knative.dev"]
     resources: ["clusteringresses","ingresses"]

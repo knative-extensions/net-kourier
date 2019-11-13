@@ -19,9 +19,9 @@ const (
 	envCertsSecretName      = "CERTS_SECRET_NAME"
 	certFieldInSecret       = "tls.crt"
 	keyFieldInSecret        = "tls.key"
-	httpPortExternal        = uint32(8080)
-	httpPortInternal        = uint32(8081)
-	httpsPortExternal       = uint32(8443)
+	HttpPortExternal        = uint32(8080)
+	HttpPortInternal        = uint32(8081)
+	HttpsPortExternal       = uint32(8443)
 )
 
 func newExternalEnvoyListener(https bool,
@@ -29,14 +29,14 @@ func newExternalEnvoyListener(https bool,
 	kubeClient KubeClient) (*v2.Listener, error) {
 
 	if https {
-		return envoyHTTPSListener(manager, kubeClient, httpsPortExternal)
+		return envoyHTTPSListener(manager, kubeClient, HttpsPortExternal)
 	} else {
-		return envoyHTTPListener(manager, httpPortExternal)
+		return envoyHTTPListener(manager, HttpPortExternal)
 	}
 }
 
 func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
-	return envoyHTTPListener(manager, httpPortInternal)
+	return envoyHTTPListener(manager, HttpPortInternal)
 }
 
 func envoyHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint32) (*v2.Listener, error) {

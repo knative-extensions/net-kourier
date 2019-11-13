@@ -2,6 +2,7 @@ package envoy
 
 import (
 	"kourier/pkg/knative"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -16,6 +17,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+)
+
+const (
+	InternalKourierPath   = "/__internalkouriersnapshot"
+	InternalKourierDomain = "internalkourier"
+	InternalKourierHeader = "kourier-snapshot-id"
 )
 
 type Caches struct {
@@ -37,7 +44,7 @@ type KubeClient interface {
 	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
 
-func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient, localDomainName string) Caches {
+func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient, localDomainName string, snapshotVersion string) Caches {
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 
@@ -125,9 +132,17 @@ func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeCli
 			if knative.RuleIsExternal(&rule, ingress.GetSpec().Visibility) {
 				externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
 			}
+
 			clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
 		}
 	}
+
+	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
+	// to each envoy
+	ikr := internalKourierRoute(snapshotVersion)
+	ikvh := internalKourierVirtualHost(ikr)
+
+	clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &ikvh)
 
 	externalManager := newHttpConnectionManager(externalVirtualHosts)
 	internalManager := newHttpConnectionManager(clusterLocalVirtualHosts)
@@ -149,6 +164,39 @@ func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeCli
 		clusters:  clustersHistoric.list(),
 		routes:    routeCache,
 		listeners: listenerCache,
+	}
+}
+
+func internalKourierVirtualHost(ikr route.Route) route.VirtualHost {
+	return route.VirtualHost{
+		Name:    InternalKourierDomain,
+		Domains: []string{InternalKourierDomain},
+		Routes:  []*route.Route{&ikr},
+	}
+}
+
+func internalKourierRoute(snapshotVersion string) route.Route {
+	return route.Route{
+		Name: InternalKourierDomain,
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Path{
+				Path: InternalKourierPath,
+			},
+		},
+		Action: &route.Route_DirectResponse{
+			DirectResponse: &route.DirectResponseAction{Status: http.StatusOK},
+		},
+		ResponseHeadersToAdd: []*core.HeaderValueOption{
+			{
+				Header: &core.HeaderValue{
+					Key:   InternalKourierHeader,
+					Value: snapshotVersion,
+				},
+				Append: &wrappers.BoolValue{
+					Value: true,
+				},
+			},
+		},
 	}
 }
 
