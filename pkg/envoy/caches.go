@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"kourier/pkg/config"
 	"kourier/pkg/knative"
 	"net/http"
 	"os"
@@ -17,12 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
-)
-
-const (
-	InternalKourierPath   = "/__internalkouriersnapshot"
-	InternalKourierDomain = "internalkourier"
-	InternalKourierHeader = "kourier-snapshot-id"
 )
 
 type Caches struct {
@@ -169,18 +164,18 @@ func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeCli
 
 func internalKourierVirtualHost(ikr route.Route) route.VirtualHost {
 	return route.VirtualHost{
-		Name:    InternalKourierDomain,
-		Domains: []string{InternalKourierDomain},
+		Name:    config.InternalKourierDomain,
+		Domains: []string{config.InternalKourierDomain},
 		Routes:  []*route.Route{&ikr},
 	}
 }
 
 func internalKourierRoute(snapshotVersion string) route.Route {
 	return route.Route{
-		Name: InternalKourierDomain,
+		Name: config.InternalKourierDomain,
 		Match: &route.RouteMatch{
 			PathSpecifier: &route.RouteMatch_Path{
-				Path: InternalKourierPath,
+				Path: config.InternalKourierPath,
 			},
 		},
 		Action: &route.Route_DirectResponse{
@@ -189,7 +184,7 @@ func internalKourierRoute(snapshotVersion string) route.Route {
 		ResponseHeadersToAdd: []*core.HeaderValueOption{
 			{
 				Header: &core.HeaderValue{
-					Key:   InternalKourierHeader,
+					Key:   config.InternalKourierHeader,
 					Value: snapshotVersion,
 				},
 				Append: &wrappers.BoolValue{

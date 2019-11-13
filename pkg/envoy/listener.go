@@ -2,6 +2,7 @@ package envoy
 
 import (
 	"fmt"
+	"kourier/pkg/config"
 	"os"
 
 	"github.com/envoyproxy/go-control-plane/pkg/conversion"
@@ -19,9 +20,6 @@ const (
 	envCertsSecretName      = "CERTS_SECRET_NAME"
 	certFieldInSecret       = "tls.crt"
 	keyFieldInSecret        = "tls.key"
-	HttpPortExternal        = uint32(8080)
-	HttpPortInternal        = uint32(8081)
-	HttpsPortExternal       = uint32(8443)
 )
 
 func newExternalEnvoyListener(https bool,
@@ -29,14 +27,14 @@ func newExternalEnvoyListener(https bool,
 	kubeClient KubeClient) (*v2.Listener, error) {
 
 	if https {
-		return envoyHTTPSListener(manager, kubeClient, HttpsPortExternal)
+		return envoyHTTPSListener(manager, kubeClient, config.HttpsPortExternal)
 	} else {
-		return envoyHTTPListener(manager, HttpPortExternal)
+		return envoyHTTPListener(manager, config.HttpPortExternal)
 	}
 }
 
 func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
-	return envoyHTTPListener(manager, HttpPortInternal)
+	return envoyHTTPListener(manager, config.HttpPortInternal)
 }
 
 func envoyHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint32) (*v2.Listener, error) {

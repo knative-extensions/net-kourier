@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"kourier/pkg/config"
 	"os"
 	"testing"
 
@@ -22,7 +23,7 @@ func TestCreateHTTPListener(t *testing.T) {
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
-	assert.Equal(t, uint32(8080), l.Address.GetSocketAddress().GetPortValue())
+	assert.Equal(t, config.HttpPortExternal, l.Address.GetSocketAddress().GetPortValue())
 	assert.Assert(t, is.Nil(l.FilterChains[0].TlsContext)) //TLS not configured
 }
 
@@ -45,7 +46,7 @@ func TestCreateHTTPSListener(t *testing.T) {
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
-	assert.Equal(t, uint32(8443), l.Address.GetSocketAddress().GetPortValue())
+	assert.Equal(t, config.HttpsPortExternal, l.Address.GetSocketAddress().GetPortValue())
 
 	// Check that TLS is configured
 	certs := l.FilterChains[0].TlsContext.CommonTlsContext.TlsCertificates[0]
