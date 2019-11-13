@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
+	networkingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
 )
 
@@ -45,4 +46,9 @@ func ExampleHelloWorldServing() v1alpha1.Service {
 func KnativeServingClient(kubeConfigPath string) (*servingClientSet.ServingV1alpha1Client, error) {
 	config := kubernetes.Config(kubeConfigPath)
 	return servingClientSet.NewForConfig(config)
+}
+
+func KnativeServingNetworkClient(kubeConfigPath string) (*networkingClientSet.NetworkingV1alpha1Client, error) {
+	config := kubernetes.Config(kubeConfigPath)
+	return networkingClientSet.NewForConfig(config)
 }
