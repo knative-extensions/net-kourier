@@ -13,7 +13,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
+	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
+	networkingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
 )
 
@@ -33,7 +35,12 @@ func TestSimpleScenario(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	service, err := setupSimpleScenario(servingClient)
+	servingNetworkClient, err := KnativeServingNetworkClient(*kubeconfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	service, err := setupSimpleScenario(servingClient, servingNetworkClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +73,9 @@ func TestSimpleScenario(t *testing.T) {
 }
 
 // Deploys a simple "Hello World" serving and returns it.
-func setupSimpleScenario(servingClient *servingClientSet.ServingV1alpha1Client) (*v1alpha1.Service, error) {
+func setupSimpleScenario(servingClient *servingClientSet.ServingV1alpha1Client,
+	networkServingClient *networkingClientSet.NetworkingV1alpha1Client) (*v1alpha1.Service, error) {
+
 	service := ExampleHelloWorldServing()
 
 	// Make sure there's nothing left from previous tests
@@ -75,9 +84,9 @@ func setupSimpleScenario(servingClient *servingClientSet.ServingV1alpha1Client) 
 		return nil, err
 	}
 
-	eventsServiceReady := make(chan struct{})
+	eventsIngressReady := make(chan struct{})
 	stopChan := make(chan struct{})
-	go watchForServiceReady(servingClient, service.Name, eventsServiceReady, stopChan)
+	go watchForIngressReady(networkServingClient, service.Name, eventsIngressReady, stopChan)
 
 	createdService, err := servingClient.Services(namespace).Create(&service)
 
@@ -87,37 +96,42 @@ func setupSimpleScenario(servingClient *servingClientSet.ServingV1alpha1Client) 
 
 	// Wait until the service is ready plus some time to make sure that Envoy
 	// refreshed the config.
-	<-eventsServiceReady
+	<-eventsIngressReady
 	time.Sleep(5 * time.Second)
 
 	return createdService, nil
 }
 
-func watchForServiceReady(servingClient *servingClientSet.ServingV1alpha1Client,
+func watchForIngressReady(networkServingClient *networkingClientSet.NetworkingV1alpha1Client,
 	serviceName string,
 	events chan<- struct{},
 	stopChan <-chan struct{}) {
 
-	restClient := servingClient.RESTClient()
+	restClient := networkServingClient.RESTClient()
 
-	watchlist := cache.NewListWatchFromClient(restClient, "services", namespace, fields.Everything())
+	watchlist := cache.NewListWatchFromClient(
+		restClient,
+		"ingresses",
+		namespace,
+		fields.Everything(),
+	)
 
 	_, controller := cache.NewInformer(
 		watchlist,
-		&v1alpha1.Service{},
+		&networkingv1alpha1.Ingress{},
 		time.Second*1,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				service := obj.(*v1alpha1.Service)
+				ingress := obj.(*networkingv1alpha1.Ingress)
 
-				if service.Name == serviceName && service.Status.IsReady() {
+				if ingress.Name == serviceName && ingress.Status.IsReady() {
 					events <- struct{}{}
 				}
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				updatedService := newObj.(*v1alpha1.Service)
+				updatedIngress := newObj.(*networkingv1alpha1.Ingress)
 
-				if updatedService.Name == serviceName && updatedService.Status.IsReady() {
+				if updatedIngress.Name == serviceName && updatedIngress.Status.IsReady() {
 					events <- struct{}{}
 				}
 			},
