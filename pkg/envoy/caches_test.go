@@ -128,12 +128,10 @@ func TestTrafficSplits(t *testing.T) {
 
 type mockedKubeClient struct{}
 
-func (kubeClient *mockedKubeClient) EndpointsForRevision(namespace string, serviceName string) (*kubev1.EndpointsList, error) {
-	list := kubev1.EndpointsList{
-		Items: []kubev1.Endpoints{},
-	}
+func (kubeClient *mockedKubeClient) EndpointsForRevision(namespace string, serviceName string) (*kubev1.Endpoints, error) {
+	eps := kubev1.Endpoints{}
 
-	return &list, nil
+	return &eps, nil
 }
 
 func (kubeClient *mockedKubeClient) ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error) {

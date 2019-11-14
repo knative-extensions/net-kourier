@@ -34,7 +34,7 @@ type Caches struct {
 var clustersHistoric = newClustersCache()
 
 type KubeClient interface {
-	EndpointsForRevision(namespace string, serviceName string) (*kubev1.EndpointsList, error)
+	EndpointsForRevision(namespace string, serviceName string) (*kubev1.Endpoints, error)
 	ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error)
 	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
@@ -68,7 +68,7 @@ func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeCli
 
 					headersSplit := split.AppendHeaders
 
-					endpointList, err := kubeClient.EndpointsForRevision(split.ServiceNamespace, split.ServiceName)
+					endpoints, err := kubeClient.EndpointsForRevision(split.ServiceNamespace, split.ServiceName)
 
 					if err != nil {
 						log.Errorf("%s", err)
@@ -90,10 +90,10 @@ func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeCli
 						}
 					}
 
-					privateLbEndpoints, publicLbEndpoints := lbEndpointsForKubeEndpoints(endpointList, targetPort)
+					publicLbEndpoints := lbEndpointsForKubeEndpoints(endpoints, targetPort)
 
 					connectTimeout := 5 * time.Second
-					cluster := clusterForRevision(split.ServiceName, connectTimeout, privateLbEndpoints, publicLbEndpoints, http2, path)
+					cluster := clusterForRevision(split.ServiceName, connectTimeout, publicLbEndpoints, http2, path)
 
 					clustersHistoric.set(split.ServiceName, path, split.ServiceNamespace, &cluster)
 
@@ -203,45 +203,38 @@ func getRouteName(ingress v1alpha1.IngressAccessor) string {
 	return ingress.GetLabels()["serving.knative.dev/route"]
 }
 
-func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.EndpointsList, targetPort int32) (privateLbEndpoints []*endpoint.LbEndpoint, publicLbEndpoints []*endpoint.LbEndpoint) {
+func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
 
-	for _, kubeEndpoint := range kubeEndpoints.Items {
+	for _, subset := range kubeEndpoints.Subsets {
 
-		for _, subset := range kubeEndpoint.Subsets {
+		for _, address := range subset.Addresses {
 
-			for _, address := range subset.Addresses {
-
-				serviceEndpoint := &core.Address{
-					Address: &core.Address_SocketAddress{
-						SocketAddress: &core.SocketAddress{
-							Protocol: core.SocketAddress_TCP,
-							Address:  address.IP,
-							PortSpecifier: &core.SocketAddress_PortValue{
-								PortValue: uint32(targetPort),
-							},
-							Ipv4Compat: true,
+			serviceEndpoint := &core.Address{
+				Address: &core.Address_SocketAddress{
+					SocketAddress: &core.SocketAddress{
+						Protocol: core.SocketAddress_TCP,
+						Address:  address.IP,
+						PortSpecifier: &core.SocketAddress_PortValue{
+							PortValue: uint32(targetPort),
 						},
+						Ipv4Compat: true,
 					},
-				}
-
-				lbEndpoint := endpoint.LbEndpoint{
-					HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-						Endpoint: &endpoint.Endpoint{
-							Address: serviceEndpoint,
-						},
-					},
-				}
-
-				if kubeEndpoint.Labels["networking.internal.knative.dev/serviceType"] == "Private" {
-					privateLbEndpoints = append(privateLbEndpoints, &lbEndpoint)
-				} else if kubeEndpoint.Labels["networking.internal.knative.dev/serviceType"] == "Public" {
-					publicLbEndpoints = append(publicLbEndpoints, &lbEndpoint)
-				}
+				},
 			}
+
+			lbEndpoint := endpoint.LbEndpoint{
+				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+					Endpoint: &endpoint.Endpoint{
+						Address: serviceEndpoint,
+					},
+				},
+			}
+
+			publicLbEndpoints = append(publicLbEndpoints, &lbEndpoint)
 		}
 	}
 
-	return privateLbEndpoints, publicLbEndpoints
+	return publicLbEndpoints
 }
 
 func createRouteForRevision(routeName string, i int, httpPath *v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) route.Route {
@@ -336,7 +329,7 @@ func createRetryPolicyForRoute(httpPath *v1alpha1.HTTPIngressPath) *route.RetryP
 	}
 }
 
-func clusterForRevision(revisionName string, connectTimeout time.Duration, privateLbEndpoints, publicLbEndpoints []*endpoint.LbEndpoint, http2 bool, path string) v2.Cluster {
+func clusterForRevision(revisionName string, connectTimeout time.Duration, publicLbEndpoints []*endpoint.LbEndpoint, http2 bool, path string) v2.Cluster {
 
 	cluster := v2.Cluster{
 		Name: revisionName + path,
@@ -350,10 +343,6 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, priva
 				{
 					LbEndpoints: publicLbEndpoints,
 					Priority:    1,
-				},
-				{
-					LbEndpoints: privateLbEndpoints,
-					Priority:    0,
 				},
 			},
 		},
