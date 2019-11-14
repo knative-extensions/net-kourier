@@ -60,7 +60,7 @@ type mockedKubeClientListener struct {
 }
 
 func (kubeClient *mockedKubeClientListener) EndpointsForRevision(
-	namespace string, serviceName string) (*v1.EndpointsList, error) {
+	namespace string, serviceName string) (*v1.Endpoints, error) {
 
 	return nil, nil
 }

@@ -13,10 +13,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-const (
-	labelPrefix = "serving.knative.dev/revision="
-)
-
 type KubernetesClient struct {
 	Client *kubernetes.Clientset
 }
@@ -41,9 +37,8 @@ func Config(kubeConfigPath string) *rest.Config {
 	return config
 }
 
-func (kubernetesClient *KubernetesClient) EndpointsForRevision(namespace string, revisionName string) (*v1.EndpointsList, error) {
-	listOptions := meta_v1.ListOptions{LabelSelector: labelPrefix + revisionName}
-	return kubernetesClient.Client.CoreV1().Endpoints(namespace).List(listOptions)
+func (kubernetesClient *KubernetesClient) EndpointsForRevision(namespace string, revisionName string) (*v1.Endpoints, error) {
+	return kubernetesClient.Client.CoreV1().Endpoints(namespace).Get(revisionName, meta_v1.GetOptions{})
 }
 
 func (kubernetesClient *KubernetesClient) ServiceForRevision(namespace string, revisionName string) (*v1.Service, error) {
