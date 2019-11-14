@@ -99,7 +99,7 @@ spec:
         app: 3scale-kourier-control
     spec:
       containers:
-        - image: quay.io/3scale/kourier:v0.2.5
+        - image: quay.io/3scale/kourier:v0.2.6
           imagePullPolicy: Always
           name: kourier-control
           resources: {}
