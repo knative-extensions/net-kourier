@@ -3,8 +3,6 @@ kind: Namespace
 metadata:
   name: istio-system
 spec:
-status:
-  phase: Active
 ---
 apiVersion: v1
 kind: Service
@@ -20,8 +18,6 @@ spec:
   selector:
     app: 3scale-kourier-gateway
   type: LoadBalancer
-status:
-  loadBalancer: {}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -173,8 +169,6 @@ spec:
   selector:
     app: 3scale-kourier-gateway
   type: ClusterIP
-status:
-  loadBalancer: {}
 ---
 apiVersion: v1
 kind: Service
@@ -190,8 +184,6 @@ spec:
   selector:
     app: 3scale-kourier-gateway
   type: ClusterIP
-status:
-  loadBalancer: {}
 ---
 apiVersion: v1
 kind: Service
@@ -207,8 +199,6 @@ spec:
   selector:
     app: 3scale-kourier-gateway
   type: ClusterIP
-status:
-  loadBalancer: {}
 ---
 apiVersion: v1
 kind: Service
@@ -223,8 +213,6 @@ spec:
   selector:
     app: 3scale-kourier-control
   type: ClusterIP
-status:
-  loadBalancer: {}
 ---
 apiVersion: v1
 kind: ConfigMap
