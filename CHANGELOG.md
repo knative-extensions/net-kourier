@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.6] - 2019-11-14
+### Fixed
+- Kourier now only routes the public endpoints object of a revision.
+
 ## [0.2.5] - 2019-11-13
 ### Changed
 - Added readiness probe to the kourier gateway pod.
@@ -40,6 +44,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.2.6]: https://github.com/3scale/kourier/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/3scale/kourier/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/3scale/kourier/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/3scale/kourier/compare/v0.2.2...v0.2.3
