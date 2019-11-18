@@ -21,7 +21,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	v1alpha12 "knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
 const (
@@ -115,7 +115,7 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []v1alpha12.IngressAccessor) {
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []*v1alpha1.Ingress) {
 	snapshotVersion, errUUID := uuid.NewUUID()
 	if errUUID != nil {
 		log.Error(errUUID)

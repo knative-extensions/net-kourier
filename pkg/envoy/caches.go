@@ -39,7 +39,7 @@ type KubeClient interface {
 	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
 
-func CachesForIngresses(Ingresses []v1alpha1.IngressAccessor, kubeClient KubeClient, localDomainName string, snapshotVersion string) Caches {
+func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeClient KubeClient, localDomainName string, snapshotVersion string) Caches {
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 
@@ -195,11 +195,11 @@ func internalKourierRoute(snapshotVersion string) route.Route {
 	}
 }
 
-func getRouteNamespace(ingress v1alpha1.IngressAccessor) string {
+func getRouteNamespace(ingress *v1alpha1.Ingress) string {
 	return ingress.GetLabels()["serving.knative.dev/routeNamespace"]
 }
 
-func getRouteName(ingress v1alpha1.IngressAccessor) string {
+func getRouteName(ingress *v1alpha1.Ingress) string {
 	return ingress.GetLabels()["serving.knative.dev/route"]
 }
 

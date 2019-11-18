@@ -1,16 +1,11 @@
 package kubernetes
 
 import (
-	"time"
-
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/workqueue"
 )
 
 type KubernetesClient struct {
@@ -47,36 +42,4 @@ func (kubernetesClient *KubernetesClient) ServiceForRevision(namespace string, r
 
 func (kubernetesClient *KubernetesClient) GetSecret(namespace string, secretName string) (*v1.Secret, error) {
 	return kubernetesClient.Client.CoreV1().Secrets(namespace).Get(secretName, meta_v1.GetOptions{})
-}
-
-// Pushes an event to the "events" queue received when an endpoint is added/deleted/updated.
-func (kubernetesClient *KubernetesClient) WatchChangesInEndpoints(namespace string, eventsQueue *workqueue.Type, stopChan <-chan struct{}) {
-	restClient := kubernetesClient.Client.CoreV1().RESTClient()
-
-	watchlist := cache.NewListWatchFromClient(restClient, "endpoints", namespace,
-		fields.Everything())
-
-	_, controller := cache.NewInformer(
-		watchlist,
-		&v1.Endpoints{},
-		time.Second*30,
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				eventsQueue.Add(struct{}{})
-			},
-
-			DeleteFunc: func(obj interface{}) {
-				eventsQueue.Add(struct{}{})
-			},
-
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				if oldObj != newObj {
-					eventsQueue.Add(struct{}{})
-				}
-			},
-		},
-	)
-
-	controller.Run(stopChan)
-
 }
