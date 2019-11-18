@@ -1,7 +1,7 @@
 package main
 
 import (
-	kourierController "kourier/pkg/reconciler"
+	kourierIngressController "kourier/pkg/reconciler/ingress"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -27,5 +27,5 @@ func main() {
 	_ = os.Setenv("SYSTEM_NAMESPACE", "knative-serving")
 	_ = os.Setenv("METRICS_DOMAIN", "knative.dev/samples")
 
-	sharedmain.Main("KourierController", kourierController.NewController)
+	sharedmain.Main("KourierIngressController", kourierIngressController.NewController)
 }
