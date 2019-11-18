@@ -9,7 +9,9 @@ import (
 	"gotest.tools/assert"
 	kubev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
@@ -84,6 +86,7 @@ func TestTrafficSplits(t *testing.T) {
 	caches := CachesForIngresses(
 		[]*v1alpha1.Ingress{&ingress},
 		newMockedKubeClient(),
+		newMockedEndpointsLister(),
 		"cluster.local",
 		"snapshot-version",
 	)
@@ -128,12 +131,6 @@ func TestTrafficSplits(t *testing.T) {
 
 type mockedKubeClient struct{}
 
-func (kubeClient *mockedKubeClient) EndpointsForRevision(namespace string, serviceName string) (*kubev1.Endpoints, error) {
-	eps := kubev1.Endpoints{}
-
-	return &eps, nil
-}
-
 func (kubeClient *mockedKubeClient) ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error) {
 	service := kubev1.Service{
 		Spec: kubev1.ServiceSpec{},
@@ -147,6 +144,30 @@ func (kubeClient *mockedKubeClient) GetSecret(namespace string, secretName strin
 
 func newMockedKubeClient() *mockedKubeClient {
 	return new(mockedKubeClient)
+}
+
+func newMockedEndpointsLister() corev1listers.EndpointsLister {
+	return new(endpointsLister)
+}
+
+type endpointsLister struct{}
+
+func (endpointsLister *endpointsLister) List(selector labels.Selector) ([]*kubev1.Endpoints, error) {
+	return []*kubev1.Endpoints{{}}, nil
+}
+
+func (endpointsLister *endpointsLister) Endpoints(namespace string) corev1listers.EndpointsNamespaceLister {
+	return new(endpoints)
+}
+
+type endpoints struct{}
+
+func (endpoints *endpoints) List(selector labels.Selector) ([]*kubev1.Endpoints, error) {
+	return []*kubev1.Endpoints{{}}, nil
+}
+
+func (endpoints *endpoints) Get(name string) (*kubev1.Endpoints, error) {
+	return &kubev1.Endpoints{}, nil
 }
 
 func clustersExist(names []string, clustersCache []cache.Resource) bool {

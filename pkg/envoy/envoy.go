@@ -21,6 +21,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
@@ -115,7 +116,7 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []*v1alpha1.Ingress) {
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []*v1alpha1.Ingress, endpointsLister corev1listers.EndpointsLister) {
 	snapshotVersion, errUUID := uuid.NewUUID()
 	if errUUID != nil {
 		log.Error(errUUID)
@@ -124,7 +125,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 
 	localDomainName := network.GetClusterDomainName()
 
-	caches := CachesForIngresses(Ingresses, &envoyXdsServer.kubeClient, localDomainName, snapshotVersion.String())
+	caches := CachesForIngresses(Ingresses, &envoyXdsServer.kubeClient, endpointsLister, localDomainName, snapshotVersion.String())
 	snapshot := cache.NewSnapshot(
 		snapshotVersion.String(),
 		caches.endpoints,

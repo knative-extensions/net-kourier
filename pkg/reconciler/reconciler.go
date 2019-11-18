@@ -24,7 +24,11 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 
 	kourierIngresses := knative.FilterByIngressClass(ingressAccessors)
 
-	reconciler.EnvoyXDSServer.SetSnapshotForIngresses(nodeID, kourierIngresses)
+	reconciler.EnvoyXDSServer.SetSnapshotForIngresses(
+		nodeID,
+		kourierIngresses,
+		reconciler.EndpointsLister,
+	)
 
 	return nil
 }

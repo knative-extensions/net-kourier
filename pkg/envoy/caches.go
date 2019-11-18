@@ -17,6 +17,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
@@ -34,12 +35,11 @@ type Caches struct {
 var clustersHistoric = newClustersCache()
 
 type KubeClient interface {
-	EndpointsForRevision(namespace string, serviceName string) (*kubev1.Endpoints, error)
 	ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error)
 	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
 }
 
-func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeClient KubeClient, localDomainName string, snapshotVersion string) Caches {
+func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeClient KubeClient, endpointsLister corev1listers.EndpointsLister, localDomainName string, snapshotVersion string) Caches {
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 
@@ -68,7 +68,7 @@ func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeClient KubeClient, lo
 
 					headersSplit := split.AppendHeaders
 
-					endpoints, err := kubeClient.EndpointsForRevision(split.ServiceNamespace, split.ServiceName)
+					endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
 
 					if err != nil {
 						log.Errorf("%s", err)
