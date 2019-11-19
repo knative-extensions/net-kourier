@@ -70,8 +70,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 	impl := controller.NewImpl(c, logger, controllerName)
 
-	ingressInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
-	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	// In this first version, we are just refreshing the whole config for any
+	// event that we receive. So we should always enqueue the same key.
+	enqueueFunc := func(obj interface{}) {
+		impl.EnqueueKey("")
+	}
+
+	ingressInformer.Informer().AddEventHandler(controller.HandleAll(enqueueFunc))
+	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(enqueueFunc))
 
 	return impl
 }
