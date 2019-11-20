@@ -10,7 +10,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -25,11 +26,11 @@ var (
 	mutex  sync.Mutex
 )
 
-func (kubernetesClient *KubernetesClient) GetKourierGatewayPODS(namespace string) (*v1.PodList, error) {
-	opts := meta_v1.ListOptions{
+func GetKourierGatewayPODS(kubeclient kubernetes.Interface, namespace string) (*v1.PodList, error) {
+	opts := metav1.ListOptions{
 		LabelSelector: gatewayLabelSelector,
 	}
-	pods, err := kubernetesClient.Client.CoreV1().Pods(namespace).List(opts)
+	pods, err := kubeclient.CoreV1().Pods(namespace).List(opts)
 	if err != nil {
 		return &v1.PodList{}, err
 	}
@@ -37,7 +38,7 @@ func (kubernetesClient *KubernetesClient) GetKourierGatewayPODS(namespace string
 	return pods, nil
 }
 
-func (kubernetesClient *KubernetesClient) CheckGatewaySnapshot(gwPods *v1.PodList, snapshotID string) (bool, error) {
+func CheckGatewaySnapshot(gwPods *v1.PodList, snapshotID string) (bool, error) {
 	var ips []string
 
 	for _, pod := range gwPods.Items {

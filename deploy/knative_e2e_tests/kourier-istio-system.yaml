@@ -106,7 +106,7 @@ spec:
               value: ""
             - name: CERTS_SECRET_NAME
               value: ""
-            - name: KOURIER_NAMESPACE
+            - name: SYSTEM_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
@@ -124,7 +124,7 @@ metadata:
   namespace: istio-system
 rules:
   - apiGroups: [""]
-    resources: ["pods", "endpoints", "namespaces", "services", "secrets"]
+    resources: ["pods", "endpoints", "namespaces", "services", "secrets", "configmaps"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["networking.internal.knative.dev"]
     resources: ["clusteringresses","ingresses"]
@@ -258,3 +258,15 @@ data:
           lb_policy: ROUND_ROBIN
           name: xds_cluster
           type: STRICT_DNS
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-logging
+  namespace: istio-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-observability
+  namespace: istio-system

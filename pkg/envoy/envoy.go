@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	kubeclient "k8s.io/client-go/kubernetes"
+
 	v1 "k8s.io/api/core/v1"
 
 	"knative.dev/pkg/network"
@@ -21,7 +23,9 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	v1alpha12 "knative.dev/serving/pkg/apis/networking/v1alpha1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"knative.dev/serving/pkg/client/clientset/versioned"
 )
 
 const (
@@ -31,8 +35,8 @@ const (
 type EnvoyXdsServer struct {
 	gatewayPort    uint
 	managementPort uint
-	kubeClient     kubernetes.KubernetesClient // TODO: let's try to remove this coupling later
-	knativeClient  knative.KNativeClient
+	kubeClient     kubeclient.Interface
+	knativeClient  versioned.Interface
 	ctx            context.Context
 	server         xds.Server
 	snapshotCache  cache.SnapshotCache
@@ -49,7 +53,7 @@ func (h Hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubernetes.KubernetesClient, knativeClient knative.KNativeClient) EnvoyXdsServer {
+func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubeclient.Interface, knativeClient versioned.Interface) EnvoyXdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, Hasher{}, nil)
 	srv := xds.NewServer(snapshotCache, nil)
@@ -115,7 +119,7 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []v1alpha12.IngressAccessor) {
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []*v1alpha1.Ingress, endpointsLister corev1listers.EndpointsLister) {
 	snapshotVersion, errUUID := uuid.NewUUID()
 	if errUUID != nil {
 		log.Error(errUUID)
@@ -124,7 +128,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 
 	localDomainName := network.GetClusterDomainName()
 
-	caches := CachesForIngresses(Ingresses, &envoyXdsServer.kubeClient, localDomainName, snapshotVersion.String())
+	caches := CachesForIngresses(Ingresses, envoyXdsServer.kubeClient, endpointsLister, localDomainName, snapshotVersion.String())
 	snapshot := cache.NewSnapshot(
 		snapshotVersion.String(),
 		caches.endpoints,
@@ -140,7 +144,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 		return
 	}
 
-	gwPods, _ := envoyXdsServer.kubeClient.GetKourierGatewayPODS(v1.NamespaceAll)
+	gwPods, _ := kubernetes.GetKourierGatewayPODS(envoyXdsServer.kubeClient, v1.NamespaceAll)
 
 	retries := 0
 	for {
@@ -149,7 +153,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 			break
 		}
 
-		inSync, err := envoyXdsServer.kubeClient.CheckGatewaySnapshot(gwPods, snapshotVersion.String())
+		inSync, err := kubernetes.CheckGatewaySnapshot(gwPods, snapshotVersion.String())
 		if err != nil {
 			log.Error(err)
 			break
@@ -158,7 +162,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 		if inSync {
 			for _, ingress := range Ingresses {
 
-				err := envoyXdsServer.knativeClient.MarkIngressReady(ingress)
+				err := knative.MarkIngressReady(envoyXdsServer.knativeClient, ingress)
 				if err != nil {
 					log.Debug("Tried to mark an ingress as ready, but it no longer exists: ", err)
 					break

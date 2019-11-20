@@ -5,6 +5,10 @@ import (
 	"os"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/client-go/kubernetes/fake"
+
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"gotest.tools/assert"
@@ -14,9 +18,10 @@ import (
 
 func TestCreateHTTPListener(t *testing.T) {
 	manager := newHttpConnectionManager([]*route.VirtualHost{})
-	KubeClient := newMockedKubeClientListener("", "")
 
-	l, err := newExternalEnvoyListener(false, &manager, KubeClient)
+	kubeClient := fake.NewSimpleClientset()
+
+	l, err := newExternalEnvoyListener(false, &manager, kubeClient)
 	if err != nil {
 		t.Error(err)
 	}
@@ -28,18 +33,26 @@ func TestCreateHTTPListener(t *testing.T) {
 }
 
 func TestCreateHTTPSListener(t *testing.T) {
-	err := setHTTPSEnvs()
+	certsSecretNamespace := "default"
+	certsSecretName := "kourier-certs"
+	err := setHTTPSEnvs(certsSecretNamespace, certsSecretName)
 	if err != nil {
 		t.Error(err)
 	}
 
+	// Create a Kubernetes Client with the Secret needed
 	cert := "some_cert"
 	key := "some_key"
-	KubeClient := newMockedKubeClientListener(cert, key)
+	kubeClient := fake.NewSimpleClientset()
+	secret := newSecret(certsSecretName, cert, key)
+	_, err = kubeClient.CoreV1().Secrets(certsSecretNamespace).Create(&secret)
+	if err != nil {
+		t.Error(err)
+	}
 
 	manager := newHttpConnectionManager([]*route.VirtualHost{})
 
-	l, err := newExternalEnvoyListener(true, &manager, KubeClient)
+	l, err := newExternalEnvoyListener(true, &manager, kubeClient)
 	if err != nil {
 		t.Error(err)
 	}
@@ -54,47 +67,25 @@ func TestCreateHTTPSListener(t *testing.T) {
 	assert.Equal(t, key, string(certs.PrivateKey.GetInlineBytes()))
 }
 
-type mockedKubeClientListener struct {
-	cert string
-	key  string
-}
-
-func (kubeClient *mockedKubeClientListener) EndpointsForRevision(
-	namespace string, serviceName string) (*v1.Endpoints, error) {
-
-	return nil, nil
-}
-
-func (kubeClient *mockedKubeClientListener) ServiceForRevision(
-	namespace string, serviceName string) (*v1.Service, error) {
-
-	return nil, nil
-}
-
-func (kubeClient *mockedKubeClientListener) GetSecret(
-	namespace string, secretName string) (*v1.Secret, error) {
-
-	secret := v1.Secret{
+func newSecret(name string, cert string, key string) v1.Secret {
+	return v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
 		Data: map[string][]byte{
-			"tls.crt": []byte(kubeClient.cert),
-			"tls.key": []byte(kubeClient.key),
+			"tls.crt": []byte(cert),
+			"tls.key": []byte(key),
 		},
 	}
-
-	return &secret, nil
 }
 
-func newMockedKubeClientListener(cert string, key string) *mockedKubeClientListener {
-	return &mockedKubeClientListener{cert: cert, key: key}
-}
-
-func setHTTPSEnvs() error {
-	err := os.Setenv("CERTS_SECRET_NAMESPACE", "default")
+func setHTTPSEnvs(secretNamespace string, secretName string) error {
+	err := os.Setenv("CERTS_SECRET_NAMESPACE", secretNamespace)
 	if err != nil {
 		return err
 	}
 
-	err = os.Setenv("CERTS_SECRET_NAME", "kourier-certs")
+	err = os.Setenv("CERTS_SECRET_NAME", secretName)
 	if err != nil {
 		return err
 	}
