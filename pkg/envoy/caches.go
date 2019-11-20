@@ -3,6 +3,7 @@ package envoy
 import (
 	"kourier/pkg/config"
 	"kourier/pkg/knative"
+	"kourier/pkg/kubernetes"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,6 +18,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
+	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
@@ -34,12 +36,7 @@ type Caches struct {
 // This is temporary. This should be extracted into its own module.
 var clustersHistoric = newClustersCache()
 
-type KubeClient interface {
-	ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error)
-	GetSecret(namespace string, secretName string) (*kubev1.Secret, error)
-}
-
-func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeClient KubeClient, endpointsLister corev1listers.EndpointsLister, localDomainName string, snapshotVersion string) Caches {
+func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string, snapshotVersion string) Caches {
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 
@@ -74,7 +71,7 @@ func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeClient KubeClient, en
 						log.Errorf("%s", err)
 						break
 					}
-					service, err := kubeClient.ServiceForRevision(split.ServiceNamespace, split.ServiceName)
+					service, err := kubernetes.ServiceForRevision(kubeclient, split.ServiceNamespace, split.ServiceName)
 
 					if err != nil {
 						log.Errorf("%s", err)
@@ -142,7 +139,7 @@ func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeClient KubeClient, en
 	externalManager := newHttpConnectionManager(externalVirtualHosts)
 	internalManager := newHttpConnectionManager(clusterLocalVirtualHosts)
 
-	externalEnvoyListener, err := newExternalEnvoyListener(useHTTPSListener(), &externalManager, kubeClient)
+	externalEnvoyListener, err := newExternalEnvoyListener(useHTTPSListener(), &externalManager, kubeclient)
 	if err != nil {
 		panic(err)
 	}

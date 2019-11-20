@@ -3,6 +3,10 @@ package envoy
 import (
 	"testing"
 
+	"k8s.io/client-go/kubernetes"
+
+	"k8s.io/client-go/kubernetes/fake"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
@@ -82,10 +86,23 @@ func TestTrafficSplits(t *testing.T) {
 		Status: v1alpha1.IngressStatus{},
 	}
 
+	kubeClient := fake.NewSimpleClientset()
+
+	// Create the Kubernetes services associated to the Knative services that
+	// appear in the ingress above
+	err := createServicesWithNames(
+		kubeClient,
+		[]string{"hello-world-rev1", "hello-world-rev2"},
+		"default",
+	)
+	if err != nil {
+		t.Error(err)
+	}
+
 	// Check that there is one route in the result
 	caches := CachesForIngresses(
 		[]*v1alpha1.Ingress{&ingress},
-		newMockedKubeClient(),
+		kubeClient,
 		newMockedEndpointsLister(),
 		"cluster.local",
 		"snapshot-version",
@@ -129,23 +146,6 @@ func TestTrafficSplits(t *testing.T) {
 	)
 }
 
-type mockedKubeClient struct{}
-
-func (kubeClient *mockedKubeClient) ServiceForRevision(namespace string, serviceName string) (*kubev1.Service, error) {
-	service := kubev1.Service{
-		Spec: kubev1.ServiceSpec{},
-	}
-	return &service, nil
-}
-
-func (kubeClient *mockedKubeClient) GetSecret(namespace string, secretName string) (*kubev1.Secret, error) {
-	return nil, nil
-}
-
-func newMockedKubeClient() *mockedKubeClient {
-	return new(mockedKubeClient)
-}
-
 func newMockedEndpointsLister() corev1listers.EndpointsLister {
 	return new(endpointsLister)
 }
@@ -168,6 +168,24 @@ func (endpoints *endpoints) List(selector labels.Selector) ([]*kubev1.Endpoints,
 
 func (endpoints *endpoints) Get(name string) (*kubev1.Endpoints, error) {
 	return &kubev1.Endpoints{}, nil
+}
+
+func createServicesWithNames(kubeclient kubernetes.Interface, names []string, namespace string) error {
+	for _, serviceName := range names {
+		service := kubev1.Service{
+			ObjectMeta: v1.ObjectMeta{
+				Name: serviceName,
+			},
+		}
+
+		_, err := kubeclient.CoreV1().Services(namespace).Create(&service)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func clustersExist(names []string, clustersCache []cache.Resource) bool {

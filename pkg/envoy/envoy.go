@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	kubeclient "k8s.io/client-go/kubernetes"
+
 	v1 "k8s.io/api/core/v1"
 
 	"knative.dev/pkg/network"
@@ -32,7 +34,7 @@ const (
 type EnvoyXdsServer struct {
 	gatewayPort    uint
 	managementPort uint
-	kubeClient     kubernetes.KubernetesClient // TODO: let's try to remove this coupling later
+	kubeClient     kubeclient.Interface
 	knativeClient  knative.KNativeClient
 	ctx            context.Context
 	server         xds.Server
@@ -50,7 +52,7 @@ func (h Hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubernetes.KubernetesClient, knativeClient knative.KNativeClient) EnvoyXdsServer {
+func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubeclient.Interface, knativeClient knative.KNativeClient) EnvoyXdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, Hasher{}, nil)
 	srv := xds.NewServer(snapshotCache, nil)
@@ -125,7 +127,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 
 	localDomainName := network.GetClusterDomainName()
 
-	caches := CachesForIngresses(Ingresses, &envoyXdsServer.kubeClient, endpointsLister, localDomainName, snapshotVersion.String())
+	caches := CachesForIngresses(Ingresses, envoyXdsServer.kubeClient, endpointsLister, localDomainName, snapshotVersion.String())
 	snapshot := cache.NewSnapshot(
 		snapshotVersion.String(),
 		caches.endpoints,
@@ -141,7 +143,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 		return
 	}
 
-	gwPods, _ := envoyXdsServer.kubeClient.GetKourierGatewayPODS(v1.NamespaceAll)
+	gwPods, _ := kubernetes.GetKourierGatewayPODS(envoyXdsServer.kubeClient, v1.NamespaceAll)
 
 	retries := 0
 	for {
@@ -150,7 +152,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 			break
 		}
 
-		inSync, err := envoyXdsServer.kubeClient.CheckGatewaySnapshot(gwPods, snapshotVersion.String())
+		inSync, err := kubernetes.CheckGatewaySnapshot(gwPods, snapshotVersion.String())
 		if err != nil {
 			log.Error(err)
 			break

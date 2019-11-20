@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
@@ -46,7 +47,8 @@ func kubeConfigPath() string {
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	config := kubernetes.Config(kubeConfigPath())
-	kubernetesClient := kubernetes.NewKubernetesClient(config)
+	kubernetesClient := kubeclient.Get(ctx)
+
 	knativeClient := knative.NewKnativeClient(config)
 
 	envoyXdsServer := envoy.NewEnvoyXdsServer(
