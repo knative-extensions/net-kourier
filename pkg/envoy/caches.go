@@ -3,7 +3,6 @@ package envoy
 import (
 	"kourier/pkg/config"
 	"kourier/pkg/knative"
-	"kourier/pkg/kubernetes"
 	"net/http"
 	"os"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
@@ -71,8 +71,8 @@ func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeclient kubeclient.Int
 						log.Errorf("%s", err)
 						break
 					}
-					service, err := kubernetes.ServiceForRevision(kubeclient, split.ServiceNamespace, split.ServiceName)
 
+					service, err := kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
 					if err != nil {
 						log.Errorf("%s", err)
 						break

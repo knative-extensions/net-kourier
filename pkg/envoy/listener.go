@@ -3,7 +3,6 @@ package envoy
 import (
 	"fmt"
 	"kourier/pkg/config"
-	"kourier/pkg/kubernetes"
 	"os"
 
 	"github.com/envoyproxy/go-control-plane/pkg/conversion"
@@ -14,6 +13,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 )
 
@@ -62,8 +62,8 @@ func envoyHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 	kubeClient kubeclient.Interface,
 	port uint32) (*v2.Listener, error) {
 
-	secret, err := kubernetes.GetSecret(kubeClient, os.Getenv(envCertsSecretNamespace),
-		os.Getenv(envCertsSecretName))
+	secret, err := kubeClient.CoreV1().Secrets(os.Getenv(envCertsSecretNamespace)).Get(
+		os.Getenv(envCertsSecretName), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
