@@ -23,8 +23,7 @@ func init() {
 }
 
 func main() {
-	// TODO: make these configurable
-	_ = os.Setenv("SYSTEM_NAMESPACE", "knative-serving")
+	// TODO: make this configurable
 	_ = os.Setenv("METRICS_DOMAIN", "knative.dev/samples")
 
 	sharedmain.Main("KourierIngressController", kourierIngressController.NewController)

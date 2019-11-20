@@ -99,7 +99,7 @@ spec:
               value: ""
             - name: CERTS_SECRET_NAME
               value: ""
-            - name: KOURIER_NAMESPACE
+            - name: SYSTEM_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
