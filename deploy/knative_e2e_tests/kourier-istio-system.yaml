@@ -258,3 +258,15 @@ data:
           lb_policy: ROUND_ROBIN
           name: xds_cluster
           type: STRICT_DNS
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-logging
+  namespace: istio-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-observability
+  namespace: istio-system
