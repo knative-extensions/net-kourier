@@ -7,10 +7,8 @@ import (
 
 	"knative.dev/serving/pkg/client/clientset/versioned"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/serving/pkg/apis/networking"
 	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
-	"knative.dev/serving/pkg/apis/serving/v1alpha1"
 )
 
 const (
@@ -18,10 +16,6 @@ const (
 	externalServiceName     = "kourier-external"
 	kourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
-
-func Services(knativeClient versioned.Interface, namespace string) (*v1alpha1.ServiceList, error) {
-	return knativeClient.ServingV1alpha1().Services(namespace).List(v1.ListOptions{})
-}
 
 func MarkIngressReady(knativeClient versioned.Interface, ingress networkingv1alpha1.IngressAccessor) error {
 	// TODO: Improve. Currently once we go trough the generation of the envoy cache, we mark the objects as Ready,
