@@ -1,8 +1,6 @@
 package knative
 
 import (
-	"fmt"
-
 	"knative.dev/pkg/system"
 
 	"knative.dev/serving/pkg/client/clientset/versioned"
@@ -17,13 +15,12 @@ const (
 	kourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
 
-func MarkIngressReady(knativeClient versioned.Interface, ingress networkingv1alpha1.IngressAccessor) error {
+func MarkIngressReady(knativeClient versioned.Interface, ingress *networkingv1alpha1.Ingress) error {
 	// TODO: Improve. Currently once we go trough the generation of the envoy cache, we mark the objects as Ready,
 	//  but that is not exactly true, it can take a while until envoy exposes the routes. Is there a way to get a "callback" from envoy?
 	var err error
 	status := ingress.GetStatus()
 	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
-
 		internalDomain := internalServiceName + "." + system.Namespace() + ".svc.cluster.local"
 		externalDomain := externalServiceName + "." + system.Namespace() + ".svc.cluster.local"
 
@@ -56,15 +53,8 @@ func MarkIngressReady(knativeClient versioned.Interface, ingress networkingv1alp
 		status.ObservedGeneration = ingress.GetGeneration()
 		ingress.SetStatus(*status)
 
-		// Handle both types of ingresses
-		switch ingress.(type) {
-		case *networkingv1alpha1.Ingress:
-			in := ingress.(*networkingv1alpha1.Ingress)
-			_, err = knativeClient.NetworkingV1alpha1().Ingresses(ingress.GetNamespace()).UpdateStatus(in)
-			return err
-		default:
-			return fmt.Errorf("can't update object, not Ingress")
-		}
+		_, err = knativeClient.NetworkingV1alpha1().Ingresses(ingress.GetNamespace()).UpdateStatus(ingress)
+		return err
 	}
 	return nil
 }
