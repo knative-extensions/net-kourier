@@ -1,7 +1,7 @@
 package main
 
 import (
-	"kourier/pkg/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,11 +44,21 @@ func ExampleHelloWorldServing() v1alpha1.Service {
 }
 
 func KnativeServingClient(kubeConfigPath string) (*servingClientSet.ServingV1alpha1Client, error) {
-	config := kubernetes.Config(kubeConfigPath)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return servingClientSet.NewForConfig(config)
 }
 
 func KnativeServingNetworkClient(kubeConfigPath string) (*networkingClientSet.NetworkingV1alpha1Client, error) {
-	config := kubernetes.Config(kubeConfigPath)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return networkingClientSet.NewForConfig(config)
 }

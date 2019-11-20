@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"knative.dev/serving/pkg/client/clientset/versioned"
 )
 
 const (
@@ -35,7 +36,7 @@ type EnvoyXdsServer struct {
 	gatewayPort    uint
 	managementPort uint
 	kubeClient     kubeclient.Interface
-	knativeClient  knative.KNativeClient
+	knativeClient  versioned.Interface
 	ctx            context.Context
 	server         xds.Server
 	snapshotCache  cache.SnapshotCache
@@ -52,7 +53,7 @@ func (h Hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubeclient.Interface, knativeClient knative.KNativeClient) EnvoyXdsServer {
+func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubeclient.Interface, knativeClient versioned.Interface) EnvoyXdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, Hasher{}, nil)
 	srv := xds.NewServer(snapshotCache, nil)
@@ -161,7 +162,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 		if inSync {
 			for _, ingress := range Ingresses {
 
-				err := envoyXdsServer.knativeClient.MarkIngressReady(ingress)
+				err := knative.MarkIngressReady(envoyXdsServer.knativeClient, ingress)
 				if err != nil {
 					log.Debug("Tried to mark an ingress as ready, but it no longer exists: ", err)
 					break
