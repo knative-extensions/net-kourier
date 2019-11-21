@@ -22,8 +22,8 @@ func MarkIngressReady(knativeClient versioned.Interface, ingress *networkingv1al
 	var err error
 	status := ingress.GetStatus()
 	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
-		internalDomain := internalServiceName + "." + system.Namespace() + ".svc." + network.GetClusterDomainName()
-		externalDomain := externalServiceName + "." + system.Namespace() + ".svc." + network.GetClusterDomainName()
+		internalDomain := domainForServiceName(internalServiceName)
+		externalDomain := domainForServiceName(externalServiceName)
 
 		status.InitializeConditions()
 		var domain string
@@ -76,4 +76,8 @@ func FilterByIngressClass(ingresses []*networkingv1alpha1.Ingress) []*networking
 
 func ingressClass(ingress *networkingv1alpha1.Ingress) string {
 	return ingress.GetObjectMeta().GetAnnotations()[networking.IngressClassAnnotationKey]
+}
+
+func domainForServiceName(serviceName string) string {
+	return serviceName + "." + system.Namespace() + ".svc." + network.GetClusterDomainName()
 }
