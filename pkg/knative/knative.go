@@ -1,6 +1,7 @@
 package knative
 
 import (
+	"knative.dev/pkg/network"
 	"knative.dev/pkg/system"
 
 	"knative.dev/serving/pkg/client/clientset/versioned"
@@ -21,8 +22,8 @@ func MarkIngressReady(knativeClient versioned.Interface, ingress *networkingv1al
 	var err error
 	status := ingress.GetStatus()
 	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
-		internalDomain := internalServiceName + "." + system.Namespace() + ".svc.cluster.local"
-		externalDomain := externalServiceName + "." + system.Namespace() + ".svc.cluster.local"
+		internalDomain := internalServiceName + "." + system.Namespace() + ".svc." + network.GetClusterDomainName()
+		externalDomain := externalServiceName + "." + system.Namespace() + ".svc." + network.GetClusterDomainName()
 
 		status.InitializeConditions()
 		var domain string
