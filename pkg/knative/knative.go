@@ -1,6 +1,8 @@
 package knative
 
 import (
+	"kourier/pkg/config"
+
 	"knative.dev/pkg/network"
 	"knative.dev/pkg/system"
 
@@ -11,9 +13,8 @@ import (
 )
 
 const (
-	internalServiceName     = "kourier-internal"
-	externalServiceName     = "kourier-external"
-	kourierIngressClassName = "kourier.ingress.networking.knative.dev"
+	internalServiceName = "kourier-internal"
+	externalServiceName = "kourier-external"
 )
 
 func MarkIngressReady(knativeClient versioned.Interface, ingress *networkingv1alpha1.Ingress) error {
@@ -64,9 +65,7 @@ func FilterByIngressClass(ingresses []*networkingv1alpha1.Ingress) []*networking
 	var res []*networkingv1alpha1.Ingress
 
 	for _, ingress := range ingresses {
-		ingressClass := ingressClass(ingress)
-
-		if ingressClass == kourierIngressClassName {
+		if ingressClass(ingress) == config.KourierIngressClassName {
 			res = append(res, ingress)
 		}
 	}

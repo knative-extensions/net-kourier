@@ -17,12 +17,12 @@ type Reconciler struct {
 }
 
 func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
-	ingressAccessors, err := reconciler.IngressLister.List(labels.Everything())
+	ingresses, err := reconciler.IngressLister.List(labels.Everything())
 	if err != nil {
 		return err
 	}
 
-	kourierIngresses := knative.FilterByIngressClass(ingressAccessors)
+	kourierIngresses := knative.FilterByIngressClass(ingresses)
 
 	reconciler.EnvoyXDSServer.SetSnapshotForIngresses(
 		nodeID,
