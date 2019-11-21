@@ -78,5 +78,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	endpointsInformer.Informer().AddEventHandler(endpointsInformerHandler)
 
+	// Force a first event to make sure we initialize a config. Otherwise, there
+	// will be no config until a Knative service is deployed.
+	// This is important because the gateway pods will not be marked as healthy
+	// until they have been able to fetch a config.
+	impl.EnqueueKey("")
+
 	return impl
 }
