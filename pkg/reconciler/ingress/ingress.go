@@ -67,7 +67,16 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 	ingressInformer.Informer().AddEventHandler(ingressInformerHandler)
 
-	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(enqueueFunc))
+	// We only want to react to endpoints that belong to a Knative serving and
+	// are public.
+	endpointsInformerHandler := cache.FilteringResourceEventHandler{
+		FilterFunc: reconciler.LabelFilterFunc(
+			networking.ServiceTypeKey, string(networking.ServiceTypePublic), false,
+		),
+		Handler: controller.HandleAll(enqueueFunc),
+	}
+
+	endpointsInformer.Informer().AddEventHandler(endpointsInformerHandler)
 
 	return impl
 }
