@@ -8,4 +8,6 @@ const (
 	InternalKourierHeader = "kourier-snapshot-id"
 	InternalKourierDomain = "internalkourier"
 	InternalKourierPath   = "/__internalkouriersnapshot"
+
+	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
