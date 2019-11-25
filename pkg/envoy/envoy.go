@@ -56,7 +56,7 @@ func (h Hasher) ID(node *core.Node) string {
 func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubeclient.Interface, knativeClient versioned.Interface) EnvoyXdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, Hasher{}, nil)
-	srv := xds.NewServer(snapshotCache, nil)
+	srv := xds.NewServer(ctx, snapshotCache, nil)
 
 	return EnvoyXdsServer{
 		gatewayPort:    gatewayPort,
@@ -135,6 +135,7 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ing
 		caches.clusters,
 		caches.routes,
 		caches.listeners,
+		caches.runtimes,
 	)
 
 	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeId, snapshot)

@@ -3,10 +3,12 @@ package envoy
 import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	accesslogv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
+	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	"github.com/golang/protobuf/ptypes"
+
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	pstruct "github.com/golang/protobuf/ptypes/struct"
 )
 
 func newHttpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
@@ -24,25 +26,21 @@ func newHttpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 				Name: wellknown.Router,
 			},
 		},
-
 		AccessLog: accessLogs(),
 	}
 }
 
 // Outputs to /dev/stdout using the default format
-func accessLogs() []*accesslogv2.AccessLog {
-	accessLogConfigFields := make(map[string]*pstruct.Value)
-	accessLogConfigFields["path"] = &pstruct.Value{
-		Kind: &pstruct.Value_StringValue{
-			StringValue: "/dev/stdout",
-		},
-	}
+func accessLogs() []*envoy_accesslog_v2.AccessLog {
+	accessLog, _ := ptypes.MarshalAny(&accesslog_v2.FileAccessLog{
+		Path: "/dev/stdout",
+	})
 
-	return []*accesslogv2.AccessLog{
+	return []*envoy_accesslog_v2.AccessLog{
 		{
 			Name: "envoy.file_access_log",
-			ConfigType: &accesslogv2.AccessLog_Config{
-				Config: &pstruct.Struct{Fields: accessLogConfigFields},
+			ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
+				TypedConfig: accessLog,
 			},
 		},
 	}

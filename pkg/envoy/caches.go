@@ -28,6 +28,7 @@ type Caches struct {
 	clusters  []cache.Resource
 	routes    []cache.Resource
 	listeners []cache.Resource
+	runtimes  []cache.Resource
 }
 
 // We need this because there might be Envoy clusters used by draining
@@ -153,6 +154,7 @@ func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeclient kubeclient.Int
 
 	return Caches{
 		endpoints: []cache.Resource{},
+		runtimes:  []cache.Resource{},
 		clusters:  clustersHistoric.list(),
 		routes:    routeCache,
 		listeners: listenerCache,

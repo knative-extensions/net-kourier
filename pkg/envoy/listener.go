@@ -5,7 +5,8 @@ import (
 	"kourier/pkg/config"
 	"os"
 
-	"github.com/envoyproxy/go-control-plane/pkg/conversion"
+	"github.com/golang/protobuf/ptypes"
+
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -76,13 +77,22 @@ func envoyHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 		return nil, err
 	}
 
+	tlsContext := createTLSContext(certificateChain, privateKey)
+	tlsAny, err := ptypes.MarshalAny(tlsContext)
+	if err != nil {
+		return nil, err
+	}
+
 	envoyListener := v2.Listener{
 		Name:    fmt.Sprintf("listener_%d", port),
 		Address: createAddress(port),
 		FilterChains: []*listener.FilterChain{
 			{
-				TlsContext: createTLSContext(certificateChain, privateKey),
-				Filters:    filters,
+				Filters: filters,
+				TransportSocket: &core.TransportSocket{
+					Name:       "tls",
+					ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
+				},
 			},
 		},
 	}
@@ -105,7 +115,7 @@ func createAddress(port uint32) *core.Address {
 }
 
 func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listener.Filter, error) {
-	pbst, err := conversion.MessageToStruct(manager)
+	managerAny, err := ptypes.MarshalAny(manager)
 	if err != nil {
 		return []*listener.Filter{}, err
 	}
@@ -113,7 +123,7 @@ func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listene
 	filters := []*listener.Filter{
 		{
 			Name:       wellknown.HTTPConnectionManager,
-			ConfigType: &listener.Filter_Config{Config: pbst},
+			ConfigType: &listener.Filter_TypedConfig{TypedConfig: managerAny},
 		},
 	}
 
