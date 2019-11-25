@@ -77,13 +77,23 @@ func envoyHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 		return nil, err
 	}
 
+	tlsContext := createTLSContext(certificateChain, privateKey)
+	tlsAny, err := ptypes.MarshalAny(tlsContext)
+	if err != nil {
+		return nil, err
+	}
+
 	envoyListener := v2.Listener{
 		Name:    fmt.Sprintf("listener_%d", port),
 		Address: createAddress(port),
 		FilterChains: []*listener.FilterChain{
 			{
-				TlsContext: createTLSContext(certificateChain, privateKey),
-				Filters:    filters,
+				Filters: filters,
+				TransportSocket: &core.TransportSocket{
+					Name:       "tls",
+					ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
+				},
+				Name: "tlsContext",
 			},
 		},
 	}
