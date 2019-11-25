@@ -12,7 +12,7 @@ import (
 )
 
 func newHttpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
-	hcm := httpconnectionmanagerv2.HttpConnectionManager{
+	return httpconnectionmanagerv2.HttpConnectionManager{
 		CodecType:  httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix: "ingress_http",
 		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_RouteConfig{
@@ -28,8 +28,6 @@ func newHttpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 		},
 		AccessLog: accessLogs(),
 	}
-
-	return hcm
 }
 
 // Outputs to /dev/stdout using the default format

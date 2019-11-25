@@ -5,6 +5,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/golang/protobuf/ptypes"
+
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/kubernetes/fake"
@@ -29,7 +33,7 @@ func TestCreateHTTPListener(t *testing.T) {
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
 	assert.Equal(t, config.HttpPortExternal, l.Address.GetSocketAddress().GetPortValue())
-	assert.Assert(t, is.Nil(l.FilterChains[0].TlsContext)) //TLS not configured
+	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) //TLS not configured
 }
 
 func TestCreateHTTPSListener(t *testing.T) {
@@ -62,9 +66,18 @@ func TestCreateHTTPSListener(t *testing.T) {
 	assert.Equal(t, config.HttpsPortExternal, l.Address.GetSocketAddress().GetPortValue())
 
 	// Check that TLS is configured
-	certs := l.FilterChains[0].TlsContext.CommonTlsContext.TlsCertificates[0]
+
+	downstream := &auth.DownstreamTlsContext{}
+
+	err = ptypes.UnmarshalAny(l.FilterChains[0].TransportSocket.GetTypedConfig(), downstream)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	certs := downstream.CommonTlsContext.TlsCertificates[0]
 	assert.Equal(t, cert, string(certs.CertificateChain.GetInlineBytes()))
 	assert.Equal(t, key, string(certs.PrivateKey.GetInlineBytes()))
+
 }
 
 func newSecret(name string, cert string, key string) v1.Secret {

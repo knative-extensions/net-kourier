@@ -93,7 +93,6 @@ func envoyHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 					Name:       "tls",
 					ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
 				},
-				Name: "tlsContext",
 			},
 		},
 	}

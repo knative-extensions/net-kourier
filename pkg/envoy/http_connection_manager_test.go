@@ -3,10 +3,13 @@ package envoy
 import (
 	"testing"
 
+	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
+	"github.com/golang/protobuf/ptypes"
+
+	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	pstruct "github.com/golang/protobuf/ptypes/struct"
 	"gotest.tools/assert"
 )
 
@@ -33,10 +36,14 @@ func TestCreatesManagerWithVirtualHosts(t *testing.T) {
 
 func TestCreatesManagerThatOutputsToStdOut(t *testing.T) {
 	connManager := newHttpConnectionManager(testVirtualHosts)
-
 	accessLog := connManager.AccessLog[0]
-	accessLogPath := accessLog.ConfigType.(*v2.AccessLog_Config).
-		Config.Fields["path"].Kind.(*pstruct.Value_StringValue).StringValue
+	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v2.AccessLog_TypedConfig).TypedConfig
+	fileAccesLog := &accesslog_v2.FileAccessLog{}
 
-	assert.Equal(t, "/dev/stdout", accessLogPath)
+	err := ptypes.UnmarshalAny(accessLogPathAny, fileAccesLog)
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, "/dev/stdout", fileAccesLog.Path)
 }
