@@ -5,7 +5,7 @@ go 1.13
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0 // indirect
 	contrib.go.opencensus.io/exporter/stackdriver v0.12.2 // indirect
-	github.com/envoyproxy/go-control-plane v0.9.0
+	github.com/envoyproxy/go-control-plane v0.9.1
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-containerregistry v0.0.0-20190920214602-53e1ac5a7d18 // indirect
