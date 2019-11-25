@@ -43,8 +43,8 @@ func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeclient kubeclient.Int
 	var routeCache []cache.Resource
 
 	for i, ingress := range Ingresses {
-		routeName := getRouteName(ingress)
-		routeNamespace := getRouteNamespace(ingress)
+		routeName := knative.RouteName(ingress)
+		routeNamespace := knative.RouteNamespace(ingress)
 
 		log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative Ingress found")
 
@@ -190,14 +190,6 @@ func internalKourierRoute(snapshotVersion string) route.Route {
 			},
 		},
 	}
-}
-
-func getRouteNamespace(ingress *v1alpha1.Ingress) string {
-	return ingress.GetLabels()["serving.knative.dev/routeNamespace"]
-}
-
-func getRouteName(ingress *v1alpha1.Ingress) string {
-	return ingress.GetLabels()["serving.knative.dev/route"]
 }
 
 func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
