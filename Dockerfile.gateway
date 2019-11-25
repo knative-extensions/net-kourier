@@ -1,4 +1,3 @@
-FROM envoyproxy/envoy-alpine:latest
-RUN apk --no-cache add curl
+FROM envoyproxy/envoy-alpine:v1.12.1
 USER 1001
 CMD ["envoy" "-c" "/etc/envoy/envoy.yaml"]
