@@ -48,14 +48,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		IngressLister:   ingressInformer.Lister(),
 		EndpointsLister: endpointsInformer.Lister(),
 		EnvoyXDSServer:  envoyXdsServer,
+		kubeClient:      kubernetesClient,
 	}
 	impl := controller.NewImpl(c, logger, controllerName)
-
-	// In this first version, we are just refreshing the whole config for any
-	// event that we receive. So we should always enqueue the same key.
-	enqueueFunc := func(obj interface{}) {
-		impl.EnqueueKey("")
-	}
 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
@@ -63,9 +58,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		FilterFunc: reconciler.AnnotationFilterFunc(
 			networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
 		),
-		Handler: controller.HandleAll(enqueueFunc),
+		Handler: controller.HandleAll(impl.Enqueue),
 	}
 	ingressInformer.Informer().AddEventHandler(ingressInformerHandler)
+
+	// In this first version, we are just refreshing the whole config for any
+	// endpoint that we receive. So we should always enqueue the same key.
+	enqueueFunc := func(obj interface{}) {
+		impl.EnqueueKey(EndpointChange)
+	}
 
 	// We only want to react to endpoints that belong to a Knative serving and
 	// are public.
@@ -82,7 +83,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// will be no config until a Knative service is deployed.
 	// This is important because the gateway pods will not be marked as healthy
 	// until they have been able to fetch a config.
-	impl.EnqueueKey("")
+	impl.EnqueueKey(FullResync)
 
 	return impl
 }
