@@ -33,7 +33,6 @@ kubectl patch deployment 3scale-kourier-control -n istio-system --patch "{\"spec
 ```bash
 kubectl delete deployment 3scale-kourier-control 3scale-kourier-gateway -n knative-serving
 kubectl delete service kourier kourier-control kourier-external kourier-internal -n knative-serving
-kubectl delete service traefik -n kube-system
 ```
 
 - Port-forward Kourier. Make sure you do not have anything else on these ports,
