@@ -1,352 +1,179 @@
 package envoy
 
 import (
-	"kourier/pkg/config"
-	"kourier/pkg/knative"
-	"net/http"
-	"os"
-	"strconv"
-	"time"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	log "github.com/sirupsen/logrus"
-	kubev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/google/uuid"
 	kubeclient "k8s.io/client-go/kubernetes"
-	corev1listers "k8s.io/client-go/listers/core/v1"
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
+type VHostsForIngresses map[string][]*route.VirtualHost
+
 type Caches struct {
-	endpoints []cache.Resource
-	clusters  []cache.Resource
-	routes    []cache.Resource
-	listeners []cache.Resource
+	endpoints []*endpoint.Endpoint
+	clusters  ClustersCache
+	routes    []*route.Route
+	listeners []*v2.Listener
 	runtimes  []cache.Resource
+
+	snapshotVersion string
+
+	// These mappings are helpful to know the caches affected when there's a
+	// change in an ingress.
+	localVirtualHostsForIngress    VHostsForIngresses
+	externalVirtualHostsForIngress VHostsForIngresses
+	routesForIngress               map[string][]string
 }
 
-// We need this because there might be Envoy clusters used by draining
-// Listeners. The info of those clusters no longer appears in the Ingress
-// object, so we need to store it.
-// This is temporary. This should be extracted into its own module.
-var clustersHistoric = newClustersCache()
-
-func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string, snapshotVersion string) Caches {
-	var clusterLocalVirtualHosts []*route.VirtualHost
-	var externalVirtualHosts []*route.VirtualHost
-
-	var routeCache []cache.Resource
-
-	for i, ingress := range Ingresses {
-		routeName := knative.RouteName(ingress)
-		routeNamespace := knative.RouteNamespace(ingress)
-
-		log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative Ingress found")
-
-		for _, rule := range ingress.GetSpec().Rules {
-
-			var ruleRoute []*route.Route
-
-			for _, httpPath := range rule.HTTP.Paths {
-
-				path := "/"
-				if httpPath.Path != "" {
-					path = httpPath.Path
-				}
-
-				var wrs []*route.WeightedCluster_ClusterWeight
-
-				for _, split := range httpPath.Splits {
-
-					headersSplit := split.AppendHeaders
-
-					endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
-
-					if err != nil {
-						log.Errorf("%s", err)
-						break
-					}
-
-					service, err := kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
-					if err != nil {
-						log.Errorf("%s", err)
-						break
-					}
-
-					var targetPort int32
-					http2 := false
-					for _, port := range service.Spec.Ports {
-						if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
-							targetPort = port.TargetPort.IntVal
-							http2 = port.Name == "http2" || port.Name == "h2c"
-						}
-					}
-
-					publicLbEndpoints := lbEndpointsForKubeEndpoints(endpoints, targetPort)
-
-					connectTimeout := 5 * time.Second
-					cluster := clusterForRevision(split.ServiceName, connectTimeout, publicLbEndpoints, http2, path)
-
-					clustersHistoric.set(split.ServiceName, path, split.ServiceNamespace, &cluster)
-
-					weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headersSplit)
-
-					wrs = append(wrs, &weightedCluster)
-				}
-
-				r := createRouteForRevision(routeName, i, &httpPath, wrs)
-
-				ruleRoute = append(ruleRoute, &r)
-				routeCache = append(routeCache, &r)
-
-			}
-
-			externalDomains := knative.ExternalDomains(&rule, localDomainName)
-			virtualHost := route.VirtualHost{
-				Name:    routeName,
-				Domains: externalDomains,
-				Routes:  ruleRoute,
-			}
-
-			// External should also be accessible internally
-			internalDomains := append(knative.InternalDomains(&rule, localDomainName), externalDomains...)
-			internalVirtualHost := route.VirtualHost{
-				Name:    routeName,
-				Domains: internalDomains,
-				Routes:  ruleRoute,
-			}
-
-			if knative.RuleIsExternal(&rule, ingress.GetSpec().Visibility) {
-				externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
-			}
-
-			clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
-		}
+func NewCaches() Caches {
+	caches := Caches{
+		clusters:                       newClustersCache(),
+		localVirtualHostsForIngress:    make(VHostsForIngresses),
+		externalVirtualHostsForIngress: make(VHostsForIngresses),
+		routesForIngress:               make(map[string][]string),
 	}
+
+	_ = caches.setNewSnapshotVersion()
+
+	return caches
+}
+
+func (caches *Caches) AddCluster(cluster *v2.Cluster, serviceName string, serviceNamespace string, path string) {
+	caches.clusters.set(serviceName, path, serviceNamespace, cluster)
+}
+
+func (caches *Caches) AddRoute(route *route.Route, ingressName string, ingressNamespace string) {
+	caches.routes = append(caches.routes, route)
+
+	key := mapKey(ingressName, ingressNamespace)
+	caches.routesForIngress[key] = append(caches.routesForIngress[key], route.Name)
+}
+
+func (caches *Caches) SetListeners(listeners []*v2.Listener,
+	localVHostsMappings VHostsForIngresses,
+	externalVHostsMappings VHostsForIngresses) {
+
+	caches.localVirtualHostsForIngress = localVHostsMappings
+	caches.externalVirtualHostsForIngress = externalVHostsMappings
+
+	caches.listeners = listeners
+}
+
+func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
+	endpoints := make([]cache.Resource, len(caches.endpoints))
+	for i := range caches.endpoints {
+		endpoints[i] = caches.endpoints[i]
+	}
+
+	routes := make([]cache.Resource, len(caches.routes))
+	for i := range caches.routes {
+		routes[i] = caches.routes[i]
+	}
+
+	listeners := make([]cache.Resource, len(caches.listeners))
+	for i := range caches.listeners {
+		listeners[i] = caches.listeners[i]
+	}
+
+	return cache.NewSnapshot(
+		caches.snapshotVersion,
+		endpoints,
+		caches.clusters.list(),
+		routes,
+		listeners,
+		caches.runtimes,
+	)
+}
+
+// Note: changes the snapshot version of the caches object
+// Notice that the clusters are not deleted. That's handled with the expiration
+// time set in the "ClustersCache" struct.
+func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string, kubeclient kubeclient.Interface) {
+	caches.deleteRoutesForIngress(ingressName, ingressNamespace)
+
+	caches.deleteMappingsForIngress(ingressName, ingressNamespace)
+
+	newExternalVirtualHosts := caches.externalVirtualHosts()
+	newClusterLocalVirtualHosts := caches.clusterLocalVirtualHosts()
 
 	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
 	// to each envoy
-	ikr := internalKourierRoute(snapshotVersion)
+	_ = caches.setNewSnapshotVersion()
+	ikr := internalKourierRoute(caches.snapshotVersion)
 	ikvh := internalKourierVirtualHost(ikr)
+	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &ikvh)
 
-	clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &ikvh)
-
-	externalManager := newHttpConnectionManager(externalVirtualHosts)
-	internalManager := newHttpConnectionManager(clusterLocalVirtualHosts)
-
-	externalEnvoyListener, err := newExternalEnvoyListener(useHTTPSListener(), &externalManager, kubeclient)
-	if err != nil {
-		panic(err)
-	}
-
-	internalEnvoyListener, err := newInternalEnvoyListener(&internalManager)
-	if err != nil {
-		panic(err)
-	}
-
-	listenerCache := []cache.Resource{externalEnvoyListener, internalEnvoyListener}
-
-	return Caches{
-		endpoints: []cache.Resource{},
-		runtimes:  []cache.Resource{},
-		clusters:  clustersHistoric.list(),
-		routes:    routeCache,
-		listeners: listenerCache,
-	}
+	caches.listeners = listenersFromVirtualHosts(
+		newExternalVirtualHosts,
+		newClusterLocalVirtualHosts,
+		kubeclient,
+	)
 }
 
-func internalKourierVirtualHost(ikr route.Route) route.VirtualHost {
-	return route.VirtualHost{
-		Name:    config.InternalKourierDomain,
-		Domains: []string{config.InternalKourierDomain},
-		Routes:  []*route.Route{&ikr},
-	}
-}
+func (caches *Caches) deleteRoutesForIngress(ingressName string, ingressNamespace string) {
+	var newRoutes []*route.Route
 
-func internalKourierRoute(snapshotVersion string) route.Route {
-	return route.Route{
-		Name: config.InternalKourierDomain,
-		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Path{
-				Path: config.InternalKourierPath,
-			},
-		},
-		Action: &route.Route_DirectResponse{
-			DirectResponse: &route.DirectResponseAction{Status: http.StatusOK},
-		},
-		ResponseHeadersToAdd: []*core.HeaderValueOption{
-			{
-				Header: &core.HeaderValue{
-					Key:   config.InternalKourierHeader,
-					Value: snapshotVersion,
-				},
-				Append: &wrappers.BoolValue{
-					Value: true,
-				},
-			},
-		},
-	}
-}
+	routesForIngress, _ := caches.routesForIngress[mapKey(ingressName, ingressNamespace)]
 
-func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
-
-	for _, subset := range kubeEndpoints.Subsets {
-
-		for _, address := range subset.Addresses {
-
-			serviceEndpoint := &core.Address{
-				Address: &core.Address_SocketAddress{
-					SocketAddress: &core.SocketAddress{
-						Protocol: core.SocketAddress_TCP,
-						Address:  address.IP,
-						PortSpecifier: &core.SocketAddress_PortValue{
-							PortValue: uint32(targetPort),
-						},
-						Ipv4Compat: true,
-					},
-				},
-			}
-
-			lbEndpoint := endpoint.LbEndpoint{
-				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-					Endpoint: &endpoint.Endpoint{
-						Address: serviceEndpoint,
-					},
-				},
-			}
-
-			publicLbEndpoints = append(publicLbEndpoints, &lbEndpoint)
+	for _, cachesRoute := range caches.routes {
+		if !contains(routesForIngress, cachesRoute.Name) {
+			newRoutes = append(newRoutes, cachesRoute)
 		}
 	}
 
-	return publicLbEndpoints
+	caches.routes = newRoutes
 }
 
-func createRouteForRevision(routeName string, i int, httpPath *v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) route.Route {
-	path := "/"
-	if httpPath.Path != "" {
-		path = httpPath.Path
-	}
+func (caches *Caches) deleteMappingsForIngress(ingressName string, ingressNamespace string) {
+	key := mapKey(ingressName, ingressNamespace)
 
-	var routeTimeout time.Duration
-	if httpPath.Timeout != nil {
-		routeTimeout = httpPath.Timeout.Duration
-	}
-
-	r := route.Route{
-		Name: routeName + "_" + strconv.Itoa(i),
-		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Prefix{
-				Prefix: path,
-			},
-		},
-		Action: &route.Route_Route{Route: &route.RouteAction{
-			ClusterSpecifier: &route.RouteAction_WeightedClusters{
-				WeightedClusters: &route.WeightedCluster{
-					Clusters: wrs,
-				},
-			},
-			Timeout: ptypes.DurationProto(routeTimeout),
-			UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
-				UpgradeType: "websocket",
-				Enabled:     &wrappers.BoolValue{Value: true},
-			}},
-			RetryPolicy: createRetryPolicyForRoute(httpPath),
-		}},
-		RequestHeadersToAdd: headersToAdd(httpPath.AppendHeaders),
-	}
-
-	return r
+	delete(caches.routesForIngress, key)
+	delete(caches.externalVirtualHostsForIngress, key)
+	delete(caches.localVirtualHostsForIngress, key)
 }
 
-func weightedCluster(revisionName string, trafficPerc uint32, path string, headers map[string]string) route.WeightedCluster_ClusterWeight {
-	return route.WeightedCluster_ClusterWeight{
-		Name: revisionName + path,
-		Weight: &wrappers.UInt32Value{
-			Value: trafficPerc,
-		},
-		RequestHeadersToAdd: headersToAdd(headers),
+func (caches *Caches) setNewSnapshotVersion() error {
+	snapshotVersion, err := uuid.NewUUID()
+
+	if err != nil {
+		return err
 	}
+
+	caches.snapshotVersion = snapshotVersion.String()
+	return nil
 }
 
-func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
-	var res []*core.HeaderValueOption
+func (caches *Caches) externalVirtualHosts() []*route.VirtualHost {
+	var res []*route.VirtualHost
 
-	for headerName, headerVal := range headers {
-		header := core.HeaderValueOption{
-			Header: &core.HeaderValue{
-				Key:   headerName,
-				Value: headerVal,
-			},
-			Append: &wrappers.BoolValue{
-				Value: true,
-			},
-		}
-
-		res = append(res, &header)
-
+	for _, virtualHosts := range caches.externalVirtualHostsForIngress {
+		res = append(res, virtualHosts...)
 	}
 
 	return res
 }
 
-func createRetryPolicyForRoute(httpPath *v1alpha1.HTTPIngressPath) *route.RetryPolicy {
-	attempts := 0
-	var perTryTimeout time.Duration
-	if httpPath.Retries != nil {
-		attempts = httpPath.Retries.Attempts
+func (caches *Caches) clusterLocalVirtualHosts() []*route.VirtualHost {
+	var res []*route.VirtualHost
 
-		if httpPath.Retries.PerTryTimeout != nil {
-			perTryTimeout = httpPath.Retries.PerTryTimeout.Duration
-		}
+	for _, virtualHosts := range caches.localVirtualHostsForIngress {
+		res = append(res, virtualHosts...)
 	}
 
-	if attempts > 0 {
-		return &route.RetryPolicy{
-			RetryOn: "5xx",
-			NumRetries: &wrappers.UInt32Value{
-				Value: uint32(attempts),
-			},
-			PerTryTimeout: ptypes.DurationProto(perTryTimeout),
-		}
-	} else {
-		return nil
-	}
+	return res
 }
 
-func clusterForRevision(revisionName string, connectTimeout time.Duration, publicLbEndpoints []*endpoint.LbEndpoint, http2 bool, path string) v2.Cluster {
-
-	cluster := v2.Cluster{
-		Name: revisionName + path,
-		ClusterDiscoveryType: &v2.Cluster_Type{
-			Type: v2.Cluster_STRICT_DNS,
-		},
-		ConnectTimeout: ptypes.DurationProto(connectTimeout),
-		LoadAssignment: &v2.ClusterLoadAssignment{
-			ClusterName: revisionName + path,
-			Endpoints: []*endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: publicLbEndpoints,
-					Priority:    1,
-				},
-			},
-		},
-	}
-
-	if http2 {
-		cluster.Http2ProtocolOptions = &core.Http2ProtocolOptions{}
-	}
-
-	return cluster
+func mapKey(ingressName string, ingressNamespace string) string {
+	return ingressNamespace + "/" + ingressName
 }
 
-func useHTTPSListener() bool {
-	return os.Getenv(envCertsSecretNamespace) != "" &&
-		os.Getenv(envCertsSecretName) != ""
+func contains(slice []string, s string) bool {
+	for _, elem := range slice {
+		if elem == s {
+			return true
+		}
+	}
+	return false
 }
