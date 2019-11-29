@@ -25,119 +25,143 @@ import (
 func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string) Caches {
 	res := NewCaches()
 
+	for i, ingress := range Ingresses {
+		// TODO: do we really need to pass the index?
+		addIngressToCaches(&res, ingress, kubeclient, endpointsLister, localDomainName, i)
+	}
+
+	res.AddStatusVirtualHost()
+
+	res.SetListeners(kubeclient)
+
+	return res
+}
+
+// For now, when updating the info for an ingress we delete it, and then
+// regenerate it. We can optimize this later.
+func UpdateInfoForIngress(caches *Caches,
+	ingress *v1alpha1.Ingress,
+	kubeclient kubeclient.Interface,
+	endpointsLister corev1listers.EndpointsLister,
+	localDomainName string) {
+
+	caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient)
+
+	// TODO: is this index really needed?
+	index := max(
+		len(caches.localVirtualHostsForIngress),
+		len(caches.externalVirtualHostsForIngress),
+	)
+
+	addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index)
+
+	caches.AddStatusVirtualHost()
+
+	caches.SetListeners(kubeclient)
+}
+
+func addIngressToCaches(caches *Caches,
+	ingress *v1alpha1.Ingress,
+	kubeclient kubeclient.Interface,
+	endpointsLister corev1listers.EndpointsLister,
+	localDomainName string,
+	index int) {
+
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 
-	localVHostsMappings := make(VHostsForIngresses)
-	externalVHostsMappings := make(VHostsForIngresses)
+	routeName := knative.RouteName(ingress)
+	routeNamespace := knative.RouteNamespace(ingress)
 
-	for i, ingress := range Ingresses {
-		routeName := knative.RouteName(ingress)
-		routeNamespace := knative.RouteNamespace(ingress)
+	log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative Ingress found")
 
-		log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative Ingress found")
+	for _, rule := range ingress.GetSpec().Rules {
 
-		for _, rule := range ingress.GetSpec().Rules {
+		var ruleRoute []*route.Route
 
-			var ruleRoute []*route.Route
+		for _, httpPath := range rule.HTTP.Paths {
 
-			for _, httpPath := range rule.HTTP.Paths {
+			path := "/"
+			if httpPath.Path != "" {
+				path = httpPath.Path
+			}
 
-				path := "/"
-				if httpPath.Path != "" {
-					path = httpPath.Path
+			var wrs []*route.WeightedCluster_ClusterWeight
+
+			for _, split := range httpPath.Splits {
+
+				headersSplit := split.AppendHeaders
+
+				endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
+
+				if err != nil {
+					log.Errorf("%s", err)
+					break
 				}
 
-				var wrs []*route.WeightedCluster_ClusterWeight
-
-				for _, split := range httpPath.Splits {
-
-					headersSplit := split.AppendHeaders
-
-					endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
-
-					if err != nil {
-						log.Errorf("%s", err)
-						break
-					}
-
-					service, err := kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
-					if err != nil {
-						log.Errorf("%s", err)
-						break
-					}
-
-					var targetPort int32
-					http2 := false
-					for _, port := range service.Spec.Ports {
-						if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
-							targetPort = port.TargetPort.IntVal
-							http2 = port.Name == "http2" || port.Name == "h2c"
-						}
-					}
-
-					publicLbEndpoints := lbEndpointsForKubeEndpoints(endpoints, targetPort)
-
-					connectTimeout := 5 * time.Second
-					cluster := clusterForRevision(split.ServiceName, connectTimeout, publicLbEndpoints, http2, path)
-
-					res.AddCluster(&cluster, split.ServiceName, split.ServiceNamespace, path)
-
-					weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headersSplit)
-
-					wrs = append(wrs, &weightedCluster)
+				service, err := kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
+				if err != nil {
+					log.Errorf("%s", err)
+					break
 				}
 
-				r := createRouteForRevision(routeName, i, &httpPath, wrs)
+				var targetPort int32
+				http2 := false
+				for _, port := range service.Spec.Ports {
+					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
+						targetPort = port.TargetPort.IntVal
+						http2 = port.Name == "http2" || port.Name == "h2c"
+					}
+				}
 
-				ruleRoute = append(ruleRoute, &r)
+				publicLbEndpoints := lbEndpointsForKubeEndpoints(endpoints, targetPort)
 
-				res.AddRoute(&r, ingress.Name, ingress.Namespace)
+				connectTimeout := 5 * time.Second
+				cluster := clusterForRevision(split.ServiceName, connectTimeout, publicLbEndpoints, http2, path)
+
+				caches.AddCluster(&cluster, split.ServiceName, split.ServiceNamespace, path)
+
+				weightedCluster := weightedCluster(split.ServiceName, uint32(split.Percent), path, headersSplit)
+
+				wrs = append(wrs, &weightedCluster)
 			}
 
-			externalDomains := knative.ExternalDomains(&rule, localDomainName)
-			virtualHost := route.VirtualHost{
-				Name:    routeName,
-				Domains: externalDomains,
-				Routes:  ruleRoute,
-			}
+			r := createRouteForRevision(routeName, index, &httpPath, wrs)
 
-			// External should also be accessible internally
-			internalDomains := append(knative.InternalDomains(&rule, localDomainName), externalDomains...)
-			internalVirtualHost := route.VirtualHost{
-				Name:    routeName,
-				Domains: internalDomains,
-				Routes:  ruleRoute,
-			}
+			ruleRoute = append(ruleRoute, &r)
 
-			if knative.RuleIsExternal(&rule, ingress.GetSpec().Visibility) {
-				externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
-			}
-
-			clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
-
-			key := mapKey(ingress.Name, ingress.Namespace)
-			localVHostsMappings[key] = append(localVHostsMappings[key], &internalVirtualHost)
-			externalVHostsMappings[key] = append(externalVHostsMappings[key], &virtualHost)
+			caches.AddRoute(&r, ingress.Name, ingress.Namespace)
 		}
+
+		externalDomains := knative.ExternalDomains(&rule, localDomainName)
+		virtualHost := route.VirtualHost{
+			Name:    routeName,
+			Domains: externalDomains,
+			Routes:  ruleRoute,
+		}
+
+		// External should also be accessible internally
+		internalDomains := append(knative.InternalDomains(&rule, localDomainName), externalDomains...)
+		internalVirtualHost := route.VirtualHost{
+			Name:    routeName,
+			Domains: internalDomains,
+			Routes:  ruleRoute,
+		}
+
+		if knative.RuleIsExternal(&rule, ingress.GetSpec().Visibility) {
+			externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
+		}
+
+		clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
 	}
 
-	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
-	// to each envoy
-	ikr := internalKourierRoute(res.snapshotVersion)
-	ikvh := internalKourierVirtualHost(ikr)
+	for _, vHost := range externalVirtualHosts {
+		caches.AddExternalVirtualHostForIngress(vHost, ingress.Name, ingress.Namespace)
+	}
 
-	clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &ikvh)
-
-	listeners := listenersFromVirtualHosts(
-		externalVirtualHosts,
-		clusterLocalVirtualHosts,
-		kubeclient,
-	)
-
-	res.SetListeners(listeners, localVHostsMappings, externalVHostsMappings)
-
-	return res
+	for _, vHost := range clusterLocalVirtualHosts {
+		caches.AddInternalVirtualHostForIngress(vHost, ingress.Name, ingress.Namespace)
+	}
 }
 
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
@@ -352,4 +376,12 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, publi
 func useHTTPSListener() bool {
 	return os.Getenv(envCertsSecretNamespace) != "" &&
 		os.Getenv(envCertsSecretName) != ""
+}
+
+func max(x, y int) int {
+	if x >= y {
+		return x
+	}
+
+	return y
 }

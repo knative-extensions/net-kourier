@@ -24,6 +24,7 @@ type Caches struct {
 	// change in an ingress.
 	localVirtualHostsForIngress    VHostsForIngresses
 	externalVirtualHostsForIngress VHostsForIngresses
+	statusVirtualHost              *route.VirtualHost
 	routesForIngress               map[string][]string
 }
 
@@ -51,14 +52,47 @@ func (caches *Caches) AddRoute(route *route.Route, ingressName string, ingressNa
 	caches.routesForIngress[key] = append(caches.routesForIngress[key], route.Name)
 }
 
-func (caches *Caches) SetListeners(listeners []*v2.Listener,
-	localVHostsMappings VHostsForIngresses,
-	externalVHostsMappings VHostsForIngresses) {
+func (caches *Caches) AddExternalVirtualHostForIngress(vHost *route.VirtualHost, ingressName string, ingressNamespace string) {
+	key := mapKey(ingressName, ingressNamespace)
 
-	caches.localVirtualHostsForIngress = localVHostsMappings
-	caches.externalVirtualHostsForIngress = externalVHostsMappings
+	caches.externalVirtualHostsForIngress[key] = append(
+		caches.externalVirtualHostsForIngress[key],
+		vHost,
+	)
+}
+
+func (caches *Caches) AddInternalVirtualHostForIngress(vHost *route.VirtualHost, ingressName string, ingressNamespace string) {
+	key := mapKey(ingressName, ingressNamespace)
+
+	caches.localVirtualHostsForIngress[key] = append(
+		caches.localVirtualHostsForIngress[key],
+		vHost,
+	)
+}
+
+func (caches *Caches) AddStatusVirtualHost() {
+	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
+	// to each envoy
+	_ = caches.setNewSnapshotVersion()
+	ikr := internalKourierRoute(caches.snapshotVersion)
+	ikvh := internalKourierVirtualHost(ikr)
+	caches.statusVirtualHost = &ikvh
+}
+
+func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) {
+	localVHosts := append(caches.clusterLocalVirtualHosts(), caches.statusVirtualHost)
+
+	listeners := listenersFromVirtualHosts(
+		caches.externalVirtualHosts(),
+		localVHosts,
+		kubeclient,
+	)
 
 	caches.listeners = listeners
+}
+
+func (caches *Caches) SnapshotVersion() string {
+	return caches.snapshotVersion
 }
 
 func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
