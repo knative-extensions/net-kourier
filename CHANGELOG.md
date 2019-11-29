@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.0] - 2019-11-29
+### Changed
+- Adapted the codebase to use Knative's controllers and reconcilers.
+
 ## [0.2.6] - 2019-11-14
 ### Fixed
 - Kourier now only routes the public endpoints object of a revision.
@@ -44,6 +48,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.3.0]: https://github.com/3scale/kourier/compare/v0.2.6...v0.3.0
 [0.2.6]: https://github.com/3scale/kourier/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/3scale/kourier/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/3scale/kourier/compare/v0.2.3...v0.2.4
