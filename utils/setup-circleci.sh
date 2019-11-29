@@ -13,7 +13,10 @@ tag="test_$(git rev-parse --abbrev-ref HEAD)"
 # it.
 tag=$(echo "$tag" | tr / -)
 
-microk8s.kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/serving-core.yaml || true
+KNATIVE_VERSION=v0.10.0
+# Deploys kourier and patches it.
+microk8s.kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-crds.yaml
+microk8s.kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-core.yaml
 mkdir -p "$HOME"/.kube/
 microk8s.kubectl config view --raw >"$HOME"/.kube/config
 chown -R circleci "$HOME"/.kube

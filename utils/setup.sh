@@ -16,7 +16,7 @@ tag=$(echo "$tag" | tr / -)
 
 k3d d --name=kourier-integration || true
 
-k3d c --name kourier-integration
+k3d c --name kourier-integration --server-arg "--no-deploy=traefik"
 sleep 60
 export KUBECONFIG="$(k3d get-kubeconfig --name='kourier-integration')"
 
@@ -26,9 +26,10 @@ docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:"$tag" ./
 k3d import-images 3scale-kourier:"$tag" --name='kourier-integration'
 k3d import-images 3scale-kourier-gateway:"$tag" --name='kourier-integration'
 
+KNATIVE_VERSION=v0.10.0
 # Deploys kourier and patches it.
-kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/serving.yaml || true
-kubectl scale deployment traefik --replicas=0 -n kube-system
+kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-crds.yaml
+kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-core.yaml
 kubectl apply -f deploy/kourier-knative.yaml
 kubectl patch deployment 3scale-kourier-control -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-control\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
 kubectl patch deployment 3scale-kourier-gateway -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-gateway\",\"image\": \"3scale-kourier-gateway:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
