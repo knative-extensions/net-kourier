@@ -5,6 +5,8 @@ import (
 	"kourier/pkg/config"
 	"kourier/pkg/envoy"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"knative.dev/serving/pkg/apis/networking"
 	"knative.dev/serving/pkg/reconciler"
 
@@ -15,6 +17,7 @@ import (
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+
 	knativeclient "knative.dev/serving/pkg/client/injection/client"
 	ingressinformer "knative.dev/serving/pkg/client/injection/informers/networking/v1alpha1/ingress"
 )
@@ -65,7 +68,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// In this first version, we are just refreshing the whole config for any
 	// endpoint that we receive. So we should always enqueue the same key.
 	enqueueFunc := func(obj interface{}) {
-		impl.EnqueueKey(EndpointChange)
+		event := types.NamespacedName{
+			Name: EndpointChange,
+		}
+		impl.EnqueueKey(event)
 	}
 
 	// We only want to react to endpoints that belong to a Knative serving and
@@ -83,7 +89,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// will be no config until a Knative service is deployed.
 	// This is important because the gateway pods will not be marked as healthy
 	// until they have been able to fetch a config.
-	impl.EnqueueKey(FullResync)
+	event := types.NamespacedName{
+		Name: FullResync,
+	}
+	impl.EnqueueKey(event)
 
 	return impl
 }
