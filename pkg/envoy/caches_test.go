@@ -96,20 +96,11 @@ func createTestDataForIngress(caches *Caches,
 
 	externalvHost := route.VirtualHost{Name: externalVHostName}
 	internalvHost := route.VirtualHost{Name: internalVHostName}
-	listeners := listenersFromVirtualHosts(
-		[]*route.VirtualHost{&externalvHost},
-		[]*route.VirtualHost{&internalvHost},
-		kubeClient,
-	)
 
-	key := mapKey(ingressName, ingressNamespace)
-	localVHostsMappings := make(VHostsForIngresses)
-	localVHostsMappings[key] = []*route.VirtualHost{&internalvHost}
-
-	externalVHostsMappings := make(VHostsForIngresses)
-	externalVHostsMappings[key] = []*route.VirtualHost{&externalvHost}
-
-	caches.SetListeners(listeners, localVHostsMappings, externalVHostsMappings)
+	caches.AddExternalVirtualHostForIngress(&externalvHost, ingressName, ingressNamespace)
+	caches.AddInternalVirtualHostForIngress(&internalvHost, ingressName, ingressNamespace)
+	caches.AddStatusVirtualHost()
+	caches.SetListeners(kubeClient)
 }
 
 func getVHostsNames(listeners []*v2.Listener) ([]string, error) {
