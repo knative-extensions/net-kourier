@@ -24,6 +24,7 @@ type Reconciler struct {
 	kubeClient      kubeclient.Interface
 	CurrentCaches   *envoy.Caches
 	tracker         tracker.Interface
+	statusManager   StatusProber
 }
 
 func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
@@ -45,11 +46,16 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 }
 
 func (reconciler *Reconciler) deleteIngress(namespace, name string) {
+	ingress := reconciler.CurrentCaches.GetIngress(name, namespace)
+	if ingress != nil {
+		reconciler.statusManager.CancelIngress(ingress)
+	}
 	reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
 	reconciler.EnvoyXDSServer.SetSnapshotForCaches(reconciler.CurrentCaches, nodeID)
 }
 
 func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) {
+
 	envoy.UpdateInfoForIngress(
 		reconciler.CurrentCaches,
 		ingress,
@@ -61,8 +67,5 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) {
 
 	reconciler.EnvoyXDSServer.SetSnapshotForCaches(reconciler.CurrentCaches, nodeID)
 
-	reconciler.EnvoyXDSServer.MarkIngressesReady(
-		[]*v1alpha1.Ingress{ingress},
-		reconciler.CurrentCaches.SnapshotVersion(),
-	)
+	_, _ = reconciler.statusManager.IsReady(ingress)
 }
