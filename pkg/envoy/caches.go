@@ -7,6 +7,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/google/uuid"
 	kubeclient "k8s.io/client-go/kubernetes"
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
 type VHostsForIngresses map[string][]*route.VirtualHost
@@ -17,6 +18,7 @@ type Caches struct {
 	routes    []*route.Route
 	listeners []*v2.Listener
 	runtimes  []cache.Resource
+	ingresses map[string]*v1alpha1.Ingress
 
 	snapshotVersion string
 
@@ -34,11 +36,24 @@ func NewCaches() Caches {
 		localVirtualHostsForIngress:    make(VHostsForIngresses),
 		externalVirtualHostsForIngress: make(VHostsForIngresses),
 		routesForIngress:               make(map[string][]string),
+		ingresses:                      make(map[string]*v1alpha1.Ingress),
 	}
 
 	_ = caches.setNewSnapshotVersion()
 
 	return caches
+}
+
+func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {
+	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
+}
+
+func (caches *Caches) AddIngress(ingress *v1alpha1.Ingress) {
+	caches.ingresses[mapKey(ingress.Name, ingress.Namespace)] = ingress
+}
+
+func (caches *Caches) DeleteIngress(ingressName, ingressNamespace string) {
+	delete(caches.ingresses, mapKey(ingressName, ingressNamespace))
 }
 
 func (caches *Caches) AddCluster(cluster *v2.Cluster, serviceName string, serviceNamespace string, path string) {
@@ -74,8 +89,14 @@ func (caches *Caches) AddStatusVirtualHost() {
 	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
 	// to each envoy
 	_ = caches.setNewSnapshotVersion()
-	ikr := internalKourierRoute(caches.snapshotVersion)
-	ikvh := internalKourierVirtualHost(ikr)
+
+	var ingresses []*v1alpha1.Ingress
+	for _, val := range caches.ingresses {
+		ingresses = append(ingresses, val)
+	}
+
+	ikrs := internalKourierRoute(ingresses)
+	ikvh := internalKourierVirtualHost(ikrs)
 	caches.statusVirtualHost = &ikvh
 }
 
@@ -125,9 +146,10 @@ func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
 // Notice that the clusters are not deleted. That's handled with the expiration
 // time set in the "ClustersCache" struct.
 func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string, kubeclient kubeclient.Interface) {
-	caches.deleteRoutesForIngress(ingressName, ingressNamespace)
 
+	caches.deleteRoutesForIngress(ingressName, ingressNamespace)
 	caches.deleteMappingsForIngress(ingressName, ingressNamespace)
+	caches.DeleteIngress(ingressName, ingressNamespace)
 
 	newExternalVirtualHosts := caches.externalVirtualHosts()
 	newClusterLocalVirtualHosts := caches.clusterLocalVirtualHosts()
@@ -135,7 +157,13 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
 	// to each envoy
 	_ = caches.setNewSnapshotVersion()
-	ikr := internalKourierRoute(caches.snapshotVersion)
+
+	var ingresses []*v1alpha1.Ingress
+	for _, val := range caches.ingresses {
+		ingresses = append(ingresses, val)
+	}
+
+	ikr := internalKourierRoute(ingresses)
 	ikvh := internalKourierVirtualHost(ikr)
 	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &ikvh)
 
