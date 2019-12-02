@@ -492,11 +492,8 @@ k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d/go.mod h1:3jediapYqJ2w1BF
 k8s.io/apimachinery v0.0.0-20191121015412-41065c7a8c2a/go.mod h1:b9qmWdKlLuU9EBh+06BtLcSf/Mu89rWL33naRxs1uZg=
 k8s.io/apimachinery v0.0.0-20191123233150-4c4803ed55e3 h1:FErmbNIJruD5GT2oVEjtPn5Ar5+rcWJsC8/PPUkR0s4=
 k8s.io/apimachinery v0.0.0-20191123233150-4c4803ed55e3/go.mod h1:b9qmWdKlLuU9EBh+06BtLcSf/Mu89rWL33naRxs1uZg=
-k8s.io/client-go v0.0.0-20180910083459-2cefa64ff137/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
 k8s.io/client-go v0.0.0-20190819141724-e14f31a72a77 h1:w1BoabVnPpPqQCY3sHK4qVwa12Lk8ip1pKMR1C+qbdo=
 k8s.io/client-go v0.0.0-20190819141724-e14f31a72a77/go.mod h1:DmkJD5UDP87MVqUQ5VJ6Tj9Oen8WzXPhk3la4qpyG4g=
-k8s.io/client-go v11.0.0+incompatible h1:LBbX2+lOwY9flffWlJM7f1Ct8V2SRNiMRDFeiwnJo9o=
-k8s.io/client-go v11.0.0+incompatible/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
 k8s.io/code-generator v0.0.0-20191114215150-2a85f169f05f/go.mod h1:Vh0irzg7dL9pFS4c8hFsali5txtbmse3MFS4zEH7Thg=
 k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/gengo v0.0.0-20190822140433-26a664648505/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
@@ -514,10 +511,8 @@ k8s.io/utils v0.0.0-20191114200735-6ca3b61696b6 h1:p0Ai3qVtkbCG/Af26dBmU0E1W58NI
 k8s.io/utils v0.0.0-20191114200735-6ca3b61696b6/go.mod h1:sZAwmy6armz5eXlNoLmJcl4F1QuKu7sr+mFQ0byX7Ew=
 knative.dev/caching v0.0.0-20191127155022-3feb9f69e85e h1:6kqfDjmOecb5N/hf4pY04xj4nVMPbYOjFvdkd30eQDA=
 knative.dev/caching v0.0.0-20191127155022-3feb9f69e85e/go.mod h1:dHXFU6CGlLlbzaWc32g80cR92iuBSpsslDNBWI8C7eg=
-knative.dev/pkg v0.0.0-20191107185656-884d50f09454 h1:nkslWFyRWaJp3nPDm+GSQOSvN8NpZg8qIYTR+XssNNg=
-knative.dev/pkg v0.0.0-20191107185656-884d50f09454/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
-knative.dev/pkg v0.0.0-20191128214922-944655d6cc17 h1:mQ4t9AmWoyk8pTnGiKhlfecHCcq0/MJk+W6WnveFxng=
-knative.dev/pkg v0.0.0-20191128214922-944655d6cc17/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
+knative.dev/pkg v0.0.0-20191025185335-cad41c40ccb5 h1:Bkxj/2GVEGaDd/gL57Egyn/h9HCGU9C8Z4FcIlcm/2A=
+knative.dev/pkg v0.0.0-20191025185335-cad41c40ccb5/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
 knative.dev/serving v0.10.0 h1:T1csznAQrc/DvCE4KROz4NqOtJ24mnU9eF9RMeeYaCc=
 knative.dev/serving v0.10.0/go.mod h1:x2n255JS2XBI39tmjZ8CwTxIf9EKNMCrkVuiOttLRm0=
 modernc.org/cc v1.0.0/go.mod h1:1Sk4//wdnYJiUIxnW8ddKpaOJCF37yAdqYnkxUpaYxw=
