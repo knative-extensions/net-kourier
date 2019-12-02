@@ -11,11 +11,12 @@ import (
 
 	"knative.dev/pkg/network"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-	networkingV1Alpha "knative.dev/serving/pkg/client/listers/networking/v1alpha1"
+	nv1alpha1lister "knative.dev/serving/pkg/client/listers/networking/v1alpha1"
 )
 
 // Values for the keys received in the reconciler. When they're not a standard
@@ -24,17 +25,8 @@ const (
 	FullResync = "full_resync"
 )
 
-type ResyncAction int
-
-const (
-	ResyncAll ResyncAction = iota
-	DeleteIngress
-	UpdateIngress
-	NoAction
-)
-
 type Reconciler struct {
-	IngressLister   networkingV1Alpha.IngressLister
+	IngressLister   nv1alpha1lister.IngressLister
 	EndpointsLister corev1listers.EndpointsLister
 	EnvoyXDSServer  envoy.EnvoyXdsServer
 	kubeClient      kubeclient.Interface
@@ -43,63 +35,24 @@ type Reconciler struct {
 }
 
 func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
-	action, err := actionNeeded(key, reconciler.IngressLister)
-
-	if err != nil {
-		return err
-	}
-
-	ingressNamespace, ingressName, err := cache.SplitMetaNamespaceKey(key)
-
-	if err != nil {
-		return err
-	}
-
-	switch action {
-	case ResyncAll:
-		err := reconciler.fullReconcile()
-
-		if err != nil {
-			return err
-		}
-	case DeleteIngress:
-		reconciler.deleteIngress(ingressName, ingressNamespace)
-	case UpdateIngress:
-		err = reconciler.updateIngress(ingressName, ingressNamespace)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// TODO: For now, it returns FullResync when an endpoint has been changed. That
-// can be optimized.
-func actionNeeded(key string, ingressLister networkingV1Alpha.IngressLister) (ResyncAction, error) {
-
 	if key == FullResync {
-		return ResyncAll, nil
+		return reconciler.fullReconcile()
 	}
 
-	// At this point we know that the event has been caused by an ingress.
-
-	ingressNamespace, ingressName, err := cache.SplitMetaNamespaceKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		return NoAction, err
+		return err
 	}
 
-	ingressExists, err := knative.Exists(ingressName, ingressNamespace, ingressLister)
-	if err != nil {
-		return NoAction, err
+	ingress, err := reconciler.IngressLister.Ingresses(namespace).Get(name)
+	if apierrors.IsNotFound(err) {
+		reconciler.deleteIngress(namespace, name)
+		return nil
+	} else if err != nil {
+		return err
 	}
 
-	if !ingressExists {
-		return DeleteIngress, nil
-	}
-
-	return UpdateIngress, nil
+	return reconciler.updateIngress(ingress)
 }
 
 func (reconciler *Reconciler) fullReconcile() error {
@@ -122,18 +75,12 @@ func (reconciler *Reconciler) fullReconcile() error {
 	return nil
 }
 
-func (reconciler *Reconciler) deleteIngress(ingressName string, ingressNamespace string) {
-	reconciler.CurrentCaches.DeleteIngressInfo(ingressName, ingressNamespace, reconciler.kubeClient)
+func (reconciler *Reconciler) deleteIngress(namespace, name string) {
+	reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
 	reconciler.EnvoyXDSServer.SetSnapshotForCaches(reconciler.CurrentCaches, nodeID)
 }
 
-func (reconciler *Reconciler) updateIngress(ingressName string, ingressNamespace string) error {
-	ingress, err := reconciler.IngressLister.Ingresses(ingressNamespace).Get(ingressName)
-
-	if err != nil {
-		return err
-	}
-
+func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 	envoy.UpdateInfoForIngress(
 		reconciler.CurrentCaches,
 		ingress,

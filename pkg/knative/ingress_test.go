@@ -51,29 +51,3 @@ func TestFilterByIngressClass(t *testing.T) {
 		})
 	}
 }
-
-func TestRouteName(t *testing.T) {
-	routeName := "some_route_name"
-	ingress := networkingv1alpha1.Ingress{
-		ObjectMeta: v1.ObjectMeta{
-			Labels: map[string]string{
-				"serving.knative.dev/route": routeName,
-			},
-		},
-	}
-
-	assert.Equal(t, routeName, RouteName(&ingress))
-}
-
-func TestRouteNamespace(t *testing.T) {
-	routeNamespace := "some_route_namespace"
-	ingress := networkingv1alpha1.Ingress{
-		ObjectMeta: v1.ObjectMeta{
-			Labels: map[string]string{
-				"serving.knative.dev/routeNamespace": routeNamespace,
-			},
-		},
-	}
-
-	assert.Equal(t, routeNamespace, RouteNamespace(&ingress))
-}

@@ -79,10 +79,7 @@ func addIngressToCaches(caches *Caches,
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 
-	routeName := knative.RouteName(ingress)
-	routeNamespace := knative.RouteNamespace(ingress)
-
-	log.WithFields(log.Fields{"name": routeName, "namespace": routeNamespace}).Info("Knative Ingress found")
+	log.WithFields(log.Fields{"name": ingress.Name, "namespace": ingress.Namespace}).Info("Knative Ingress found")
 
 	for _, rule := range ingress.GetSpec().Rules {
 
@@ -149,7 +146,7 @@ func addIngressToCaches(caches *Caches,
 				wrs = append(wrs, &weightedCluster)
 			}
 
-			r := createRouteForRevision(routeName, index, &httpPath, wrs)
+			r := createRouteForRevision(ingress.Name, index, &httpPath, wrs)
 
 			ruleRoute = append(ruleRoute, &r)
 
@@ -158,7 +155,7 @@ func addIngressToCaches(caches *Caches,
 
 		externalDomains := knative.ExternalDomains(&rule, localDomainName)
 		virtualHost := route.VirtualHost{
-			Name:    routeName,
+			Name:    ingress.Name,
 			Domains: externalDomains,
 			Routes:  ruleRoute,
 		}
@@ -166,7 +163,7 @@ func addIngressToCaches(caches *Caches,
 		// External should also be accessible internally
 		internalDomains := append(knative.InternalDomains(&rule, localDomainName), externalDomains...)
 		internalVirtualHost := route.VirtualHost{
-			Name:    routeName,
+			Name:    ingress.Name,
 			Domains: internalDomains,
 			Routes:  ruleRoute,
 		}

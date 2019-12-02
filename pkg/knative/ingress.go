@@ -3,9 +3,6 @@ package knative
 import (
 	"kourier/pkg/config"
 
-	"knative.dev/serving/pkg/client/listers/networking/v1alpha1"
-
-	"k8s.io/apimachinery/pkg/api/errors"
 	"knative.dev/pkg/network"
 	"knative.dev/pkg/system"
 	"knative.dev/serving/pkg/apis/networking"
@@ -14,8 +11,6 @@ import (
 )
 
 const (
-	routeNameLabel      = "serving.knative.dev/route"
-	routeNamespaceLabel = "serving.knative.dev/routeNamespace"
 	internalServiceName = "kourier-internal"
 	externalServiceName = "kourier-external"
 )
@@ -30,29 +25,6 @@ func FilterByIngressClass(ingresses []*networkingv1alpha1.Ingress) []*networking
 	}
 
 	return res
-}
-
-func RouteNamespace(ingress *networkingv1alpha1.Ingress) string {
-	return ingress.GetLabels()[routeNamespaceLabel]
-}
-
-func RouteName(ingress *networkingv1alpha1.Ingress) string {
-	return ingress.GetLabels()[routeNameLabel]
-}
-
-func Exists(ingressName string, ingressNamespace string, ingressLister v1alpha1.IngressLister) (bool, error) {
-	_, err := ingressLister.Ingresses(ingressNamespace).Get(ingressName)
-
-	notFoundErr := errors.NewNotFound(networkingv1alpha1.Resource("ingress"), ingressName).Error()
-
-	if err != nil {
-		if err.Error() == notFoundErr {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
 }
 
 func MarkIngressReady(knativeClient versioned.Interface, ingress *networkingv1alpha1.Ingress) error {
