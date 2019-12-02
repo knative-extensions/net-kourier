@@ -29,8 +29,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"knative.dev/serving/pkg/reconciler/ingress/resources"
 
 	"knative.dev/pkg/system"
@@ -272,7 +270,7 @@ func (m *StatusProber) CancelIngress(ingress *v1alpha1.Ingress) {
 	defer m.mu.Unlock()
 	hash, err := resources.ComputeIngressHash(ingress)
 	if err != nil {
-		logrus.Error("failed to compute ingress Hash: %s", err)
+		m.logger.Errorf("failed to compute ingress Hash: %s", err)
 	}
 	ingressKey := fmt.Sprintf("%x", hash)
 	if state, ok := m.ingressStates[ingressKey]; ok {
