@@ -3,15 +3,10 @@ package envoy
 import (
 	"context"
 	"fmt"
-	"kourier/pkg/knative"
-	"kourier/pkg/kubernetes"
 	"net"
 	"net/http"
-	"time"
 
 	kubeclient "k8s.io/client-go/kubernetes"
-
-	v1 "k8s.io/api/core/v1"
 
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -20,7 +15,6 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/pkg/server"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/client/clientset/versioned"
 )
 
@@ -121,38 +115,5 @@ func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForCaches(caches *Caches, nodeI
 	if err != nil {
 		log.Error(err)
 		return
-	}
-}
-
-func (envoyXdsServer *EnvoyXdsServer) MarkIngressesReady(ingresses []*v1alpha1.Ingress, snapshotVersion string) {
-	gwPods, _ := kubernetes.GetKourierGatewayPODS(envoyXdsServer.kubeClient, v1.NamespaceAll)
-
-	retries := 0
-	for {
-		if retries > 3 {
-			log.Errorf("Failed to mark latest snapshot as ready after %d retries", retries)
-			break
-		}
-
-		inSync, err := kubernetes.CheckGatewaySnapshot(gwPods, snapshotVersion)
-		if err != nil {
-			log.Error(err)
-			break
-		}
-
-		if inSync {
-			for _, ingress := range ingresses {
-				err := knative.MarkIngressReady(envoyXdsServer.knativeClient, ingress)
-				if err != nil {
-					log.Debug("Tried to mark an ingress as ready, but it no longer exists: ", err)
-					break
-				}
-			}
-			break
-		}
-
-		time.Sleep(1 * time.Second)
-		retries++
-
 	}
 }
