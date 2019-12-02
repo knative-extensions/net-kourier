@@ -52,7 +52,8 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return err
 	}
 
-	return reconciler.updateIngress(ingress)
+	reconciler.updateIngress(ingress)
+	return nil
 }
 
 func (reconciler *Reconciler) fullReconcile() error {
@@ -80,7 +81,7 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) {
 	reconciler.EnvoyXDSServer.SetSnapshotForCaches(reconciler.CurrentCaches, nodeID)
 }
 
-func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
+func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) {
 	envoy.UpdateInfoForIngress(
 		reconciler.CurrentCaches,
 		ingress,
@@ -96,6 +97,4 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 		[]*v1alpha1.Ingress{ingress},
 		reconciler.CurrentCaches.SnapshotVersion(),
 	)
-
-	return nil
 }
