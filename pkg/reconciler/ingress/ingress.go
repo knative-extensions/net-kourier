@@ -47,11 +47,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	ingressInformer := ingressinformer.Get(ctx)
 	endpointsInformer := endpointsinformer.Get(ctx)
 
+	caches := envoy.NewCaches()
+
 	c := &Reconciler{
 		IngressLister:   ingressInformer.Lister(),
 		EndpointsLister: endpointsInformer.Lister(),
 		EnvoyXDSServer:  envoyXdsServer,
 		kubeClient:      kubernetesClient,
+		CurrentCaches:   &caches,
 	}
 	impl := controller.NewImpl(c, logger, controllerName)
 
