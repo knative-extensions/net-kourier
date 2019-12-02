@@ -3,6 +3,8 @@ package envoy
 import (
 	"testing"
 
+	"knative.dev/pkg/tracker"
+
 	"k8s.io/client-go/kubernetes"
 
 	"k8s.io/client-go/kubernetes/fake"
@@ -87,7 +89,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	kubeClient := fake.NewSimpleClientset()
-
+	var tr tracker.Interface
 	// Create the Kubernetes services associated to the Knative services that
 	// appear in the ingress above
 	err := createServicesWithNames(
@@ -105,6 +107,7 @@ func TestTrafficSplits(t *testing.T) {
 		kubeClient,
 		newMockedEndpointsLister(),
 		"cluster.local",
+		tr,
 	)
 	assert.Equal(t, 1, len(caches.routes))
 

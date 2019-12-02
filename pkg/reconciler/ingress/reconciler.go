@@ -5,6 +5,8 @@ import (
 	"kourier/pkg/envoy"
 	"kourier/pkg/knative"
 
+	"knative.dev/pkg/tracker"
+
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 
 	"knative.dev/pkg/network"
@@ -19,8 +21,7 @@ import (
 // Values for the keys received in the reconciler. When they're not a standard
 // "namespace/name".
 const (
-	FullResync     = "full_resync"
-	EndpointChange = "endpoint_change"
+	FullResync = "full_resync"
 )
 
 type ResyncAction int
@@ -38,6 +39,7 @@ type Reconciler struct {
 	EnvoyXDSServer  envoy.EnvoyXdsServer
 	kubeClient      kubeclient.Interface
 	CurrentCaches   *envoy.Caches
+	tracker         tracker.Interface
 }
 
 func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
@@ -76,7 +78,8 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 // TODO: For now, it returns FullResync when an endpoint has been changed. That
 // can be optimized.
 func actionNeeded(key string, ingressLister networkingV1Alpha.IngressLister) (ResyncAction, error) {
-	if key == FullResync || key == EndpointChange {
+
+	if key == FullResync {
 		return ResyncAll, nil
 	}
 
@@ -111,6 +114,7 @@ func (reconciler *Reconciler) fullReconcile() error {
 		nodeID,
 		kourierIngresses,
 		reconciler.EndpointsLister,
+		reconciler.tracker,
 	)
 
 	reconciler.CurrentCaches = caches
@@ -136,6 +140,7 @@ func (reconciler *Reconciler) updateIngress(ingressName string, ingressNamespace
 		reconciler.kubeClient,
 		reconciler.EndpointsLister,
 		network.GetClusterDomainName(),
+		reconciler.tracker,
 	)
 
 	reconciler.EnvoyXDSServer.SetSnapshotForCaches(reconciler.CurrentCaches, nodeID)

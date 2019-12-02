@@ -50,6 +50,6 @@ require (
 
 replace contrib.go.opencensus.io/exporter/stackdriver => contrib.go.opencensus.io/exporter/stackdriver v0.12.5
 
-replace knative.dev/pkg => knative.dev/pkg v0.0.0-20191107185656-884d50f09454
+replace knative.dev/pkg => knative.dev/pkg v0.0.0-20191025185335-cad41c40ccb5
 
 replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190819141724-e14f31a72a77

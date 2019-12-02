@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"knative.dev/pkg/tracker"
+
 	kubeclient "k8s.io/client-go/kubernetes"
 
 	v1 "k8s.io/api/core/v1"
@@ -118,10 +120,10 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []*v1alpha1.Ingress, endpointsLister corev1listers.EndpointsLister) *Caches {
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []*v1alpha1.Ingress, endpointsLister corev1listers.EndpointsLister, tracker tracker.Interface) *Caches {
 	localDomainName := network.GetClusterDomainName()
 
-	caches := CachesForIngresses(Ingresses, envoyXdsServer.kubeClient, endpointsLister, localDomainName)
+	caches := CachesForIngresses(Ingresses, envoyXdsServer.kubeClient, endpointsLister, localDomainName, tracker)
 
 	envoyXdsServer.SetSnapshotForCaches(&caches, nodeId)
 	envoyXdsServer.MarkIngressesReady(Ingresses, caches.snapshotVersion)
@@ -156,7 +158,6 @@ func (envoyXdsServer *EnvoyXdsServer) MarkIngressesReady(ingresses []*v1alpha1.I
 
 		if inSync {
 			for _, ingress := range ingresses {
-
 				err := knative.MarkIngressReady(envoyXdsServer.knativeClient, ingress)
 				if err != nil {
 					log.Debug("Tried to mark an ingress as ready, but it no longer exists: ", err)
