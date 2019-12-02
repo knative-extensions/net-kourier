@@ -47,13 +47,25 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	ingressInformer := ingressinformer.Get(ctx)
 	endpointsInformer := endpointsinformer.Get(ctx)
 
+	caches := envoy.NewCaches()
+
 	c := &Reconciler{
 		IngressLister:   ingressInformer.Lister(),
 		EndpointsLister: endpointsInformer.Lister(),
 		EnvoyXDSServer:  envoyXdsServer,
 		kubeClient:      kubernetesClient,
+		CurrentCaches:   &caches,
 	}
 	impl := controller.NewImpl(c, logger, controllerName)
+
+	// Force a first event to make sure we initialize a config. Otherwise, there
+	// will be no config until a Knative service is deployed.
+	// This is important because the gateway pods will not be marked as healthy
+	// until they have been able to fetch a config.
+	event := types.NamespacedName{
+		Name: FullResync,
+	}
+	impl.EnqueueKey(event)
 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
@@ -84,15 +96,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	endpointsInformer.Informer().AddEventHandler(endpointsInformerHandler)
-
-	// Force a first event to make sure we initialize a config. Otherwise, there
-	// will be no config until a Knative service is deployed.
-	// This is important because the gateway pods will not be marked as healthy
-	// until they have been able to fetch a config.
-	event := types.NamespacedName{
-		Name: FullResync,
-	}
-	impl.EnqueueKey(event)
 
 	return impl
 }
