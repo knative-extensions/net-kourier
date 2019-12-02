@@ -24,26 +24,6 @@ import (
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
-func CachesForIngresses(Ingresses []*v1alpha1.Ingress,
-	kubeclient kubeclient.Interface,
-	endpointsLister corev1listers.EndpointsLister,
-	localDomainName string,
-	tracker tracker.Interface) Caches {
-
-	res := NewCaches()
-
-	for i, ingress := range Ingresses {
-		// TODO: do we really need to pass the index?
-		addIngressToCaches(&res, ingress, kubeclient, endpointsLister, localDomainName, i, tracker)
-	}
-
-	res.AddStatusVirtualHost()
-
-	res.SetListeners(kubeclient)
-
-	return res
-}
-
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
 func UpdateInfoForIngress(caches *Caches,

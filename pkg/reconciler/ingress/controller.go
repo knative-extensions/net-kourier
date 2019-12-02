@@ -7,8 +7,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"knative.dev/serving/pkg/apis/networking"
 	"knative.dev/serving/pkg/reconciler"
 
@@ -63,14 +61,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	impl := controller.NewImpl(c, logger, controllerName)
 	c.tracker = tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
-	// Force a first event to make sure we initialize a config. Otherwise, there
-	// will be no config until a Knative service is deployed.
-	// This is important because the gateway pods will not be marked as healthy
-	// until they have been able to fetch a config.
-	event := types.NamespacedName{
-		Name: FullResync,
-	}
-	impl.EnqueueKey(event)
+	// Make sure we initialize a config. Otherwise, there will be no config
+	// until a Knative service is deployed. This is important because the
+	// gateway pods will not be marked as healthy until they have been able to
+	// fetch a config.
+	c.CurrentCaches.AddStatusVirtualHost()
+	c.CurrentCaches.SetListeners(kubernetesClient)
+	c.EnvoyXDSServer.SetSnapshotForCaches(c.CurrentCaches, nodeID)
 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
