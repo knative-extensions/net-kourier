@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"knative.dev/pkg/tracker"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -22,12 +24,17 @@ import (
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
-func CachesForIngresses(Ingresses []*v1alpha1.Ingress, kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string) Caches {
+func CachesForIngresses(Ingresses []*v1alpha1.Ingress,
+	kubeclient kubeclient.Interface,
+	endpointsLister corev1listers.EndpointsLister,
+	localDomainName string,
+	tracker tracker.Interface) Caches {
+
 	res := NewCaches()
 
 	for i, ingress := range Ingresses {
 		// TODO: do we really need to pass the index?
-		addIngressToCaches(&res, ingress, kubeclient, endpointsLister, localDomainName, i)
+		addIngressToCaches(&res, ingress, kubeclient, endpointsLister, localDomainName, i, tracker)
 	}
 
 	res.AddStatusVirtualHost()
@@ -43,7 +50,8 @@ func UpdateInfoForIngress(caches *Caches,
 	ingress *v1alpha1.Ingress,
 	kubeclient kubeclient.Interface,
 	endpointsLister corev1listers.EndpointsLister,
-	localDomainName string) {
+	localDomainName string,
+	tracker tracker.Interface) {
 
 	caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient)
 
@@ -53,7 +61,7 @@ func UpdateInfoForIngress(caches *Caches,
 		len(caches.externalVirtualHostsForIngress),
 	)
 
-	addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index)
+	addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker)
 
 	caches.AddStatusVirtualHost()
 
@@ -65,7 +73,8 @@ func addIngressToCaches(caches *Caches,
 	kubeclient kubeclient.Interface,
 	endpointsLister corev1listers.EndpointsLister,
 	localDomainName string,
-	index int) {
+	index int,
+	tracker tracker.Interface) {
 
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
@@ -93,10 +102,24 @@ func addIngressToCaches(caches *Caches,
 				headersSplit := split.AppendHeaders
 
 				endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
-
 				if err != nil {
 					log.Errorf("%s", err)
 					break
+				}
+
+				ref := kubev1.ObjectReference{
+					Kind:       "Endpoints",
+					APIVersion: "v1",
+					Namespace:  ingress.Namespace,
+					Name:       split.ServiceName,
+				}
+
+				if tracker != nil {
+					err = tracker.Track(ref, ingress)
+					if err != nil {
+						log.Errorf("%s", err)
+						break
+					}
 				}
 
 				service, err := kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})

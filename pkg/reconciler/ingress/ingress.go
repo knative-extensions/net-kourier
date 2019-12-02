@@ -5,6 +5,8 @@ import (
 	"kourier/pkg/config"
 	"kourier/pkg/envoy"
 
+	v1 "k8s.io/api/core/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	"knative.dev/serving/pkg/apis/networking"
@@ -17,6 +19,7 @@ import (
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+	"knative.dev/pkg/tracker"
 
 	knativeclient "knative.dev/serving/pkg/client/injection/client"
 	ingressinformer "knative.dev/serving/pkg/client/injection/informers/networking/v1alpha1/ingress"
@@ -56,7 +59,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		kubeClient:      kubernetesClient,
 		CurrentCaches:   &caches,
 	}
+
 	impl := controller.NewImpl(c, logger, controllerName)
+	c.tracker = tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	// Force a first event to make sure we initialize a config. Otherwise, there
 	// will be no config until a Knative service is deployed.
@@ -75,27 +80,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		),
 		Handler: controller.HandleAll(impl.Enqueue),
 	}
+
 	ingressInformer.Informer().AddEventHandler(ingressInformerHandler)
 
-	// In this first version, we are just refreshing the whole config for any
-	// endpoint that we receive. So we should always enqueue the same key.
-	enqueueFunc := func(obj interface{}) {
-		event := types.NamespacedName{
-			Name: EndpointChange,
-		}
-		impl.EnqueueKey(event)
-	}
-
-	// We only want to react to endpoints that belong to a Knative serving and
-	// are public.
-	endpointsInformerHandler := cache.FilteringResourceEventHandler{
-		FilterFunc: reconciler.LabelFilterFunc(
-			networking.ServiceTypeKey, string(networking.ServiceTypePublic), false,
+	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(
+		controller.EnsureTypeMeta(
+			c.tracker.OnChanged,
+			v1.SchemeGroupVersion.WithKind("Endpoints"),
 		),
-		Handler: controller.HandleAll(enqueueFunc),
-	}
-
-	endpointsInformer.Informer().AddEventHandler(endpointsInformerHandler)
+	))
 
 	return impl
 }
