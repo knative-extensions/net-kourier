@@ -101,9 +101,12 @@ func TestTrafficSplits(t *testing.T) {
 		t.Error(err)
 	}
 
+	caches := NewCaches()
+
 	// Check that there is one route in the result
-	caches := CachesForIngresses(
-		[]*v1alpha1.Ingress{&ingress},
+	UpdateInfoForIngress(
+		&caches,
+		&ingress,
 		kubeClient,
 		newMockedEndpointsLister(),
 		"cluster.local",

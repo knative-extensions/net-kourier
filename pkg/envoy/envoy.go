@@ -9,13 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"knative.dev/pkg/tracker"
-
 	kubeclient "k8s.io/client-go/kubernetes"
 
 	v1 "k8s.io/api/core/v1"
-
-	"knative.dev/pkg/network"
 
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -24,7 +20,6 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/pkg/server"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/client/clientset/versioned"
 )
@@ -118,17 +113,6 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	if err := httpServer.Shutdown(ctx); err != nil {
 		panic(err)
 	}
-}
-
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForIngresses(nodeId string, Ingresses []*v1alpha1.Ingress, endpointsLister corev1listers.EndpointsLister, tracker tracker.Interface) *Caches {
-	localDomainName := network.GetClusterDomainName()
-
-	caches := CachesForIngresses(Ingresses, envoyXdsServer.kubeClient, endpointsLister, localDomainName, tracker)
-
-	envoyXdsServer.SetSnapshotForCaches(&caches, nodeId)
-	envoyXdsServer.MarkIngressesReady(Ingresses, caches.snapshotVersion)
-
-	return &caches
 }
 
 func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForCaches(caches *Caches, nodeId string) {
