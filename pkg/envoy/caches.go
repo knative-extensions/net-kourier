@@ -6,6 +6,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
@@ -19,8 +20,6 @@ type Caches struct {
 	listeners []*v2.Listener
 	runtimes  []cache.Resource
 	ingresses map[string]*v1alpha1.Ingress
-
-	snapshotVersion string
 
 	// These mappings are helpful to know the caches affected when there's a
 	// change in an ingress.
@@ -38,8 +37,6 @@ func NewCaches() Caches {
 		routesForIngress:               make(map[string][]string),
 		ingresses:                      make(map[string]*v1alpha1.Ingress),
 	}
-
-	_ = caches.setNewSnapshotVersion()
 
 	return caches
 }
@@ -86,9 +83,6 @@ func (caches *Caches) AddInternalVirtualHostForIngress(vHost *route.VirtualHost,
 }
 
 func (caches *Caches) AddStatusVirtualHost() {
-	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
-	// to each envoy
-	_ = caches.setNewSnapshotVersion()
 
 	var ingresses []*v1alpha1.Ingress
 	for _, val := range caches.ingresses {
@@ -112,10 +106,6 @@ func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) {
 	caches.listeners = listeners
 }
 
-func (caches *Caches) SnapshotVersion() string {
-	return caches.snapshotVersion
-}
-
 func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
 	endpoints := make([]cache.Resource, len(caches.endpoints))
 	for i := range caches.endpoints {
@@ -132,8 +122,15 @@ func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
 		listeners[i] = caches.listeners[i]
 	}
 
+	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
+	// to each envoy
+	snapshotVersion, err := caches.getNewSnapshotVersion()
+	if err != nil {
+		log.Errorf("Failed generating a new Snapshot version: %s", err)
+	}
+
 	return cache.NewSnapshot(
-		caches.snapshotVersion,
+		snapshotVersion,
 		endpoints,
 		caches.clusters.list(),
 		routes,
@@ -153,10 +150,6 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 
 	newExternalVirtualHosts := caches.externalVirtualHosts()
 	newClusterLocalVirtualHosts := caches.clusterLocalVirtualHosts()
-
-	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
-	// to each envoy
-	_ = caches.setNewSnapshotVersion()
 
 	var ingresses []*v1alpha1.Ingress
 	for _, val := range caches.ingresses {
@@ -196,15 +189,14 @@ func (caches *Caches) deleteMappingsForIngress(ingressName string, ingressNamesp
 	delete(caches.localVirtualHostsForIngress, key)
 }
 
-func (caches *Caches) setNewSnapshotVersion() error {
+func (caches *Caches) getNewSnapshotVersion() (string, error) {
 	snapshotVersion, err := uuid.NewUUID()
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	caches.snapshotVersion = snapshotVersion.String()
-	return nil
+	return snapshotVersion.String(), nil
 }
 
 func (caches *Caches) externalVirtualHosts() []*route.VirtualHost {
