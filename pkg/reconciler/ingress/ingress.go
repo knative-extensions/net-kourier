@@ -46,7 +46,11 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 }
 
 func (reconciler *Reconciler) deleteIngress(namespace, name string) {
+
 	ingress := reconciler.CurrentCaches.GetIngress(name, namespace)
+
+	// We need to check for ingress not being nil, because we can receive an event from an already
+	// removed ingress, like for example, when the endpoints object for that ingress is updated/removed.
 	if ingress != nil {
 		reconciler.statusManager.CancelIngress(ingress)
 	}

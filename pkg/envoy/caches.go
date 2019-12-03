@@ -89,7 +89,7 @@ func (caches *Caches) AddStatusVirtualHost() {
 		ingresses = append(ingresses, val)
 	}
 
-	ikrs := internalKourierRoute(ingresses)
+	ikrs := internalKourierRoutes(ingresses)
 	ikvh := internalKourierVirtualHost(ikrs)
 	caches.statusVirtualHost = &ikvh
 }
@@ -156,7 +156,7 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 		ingresses = append(ingresses, val)
 	}
 
-	ikr := internalKourierRoute(ingresses)
+	ikr := internalKourierRoutes(ingresses)
 	ikvh := internalKourierVirtualHost(ikr)
 	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &ikvh)
 

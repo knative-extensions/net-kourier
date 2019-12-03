@@ -200,7 +200,7 @@ func internalKourierVirtualHost(ikrs []*route.Route) route.VirtualHost {
 	}
 }
 
-func internalKourierRoute(ingresses []*v1alpha1.Ingress) []*route.Route {
+func internalKourierRoutes(ingresses []*v1alpha1.Ingress) []*route.Route {
 
 	var hashes []string
 	var routes []*route.Route
