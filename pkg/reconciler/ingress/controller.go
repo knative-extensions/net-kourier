@@ -4,6 +4,7 @@ import (
 	"context"
 	"kourier/pkg/config"
 	"kourier/pkg/envoy"
+	"kourier/pkg/generator"
 	"kourier/pkg/knative"
 
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
@@ -57,7 +58,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	endpointsInformer := endpointsinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 
-	caches := envoy.NewCaches()
+	caches := generator.NewCaches()
 
 	readyCallback := func(ingress *v1alpha1.Ingress) {
 		_ = knative.MarkIngressReady(knativeClient, ingress)
@@ -85,7 +86,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// fetch a config.
 	c.CurrentCaches.AddStatusVirtualHost()
 	c.CurrentCaches.SetListeners(kubernetesClient)
-	c.EnvoyXDSServer.SetSnapshotForCaches(c.CurrentCaches, nodeID)
+
+	snapshot := c.CurrentCaches.ToEnvoySnapshot()
+	c.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.

@@ -18,14 +18,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 )
 
-const (
-	envCertsSecretNamespace = "CERTS_SECRET_NAMESPACE"
-	envCertsSecretName      = "CERTS_SECRET_NAME"
-	certFieldInSecret       = "tls.crt"
-	keyFieldInSecret        = "tls.key"
-)
-
-func newExternalEnvoyListener(https bool,
+func NewExternalEnvoyListener(https bool,
 	manager *httpconnmanagerv2.HttpConnectionManager,
 	kubeClient kubeclient.Interface) (*v2.Listener, error) {
 
@@ -36,7 +29,7 @@ func newExternalEnvoyListener(https bool,
 	}
 }
 
-func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
+func NewInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
 	return envoyHTTPListener(manager, config.HttpPortInternal)
 }
 
@@ -63,14 +56,14 @@ func envoyHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 	kubeClient kubeclient.Interface,
 	port uint32) (*v2.Listener, error) {
 
-	secret, err := kubeClient.CoreV1().Secrets(os.Getenv(envCertsSecretNamespace)).Get(
-		os.Getenv(envCertsSecretName), metav1.GetOptions{})
+	secret, err := kubeClient.CoreV1().Secrets(os.Getenv(config.EnvCertsSecretNamespace)).Get(
+		os.Getenv(config.EnvCertsSecretName), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	certificateChain := string(secret.Data[certFieldInSecret])
-	privateKey := string(secret.Data[keyFieldInSecret])
+	certificateChain := string(secret.Data[config.CertFieldInSecret])
+	privateKey := string(secret.Data[config.KeyFieldInSecret])
 
 	filters, err := createFilters(manager)
 	if err != nil {

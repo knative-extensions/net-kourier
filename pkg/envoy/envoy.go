@@ -109,8 +109,8 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshotForCaches(caches *Caches, nodeId string) {
-	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeId, caches.ToEnvoySnapshot())
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeId string) {
+	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeId, *snapshot)
 
 	if err != nil {
 		log.Error(err)

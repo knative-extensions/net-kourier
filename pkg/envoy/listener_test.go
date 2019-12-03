@@ -21,11 +21,11 @@ import (
 )
 
 func TestCreateHTTPListener(t *testing.T) {
-	manager := newHttpConnectionManager([]*route.VirtualHost{})
+	manager := NewHttpConnectionManager([]*route.VirtualHost{})
 
 	kubeClient := fake.NewSimpleClientset()
 
-	l, err := newExternalEnvoyListener(false, &manager, kubeClient)
+	l, err := NewExternalEnvoyListener(false, &manager, kubeClient)
 	if err != nil {
 		t.Error(err)
 	}
@@ -54,9 +54,9 @@ func TestCreateHTTPSListener(t *testing.T) {
 		t.Error(err)
 	}
 
-	manager := newHttpConnectionManager([]*route.VirtualHost{})
+	manager := NewHttpConnectionManager([]*route.VirtualHost{})
 
-	l, err := newExternalEnvoyListener(true, &manager, kubeClient)
+	l, err := NewExternalEnvoyListener(true, &manager, kubeClient)
 	if err != nil {
 		t.Error(err)
 	}

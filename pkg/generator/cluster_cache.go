@@ -13,7 +13,7 @@
 // be able to attend those connections in "draining" state. Otherwise, requests
 // coming from those connections fail with a 5xx "No route" error.
 
-package envoy
+package generator
 
 import (
 	"strings"

@@ -26,7 +26,7 @@ var testVirtualHosts = []*route.VirtualHost{
 }
 
 func TestCreatesManagerWithVirtualHosts(t *testing.T) {
-	connManager := newHttpConnectionManager(testVirtualHosts)
+	connManager := NewHttpConnectionManager(testVirtualHosts)
 
 	VirtualHosts := connManager.RouteSpecifier.(*httpconnectionmanagerv2.HttpConnectionManager_RouteConfig).
 		RouteConfig.VirtualHosts
@@ -35,7 +35,7 @@ func TestCreatesManagerWithVirtualHosts(t *testing.T) {
 }
 
 func TestCreatesManagerThatOutputsToStdOut(t *testing.T) {
-	connManager := newHttpConnectionManager(testVirtualHosts)
+	connManager := NewHttpConnectionManager(testVirtualHosts)
 	accessLog := connManager.AccessLog[0]
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v2.AccessLog_TypedConfig).TypedConfig
 	fileAccesLog := &accesslog_v2.FileAccessLog{}

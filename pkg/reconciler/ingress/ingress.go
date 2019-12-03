@@ -3,6 +3,7 @@ package ingress
 import (
 	"context"
 	"kourier/pkg/envoy"
+	"kourier/pkg/generator"
 
 	"knative.dev/pkg/tracker"
 
@@ -22,7 +23,7 @@ type Reconciler struct {
 	EndpointsLister corev1listers.EndpointsLister
 	EnvoyXDSServer  envoy.EnvoyXdsServer
 	kubeClient      kubeclient.Interface
-	CurrentCaches   *envoy.Caches
+	CurrentCaches   *generator.Caches
 	tracker         tracker.Interface
 	statusManager   StatusProber
 }
@@ -55,12 +56,14 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) {
 		reconciler.statusManager.CancelIngress(ingress)
 	}
 	reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
-	reconciler.EnvoyXDSServer.SetSnapshotForCaches(reconciler.CurrentCaches, nodeID)
+
+	snapshot := reconciler.CurrentCaches.ToEnvoySnapshot()
+	reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
 }
 
 func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) {
 
-	envoy.UpdateInfoForIngress(
+	generator.UpdateInfoForIngress(
 		reconciler.CurrentCaches,
 		ingress,
 		reconciler.kubeClient,
@@ -69,7 +72,8 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) {
 		reconciler.tracker,
 	)
 
-	reconciler.EnvoyXDSServer.SetSnapshotForCaches(reconciler.CurrentCaches, nodeID)
+	snapshot := reconciler.CurrentCaches.ToEnvoySnapshot()
+	reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
 
 	_, _ = reconciler.statusManager.IsReady(ingress)
 }

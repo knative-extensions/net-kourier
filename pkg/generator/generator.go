@@ -1,8 +1,9 @@
-package envoy
+package generator
 
 import (
 	"fmt"
 	"kourier/pkg/config"
+	"kourier/pkg/envoy"
 	"kourier/pkg/knative"
 	"net/http"
 	"os"
@@ -172,10 +173,10 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	kubeclient kubeclient.Interface) []*v2.Listener {
 
-	externalManager := newHttpConnectionManager(externalVirtualHosts)
-	internalManager := newHttpConnectionManager(clusterLocalVirtualHosts)
+	externalManager := envoy.NewHttpConnectionManager(externalVirtualHosts)
+	internalManager := envoy.NewHttpConnectionManager(clusterLocalVirtualHosts)
 
-	externalEnvoyListener, err := newExternalEnvoyListener(
+	externalEnvoyListener, err := envoy.NewExternalEnvoyListener(
 		useHTTPSListener(),
 		&externalManager,
 		kubeclient,
@@ -184,7 +185,7 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 		panic(err)
 	}
 
-	internalEnvoyListener, err := newInternalEnvoyListener(&internalManager)
+	internalEnvoyListener, err := envoy.NewInternalEnvoyListener(&internalManager)
 	if err != nil {
 		panic(err)
 	}
@@ -398,8 +399,8 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, publi
 }
 
 func useHTTPSListener() bool {
-	return os.Getenv(envCertsSecretNamespace) != "" &&
-		os.Getenv(envCertsSecretName) != ""
+	return os.Getenv(config.EnvCertsSecretNamespace) != "" &&
+		os.Getenv(config.EnvCertsSecretName) != ""
 }
 
 func max(x, y int) int {
