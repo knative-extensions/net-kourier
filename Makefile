@@ -35,13 +35,13 @@ test-circleci: test-unit test-integration-circleci ## Runs all the tests for cir
 test: test-unit test-integration ## Runs all the tests
 
 test-unit: ## Runs unit tests
-	go test $(shell go list ./... | grep -v kourier/test)
+	go test -race $(shell go list ./... | grep -v kourier/test)
 
 test-integration: local-setup ## Runs integration tests
-	go test test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
+	go test -race test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
 
 test-integration-circleci: circleci-setup ## Runs integration tests for circleCI
-	go test test/* -args -kubeconfig="$(HOME)/.kube/config"
+	go test -race test/* -args -kubeconfig="$(HOME)/.kube/config"
 
 .PHONY: fmt
 fmt: # Runs code formatting
