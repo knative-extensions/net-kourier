@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.1] - 2019-12-03
+### Changed
+- Instead of refreshing the whole Envoy config, now Kourier updates only the
+parts that affect the modified ingress or endpoint.
+
 ## [0.3.0] - 2019-11-29
 ### Changed
 - Adapted the codebase to use Knative's controllers and reconcilers.
@@ -48,6 +53,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.3.1]: https://github.com/3scale/kourier/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/3scale/kourier/compare/v0.2.6...v0.3.0
 [0.2.6]: https://github.com/3scale/kourier/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/3scale/kourier/compare/v0.2.4...v0.2.5
