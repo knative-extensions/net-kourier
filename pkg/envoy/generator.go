@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"fmt"
 	"kourier/pkg/config"
 	"kourier/pkg/knative"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"knative.dev/serving/pkg/reconciler/ingress/resources"
 )
 
 // For now, when updating the info for an ingress we delete it, and then
@@ -58,6 +60,8 @@ func addIngressToCaches(caches *Caches,
 
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
+
+	caches.AddIngress(ingress)
 
 	log.WithFields(log.Fields{"name": ingress.Name, "namespace": ingress.Namespace}).Info("Knative Ingress found")
 
@@ -188,16 +192,43 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	return []*v2.Listener{externalEnvoyListener, internalEnvoyListener}
 }
 
-func internalKourierVirtualHost(ikr route.Route) route.VirtualHost {
+func internalKourierVirtualHost(ikrs []*route.Route) route.VirtualHost {
 	return route.VirtualHost{
 		Name:    config.InternalKourierDomain,
 		Domains: []string{config.InternalKourierDomain},
-		Routes:  []*route.Route{&ikr},
+		Routes:  ikrs,
 	}
 }
 
-func internalKourierRoute(snapshotVersion string) route.Route {
-	return route.Route{
+func internalKourierRoutes(ingresses []*v1alpha1.Ingress) []*route.Route {
+
+	var hashes []string
+	var routes []*route.Route
+	for _, ingress := range ingresses {
+		hash, err := resources.ComputeIngressHash(ingress)
+		if err != nil {
+			log.Errorf("Failed to hash ingress %s: %s", ingress.Name, err)
+			break
+		}
+		hashes = append(hashes, fmt.Sprintf("%x", hash))
+	}
+
+	for _, hash := range hashes {
+		r := route.Route{
+			Name: fmt.Sprintf("%s_%s", config.InternalKourierDomain, hash),
+			Match: &route.RouteMatch{
+				PathSpecifier: &route.RouteMatch_Path{
+					Path: fmt.Sprintf("%s/%s", config.InternalKourierPath, hash),
+				},
+			},
+			Action: &route.Route_DirectResponse{
+				DirectResponse: &route.DirectResponseAction{Status: http.StatusOK},
+			},
+		}
+		routes = append(routes, &r)
+	}
+
+	staticRoute := route.Route{
 		Name: config.InternalKourierDomain,
 		Match: &route.RouteMatch{
 			PathSpecifier: &route.RouteMatch_Path{
@@ -207,18 +238,11 @@ func internalKourierRoute(snapshotVersion string) route.Route {
 		Action: &route.Route_DirectResponse{
 			DirectResponse: &route.DirectResponseAction{Status: http.StatusOK},
 		},
-		ResponseHeadersToAdd: []*core.HeaderValueOption{
-			{
-				Header: &core.HeaderValue{
-					Key:   config.InternalKourierHeader,
-					Value: snapshotVersion,
-				},
-				Append: &wrappers.BoolValue{
-					Value: true,
-				},
-			},
-		},
 	}
+
+	routes = append(routes, &staticRoute)
+
+	return routes
 }
 
 func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {

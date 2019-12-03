@@ -4,6 +4,9 @@ import (
 	"context"
 	"kourier/pkg/config"
 	"kourier/pkg/envoy"
+	"kourier/pkg/knative"
+
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -14,6 +17,8 @@ import (
 
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
+	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
+
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
@@ -24,6 +29,9 @@ import (
 )
 
 const (
+	gatewayLabelKey   = "app"
+	gatewayLabelValue = "3scale-kourier-gateway"
+
 	controllerName = "KourierController"
 	nodeID         = "3scale-kourier-gateway"
 	gatewayPort    = 19001
@@ -47,8 +55,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	ingressInformer := ingressinformer.Get(ctx)
 	endpointsInformer := endpointsinformer.Get(ctx)
+	podInformer := podinformer.Get(ctx)
 
 	caches := envoy.NewCaches()
+
+	readyCallback := func(ingress *v1alpha1.Ingress) {
+		_ = knative.MarkIngressReady(knativeClient, ingress)
+	}
+
+	statusProber := NewStatusProber(logger, podInformer.Lister(), readyCallback)
 
 	c := &Reconciler{
 		IngressLister:   ingressInformer.Lister(),
@@ -56,7 +71,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		EnvoyXDSServer:  envoyXdsServer,
 		kubeClient:      kubernetesClient,
 		CurrentCaches:   &caches,
+		statusManager:   *statusProber,
 	}
+
+	statusProber.Start(ctx.Done())
 
 	impl := controller.NewImpl(c, logger, controllerName)
 	c.tracker = tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
@@ -86,6 +104,21 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			v1.SchemeGroupVersion.WithKind("Endpoints"),
 		),
 	))
+
+	podInformerHandler := cache.FilteringResourceEventHandler{
+		FilterFunc: reconciler.LabelFilterFunc(gatewayLabelKey, gatewayLabelValue, false),
+		Handler: cache.ResourceEventHandlerFuncs{
+			// Cancel probing when a Pod is deleted
+			DeleteFunc: func(obj interface{}) {
+				pod, ok := obj.(*v1.Pod)
+				if ok {
+					statusProber.CancelPodProbing(pod)
+				}
+			},
+		},
+	}
+
+	podInformer.Informer().AddEventHandler(podInformerHandler)
 
 	return impl
 }
