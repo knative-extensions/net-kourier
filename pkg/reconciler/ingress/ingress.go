@@ -4,7 +4,6 @@ import (
 	"context"
 	"kourier/pkg/envoy"
 	"kourier/pkg/generator"
-	"sync"
 
 	"knative.dev/pkg/tracker"
 
@@ -20,7 +19,6 @@ import (
 )
 
 type Reconciler struct {
-	mu              sync.Mutex
 	IngressLister   nv1alpha1lister.IngressLister
 	EndpointsLister corev1listers.EndpointsLister
 	EnvoyXDSServer  envoy.EnvoyXdsServer
@@ -49,11 +47,6 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 }
 
 func (reconciler *Reconciler) deleteIngress(namespace, name string) {
-	//As the reconciler is concurrent by default (2 goroutines) we need to lock
-	// TODO: Improve locking.
-	reconciler.mu.Lock()
-	defer reconciler.mu.Unlock()
-
 	ingress := reconciler.CurrentCaches.GetIngress(name, namespace)
 
 	// We need to check for ingress not being nil, because we can receive an event from an already
@@ -69,10 +62,6 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) {
 }
 
 func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) {
-	//As the reconciler is concurrent by default (2 goroutines) we need to lock
-	// TODO: Improve locking.
-	reconciler.mu.Lock()
-	defer reconciler.mu.Unlock()
 
 	generator.UpdateInfoForIngress(
 		reconciler.CurrentCaches,
