@@ -36,17 +36,15 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 
 	ingress, err := reconciler.IngressLister.Ingresses(namespace).Get(name)
 	if apierrors.IsNotFound(err) {
-		reconciler.deleteIngress(namespace, name)
-		return nil
+		return reconciler.deleteIngress(namespace, name)
 	} else if err != nil {
 		return err
 	}
 
-	reconciler.updateIngress(ingress)
-	return nil
+	return reconciler.updateIngress(ingress)
 }
 
-func (reconciler *Reconciler) deleteIngress(namespace, name string) {
+func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
 	ingress := reconciler.CurrentCaches.GetIngress(name, namespace)
 
 	// We need to check for ingress not being nil, because we can receive an event from an already
@@ -55,15 +53,22 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) {
 		reconciler.statusManager.CancelIngress(ingress)
 	}
 
-	reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
+	err := reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
+	if err != nil {
+		return err
+	}
 
-	snapshot := reconciler.CurrentCaches.ToEnvoySnapshot()
-	reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
+	snapshot, err := reconciler.CurrentCaches.ToEnvoySnapshot()
+	if err != nil {
+		return err
+	}
+
+	return reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
 }
 
-func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) {
+func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 
-	generator.UpdateInfoForIngress(
+	err := generator.UpdateInfoForIngress(
 		reconciler.CurrentCaches,
 		ingress,
 		reconciler.kubeClient,
@@ -71,9 +76,21 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) {
 		network.GetClusterDomainName(),
 		reconciler.tracker,
 	)
+	if err != nil {
+		return err
+	}
 
-	snapshot := reconciler.CurrentCaches.ToEnvoySnapshot()
-	reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
+	snapshot, err := reconciler.CurrentCaches.ToEnvoySnapshot()
+	if err != nil {
+		return err
+	}
+
+	err = reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
+	if err != nil {
+		return err
+	}
 
 	_, _ = reconciler.statusManager.IsReady(ingress)
+
+	return nil
 }

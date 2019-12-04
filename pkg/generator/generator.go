@@ -39,7 +39,7 @@ func UpdateInfoForIngress(caches *Caches,
 	kubeclient kubeclient.Interface,
 	endpointsLister corev1listers.EndpointsLister,
 	localDomainName string,
-	tracker tracker.Interface) {
+	tracker tracker.Interface) error {
 
 	caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient)
 
@@ -53,7 +53,12 @@ func UpdateInfoForIngress(caches *Caches,
 
 	caches.AddStatusVirtualHost()
 
-	caches.SetListeners(kubeclient)
+	err := caches.SetListeners(kubeclient)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func addIngressToCaches(caches *Caches,
@@ -176,7 +181,7 @@ func addIngressToCaches(caches *Caches,
 
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
-	kubeclient kubeclient.Interface) []*v2.Listener {
+	kubeclient kubeclient.Interface) ([]*v2.Listener, error) {
 
 	externalManager := envoy.NewHttpConnectionManager(externalVirtualHosts)
 	internalManager := envoy.NewHttpConnectionManager(clusterLocalVirtualHosts)
@@ -186,15 +191,15 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 		kubeclient,
 	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	internalEnvoyListener, err := newInternalEnvoyListener(&internalManager)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return []*v2.Listener{externalEnvoyListener, internalEnvoyListener}
+	return []*v2.Listener{externalEnvoyListener, internalEnvoyListener}, nil
 }
 
 func internalKourierVirtualHost(ikrs []*route.Route) route.VirtualHost {

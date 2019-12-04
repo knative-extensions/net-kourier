@@ -94,19 +94,25 @@ func (caches *Caches) AddStatusVirtualHost() {
 	caches.statusVirtualHost = &ikvh
 }
 
-func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) {
+func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
 	localVHosts := append(caches.clusterLocalVirtualHosts(), caches.statusVirtualHost)
 
-	listeners := listenersFromVirtualHosts(
+	listeners, err := listenersFromVirtualHosts(
 		caches.externalVirtualHosts(),
 		localVHosts,
 		kubeclient,
 	)
 
+	if err != nil {
+		return err
+	}
+
 	caches.listeners = listeners
+
+	return nil
 }
 
-func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
+func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 	endpoints := make([]cache.Resource, len(caches.endpoints))
 	for i := range caches.endpoints {
 		endpoints[i] = caches.endpoints[i]
@@ -127,6 +133,7 @@ func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
 	snapshotVersion, err := caches.getNewSnapshotVersion()
 	if err != nil {
 		log.Errorf("Failed generating a new Snapshot version: %s", err)
+		return cache.Snapshot{}, err
 	}
 
 	return cache.NewSnapshot(
@@ -136,13 +143,15 @@ func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
 		routes,
 		listeners,
 		caches.runtimes,
-	)
+	), nil
 }
 
 // Note: changes the snapshot version of the caches object
 // Notice that the clusters are not deleted. That's handled with the expiration
 // time set in the "ClustersCache" struct.
-func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string, kubeclient kubeclient.Interface) {
+func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string,
+	kubeclient kubeclient.Interface) error {
+	var err error
 	caches.deleteRoutesForIngress(ingressName, ingressNamespace)
 	caches.deleteMappingsForIngress(ingressName, ingressNamespace)
 	caches.DeleteIngress(ingressName, ingressNamespace)
@@ -159,11 +168,15 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	ikvh := internalKourierVirtualHost(ikr)
 	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &ikvh)
 
-	caches.listeners = listenersFromVirtualHosts(
+	caches.listeners, err = listenersFromVirtualHosts(
 		newExternalVirtualHosts,
 		newClusterLocalVirtualHosts,
 		kubeclient,
 	)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (caches *Caches) deleteRoutesForIngress(ingressName string, ingressNamespace string) {

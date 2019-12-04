@@ -102,11 +102,12 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeId string) {
+func (envoyXdsServer *EnvoyXdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeId string) error {
 	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeId, *snapshot)
 
 	if err != nil {
-		log.Error(err)
-		return
+		return err
 	}
+
+	return nil
 }
