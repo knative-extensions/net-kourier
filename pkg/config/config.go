@@ -5,7 +5,6 @@ const (
 	HttpPortInternal  = uint32(8081)
 	HttpsPortExternal = uint32(8443)
 
-	InternalKourierHeader = "kourier-snapshot-id"
 	InternalKourierDomain = "internalkourier"
 	InternalKourierPath   = "/__internalkouriersnapshot"
 

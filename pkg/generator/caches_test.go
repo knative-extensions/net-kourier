@@ -1,4 +1,4 @@
-package envoy
+package generator
 
 import (
 	"kourier/pkg/config"

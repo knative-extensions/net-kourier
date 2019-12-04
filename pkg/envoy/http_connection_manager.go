@@ -11,7 +11,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 )
 
-func newHttpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
+func NewHttpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
 	return httpconnectionmanagerv2.HttpConnectionManager{
 		CodecType:  httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix: "ingress_http",
