@@ -143,7 +143,6 @@ func (caches *Caches) ToEnvoySnapshot() cache.Snapshot {
 // Notice that the clusters are not deleted. That's handled with the expiration
 // time set in the "ClustersCache" struct.
 func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string, kubeclient kubeclient.Interface) {
-
 	caches.deleteRoutesForIngress(ingressName, ingressNamespace)
 	caches.deleteMappingsForIngress(ingressName, ingressNamespace)
 	caches.DeleteIngress(ingressName, ingressNamespace)
