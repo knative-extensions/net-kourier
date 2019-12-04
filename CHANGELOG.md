@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.2] - 2019-12-04
+### Changed
+- Checking whether an ingress should be marked as ready is no longer done
+online. It's done in separate go routines.
+
+### Fixed
+- "concurrent map writes" errors caused by an incorrect usage of locks.
+
 ## [0.3.1] - 2019-12-03
 ### Changed
 - Instead of refreshing the whole Envoy config, now Kourier updates only the
@@ -53,6 +61,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.3.2]: https://github.com/3scale/kourier/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/3scale/kourier/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/3scale/kourier/compare/v0.2.6...v0.3.0
 [0.2.6]: https://github.com/3scale/kourier/compare/v0.2.5...v0.2.6
