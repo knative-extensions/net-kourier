@@ -83,10 +83,19 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// gateway pods will not be marked as healthy until they have been able to
 	// fetch a config.
 	c.CurrentCaches.AddStatusVirtualHost()
-	c.CurrentCaches.SetListeners(kubernetesClient)
+	err := c.CurrentCaches.SetListeners(kubernetesClient)
+	if err != nil {
+		panic(err)
+	}
+	snapshot, err := c.CurrentCaches.ToEnvoySnapshot()
+	if err != nil {
+		panic(err)
+	}
 
-	snapshot := c.CurrentCaches.ToEnvoySnapshot()
-	c.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
+	err = c.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
+	if err != nil {
+		panic(err)
+	}
 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
