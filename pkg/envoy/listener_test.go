@@ -1,69 +1,43 @@
 package envoy
 
 import (
-	"kourier/pkg/config"
-	"os"
 	"testing"
 
 	"github.com/golang/protobuf/ptypes"
 
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/client-go/kubernetes/fake"
-
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
-	v1 "k8s.io/api/core/v1"
 )
 
 func TestCreateHTTPListener(t *testing.T) {
 	manager := NewHttpConnectionManager([]*route.VirtualHost{})
 
-	kubeClient := fake.NewSimpleClientset()
-
-	l, err := NewExternalEnvoyListener(false, &manager, kubeClient)
+	l, err := NewHTTPListener(&manager, 8080)
 	if err != nil {
 		t.Error(err)
 	}
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
-	assert.Equal(t, config.HttpPortExternal, l.Address.GetSocketAddress().GetPortValue())
+	assert.Equal(t, uint32(8080), l.Address.GetSocketAddress().GetPortValue())
 	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) //TLS not configured
 }
 
 func TestCreateHTTPSListener(t *testing.T) {
-	certsSecretNamespace := "default"
-	certsSecretName := "kourier-certs"
-	err := setHTTPSEnvs(certsSecretNamespace, certsSecretName)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Create a Kubernetes Client with the Secret needed
-	cert := "some_cert"
-	key := "some_key"
-	kubeClient := fake.NewSimpleClientset()
-	secret := newSecret(certsSecretName, cert, key)
-	_, err = kubeClient.CoreV1().Secrets(certsSecretNamespace).Create(&secret)
-	if err != nil {
-		t.Error(err)
-	}
-
 	manager := NewHttpConnectionManager([]*route.VirtualHost{})
 
-	l, err := NewExternalEnvoyListener(true, &manager, kubeClient)
+	l, err := NewHTTPSListener(&manager, 8081, "some_certificate_chain", "some_private_key")
 	if err != nil {
 		t.Error(err)
 	}
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
-	assert.Equal(t, config.HttpsPortExternal, l.Address.GetSocketAddress().GetPortValue())
+	assert.Equal(t, uint32(8081), l.Address.GetSocketAddress().GetPortValue())
 
 	// Check that TLS is configured
 
@@ -75,33 +49,7 @@ func TestCreateHTTPSListener(t *testing.T) {
 	}
 
 	certs := downstream.CommonTlsContext.TlsCertificates[0]
-	assert.Equal(t, cert, string(certs.CertificateChain.GetInlineBytes()))
-	assert.Equal(t, key, string(certs.PrivateKey.GetInlineBytes()))
+	assert.Equal(t, "some_certificate_chain", string(certs.CertificateChain.GetInlineBytes()))
+	assert.Equal(t, "some_private_key", string(certs.PrivateKey.GetInlineBytes()))
 
-}
-
-func newSecret(name string, cert string, key string) v1.Secret {
-	return v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Data: map[string][]byte{
-			"tls.crt": []byte(cert),
-			"tls.key": []byte(key),
-		},
-	}
-}
-
-func setHTTPSEnvs(secretNamespace string, secretName string) error {
-	err := os.Setenv("CERTS_SECRET_NAMESPACE", secretNamespace)
-	if err != nil {
-		return err
-	}
-
-	err = os.Setenv("CERTS_SECRET_NAME", secretName)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

@@ -6,8 +6,6 @@ import (
 	"net"
 	"net/http"
 
-	kubeclient "k8s.io/client-go/kubernetes"
-
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -15,7 +13,6 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/pkg/server"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"knative.dev/serving/pkg/client/clientset/versioned"
 )
 
 const (
@@ -25,8 +22,6 @@ const (
 type EnvoyXdsServer struct {
 	gatewayPort    uint
 	managementPort uint
-	kubeClient     kubeclient.Interface
-	knativeClient  versioned.Interface
 	ctx            context.Context
 	server         xds.Server
 	snapshotCache  cache.SnapshotCache
@@ -43,7 +38,7 @@ func (h Hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubeclient.Interface, knativeClient versioned.Interface) EnvoyXdsServer {
+func NewEnvoyXdsServer(gatewayPort uint, managementPort uint) EnvoyXdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, Hasher{}, nil)
 	srv := xds.NewServer(ctx, snapshotCache, nil)
@@ -51,8 +46,6 @@ func NewEnvoyXdsServer(gatewayPort uint, managementPort uint, kubeClient kubecli
 	return EnvoyXdsServer{
 		gatewayPort:    gatewayPort,
 		managementPort: managementPort,
-		kubeClient:     kubeClient,
-		knativeClient:  knativeClient,
 		ctx:            ctx,
 		server:         srv,
 		snapshotCache:  snapshotCache,

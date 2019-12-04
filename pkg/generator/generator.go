@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+
 	"knative.dev/pkg/tracker"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -25,6 +27,13 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/reconciler/ingress/resources"
+)
+
+const (
+	envCertsSecretNamespace = "CERTS_SECRET_NAMESPACE"
+	envCertsSecretName      = "CERTS_SECRET_NAME"
+	certFieldInSecret       = "tls.crt"
+	keyFieldInSecret        = "tls.key"
 )
 
 // For now, when updating the info for an ingress we delete it, and then
@@ -176,8 +185,7 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	externalManager := envoy.NewHttpConnectionManager(externalVirtualHosts)
 	internalManager := envoy.NewHttpConnectionManager(clusterLocalVirtualHosts)
 
-	externalEnvoyListener, err := envoy.NewExternalEnvoyListener(
-		useHTTPSListener(),
+	externalEnvoyListener, err := newExternalEnvoyListener(
 		&externalManager,
 		kubeclient,
 	)
@@ -185,7 +193,7 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 		panic(err)
 	}
 
-	internalEnvoyListener, err := envoy.NewInternalEnvoyListener(&internalManager)
+	internalEnvoyListener, err := newInternalEnvoyListener(&internalManager)
 	if err != nil {
 		panic(err)
 	}
@@ -399,8 +407,39 @@ func clusterForRevision(revisionName string, connectTimeout time.Duration, publi
 }
 
 func useHTTPSListener() bool {
-	return os.Getenv(config.EnvCertsSecretNamespace) != "" &&
-		os.Getenv(config.EnvCertsSecretName) != ""
+	return os.Getenv(envCertsSecretNamespace) != "" &&
+		os.Getenv(envCertsSecretName) != ""
+}
+
+func sslCreds(kubeClient kubeclient.Interface) (certificateChain string, privateKey string, err error) {
+	secret, err := kubeClient.CoreV1().Secrets(os.Getenv(envCertsSecretNamespace)).Get(
+		os.Getenv(envCertsSecretName), metav1.GetOptions{})
+	if err != nil {
+		return "", "", err
+	}
+
+	certificateChain = string(secret.Data[certFieldInSecret])
+	privateKey = string(secret.Data[keyFieldInSecret])
+
+	return certificateChain, privateKey, nil
+}
+
+func newExternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager, kubeClient kubeclient.Interface) (*v2.Listener, error) {
+	if useHTTPSListener() {
+		certificateChain, privateKey, err := sslCreds(kubeClient)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return envoy.NewHTTPSListener(manager, config.HttpsPortExternal, certificateChain, privateKey)
+	}
+
+	return envoy.NewHTTPListener(manager, config.HttpPortExternal)
+}
+
+func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
+	return envoy.NewHTTPListener(manager, config.HttpPortInternal)
 }
 
 func max(x, y int) int {

@@ -46,8 +46,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	envoyXdsServer := envoy.NewEnvoyXdsServer(
 		gatewayPort,
 		managementPort,
-		kubernetesClient,
-		knativeClient,
 	)
 	go envoyXdsServer.RunManagementServer()
 	go envoyXdsServer.RunGateway()

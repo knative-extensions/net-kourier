@@ -10,9 +10,4 @@ const (
 	InternalKourierPath   = "/__internalkouriersnapshot"
 
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
-
-	EnvCertsSecretNamespace = "CERTS_SECRET_NAMESPACE"
-	EnvCertsSecretName      = "CERTS_SECRET_NAME"
-	CertFieldInSecret       = "tls.crt"
-	KeyFieldInSecret        = "tls.key"
 )
