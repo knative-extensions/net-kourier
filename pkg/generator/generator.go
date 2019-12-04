@@ -136,11 +136,19 @@ func addIngressToCaches(caches *Caches,
 				wrs = append(wrs, &weightedCluster)
 			}
 
-			r := createRouteForRevision(ingress.Name, index, &httpPath, wrs)
+			if len(wrs) != 0 {
+				r := createRouteForRevision(ingress.Name, index, &httpPath, wrs)
 
-			ruleRoute = append(ruleRoute, &r)
+				ruleRoute = append(ruleRoute, &r)
 
-			caches.AddRoute(&r, ingress.Name, ingress.Namespace)
+				caches.AddRoute(&r, ingress.Name, ingress.Namespace)
+			}
+
+		}
+
+		if len(ruleRoute) == 0 {
+			log.Info("No rules for this ingress, returning.")
+			return
 		}
 
 		externalDomains := knative.ExternalDomains(&rule, localDomainName)
