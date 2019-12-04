@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	defaultExpiration      = 5 * time.Minute
+	clusterExpiration      = 5 * time.Minute
+	defaultExpiration      = gocache.NoExpiration
 	defaultCleanupInterval = 10 * time.Minute
 )
 
@@ -44,7 +45,13 @@ func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanu
 
 func (cc *ClustersCache) set(serviceWithRevisionName string, path string, namespace string, cluster envoycache.Resource) {
 	key := key(serviceWithRevisionName, path, namespace)
-	cc.clusters.Set(key, cluster, gocache.DefaultExpiration)
+	cc.clusters.Set(key, cluster, defaultExpiration)
+}
+
+func (cc *ClustersCache) setExpiration(clusterName string) {
+	if cluster, ok := cc.clusters.Get(clusterName); ok {
+		cc.clusters.Set(clusterName, cluster, clusterExpiration)
+	}
 }
 
 func (cc *ClustersCache) list() []envoycache.Resource {

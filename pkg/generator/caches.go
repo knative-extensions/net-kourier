@@ -27,6 +27,7 @@ type Caches struct {
 	externalVirtualHostsForIngress VHostsForIngresses
 	statusVirtualHost              *route.VirtualHost
 	routesForIngress               map[string][]string
+	clustersToIngress              map[string][]string
 }
 
 func NewCaches() Caches {
@@ -36,6 +37,7 @@ func NewCaches() Caches {
 		externalVirtualHostsForIngress: make(VHostsForIngresses),
 		routesForIngress:               make(map[string][]string),
 		ingresses:                      make(map[string]*v1alpha1.Ingress),
+		clustersToIngress:              make(map[string][]string),
 	}
 
 	return caches
@@ -51,10 +53,12 @@ func (caches *Caches) AddIngress(ingress *v1alpha1.Ingress) {
 
 func (caches *Caches) DeleteIngress(ingressName, ingressNamespace string) {
 	delete(caches.ingresses, mapKey(ingressName, ingressNamespace))
+	delete(caches.clustersToIngress, mapKey(ingressName, ingressNamespace))
 }
 
 func (caches *Caches) AddCluster(cluster *v2.Cluster, serviceName string, serviceNamespace string, path string) {
 	caches.clusters.set(serviceName, path, serviceNamespace, cluster)
+	caches.addClustersForIngress(cluster, serviceName, serviceNamespace)
 }
 
 func (caches *Caches) AddRoute(route *route.Route, ingressName string, ingressNamespace string) {
@@ -62,6 +66,15 @@ func (caches *Caches) AddRoute(route *route.Route, ingressName string, ingressNa
 
 	key := mapKey(ingressName, ingressNamespace)
 	caches.routesForIngress[key] = append(caches.routesForIngress[key], route.Name)
+}
+
+func (caches *Caches) addClustersForIngress(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
+	key := mapKey(ingressName, ingressNamespace)
+
+	caches.clustersToIngress[key] = append(
+		caches.clustersToIngress[key],
+		cluster.Name,
+	)
 }
 
 func (caches *Caches) AddExternalVirtualHostForIngress(vHost *route.VirtualHost, ingressName string, ingressNamespace string) {
@@ -154,6 +167,13 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	var err error
 	caches.deleteRoutesForIngress(ingressName, ingressNamespace)
 	caches.deleteMappingsForIngress(ingressName, ingressNamespace)
+
+	// Set to expire all the clusters belonging to that Ingress.
+	clusters := caches.clustersToIngress[mapKey(ingressName, ingressNamespace)]
+	for _, cluster := range clusters {
+		caches.clusters.setExpiration(cluster)
+	}
+
 	caches.DeleteIngress(ingressName, ingressNamespace)
 
 	newExternalVirtualHosts := caches.externalVirtualHosts()
