@@ -56,9 +56,9 @@ func (caches *Caches) DeleteIngress(ingressName, ingressNamespace string) {
 	delete(caches.clustersToIngress, mapKey(ingressName, ingressNamespace))
 }
 
-func (caches *Caches) AddCluster(cluster *v2.Cluster, serviceName string, serviceNamespace string, path string) {
-	caches.clusters.set(serviceName, path, serviceNamespace, cluster)
-	caches.addClustersForIngress(cluster, serviceName, serviceNamespace)
+func (caches *Caches) AddCluster(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
+	caches.clusters.set(cluster, ingressName, ingressNamespace)
+	caches.addClustersForIngress(cluster, ingressName, ingressNamespace)
 }
 
 func (caches *Caches) AddRoute(route *route.Route, ingressName string, ingressNamespace string) {
@@ -171,7 +171,7 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	// Set to expire all the clusters belonging to that Ingress.
 	clusters := caches.clustersToIngress[mapKey(ingressName, ingressNamespace)]
 	for _, cluster := range clusters {
-		caches.clusters.setExpiration(cluster)
+		caches.clusters.setExpiration(cluster, ingressName, ingressNamespace)
 	}
 
 	caches.DeleteIngress(ingressName, ingressNamespace)

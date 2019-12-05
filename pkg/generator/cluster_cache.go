@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache"
 	gocache "github.com/patrickmn/go-cache"
 )
@@ -43,14 +44,15 @@ func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanu
 	return ClustersCache{clusters: goCache}
 }
 
-func (cc *ClustersCache) set(serviceWithRevisionName string, path string, namespace string, cluster envoycache.Resource) {
-	key := key(serviceWithRevisionName, path, namespace)
+func (cc *ClustersCache) set(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
+	key := key(cluster.Name, ingressName, ingressNamespace)
 	cc.clusters.Set(key, cluster, defaultExpiration)
 }
 
-func (cc *ClustersCache) setExpiration(clusterName string) {
-	if cluster, ok := cc.clusters.Get(clusterName); ok {
-		cc.clusters.Set(clusterName, cluster, clusterExpiration)
+func (cc *ClustersCache) setExpiration(clusterName string, ingressName string, ingressNamespace string) {
+	key := key(clusterName, ingressName, ingressNamespace)
+	if cluster, ok := cc.clusters.Get(key); ok {
+		cc.clusters.Set(key, cluster, clusterExpiration)
 	}
 }
 
@@ -64,6 +66,8 @@ func (cc *ClustersCache) list() []envoycache.Resource {
 	return res
 }
 
-func key(serviceWithRevisionName string, path string, namespace string) string {
-	return strings.Join([]string{namespace, serviceWithRevisionName, path}, ":")
+// Using only the cluster name is not enough to ensure uniqueness, that's why we
+// use also the ingress info.
+func key(clusterName, ingressName, ingressNamespace string) string {
+	return strings.Join([]string{clusterName, ingressName, ingressNamespace}, ":")
 }

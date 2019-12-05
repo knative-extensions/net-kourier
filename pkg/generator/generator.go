@@ -134,7 +134,7 @@ func addIngressToCaches(caches *Caches,
 				connectTimeout := 5 * time.Second
 				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2)
 
-				caches.AddCluster(&cluster, split.ServiceName, split.ServiceNamespace, path)
+				caches.AddCluster(&cluster, ingress.Name, ingress.Namespace)
 
 				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), headersSplit)
 
