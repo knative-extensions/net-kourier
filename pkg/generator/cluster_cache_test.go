@@ -19,7 +19,7 @@ var testCluster2 = envoy_api_v2.Cluster{
 
 func TestSetCluster(t *testing.T) {
 	cache := newClustersCache()
-	cache.set("helloworld", "/", "test_namespace", &testCluster1)
+	cache.set(&testCluster1, "some_ingress_name", "some_ingress_namespace")
 
 	list := cache.list()
 
@@ -29,8 +29,8 @@ func TestSetCluster(t *testing.T) {
 
 func TestSetSeveralClusters(t *testing.T) {
 	cache := newClustersCache()
-	cache.set("helloworld_1", "/", "test_namespace", &testCluster1)
-	cache.set("helloworld_2", "/", "test_namespace", &testCluster2)
+	cache.set(&testCluster1, "some_ingress_name", "some_ingress_namespace")
+	cache.set(&testCluster2, "some_ingress_name", "some_ingress_namespace")
 
 	list := cache.list()
 	var names []string
@@ -47,21 +47,10 @@ func TestSetSeveralClusters(t *testing.T) {
 	assert.DeepEqual(t, expectedNames, names)
 }
 
-func TestSetExistingClusterReplacesIt(t *testing.T) {
-	cache := newClustersCache()
-	cache.set("helloworld", "/", "test_namespace", &testCluster1)
-	cache.set("helloworld", "/", "test_namespace", &testCluster2) // should replace
-
-	list := cache.list()
-
-	assert.Equal(t, 1, len(list))
-	assert.Equal(t, testCluster2.Name, list[0].(*envoy_api_v2.Cluster).Name)
-}
-
 func TestClustersExpire(t *testing.T) {
 	cleanupInterval := time.Second
 	cache := newClustersCacheWithExpAndCleanupIntervals(time.Second, cleanupInterval)
-	cache.set("helloworld", "/", "test_namespace", &testCluster1)
+	cache.setExpiration(testCluster1.Name, "some_ingress_name", "some_ingress_namespace")
 	time.Sleep(cleanupInterval + time.Second)
 
 	list := cache.list()

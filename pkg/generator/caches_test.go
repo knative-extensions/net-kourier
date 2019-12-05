@@ -89,7 +89,7 @@ func createTestDataForIngress(caches *Caches,
 	kubeClient kubeclient.Interface) {
 
 	cluster := v2.Cluster{Name: clusterName}
-	caches.AddCluster(&cluster, ingressName, ingressNamespace, "/")
+	caches.AddCluster(&cluster, ingressName, ingressNamespace)
 
 	r := route.Route{Name: routeName}
 	caches.AddRoute(&r, ingressName, ingressNamespace)
