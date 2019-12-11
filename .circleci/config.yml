@@ -2,6 +2,29 @@
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2.1
+
+commands:
+  push-image-if-master:
+    steps:
+      - run:
+          name: Push image if building master
+          command: |
+            if [ -n "${DOCKER_USERNAME}" ] && [ -n "${DOCKER_PASSWORD}" ]
+            then
+              echo "${DOCKER_PASSWORD}" | docker login -u="${DOCKER_USERNAME}" --password-stdin quay.io
+              tag="test_$(git rev-parse --abbrev-ref HEAD)"
+              tag=$(echo "$tag" | tr / -)
+              if [ "$tag" == "test_master" ]
+              then
+                docker tag 3scale-kourier:test_master quay.io/3scale/kourier:master
+                docker push quay.io/3scale/kourier:master
+                docker tag 3scale-kourier-gateway:master quay.io/3scale/kourier-gateway:master
+                docker push quay.io/3scale/kourier-gateway:master
+              fi
+            else
+              echo "Missing docker credentials"
+            fi
+
 jobs:
   build:
     machine:
@@ -34,3 +57,11 @@ jobs:
       - run: sudo tar -C /usr/local -xzf /tmp/go1.13.1.linux-amd64.tar.gz
       - run: sudo snap install microk8s --classic
       - run: PATH=$PATH:/usr/local/go/bin:/snap/bin/ make test-circleci
+      - push-image-if-master
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          context: org-global # The docker creds are defined in this context
