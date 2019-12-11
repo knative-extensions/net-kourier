@@ -1,11 +1,3 @@
-# Base config for an ADS management server on 18000, admin port on 19000
-# From https://github.com/envoyproxy/go-control-plane/blob/master/sample/bootstrap-ads.yaml
-admin:
-  access_log_path: /tmp/test
-  address:
-    socket_address:
-      address: 0.0.0.0
-      port_value: 19000
 dynamic_resources:
   ads_config:
     api_type: GRPC
@@ -29,3 +21,8 @@ static_resources:
       http2_protocol_options: {}
       name: xds_cluster
       type: STRICT_DNS
+admin:
+  access_log_path: "/dev/stdout"
+  address:
+    pipe:
+      path: /tmp/envoy.admin
