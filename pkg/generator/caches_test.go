@@ -77,6 +77,55 @@ func TestDeleteIngressInfo(t *testing.T) {
 	assert.DeepEqual(t, expectedNames, vHostsNames)
 }
 
+func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
+	// If the ingress does not exist, nothing should be deleted from the caches
+	// instance.
+
+	caches := NewCaches()
+	kubeClient := fake.Clientset{}
+
+	// Add info for an ingress
+	firstIngressName := "ingress_1"
+	firstIngressNamespace := "ingress_1_namespace"
+	createTestDataForIngress(
+		&caches,
+		firstIngressName,
+		firstIngressNamespace,
+		"cluster_for_ingress_1",
+		"route_for_ingress_1",
+		"internal_host_for_ingress_1",
+		"external_host_for_ingress_1",
+		&kubeClient,
+	)
+
+	snapshotBeforeDelete, err := caches.ToEnvoySnapshot()
+	if err != nil {
+		t.FailNow()
+	}
+
+	clustersBeforeDelete := snapshotBeforeDelete.Clusters.Items
+	routesBeforeDelete := snapshotBeforeDelete.Routes.Items
+	listenersBeforeDelete := snapshotBeforeDelete.Listeners.Items
+
+	err = caches.DeleteIngressInfo("non_existing_name", "non_existing_namespace", &kubeClient)
+	if err != nil {
+		t.FailNow()
+	}
+
+	snapshotAfterDelete, err := caches.ToEnvoySnapshot()
+	if err != nil {
+		t.FailNow()
+	}
+
+	clustersAfterDelete := snapshotAfterDelete.Clusters.Items
+	routesAfterDelete := snapshotAfterDelete.Routes.Items
+	listenersAfterDelete := snapshotAfterDelete.Listeners.Items
+
+	assert.DeepEqual(t, clustersBeforeDelete, clustersAfterDelete)
+	assert.DeepEqual(t, routesBeforeDelete, routesAfterDelete)
+	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete)
+}
+
 // Creates a cluster, a route, and listeners from the given names and
 // associates them with the ingress name/namespace received
 func createTestDataForIngress(caches *Caches,
