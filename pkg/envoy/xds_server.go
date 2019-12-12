@@ -27,11 +27,11 @@ type EnvoyXdsServer struct {
 	snapshotCache  cache.SnapshotCache
 }
 
-// Hasher returns node ID as an ID
-type Hasher struct {
+// hasher returns node ID as an ID
+type hasher struct {
 }
 
-func (h Hasher) ID(node *core.Node) string {
+func (h hasher) ID(node *core.Node) string {
 	if node == nil {
 		return "unknown"
 	}
@@ -40,7 +40,7 @@ func (h Hasher) ID(node *core.Node) string {
 
 func NewEnvoyXdsServer(gatewayPort uint, managementPort uint) EnvoyXdsServer {
 	ctx := context.Background()
-	snapshotCache := cache.NewSnapshotCache(true, Hasher{}, nil)
+	snapshotCache := cache.NewSnapshotCache(true, hasher{}, nil)
 	srv := xds.NewServer(ctx, snapshotCache, nil)
 
 	return EnvoyXdsServer{
