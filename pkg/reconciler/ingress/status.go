@@ -57,8 +57,8 @@ const (
 
 var dialContext = (&net.Dialer{}).DialContext
 
-// IngressState represents the probing progress at the Ingress scope
-type IngressState struct {
+// ingressState represents the probing progress at the Ingress scope
+type ingressState struct {
 	id      string
 	ingress *v1alpha1.Ingress
 	// pendingCount is the number of pods that haven't been successfully probed yet
@@ -77,7 +77,7 @@ type podState struct {
 }
 
 type workItem struct {
-	ingressState *IngressState
+	ingressState *ingressState
 	podState     *podState
 	url          string
 	podIP        string
@@ -91,7 +91,7 @@ type StatusProber struct {
 
 	// mu guards snapshotStates and podStates
 	mu            sync.Mutex
-	ingressStates map[string]*IngressState
+	ingressStates map[string]*ingressState
 	podStates     map[string]*podState
 
 	workQueue workqueue.RateLimitingInterface
@@ -110,7 +110,7 @@ func NewStatusProber(
 	readyCallback func(ingress *v1alpha1.Ingress)) *StatusProber {
 	return &StatusProber{
 		logger:        logger,
-		ingressStates: make(map[string]*IngressState),
+		ingressStates: make(map[string]*ingressState),
 		podStates:     make(map[string]*podState),
 		workQueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.DefaultControllerRateLimiter(),
@@ -156,7 +156,7 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 	}
 
 	ingCtx, cancel := context.WithCancel(context.Background())
-	snapshotState := &IngressState{
+	snapshotState := &ingressState{
 		id:           ingressKey,
 		ingress:      ingress,
 		pendingCount: 0,
@@ -351,7 +351,7 @@ func (m *StatusProber) processWorkItem() bool {
 	return true
 }
 
-func (m *StatusProber) updateStates(ingressState *IngressState, podState *podState) {
+func (m *StatusProber) updateStates(ingressState *ingressState, podState *podState) {
 	if atomic.AddInt32(&podState.successCount, 1) == 1 {
 		// This is the first successful probe call for the pod, cancel all other work items for this pod
 		podState.cancel()
