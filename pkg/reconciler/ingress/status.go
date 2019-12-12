@@ -49,7 +49,6 @@ import (
 
 const (
 	probeConcurrency          = 5
-	probeInterval             = 1 * time.Second
 	stateExpiration           = 5 * time.Minute
 	cleanupPeriod             = 1 * time.Minute
 	gatewayLabelSelectorKey   = "app"
@@ -83,11 +82,6 @@ type workItem struct {
 	url          string
 	podIP        string
 	hostname     string
-}
-
-// StatusManager provides a way to check if a VirtualService is ready
-type StatusManager interface {
-	IsReady(snapshotID string) (bool, error)
 }
 
 // StatusProber provides a way to check if a VirtualService is ready by probing the Envoy pods
