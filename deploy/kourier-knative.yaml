@@ -52,8 +52,13 @@ spec:
             - name: config-volume
               mountPath: /tmp/config
           readinessProbe:
-            exec:
-              command: ['ash','-c','(printf "GET /__internalkouriersnapshot HTTP/1.1\r\nHost: internalkourier\r\n\r\n"; sleep 1) | nc -n localhost 8081 | grep "HTTP/1.1 200 OK"']
+            httpGet:
+              httpHeaders:
+                - name: Host
+                  value: internalkourier
+              path: /__internalkouriersnapshot
+              port: 8081
+              scheme: HTTP
             initialDelaySeconds: 5
             periodSeconds: 2
       volumes:
