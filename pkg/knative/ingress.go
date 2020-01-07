@@ -8,8 +8,9 @@ import (
 )
 
 const (
+	// These 2 are defined in the deployment yaml
 	internalServiceName = "kourier-internal"
-	externalServiceName = "kourier-external"
+	externalServiceName = "kourier"
 )
 
 func MarkIngressReady(knativeClient versioned.Interface, ingress *networkingv1alpha1.Ingress) error {
