@@ -39,3 +39,8 @@ go test -v  -tags=e2e ./test/e2e -run "^TestCallToPublicService" --dockerrepo "Y
 
 Depending on your setup, there are some tests where
 `--ingress-endpoint=127.0.0.1` is needed.
+
+When running the conformance tests, we need to set the `ingressClass` flag:
+```bash
+go test -v -tags=e2e ./test/conformance/ingress/ -run "^TestBasics\$" --dockerrepo "YOUR_REPO" --kubeconfig="$HOME/.kube/config" --ingressClass="kourier.ingress.networking.knative.dev"
+```
