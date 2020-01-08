@@ -90,7 +90,6 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 		return err
 	}
 
-	_, _ = reconciler.statusManager.IsReady(ingress)
-
-	return nil
+	_, err = reconciler.statusManager.IsReady(ingress)
+	return err
 }
