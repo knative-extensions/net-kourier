@@ -17,7 +17,7 @@ func MarkIngressReady(knativeClient versioned.Interface, ingress *networkingv1al
 	//  but that is not exactly true, it can take a while until envoy exposes the routes. Is there a way to get a "callback" from envoy?
 	var err error
 	status := ingress.GetStatus()
-	if ingress.GetGeneration() != status.ObservedGeneration || !ingress.GetStatus().IsReady() {
+	if ingress.GetGeneration() != status.ObservedGeneration || !status.IsReady() {
 		internalDomain := domainForServiceName(internalServiceName)
 		externalDomain := domainForServiceName(externalServiceName)
 
