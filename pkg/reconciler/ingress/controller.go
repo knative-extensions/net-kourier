@@ -59,7 +59,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	caches := generator.NewCaches()
 
 	readyCallback := func(ingress *v1alpha1.Ingress) {
-		_ = knative.MarkIngressReady(knativeClient, ingress)
+		err := knative.MarkIngressReady(knativeClient, ingress)
+		if err != nil {
+			logger.Warnf("Failed to update ingress Ready: %v", err)
+		}
 	}
 
 	statusProber := NewStatusProber(logger, podInformer.Lister(), readyCallback)
