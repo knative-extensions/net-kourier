@@ -2,6 +2,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+KOURIER_NAMESPACE=knative-serving
+KNATIVE_NAMESPACE=knative-serving
+
 if ! command -v microk8s.kubectl >/dev/null; then
   echo "You need to install microk8s"
   exit 1
@@ -36,13 +39,13 @@ microk8s.enable dns
 
 # Deploys kourier and patches it.
 microk8s.kubectl apply -f deploy/kourier-knative.yaml
-microk8s.kubectl patch deployment 3scale-kourier-control -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-control\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
-microk8s.kubectl patch deployment 3scale-kourier-gateway -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-gateway\",\"image\": \"3scale-kourier-gateway:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
-microk8s.kubectl patch configmap/config-domain -n knative-serving --type merge -p '{"data":{"127.0.0.1.nip.io":""}}'
-microk8s.kubectl patch configmap/config-network -n knative-serving --type merge -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev","ingress.class":"kourier.ingress.networking.knative.dev"}}'
+microk8s.kubectl patch deployment 3scale-kourier-control -n ${KOURIER_NAMESPACE} --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-control\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
+microk8s.kubectl patch deployment 3scale-kourier-gateway -n ${KOURIER_NAMESPACE} --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-gateway\",\"image\": \"3scale-kourier-gateway:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
+microk8s.kubectl patch configmap/config-domain -n ${KNATIVE_NAMESPACE} --type merge -p '{"data":{"127.0.0.1.nip.io":""}}'
+microk8s.kubectl patch configmap/config-network -n ${KNATIVE_NAMESPACE} --type merge -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev","ingress.class":"kourier.ingress.networking.knative.dev"}}'
 
 retries=0
-while [[ $(microk8s.kubectl get pods -n knative-serving -l app=3scale-kourier-control -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
+while [[ $(microk8s.kubectl get pods -n ${KOURIER_NAMESPACE} -l app=3scale-kourier-control -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
   echo "Waiting for kourier control pod to be ready "
   sleep 10
   if [ $retries -ge 7 ]; then
@@ -53,7 +56,7 @@ while [[ $(microk8s.kubectl get pods -n knative-serving -l app=3scale-kourier-co
 done
 
 retries=0
-while [[ $(microk8s.kubectl get pods -n knative-serving -l app=3scale-kourier-gateway -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
+while [[ $(microk8s.kubectl get pods -n ${KOURIER_NAMESPACE} -l app=3scale-kourier-gateway -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
   echo "Waiting for kourier gateway pod to be ready "
   sleep 10
   if [ $retries -ge 7 ]; then
@@ -63,4 +66,4 @@ while [[ $(microk8s.kubectl get pods -n knative-serving -l app=3scale-kourier-ga
   retries=$((retries + 1))
 done
 
-microk8s.kubectl port-forward --namespace knative-serving "$(microk8s.kubectl get pod -n knative-serving -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}")" 8080:8080 19000:19000 &>/dev/null &
+microk8s.kubectl port-forward --namespace ${KOURIER_NAMESPACE} "$(microk8s.kubectl get pod -n ${KOURIER_NAMESPACE} -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}")" 8080:8080 19000:19000 &>/dev/null &
