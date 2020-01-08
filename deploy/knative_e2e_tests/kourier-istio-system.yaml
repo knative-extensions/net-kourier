@@ -188,21 +188,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kourier-external
-  namespace: istio-system
-spec:
-  ports:
-    - name: http2
-      port: 80
-      protocol: TCP
-      targetPort: 8080
-  selector:
-    app: 3scale-kourier-gateway
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
   name: kourier-control
   namespace: istio-system
 spec:

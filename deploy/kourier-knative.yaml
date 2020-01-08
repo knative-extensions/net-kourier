@@ -5,7 +5,7 @@ metadata:
   namespace: knative-serving
 spec:
   ports:
-    - name: http
+    - name: http2
       port: 80
       protocol: TCP
       targetPort: 8080
@@ -168,21 +168,6 @@ spec:
   selector:
     app: 3scale-kourier-gateway
   type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kourier-external
-  namespace: knative-serving
-spec:
-  ports:
-    - name: http2
-      port: 80
-      protocol: TCP
-      targetPort: 8080
-  selector:
-    app: 3scale-kourier-gateway
-  type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
