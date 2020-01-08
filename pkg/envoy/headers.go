@@ -15,7 +15,9 @@ func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
 				Value: headerVal,
 			},
 			Append: &wrappers.BoolValue{
-				Value: true,
+				// In Knative Serving, headers are set instead of appended.
+				// Ref: https://github.com/knative/serving/pull/6366
+				Value: false,
 			},
 		}
 
