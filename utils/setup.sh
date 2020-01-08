@@ -2,7 +2,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-KOURIER_NAMESPACE=knative-serving
+KOURIER_NAMESPACE=kourier-system
 KNATIVE_NAMESPACE=knative-serving
 
 if ! command -v k3d >/dev/null; then
