@@ -30,6 +30,21 @@ spec:
     app: 3scale-kourier-gateway
   type: LoadBalancer
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier-tls
+  namespace: kourier-system
+spec:
+  ports:
+    - name: http2
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+  selector:
+    app: 3scale-kourier-gateway
+  type: LoadBalancer
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
