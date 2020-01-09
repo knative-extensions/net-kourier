@@ -45,3 +45,44 @@ func accessLogs() []*envoy_accesslog_v2.AccessLog {
 		},
 	}
 }
+
+// Returns a copy of the HttpConnectionManager received in the params changing
+// only the virtual hosts in the route config. It filters the virtual hosts
+// keeping only the ones whose domains contain all the domains received in the
+// params.
+func filterByDomains(connManager *httpconnectionmanagerv2.HttpConnectionManager, domains []string) httpconnectionmanagerv2.HttpConnectionManager {
+	currentVirtualHosts := connManager.GetRouteSpecifier().(*httpconnectionmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig.GetVirtualHosts()
+
+	res := NewHttpConnectionManager(currentVirtualHosts)
+
+	var newVirtualHosts []*route.VirtualHost
+	for _, virtualHost := range currentVirtualHosts {
+		if containsAll(virtualHost.Domains, domains) {
+			newVirtualHosts = append(newVirtualHosts, virtualHost)
+		}
+	}
+
+	res.GetRouteSpecifier().(*httpconnectionmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig.VirtualHosts = newVirtualHosts
+
+	return res
+}
+
+// Returns true if slice contains all the items in elems
+func containsAll(slice []string, elems []string) bool {
+	for _, elem := range elems {
+		contained := false
+
+		for _, s := range slice {
+			if elem == s {
+				contained = true
+				break
+			}
+		}
+
+		if !contained {
+			return false
+		}
+	}
+
+	return true
+}
