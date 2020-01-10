@@ -22,7 +22,7 @@ import (
 	is "gotest.tools/assert/cmp"
 )
 
-func TestCreateHTTPListener(t *testing.T) {
+func TestNewHTTPListener(t *testing.T) {
 	manager := NewHttpConnectionManager([]*route.VirtualHost{})
 
 	l, err := NewHTTPListener(&manager, 8080)
@@ -36,7 +36,7 @@ func TestCreateHTTPListener(t *testing.T) {
 	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) //TLS not configured
 }
 
-func TestCreateHTTPSListener(t *testing.T) {
+func TestNewHTTPSListener(t *testing.T) {
 	manager := NewHttpConnectionManager([]*route.VirtualHost{})
 
 	l, err := NewHTTPSListener(&manager, 8081, "some_certificate_chain", "some_private_key")
