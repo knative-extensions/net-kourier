@@ -1,6 +1,8 @@
 package generator
 
 import (
+	"kourier/pkg/envoy"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -28,6 +30,7 @@ type Caches struct {
 	statusVirtualHost              *route.VirtualHost
 	routesForIngress               map[string][]string
 	clustersToIngress              map[string][]string
+	sniMatchesForIngress           map[string][]*envoy.SNIMatch
 }
 
 func NewCaches() Caches {
@@ -38,6 +41,7 @@ func NewCaches() Caches {
 		routesForIngress:               make(map[string][]string),
 		ingresses:                      make(map[string]*v1alpha1.Ingress),
 		clustersToIngress:              make(map[string][]string),
+		sniMatchesForIngress:           make(map[string][]*envoy.SNIMatch),
 	}
 
 	return caches
@@ -107,12 +111,18 @@ func (caches *Caches) AddStatusVirtualHost() {
 	caches.statusVirtualHost = &ikvh
 }
 
+func (caches *Caches) AddSNIMatch(sniMatch *envoy.SNIMatch, ingressName string, ingressNamespace string) {
+	key := mapKey(ingressName, ingressNamespace)
+	caches.sniMatchesForIngress[key] = append(caches.sniMatchesForIngress[key], sniMatch)
+}
+
 func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
 	localVHosts := append(caches.clusterLocalVirtualHosts(), caches.statusVirtualHost)
 
 	listeners, err := listenersFromVirtualHosts(
 		caches.externalVirtualHosts(),
 		localVHosts,
+		caches.sniMatches(),
 		kubeclient,
 	)
 
@@ -191,6 +201,7 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	caches.listeners, err = listenersFromVirtualHosts(
 		newExternalVirtualHosts,
 		newClusterLocalVirtualHosts,
+		caches.sniMatches(),
 		kubeclient,
 	)
 	if err != nil {
@@ -219,6 +230,7 @@ func (caches *Caches) deleteMappingsForIngress(ingressName string, ingressNamesp
 	delete(caches.routesForIngress, key)
 	delete(caches.externalVirtualHostsForIngress, key)
 	delete(caches.localVirtualHostsForIngress, key)
+	delete(caches.sniMatchesForIngress, key)
 }
 
 func (caches *Caches) getNewSnapshotVersion() (string, error) {
@@ -246,6 +258,18 @@ func (caches *Caches) clusterLocalVirtualHosts() []*route.VirtualHost {
 
 	for _, virtualHosts := range caches.localVirtualHostsForIngress {
 		res = append(res, virtualHosts...)
+	}
+
+	return res
+}
+
+func (caches *Caches) sniMatches() []*envoy.SNIMatch {
+	var res []*envoy.SNIMatch
+
+	for _, sniMatches := range caches.sniMatchesForIngress {
+		for _, sniMatch := range sniMatches {
+			res = append(res, sniMatch)
+		}
 	}
 
 	return res
