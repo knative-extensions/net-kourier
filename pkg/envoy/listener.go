@@ -14,6 +14,20 @@ import (
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 )
 
+type SNIMatch struct {
+	hosts            []string
+	certificateChain string
+	privateKey       string
+}
+
+func NewSNIMatch(hosts []string, certificateChain string, privateKey string) SNIMatch {
+	return SNIMatch{
+		hosts:            hosts,
+		certificateChain: certificateChain,
+		privateKey:       privateKey,
+	}
+}
+
 func NewHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint32) (*v2.Listener, error) {
 	filters, err := createFilters(manager)
 	if err != nil {
@@ -66,6 +80,31 @@ func NewHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 	return &envoyListener, nil
 }
 
+// Configures a Listener with SNI.
+// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
+func NewHTTPSListenerWithSNI(manager *httpconnmanagerv2.HttpConnectionManager, port uint32, sniMatches []*SNIMatch) (*v2.Listener, error) {
+	filterChains, err := createFilterChainsForTLS(manager, sniMatches)
+	if err != nil {
+		return nil, err
+	}
+
+	envoyListener := v2.Listener{
+		Name:         fmt.Sprintf("listener_%d", port),
+		Address:      createAddress(port),
+		FilterChains: filterChains,
+		ListenerFilters: []*listener.ListenerFilter{
+			{
+				// TLS Inspector listener filter must be configured in order to
+				// detect requested SNI.
+				// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
+				Name: wellknown.TlsInspector,
+			},
+		},
+	}
+
+	return &envoyListener, nil
+}
+
 func createAddress(port uint32) *core.Address {
 	return &core.Address{
 		Address: &core.Address_SocketAddress{
@@ -94,6 +133,42 @@ func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listene
 	}
 
 	return filters, nil
+}
+
+func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*SNIMatch) ([]*listener.FilterChain, error) {
+	var res []*listener.FilterChain
+
+	for _, sniMatch := range sniMatches {
+		// The connection manager received in the params contains all the
+		// matching rules. For each sniMatch, we just need the rules defined for
+		// the same hosts defined in the sniMatch
+		connManager := filterByDomains(manager, sniMatch.hosts)
+		filters, err := createFilters(&connManager)
+		if err != nil {
+			return nil, err
+		}
+
+		tlsContext := createTLSContext(sniMatch.certificateChain, sniMatch.privateKey)
+		tlsAny, err := ptypes.MarshalAny(tlsContext)
+		if err != nil {
+			return nil, err
+		}
+
+		filterChain := listener.FilterChain{
+			FilterChainMatch: &listener.FilterChainMatch{
+				ServerNames: sniMatch.hosts,
+			},
+			TransportSocket: &core.TransportSocket{
+				Name:       "tls",
+				ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
+			},
+			Filters: filters,
+		}
+
+		res = append(res, &filterChain)
+	}
+
+	return res, nil
 }
 
 func createTLSContext(certificate string, privateKey string) *auth.DownstreamTlsContext {
