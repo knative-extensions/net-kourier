@@ -76,6 +76,16 @@ func addIngressToCaches(caches *Caches,
 
 	log.WithFields(log.Fields{"name": ingress.Name, "namespace": ingress.Namespace}).Info("Knative Ingress found")
 
+	for _, ingressTLS := range ingress.GetSpec().TLS {
+		sniMatch, err := sniMatchFromIngressTLS(ingressTLS, kubeclient)
+
+		if err != nil {
+			log.Errorf("%s", err)
+		} else {
+			caches.AddSNIMatch(sniMatch, ingress.Name, ingress.Namespace)
+		}
+	}
+
 	for _, rule := range ingress.GetSpec().Rules {
 
 		var ruleRoute []*route.Route
@@ -181,25 +191,48 @@ func addIngressToCaches(caches *Caches,
 
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
+	sniMatches []*envoy.SNIMatch,
 	kubeclient kubeclient.Interface) ([]*v2.Listener, error) {
+
+	var listeners []*v2.Listener
 
 	externalManager := envoy.NewHttpConnectionManager(externalVirtualHosts)
 	internalManager := envoy.NewHttpConnectionManager(clusterLocalVirtualHosts)
 
-	externalEnvoyListener, err := newExternalEnvoyListener(
-		&externalManager,
-		kubeclient,
-	)
+	externalHTTPEnvoyListener, err := newExternalHTTPEnvoyListener(&externalManager)
 	if err != nil {
 		return nil, err
 	}
+	listeners = append(listeners, externalHTTPEnvoyListener)
 
 	internalEnvoyListener, err := newInternalEnvoyListener(&internalManager)
 	if err != nil {
 		return nil, err
 	}
+	listeners = append(listeners, internalEnvoyListener)
 
-	return []*v2.Listener{externalEnvoyListener, internalEnvoyListener}, nil
+	// Configure TLS Listener. If there's at least one ingress that contains the
+	// TLS field, that takes precedence. If there is not, TLS will be configured
+	// using a single cert for all the services if the creds are given via ENV.
+	if len(sniMatches) > 0 {
+		externalHTTPSEnvoyListener, err := newExternalHTTPSEnvoyListener(
+			&externalManager, sniMatches,
+		)
+		if err != nil {
+			return nil, err
+		}
+		listeners = append(listeners, externalHTTPSEnvoyListener)
+	} else if useHTTPSListenerWithOneCert() {
+		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
+			&externalManager, kubeclient,
+		)
+		if err != nil {
+			return nil, err
+		}
+		listeners = append(listeners, externalHTTPSEnvoyListener)
+	}
+
+	return listeners, nil
 }
 
 func internalKourierVirtualHost(ikrs []*route.Route) route.VirtualHost {
@@ -277,14 +310,16 @@ func createRouteForRevision(routeName string, i int, httpPath *v1alpha1.HTTPIngr
 	)
 }
 
-func useHTTPSListener() bool {
+// Returns true if we need to modify the HTTPS listener with just one cert
+// instead of one per ingress
+func useHTTPSListenerWithOneCert() bool {
 	return os.Getenv(envCertsSecretNamespace) != "" &&
 		os.Getenv(envCertsSecretName) != ""
 }
 
-func sslCreds(kubeClient kubeclient.Interface) (certificateChain string, privateKey string, err error) {
-	secret, err := kubeClient.CoreV1().Secrets(os.Getenv(envCertsSecretNamespace)).Get(
-		os.Getenv(envCertsSecretName), metav1.GetOptions{})
+func sslCreds(kubeClient kubeclient.Interface, secretNamespace string, secretName string) (certificateChain string, privateKey string, err error) {
+	secret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
+
 	if err != nil {
 		return "", "", err
 	}
@@ -295,22 +330,41 @@ func sslCreds(kubeClient kubeclient.Interface) (certificateChain string, private
 	return certificateChain, privateKey, nil
 }
 
-func newExternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager, kubeClient kubeclient.Interface) (*v2.Listener, error) {
-	if useHTTPSListener() {
-		certificateChain, privateKey, err := sslCreds(kubeClient)
+func sniMatchFromIngressTLS(ingressTLS v1alpha1.IngressTLS, kubeClient kubeclient.Interface) (*envoy.SNIMatch, error) {
+	certChain, privateKey, err := sslCreds(
+		kubeClient, ingressTLS.SecretNamespace, ingressTLS.SecretName,
+	)
 
-		if err != nil {
-			return nil, err
-		}
-
-		return envoy.NewHTTPSListener(manager, config.HttpsPortExternal, certificateChain, privateKey)
+	if err != nil {
+		return nil, err
 	}
 
+	sniMatch := envoy.NewSNIMatch(ingressTLS.Hosts, certChain, privateKey)
+	return &sniMatch, nil
+}
+
+func newExternalEnvoyListenerWithOneCert(manager *httpconnmanagerv2.HttpConnectionManager, kubeClient kubeclient.Interface) (*v2.Listener, error) {
+	certificateChain, privateKey, err := sslCreds(
+		kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return envoy.NewHTTPSListener(manager, config.HttpsPortExternal, certificateChain, privateKey)
+}
+
+func newExternalHTTPEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
 	return envoy.NewHTTPListener(manager, config.HttpPortExternal)
 }
 
 func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
 	return envoy.NewHTTPListener(manager, config.HttpPortInternal)
+}
+
+func newExternalHTTPSEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*envoy.SNIMatch) (*v2.Listener, error) {
+	return envoy.NewHTTPSListenerWithSNI(manager, config.HttpsPortExternal, sniMatches)
 }
 
 func max(x, y int) int {

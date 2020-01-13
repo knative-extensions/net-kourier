@@ -156,6 +156,10 @@ func getVHostsNames(listeners []*v2.Listener) ([]string, error) {
 	var res []string
 
 	for _, listener := range listeners {
+		if len(listener.GetFilterChains()) == 0 {
+			continue
+		}
+
 		filterConfig := listener.GetFilterChains()[0].Filters[0].GetTypedConfig()
 		httpConnManager := httpconnmanagerv2.HttpConnectionManager{}
 		err := ptypes.UnmarshalAny(filterConfig, &httpConnManager)
