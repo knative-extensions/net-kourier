@@ -16,7 +16,7 @@ make local-setup
 - We need to export a couple of envs to indicate that we are using Kourier as the ingress:
 ```bash
 export GATEWAY_OVERRIDE=kourier
-export GATEWAY_NAMESPACE_OVERRIDE=knative-serving
+export GATEWAY_NAMESPACE_OVERRIDE=kourier-system
 ```
 
 ## Run the Knative tests

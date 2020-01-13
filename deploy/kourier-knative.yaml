@@ -1,8 +1,25 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: kourier-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-logging
+  namespace: kourier-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-observability
+  namespace: kourier-system
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: kourier
-  namespace: knative-serving
+  namespace: kourier-system
 spec:
   ports:
     - name: http2
@@ -17,7 +34,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: 3scale-kourier-gateway
-  namespace: knative-serving
+  namespace: kourier-system
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -75,7 +92,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: 3scale-kourier-control
-  namespace: knative-serving
+  namespace: kourier-system
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -120,7 +137,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: 3scale-kourier
-  namespace: knative-serving
+  namespace: kourier-system
 rules:
   - apiGroups: [""]
     resources: ["pods", "endpoints", "namespaces", "services", "secrets", "configmaps"]
@@ -139,7 +156,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: 3scale-kourier
-  namespace: knative-serving
+  namespace: kourier-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -152,13 +169,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: 3scale-kourier
-    namespace: knative-serving
+    namespace: kourier-system
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: kourier-internal
-  namespace: knative-serving
+  namespace: kourier-system
 spec:
   ports:
     - name: http2
@@ -173,7 +190,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kourier-control
-  namespace: knative-serving
+  namespace: kourier-system
 spec:
   ports:
     - port: 18000
@@ -187,7 +204,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kourier-bootstrap
-  namespace: knative-serving
+  namespace: kourier-system
 data:
   envoy-bootstrap.yaml: |
     dynamic_resources:

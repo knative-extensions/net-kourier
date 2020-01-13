@@ -2,6 +2,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+KOURIER_NAMESPACE=kourier-system
+KNATIVE_NAMESPACE=knative-serving
+
 if ! command -v k3d >/dev/null; then
   echo "k3d binary not in path, install with: curl -s https://raw.githubusercontent.com/rancher/k3d/master/install.sh | bash"
   exit 1
@@ -31,13 +34,13 @@ KNATIVE_VERSION=v0.10.0
 kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-crds.yaml
 kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-core.yaml
 kubectl apply -f deploy/kourier-knative.yaml
-kubectl patch deployment 3scale-kourier-control -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-control\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
-kubectl patch deployment 3scale-kourier-gateway -n knative-serving --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-gateway\",\"image\": \"3scale-kourier-gateway:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
-kubectl patch configmap/config-domain -n knative-serving --type merge -p '{"data":{"127.0.0.1.nip.io":""}}'
-kubectl patch configmap/config-network -n knative-serving --type merge -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev","ingress.class":"kourier.ingress.networking.knative.dev"}}'
+kubectl patch deployment 3scale-kourier-control -n ${KOURIER_NAMESPACE} --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-control\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
+kubectl patch deployment 3scale-kourier-gateway -n ${KOURIER_NAMESPACE} --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-gateway\",\"image\": \"3scale-kourier-gateway:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
+kubectl patch configmap/config-domain -n ${KNATIVE_NAMESPACE} --type merge -p '{"data":{"127.0.0.1.nip.io":""}}'
+kubectl patch configmap/config-network -n ${KNATIVE_NAMESPACE} --type merge -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev","ingress.class":"kourier.ingress.networking.knative.dev"}}'
 
 retries=0
-while [[ $(kubectl get pods -n knative-serving -l app=3scale-kourier-control -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
+while [[ $(kubectl get pods -n ${KOURIER_NAMESPACE} -l app=3scale-kourier-control -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
   echo "Waiting for kourier control pod to be ready "
   sleep 10
   if [ $retries -ge 7 ]; then
@@ -48,7 +51,7 @@ while [[ $(kubectl get pods -n knative-serving -l app=3scale-kourier-control -o 
 done
 
 retries=0
-while [[ $(kubectl get pods -n knative-serving -l app=3scale-kourier-gateway -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
+while [[ $(kubectl get pods -n ${KOURIER_NAMESPACE} -l app=3scale-kourier-gateway -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
   echo "Waiting for kourier gateway pod to be ready "
   sleep 10
   if [ $retries -ge 7 ]; then
@@ -59,4 +62,4 @@ while [[ $(kubectl get pods -n knative-serving -l app=3scale-kourier-gateway -o 
 done
 
 # shellcheck disable=SC2046
-kubectl port-forward --namespace knative-serving "$(kubectl get pod -n knative-serving -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}")" 8080:8080 8081:8081 19000:19000 8443:8443 &>/dev/null &
+kubectl port-forward --namespace ${KOURIER_NAMESPACE} "$(kubectl get pod -n ${KOURIER_NAMESPACE} -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}")" 8080:8080 8081:8081 19000:19000 8443:8443 &>/dev/null &
