@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.6] - 2020-01-14
+### Fixed
+- Expose HTTP and HTTPS in the same service.
+
 ## [0.3.5] - 2020-01-13
 ### Added
 - Prometheus stats endpoint exposed.
@@ -84,6 +88,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.3.6]: https://github.com/3scale/kourier/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/3scale/kourier/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/3scale/kourier/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/3scale/kourier/compare/v0.3.2...v0.3.3
