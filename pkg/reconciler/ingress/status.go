@@ -138,7 +138,7 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 	ingressKey := fmt.Sprintf("%x", hash)
 
 	status := ingress.GetStatus()
-	if ingress.GetGeneration() == status.ObservedGeneration || status.IsReady() {
+	if ingress.GetGeneration() == status.ObservedGeneration && status.IsReady() {
 		if ready, ok := func() (bool, bool) {
 			m.mu.Lock()
 			defer m.mu.Unlock()
