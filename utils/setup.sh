@@ -29,7 +29,7 @@ docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:"$tag" ./
 k3d import-images 3scale-kourier:"$tag" --name='kourier-integration'
 k3d import-images 3scale-kourier-gateway:"$tag" --name='kourier-integration'
 
-KNATIVE_VERSION=v0.10.0
+KNATIVE_VERSION=v0.11.1
 # Deploys kourier and patches it.
 kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-crds.yaml
 kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-core.yaml
