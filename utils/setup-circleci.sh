@@ -16,7 +16,7 @@ tag="test_$(git rev-parse --abbrev-ref HEAD)"
 # it.
 tag=$(echo "$tag" | tr / -)
 
-KNATIVE_VERSION=v0.10.0
+KNATIVE_VERSION=v0.11.1
 # Deploys kourier and patches it.
 microk8s.kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-crds.yaml
 microk8s.kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-core.yaml
