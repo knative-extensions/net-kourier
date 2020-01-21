@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"time"
 
+	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/golang/protobuf/ptypes/duration"
+
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 
 	"knative.dev/pkg/tracker"
@@ -192,12 +195,65 @@ func addIngressToCaches(caches *Caches,
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	sniMatches []*envoy.SNIMatch,
-	kubeclient kubeclient.Interface) ([]*v2.Listener, error) {
+	kubeclient kubeclient.Interface, caches *Caches) ([]*v2.Listener, error) {
 
 	var listeners []*v2.Listener
 
 	externalManager := envoy.NewHttpConnectionManager(externalVirtualHosts)
 	internalManager := envoy.NewHttpConnectionManager(clusterLocalVirtualHosts)
+
+	internalRouteConfig := internalManager.GetRouteConfig()
+	externalRouteConfig := externalManager.GetRouteConfig()
+
+	// We need to keep these for the case of HTTPS with SNI routing
+	originalExternalManager := externalManager
+	originalExternalVHosts := externalRouteConfig.VirtualHosts
+
+	// Set proper names so those can be referred later.
+	internalRouteConfig.Name = "internal_services"
+	externalRouteConfig.Name = "external_services"
+
+	// Now we save the RouteConfigs with the proper name and all the virtualhosts etc.. into the cache.
+	caches.routeConfig = []v2.RouteConfiguration{}
+	caches.routeConfig = append(caches.routeConfig, *externalRouteConfig)
+	caches.routeConfig = append(caches.routeConfig, *internalRouteConfig)
+
+	// Now let's forget about the cache, and override the internal manager to point to the RDS and look for the proper
+	// names.
+	internalManager.RouteSpecifier = &httpconnmanagerv2.HttpConnectionManager_Rds{
+		Rds: &httpconnmanagerv2.Rds{
+			ConfigSource: &envoy_api_v2_core.ConfigSource{
+				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
+					Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+				},
+				InitialFetchTimeout: &duration.Duration{
+					Seconds: 10,
+					Nanos:   0,
+				},
+			},
+			RouteConfigName: "internal_services",
+		},
+	}
+	// Set the discovery to ADS
+
+	externalManager.RouteSpecifier = &httpconnmanagerv2.HttpConnectionManager_Rds{
+		Rds: &httpconnmanagerv2.Rds{
+			ConfigSource: &envoy_api_v2_core.ConfigSource{
+				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
+					Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+				},
+				InitialFetchTimeout: &duration.Duration{
+					Seconds: 10,
+					Nanos:   0,
+				},
+			},
+			RouteConfigName: "external_services",
+		},
+	}
+
+	// CleanUp virtual hosts.
+	externalRouteConfig.VirtualHosts = []*route.VirtualHost{}
+	internalRouteConfig.VirtualHosts = []*route.VirtualHost{}
 
 	externalHTTPEnvoyListener, err := newExternalHTTPEnvoyListener(&externalManager)
 	if err != nil {
@@ -215,8 +271,10 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	// TLS field, that takes precedence. If there is not, TLS will be configured
 	// using a single cert for all the services if the creds are given via ENV.
 	if len(sniMatches) > 0 {
+		// TODO: Can we make this work with "HttpConnectionManager_Rds"?
+		externalRouteConfig.VirtualHosts = originalExternalVHosts
 		externalHTTPSEnvoyListener, err := newExternalHTTPSEnvoyListener(
-			&externalManager, sniMatches,
+			&originalExternalManager, sniMatches,
 		)
 		if err != nil {
 			return nil, err
