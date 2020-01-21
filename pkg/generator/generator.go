@@ -49,11 +49,15 @@ func UpdateInfoForIngress(caches *Caches,
 		len(caches.externalVirtualHostsForIngress),
 	)
 
-	addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker)
+	err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker)
+
+	if err != nil {
+		return err
+	}
 
 	caches.AddStatusVirtualHost()
 
-	err := caches.SetListeners(kubeclient)
+	err = caches.SetListeners(kubeclient)
 	if err != nil {
 		return err
 	}
@@ -67,7 +71,7 @@ func addIngressToCaches(caches *Caches,
 	endpointsLister corev1listers.EndpointsLister,
 	localDomainName string,
 	index int,
-	tracker tracker.Interface) {
+	tracker tracker.Interface) error {
 
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
@@ -81,6 +85,7 @@ func addIngressToCaches(caches *Caches,
 
 		if err != nil {
 			log.Errorf("%s", err)
+			return err
 		} else {
 			caches.AddSNIMatch(sniMatch, ingress.Name, ingress.Namespace)
 		}
@@ -163,7 +168,7 @@ func addIngressToCaches(caches *Caches,
 
 		if len(ruleRoute) == 0 {
 			log.Info("No rules for this ingress, returning.")
-			return
+			return nil
 		}
 
 		externalDomains := knative.ExternalDomains(&rule, localDomainName)
@@ -187,6 +192,8 @@ func addIngressToCaches(caches *Caches,
 	for _, vHost := range clusterLocalVirtualHosts {
 		caches.AddInternalVirtualHostForIngress(vHost, ingress.Name, ingress.Namespace)
 	}
+
+	return nil
 }
 
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
