@@ -85,6 +85,14 @@ func addIngressToCaches(caches *Caches,
 
 		if err != nil {
 			log.Errorf("%s", err)
+
+			// We need to propagate this error to the reconciler so the current
+			// event can be retried. This error might be caused because the
+			// secrets referenced in the TLS section of the spec do not exist
+			// yet. That's expected when auto TLS is configured.
+			// See the "TestPerKsvcCert_localCA" test in Knative Serving. It's a
+			// test that fails if this error is not propagated:
+			// https://github.com/knative/serving/blob/571e4db2392839082c559870ea8d4b72ef61e59d/test/e2e/autotls/auto_tls_test.go#L68
 			return err
 		} else {
 			caches.AddSNIMatch(sniMatch, ingress.Name, ingress.Namespace)
