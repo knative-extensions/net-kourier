@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.7] - 2020-01-22
+### Fixed
+- Improved handling of service updates by using RDS. Some 5xx errors that
+appeared when updating a service should no longer occur.
+- Fixed a bug when using auto TLS. In some cases, Kourier failed to expose some
+services.
+
 ## [0.3.6] - 2020-01-14
 ### Fixed
 - Expose HTTP and HTTPS in the same service.
@@ -88,6 +95,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.3.7]: https://github.com/3scale/kourier/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/3scale/kourier/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/3scale/kourier/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/3scale/kourier/compare/v0.3.3...v0.3.4
