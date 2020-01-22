@@ -49,11 +49,15 @@ func UpdateInfoForIngress(caches *Caches,
 		len(caches.externalVirtualHostsForIngress),
 	)
 
-	addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker)
+	err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker)
+
+	if err != nil {
+		return err
+	}
 
 	caches.AddStatusVirtualHost()
 
-	err := caches.SetListeners(kubeclient)
+	err = caches.SetListeners(kubeclient)
 	if err != nil {
 		return err
 	}
@@ -67,7 +71,7 @@ func addIngressToCaches(caches *Caches,
 	endpointsLister corev1listers.EndpointsLister,
 	localDomainName string,
 	index int,
-	tracker tracker.Interface) {
+	tracker tracker.Interface) error {
 
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
@@ -81,6 +85,15 @@ func addIngressToCaches(caches *Caches,
 
 		if err != nil {
 			log.Errorf("%s", err)
+
+			// We need to propagate this error to the reconciler so the current
+			// event can be retried. This error might be caused because the
+			// secrets referenced in the TLS section of the spec do not exist
+			// yet. That's expected when auto TLS is configured.
+			// See the "TestPerKsvcCert_localCA" test in Knative Serving. It's a
+			// test that fails if this error is not propagated:
+			// https://github.com/knative/serving/blob/571e4db2392839082c559870ea8d4b72ef61e59d/test/e2e/autotls/auto_tls_test.go#L68
+			return err
 		} else {
 			caches.AddSNIMatch(sniMatch, ingress.Name, ingress.Namespace)
 		}
@@ -163,7 +176,7 @@ func addIngressToCaches(caches *Caches,
 
 		if len(ruleRoute) == 0 {
 			log.Info("No rules for this ingress, returning.")
-			return
+			return nil
 		}
 
 		externalDomains := knative.ExternalDomains(&rule, localDomainName)
@@ -187,6 +200,8 @@ func addIngressToCaches(caches *Caches,
 	for _, vHost := range clusterLocalVirtualHosts {
 		caches.AddInternalVirtualHostForIngress(vHost, ingress.Name, ingress.Namespace)
 	}
+
+	return nil
 }
 
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
