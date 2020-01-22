@@ -16,12 +16,13 @@ import (
 type VHostsForIngresses map[string][]*route.VirtualHost
 
 type Caches struct {
-	endpoints []*endpoint.Endpoint
-	clusters  ClustersCache
-	routes    []*route.Route
-	listeners []*v2.Listener
-	runtimes  []cache.Resource
-	ingresses map[string]*v1alpha1.Ingress
+	endpoints   []*endpoint.Endpoint
+	clusters    ClustersCache
+	routes      []*route.Route
+	routeConfig []v2.RouteConfiguration
+	listeners   []*v2.Listener
+	runtimes    []cache.Resource
+	ingresses   map[string]*v1alpha1.Ingress
 
 	// These mappings are helpful to know the caches affected when there's a
 	// change in an ingress.
@@ -124,6 +125,7 @@ func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
 		localVHosts,
 		caches.sniMatches(),
 		kubeclient,
+		caches,
 	)
 
 	if err != nil {
@@ -141,9 +143,10 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 		endpoints[i] = caches.endpoints[i]
 	}
 
-	routes := make([]cache.Resource, len(caches.routes))
-	for i := range caches.routes {
-		routes[i] = caches.routes[i]
+	// Instead of sending the Routes, we send the RouteConfigs.
+	routes := make([]cache.Resource, len(caches.routeConfig))
+	for i := range caches.routeConfig {
+		routes[i] = &caches.routeConfig[i]
 	}
 
 	listeners := make([]cache.Resource, len(caches.listeners))
@@ -198,11 +201,13 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	ikvh := internalKourierVirtualHost(ikr)
 	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &ikvh)
 
+	// We now need the cache in the listenersFromVirtualHosts.
 	caches.listeners, err = listenersFromVirtualHosts(
 		newExternalVirtualHosts,
 		newClusterLocalVirtualHosts,
 		caches.sniMatches(),
 		kubeclient,
+		caches,
 	)
 	if err != nil {
 		return err

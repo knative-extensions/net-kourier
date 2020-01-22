@@ -5,13 +5,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/golang/protobuf/ptypes"
-
 	"gotest.tools/assert"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -49,7 +46,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	)
 
 	// Delete the first ingress
-	caches.DeleteIngressInfo(firstIngressName, firstIngressNamespace, &kubeClient)
+	_ = caches.DeleteIngressInfo(firstIngressName, firstIngressNamespace, &kubeClient)
 
 	// Check that there's only the route of the second ingress
 	assert.Equal(t, 1, len(caches.routes))
@@ -59,7 +56,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	// ingress.
 	// Note: Apart from the vHosts that were added explicitly, there's also
 	// the one used to verify the snapshot version.
-	vHostsNames, err := getVHostsNames(caches.listeners)
+	vHostsNames, err := getVHostsNames(caches.routeConfig)
 
 	if err != nil {
 		t.Fail()
@@ -149,32 +146,16 @@ func createTestDataForIngress(caches *Caches,
 	caches.AddExternalVirtualHostForIngress(&externalvHost, ingressName, ingressNamespace)
 	caches.AddInternalVirtualHostForIngress(&internalvHost, ingressName, ingressNamespace)
 	caches.AddStatusVirtualHost()
-	caches.SetListeners(kubeClient)
+	_ = caches.SetListeners(kubeClient)
 }
 
-func getVHostsNames(listeners []*v2.Listener) ([]string, error) {
+func getVHostsNames(routeConfigs []v2.RouteConfiguration) ([]string, error) {
 	var res []string
 
-	for _, listener := range listeners {
-		if len(listener.GetFilterChains()) == 0 {
-			continue
-		}
-
-		filterConfig := listener.GetFilterChains()[0].Filters[0].GetTypedConfig()
-		httpConnManager := httpconnmanagerv2.HttpConnectionManager{}
-		err := ptypes.UnmarshalAny(filterConfig, &httpConnManager)
-
-		if err != nil {
-			return nil, err
-		}
-
-		routeSpecifier := httpConnManager.GetRouteSpecifier()
-		routeConfig := routeSpecifier.(*httpconnmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig
-
-		for _, vHost := range routeConfig.VirtualHosts {
+	for _, routeConfig := range routeConfigs {
+		for _, vHost := range routeConfig.GetVirtualHosts() {
 			res = append(res, vHost.Name)
 		}
-
 	}
 
 	return res, nil

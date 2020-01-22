@@ -67,10 +67,9 @@ func (envoyXdsServer *EnvoyXdsServer) RunManagementServer() {
 
 	// register services
 	discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
-	envoyv2.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
 	envoyv2.RegisterClusterDiscoveryServiceServer(grpcServer, server)
-	envoyv2.RegisterRouteDiscoveryServiceServer(grpcServer, server)
 	envoyv2.RegisterListenerDiscoveryServiceServer(grpcServer, server)
+	envoyv2.RegisterRouteDiscoveryServiceServer(grpcServer, server)
 
 	log.Printf("Starting Management Server on Port %d\n", port)
 	go func() {
