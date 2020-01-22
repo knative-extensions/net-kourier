@@ -3,6 +3,8 @@ package generator
 import (
 	"kourier/pkg/envoy"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -146,6 +148,11 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 	// Instead of sending the Routes, we send the RouteConfigs.
 	routes := make([]cache.Resource, len(caches.routeConfig))
 	for i := range caches.routeConfig {
+		// Without this we can generate routes that point to non-existing clusters
+		// That causes some "no_cluster" errors in Envoy and the "TestUpdate"
+		// in the Knative serving test suite fails sometimes.
+		// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
+		caches.routeConfig[i].ValidateClusters = &wrappers.BoolValue{Value: true}
 		routes[i] = &caches.routeConfig[i]
 	}
 
