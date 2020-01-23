@@ -319,7 +319,6 @@ func (m *StatusProber) processWorkItem() bool {
 			// Therefore, we can safely ignore any TLS certificate validation.
 			InsecureSkipVerify: true,
 		},
-		DisableKeepAlives: true,
 		DialContext: func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
 			// Requests with the IP as hostname and the Host header set do no pass client-side validation
 			// because the HTTP client validates that the hostname (not the Host header) matches the server
