@@ -178,8 +178,10 @@ func addIngressToCaches(caches *Caches,
 		}
 
 		if len(ruleRoute) == 0 {
-			log.Info("No rules for this ingress, returning.")
-			return nil
+			// Propagate the error to the reconciler, we do not want to generate
+			// an envoy config where an ingress has no routes, it would return
+			// 404.
+			return fmt.Errorf("ingress without routes")
 		}
 
 		externalDomains := knative.ExternalDomains(&rule, localDomainName)
