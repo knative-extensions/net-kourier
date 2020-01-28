@@ -30,6 +30,8 @@ const (
 	envCertsSecretName      = "CERTS_SECRET_NAME"
 	certFieldInSecret       = "tls.crt"
 	keyFieldInSecret        = "tls.key"
+	externalRouteConfigName = "external_services"
+	internalRouteConfigName = "internal_services"
 )
 
 // For now, when updating the info for an ingress we delete it, and then
@@ -224,8 +226,8 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	originalExternalVHosts := externalRouteConfig.VirtualHosts
 
 	// Set proper names so those can be referred later.
-	internalRouteConfig.Name = "internal_services"
-	externalRouteConfig.Name = "external_services"
+	internalRouteConfig.Name = internalRouteConfigName
+	externalRouteConfig.Name = externalRouteConfigName
 
 	// Now we save the RouteConfigs with the proper name and all the virtualhosts etc.. into the cache.
 	caches.routeConfig = []v2.RouteConfiguration{}
@@ -234,11 +236,11 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 
 	// Now let's forget about the cache, and override the internal manager to point to the RDS and look for the proper
 	// names.
-	internalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager("internal_services")
+	internalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager(internalRouteConfigName)
 	internalManager.RouteSpecifier = &internalRDSHTTPConnectionManager
 
 	// Set the discovery to ADS
-	externalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager("external_services")
+	externalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager(externalRouteConfigName)
 	externalManager.RouteSpecifier = &externalRDSHTTPConnectionManager
 
 	// CleanUp virtual hosts.
