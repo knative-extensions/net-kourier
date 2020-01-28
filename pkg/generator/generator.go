@@ -9,9 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/golang/protobuf/ptypes/duration"
-
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 
 	"knative.dev/pkg/tracker"
@@ -237,36 +234,12 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 
 	// Now let's forget about the cache, and override the internal manager to point to the RDS and look for the proper
 	// names.
-	internalManager.RouteSpecifier = &httpconnmanagerv2.HttpConnectionManager_Rds{
-		Rds: &httpconnmanagerv2.Rds{
-			ConfigSource: &envoy_api_v2_core.ConfigSource{
-				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-					Ads: &envoy_api_v2_core.AggregatedConfigSource{},
-				},
-				InitialFetchTimeout: &duration.Duration{
-					Seconds: 10,
-					Nanos:   0,
-				},
-			},
-			RouteConfigName: "internal_services",
-		},
-	}
-	// Set the discovery to ADS
+	internalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager("internal_services")
+	internalManager.RouteSpecifier = &internalRDSHTTPConnectionManager
 
-	externalManager.RouteSpecifier = &httpconnmanagerv2.HttpConnectionManager_Rds{
-		Rds: &httpconnmanagerv2.Rds{
-			ConfigSource: &envoy_api_v2_core.ConfigSource{
-				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-					Ads: &envoy_api_v2_core.AggregatedConfigSource{},
-				},
-				InitialFetchTimeout: &duration.Duration{
-					Seconds: 10,
-					Nanos:   0,
-				},
-			},
-			RouteConfigName: "external_services",
-		},
-	}
+	// Set the discovery to ADS
+	externalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager("external_services")
+	externalManager.RouteSpecifier = &externalRDSHTTPConnectionManager
 
 	// CleanUp virtual hosts.
 	externalRouteConfig.VirtualHosts = []*route.VirtualHost{}

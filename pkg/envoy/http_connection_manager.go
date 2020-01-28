@@ -2,10 +2,12 @@ package envoy
 
 import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/duration"
 
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -27,6 +29,23 @@ func NewHttpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 			},
 		},
 		AccessLog: accessLogs(),
+	}
+}
+
+func NewRDSHTTPConnectionManager(routeConfigName string) httpconnectionmanagerv2.HttpConnectionManager_Rds {
+	return httpconnectionmanagerv2.HttpConnectionManager_Rds{
+		Rds: &httpconnectionmanagerv2.Rds{
+			ConfigSource: &envoy_api_v2_core.ConfigSource{
+				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
+					Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+				},
+				InitialFetchTimeout: &duration.Duration{
+					Seconds: 10,
+					Nanos:   0,
+				},
+			},
+			RouteConfigName: routeConfigName,
+		},
 	}
 }
 
