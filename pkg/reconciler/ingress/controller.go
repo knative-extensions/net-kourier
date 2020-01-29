@@ -73,7 +73,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		EnvoyXDSServer:  envoyXdsServer,
 		kubeClient:      kubernetesClient,
 		CurrentCaches:   &caches,
-		statusManager:   *statusProber,
+		statusManager:   statusProber,
 	}
 
 	statusProber.Start(ctx.Done())

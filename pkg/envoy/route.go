@@ -58,7 +58,7 @@ func NewRouteStatusOK(name string, path string) route.Route {
 }
 
 func retryPolicy(retryAttempts uint32, perTryTimeout time.Duration) *route.RetryPolicy {
-	if retryAttempts <= 0 {
+	if retryAttempts == 0 {
 		return nil
 	}
 

@@ -25,7 +25,7 @@ type Reconciler struct {
 	kubeClient      kubeclient.Interface
 	CurrentCaches   *generator.Caches
 	tracker         tracker.Interface
-	statusManager   StatusProber
+	statusManager   *StatusProber
 }
 
 func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {

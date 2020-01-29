@@ -43,7 +43,9 @@ func UpdateInfoForIngress(caches *Caches,
 	localDomainName string,
 	tracker tracker.Interface) error {
 
-	caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient)
+	if err := caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient); err != nil {
+		return err
+	}
 
 	// TODO: is this index really needed?
 	index := max(
@@ -51,16 +53,13 @@ func UpdateInfoForIngress(caches *Caches,
 		len(caches.externalVirtualHostsForIngress),
 	)
 
-	err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker)
-
-	if err != nil {
+	if err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker); err != nil {
 		return err
 	}
 
 	caches.AddStatusVirtualHost()
 
-	err = caches.SetListeners(kubeclient)
-	if err != nil {
+	if err := caches.SetListeners(kubeclient); err != nil {
 		return err
 	}
 
