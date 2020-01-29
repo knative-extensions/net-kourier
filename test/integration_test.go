@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"testing"
 	"time"
 
 	"gotest.tools/assert"
+	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
@@ -146,20 +146,8 @@ func watchForIngressReady(networkServingClient *networkingClientSet.NetworkingV1
 // nothing.
 func cleanSimpleScenario(servingClient *servingClientSet.ServingV1alpha1Client, serviceName string) error {
 	err := servingClient.Services(namespace).Delete(serviceName, &v1.DeleteOptions{})
-
-	if err != nil {
-		// If the error is that the serving does not exist, just ignore.
-		isNotFoundErr, err := regexp.MatchString(
-			err.Error(),
-			fmt.Sprintf("\"%s\" not found", serviceName),
-		)
-
-		if isNotFoundErr {
-			return nil
-		} else {
-			return err
-		}
+	if errors.IsNotFound(err) {
+		return nil
 	}
-
 	return err
 }

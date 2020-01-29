@@ -43,7 +43,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	kubernetesClient := kubeclient.Get(ctx)
 	knativeClient := knativeclient.Get(ctx)
 
-	envoyXdsServer := envoy.NewEnvoyXdsServer(
+	envoyXdsServer := envoy.NewXdsServer(
 		gatewayPort,
 		managementPort,
 	)

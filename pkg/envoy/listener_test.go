@@ -23,7 +23,7 @@ import (
 )
 
 func TestNewHTTPListener(t *testing.T) {
-	manager := NewHttpConnectionManager([]*route.VirtualHost{})
+	manager := NewHTTPConnectionManager([]*route.VirtualHost{})
 
 	l, err := NewHTTPListener(&manager, 8080)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestNewHTTPListener(t *testing.T) {
 }
 
 func TestNewHTTPSListener(t *testing.T) {
-	manager := NewHttpConnectionManager([]*route.VirtualHost{})
+	manager := NewHTTPConnectionManager([]*route.VirtualHost{})
 
 	l, err := NewHTTPSListener(&manager, 8081, "some_certificate_chain", "some_private_key")
 	if err != nil {
@@ -76,7 +76,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		"vHost2", []string{"another_host.com", "another_host.com:*"}, []*route.Route{},
 	)
 
-	manager := NewHttpConnectionManager([]*route.VirtualHost{&vHost1, &vHost2})
+	manager := NewHTTPConnectionManager([]*route.VirtualHost{&vHost1, &vHost2})
 
 	listener, err := NewHTTPSListenerWithSNI(&manager, 8443, sniMatches)
 	if err != nil {

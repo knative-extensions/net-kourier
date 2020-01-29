@@ -1,9 +1,9 @@
 package config
 
 const (
-	HttpPortExternal  = uint32(8080)
-	HttpPortInternal  = uint32(8081)
-	HttpsPortExternal = uint32(8443)
+	HTTPPortExternal  = uint32(8080)
+	HTTPPortInternal  = uint32(8081)
+	HTTPSPortExternal = uint32(8443)
 
 	InternalKourierDomain = "internalkourier"
 	InternalKourierPath   = "/__internalkouriersnapshot"
