@@ -21,11 +21,11 @@ import (
 type Reconciler struct {
 	IngressLister   nv1alpha1lister.IngressLister
 	EndpointsLister corev1listers.EndpointsLister
-	EnvoyXDSServer  envoy.EnvoyXdsServer
+	EnvoyXDSServer  *envoy.XdsServer
 	kubeClient      kubeclient.Interface
 	CurrentCaches   *generator.Caches
 	tracker         tracker.Interface
-	statusManager   StatusProber
+	statusManager   *StatusProber
 }
 
 func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {

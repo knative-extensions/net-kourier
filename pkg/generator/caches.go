@@ -225,7 +225,7 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 func (caches *Caches) deleteRoutesForIngress(ingressName string, ingressNamespace string) {
 	var newRoutes []*route.Route
 
-	routesForIngress, _ := caches.routesForIngress[mapKey(ingressName, ingressNamespace)]
+	routesForIngress := caches.routesForIngress[mapKey(ingressName, ingressNamespace)]
 
 	for _, cachesRoute := range caches.routes {
 		if !contains(routesForIngress, cachesRoute.Name) {
@@ -279,9 +279,7 @@ func (caches *Caches) sniMatches() []*envoy.SNIMatch {
 	var res []*envoy.SNIMatch
 
 	for _, sniMatches := range caches.sniMatchesForIngress {
-		for _, sniMatch := range sniMatches {
-			res = append(res, sniMatch)
-		}
+		res = append(res, sniMatches...)
 	}
 
 	return res

@@ -214,7 +214,7 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 			}
 		}(ip)
 
-		port := strconv.Itoa(int(config.HttpPortInternal))
+		port := strconv.Itoa(int(config.HTTPPortInternal))
 
 		workItem := &workItem{
 			ingressState: snapshotState,
@@ -324,7 +324,7 @@ func (m *StatusProber) processWorkItem() bool {
 			// because the HTTP client validates that the hostname (not the Host header) matches the server
 			// TLS certificate Common Name or Alternative Names. Therefore, http.Request.URL is set to the
 			// hostname and it is substituted it here with the target IP.
-			return dialContext(ctx, network, net.JoinHostPort(item.podIP, strconv.Itoa(int(config.HttpPortInternal))))
+			return dialContext(ctx, network, net.JoinHostPort(item.podIP, strconv.Itoa(int(config.HTTPPortInternal))))
 		}}
 
 	ok, err := prober.Do(

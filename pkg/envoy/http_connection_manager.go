@@ -13,7 +13,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 )
 
-func NewHttpConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
+func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
 	return httpconnectionmanagerv2.HttpConnectionManager{
 		CodecType:  httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix: "ingress_http",
@@ -72,7 +72,7 @@ func accessLogs() []*envoy_accesslog_v2.AccessLog {
 func filterByDomains(connManager *httpconnectionmanagerv2.HttpConnectionManager, domains []string) httpconnectionmanagerv2.HttpConnectionManager {
 	currentVirtualHosts := connManager.GetRouteSpecifier().(*httpconnectionmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig.GetVirtualHosts()
 
-	res := NewHttpConnectionManager(currentVirtualHosts)
+	res := NewHTTPConnectionManager(currentVirtualHosts)
 
 	var newVirtualHosts []*route.VirtualHost
 	for _, virtualHost := range currentVirtualHosts {

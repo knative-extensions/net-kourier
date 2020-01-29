@@ -43,7 +43,9 @@ func UpdateInfoForIngress(caches *Caches,
 	localDomainName string,
 	tracker tracker.Interface) error {
 
-	caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient)
+	if err := caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient); err != nil {
+		return err
+	}
 
 	// TODO: is this index really needed?
 	index := max(
@@ -51,16 +53,13 @@ func UpdateInfoForIngress(caches *Caches,
 		len(caches.externalVirtualHostsForIngress),
 	)
 
-	err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker)
-
-	if err != nil {
+	if err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker); err != nil {
 		return err
 	}
 
 	caches.AddStatusVirtualHost()
 
-	err = caches.SetListeners(kubeclient)
-	if err != nil {
+	if err := caches.SetListeners(kubeclient); err != nil {
 		return err
 	}
 
@@ -96,9 +95,8 @@ func addIngressToCaches(caches *Caches,
 			// test that fails if this error is not propagated:
 			// https://github.com/knative/serving/blob/571e4db2392839082c559870ea8d4b72ef61e59d/test/e2e/autotls/auto_tls_test.go#L68
 			return err
-		} else {
-			caches.AddSNIMatch(sniMatch, ingress.Name, ingress.Namespace)
 		}
+		caches.AddSNIMatch(sniMatch, ingress.Name, ingress.Namespace)
 	}
 
 	for _, rule := range ingress.GetSpec().Rules {
@@ -215,8 +213,8 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 
 	var listeners []*v2.Listener
 
-	externalManager := envoy.NewHttpConnectionManager(externalVirtualHosts)
-	internalManager := envoy.NewHttpConnectionManager(clusterLocalVirtualHosts)
+	externalManager := envoy.NewHTTPConnectionManager(externalVirtualHosts)
+	internalManager := envoy.NewHTTPConnectionManager(clusterLocalVirtualHosts)
 
 	internalRouteConfig := internalManager.GetRouteConfig()
 	externalRouteConfig := externalManager.GetRouteConfig()
@@ -402,19 +400,19 @@ func newExternalEnvoyListenerWithOneCert(manager *httpconnmanagerv2.HttpConnecti
 		return nil, err
 	}
 
-	return envoy.NewHTTPSListener(manager, config.HttpsPortExternal, certificateChain, privateKey)
+	return envoy.NewHTTPSListener(manager, config.HTTPSPortExternal, certificateChain, privateKey)
 }
 
 func newExternalHTTPEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
-	return envoy.NewHTTPListener(manager, config.HttpPortExternal)
+	return envoy.NewHTTPListener(manager, config.HTTPPortExternal)
 }
 
 func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
-	return envoy.NewHTTPListener(manager, config.HttpPortInternal)
+	return envoy.NewHTTPListener(manager, config.HTTPPortInternal)
 }
 
 func newExternalHTTPSEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*envoy.SNIMatch) (*v2.Listener, error) {
-	return envoy.NewHTTPSListenerWithSNI(manager, config.HttpsPortExternal, sniMatches)
+	return envoy.NewHTTPSListenerWithSNI(manager, config.HTTPSPortExternal, sniMatches)
 }
 
 func max(x, y int) int {

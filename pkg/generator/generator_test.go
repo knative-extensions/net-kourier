@@ -92,26 +92,27 @@ func TestTrafficSplits(t *testing.T) {
 	var tr tracker.Interface
 	// Create the Kubernetes services associated to the Knative services that
 	// appear in the ingress above
-	err := createServicesWithNames(
+	if err := createServicesWithNames(
 		kubeClient,
 		[]string{"hello-world-rev1", "hello-world-rev2"},
 		"default",
-	)
-	if err != nil {
+	); err != nil {
 		t.Error(err)
 	}
 
 	caches := NewCaches()
 
 	// Check that there is one route in the result
-	UpdateInfoForIngress(
+	if err := UpdateInfoForIngress(
 		&caches,
 		&ingress,
 		kubeClient,
 		newMockedEndpointsLister(),
 		"cluster.local",
 		tr,
-	)
+	); err != nil {
+		t.Error(err)
+	}
 	assert.Equal(t, 1, len(caches.routes))
 
 	// Check that there are 2 weighted clusters for the route

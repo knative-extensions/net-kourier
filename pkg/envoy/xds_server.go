@@ -19,7 +19,7 @@ const (
 	grpcMaxConcurrentStreams = 1000000
 )
 
-type EnvoyXdsServer struct {
+type XdsServer struct {
 	gatewayPort    uint
 	managementPort uint
 	ctx            context.Context
@@ -38,12 +38,12 @@ func (h hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewEnvoyXdsServer(gatewayPort uint, managementPort uint) EnvoyXdsServer {
+func NewXdsServer(gatewayPort uint, managementPort uint) *XdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, hasher{}, nil)
 	srv := xds.NewServer(ctx, snapshotCache, nil)
 
-	return EnvoyXdsServer{
+	return &XdsServer{
 		gatewayPort:    gatewayPort,
 		managementPort: managementPort,
 		ctx:            ctx,
@@ -53,7 +53,7 @@ func NewEnvoyXdsServer(gatewayPort uint, managementPort uint) EnvoyXdsServer {
 }
 
 // RunManagementServer starts an xDS server at the given Port.
-func (envoyXdsServer *EnvoyXdsServer) RunManagementServer() {
+func (envoyXdsServer *XdsServer) RunManagementServer() {
 	port := envoyXdsServer.managementPort
 	server := envoyXdsServer.server
 
@@ -82,7 +82,7 @@ func (envoyXdsServer *EnvoyXdsServer) RunManagementServer() {
 }
 
 // RunManagementGateway starts an HTTP gateway to an xDS server.
-func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
+func (envoyXdsServer *XdsServer) RunGateway() {
 	port := envoyXdsServer.gatewayPort
 	server := envoyXdsServer.server
 	ctx := envoyXdsServer.ctx
@@ -101,8 +101,8 @@ func (envoyXdsServer *EnvoyXdsServer) RunGateway() {
 	}
 }
 
-func (envoyXdsServer *EnvoyXdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeId string) error {
-	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeId, *snapshot)
+func (envoyXdsServer *XdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeID string) error {
+	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeID, *snapshot)
 
 	if err != nil {
 		return err

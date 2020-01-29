@@ -9,7 +9,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-func NewCluster(name string, connectTimeout time.Duration, endpoints []*endpoint.LbEndpoint, isHttp2 bool) v2.Cluster {
+func NewCluster(name string, connectTimeout time.Duration, endpoints []*endpoint.LbEndpoint, isHTTP2 bool) v2.Cluster {
 	cluster := v2.Cluster{
 		Name: name,
 		ClusterDiscoveryType: &v2.Cluster_Type{
@@ -26,7 +26,7 @@ func NewCluster(name string, connectTimeout time.Duration, endpoints []*endpoint
 		},
 	}
 
-	if isHttp2 {
+	if isHTTP2 {
 		cluster.Http2ProtocolOptions = &core.Http2ProtocolOptions{}
 	}
 

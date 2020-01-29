@@ -16,8 +16,7 @@ func ExternalDomains(rule *v1alpha1.IngressRule, localDomainName string) []strin
 
 	for _, host := range rule.Hosts {
 		if !strings.Contains(host, localDomainName) {
-			res = append(res, host)
-			res = append(res, host+":*")
+			res = append(res, host, host+":*")
 		}
 	}
 
@@ -34,17 +33,14 @@ func InternalDomains(rule *v1alpha1.IngressRule, localDomainName string) []strin
 
 	for _, host := range rule.Hosts {
 		if strings.Contains(host, localDomainName) {
-			res = append(res, host)
-			res = append(res, host+":*")
+			res = append(res, host, host+":*")
 
 			splits := strings.Split(host, ".")
 			domain := splits[0] + "." + splits[1]
-			res = append(res, domain)
-			res = append(res, domain+":*")
+			res = append(res, domain, domain+":*")
 
 			domain = splits[0] + "." + splits[1] + ".svc"
-			res = append(res, domain)
-			res = append(res, domain+":*")
+			res = append(res, domain, domain+":*")
 
 		}
 	}
