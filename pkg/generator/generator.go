@@ -113,7 +113,6 @@ func addIngressToCaches(caches *Caches,
 			var wrs []*route.WeightedCluster_ClusterWeight
 
 			for _, split := range httpPath.Splits {
-
 				headersSplit := split.AppendHeaders
 
 				endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
@@ -157,19 +156,17 @@ func addIngressToCaches(caches *Caches,
 				connectTimeout := 5 * time.Second
 				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2)
 
-				caches.AddCluster(&cluster, ingress.Name, ingress.Namespace)
+				caches.AddCluster(cluster, ingress.Name, ingress.Namespace)
 
 				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), headersSplit)
 
-				wrs = append(wrs, &weightedCluster)
+				wrs = append(wrs, weightedCluster)
 			}
 
 			if len(wrs) != 0 {
-				r := createRouteForRevision(ingress.Name, index, &httpPath, wrs)
-
-				ruleRoute = append(ruleRoute, &r)
-
-				caches.AddRoute(&r, ingress.Name, ingress.Namespace)
+				r := createRouteForRevision(ingress.Name, index, httpPath, wrs)
+				ruleRoute = append(ruleRoute, r)
+				caches.AddRoute(r, ingress.Name, ingress.Namespace)
 			}
 
 		}
@@ -181,14 +178,14 @@ func addIngressToCaches(caches *Caches,
 			return fmt.Errorf("ingress without routes")
 		}
 
-		externalDomains := knative.ExternalDomains(&rule, localDomainName)
+		externalDomains := knative.ExternalDomains(rule, localDomainName)
 		virtualHost := envoy.NewVirtualHost(ingress.Name, externalDomains, ruleRoute)
 
 		// External should also be accessible internally
-		internalDomains := append(knative.InternalDomains(&rule, localDomainName), externalDomains...)
+		internalDomains := append(knative.InternalDomains(rule, localDomainName), externalDomains...)
 		internalVirtualHost := envoy.NewVirtualHost(ingress.Name, internalDomains, ruleRoute)
 
-		if knative.RuleIsExternal(&rule, ingress.GetSpec().Visibility) {
+		if knative.RuleIsExternal(rule, ingress.GetSpec().Visibility) {
 			externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
 		}
 
@@ -306,15 +303,14 @@ func internalKourierRoutes(ingresses []*v1alpha1.Ingress) []*route.Route {
 	for _, hash := range hashes {
 		name := fmt.Sprintf("%s_%s", config.InternalKourierDomain, hash)
 		path := fmt.Sprintf("%s/%s", config.InternalKourierPath, hash)
-		r := envoy.NewRouteStatusOK(name, path)
-		routes = append(routes, &r)
+		routes = append(routes, envoy.NewRouteStatusOK(name, path))
 	}
 
 	staticRoute := envoy.NewRouteStatusOK(
 		config.InternalKourierDomain,
 		config.InternalKourierPath,
 	)
-	routes = append(routes, &staticRoute)
+	routes = append(routes, staticRoute)
 
 	return routes
 }
@@ -323,14 +319,14 @@ func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int
 	for _, subset := range kubeEndpoints.Subsets {
 		for _, address := range subset.Addresses {
 			lbEndpoint := envoy.NewLBEndpoint(address.IP, uint32(targetPort))
-			publicLbEndpoints = append(publicLbEndpoints, &lbEndpoint)
+			publicLbEndpoints = append(publicLbEndpoints, lbEndpoint)
 		}
 	}
 
 	return publicLbEndpoints
 }
 
-func createRouteForRevision(routeName string, i int, httpPath *v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) route.Route {
+func createRouteForRevision(routeName string, i int, httpPath v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) *route.Route {
 	name := routeName + "_" + strconv.Itoa(i)
 
 	path := "/"

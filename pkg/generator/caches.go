@@ -19,7 +19,7 @@ type VHostsForIngresses map[string][]*route.VirtualHost
 
 type Caches struct {
 	endpoints   []*endpoint.Endpoint
-	clusters    ClustersCache
+	clusters    *ClustersCache
 	routes      []*route.Route
 	routeConfig []v2.RouteConfiguration
 	listeners   []*v2.Listener
@@ -36,8 +36,8 @@ type Caches struct {
 	sniMatchesForIngress           map[string][]*envoy.SNIMatch
 }
 
-func NewCaches() Caches {
-	caches := Caches{
+func NewCaches() *Caches {
+	return &Caches{
 		clusters:                       newClustersCache(),
 		localVirtualHostsForIngress:    make(VHostsForIngresses),
 		externalVirtualHostsForIngress: make(VHostsForIngresses),
@@ -46,8 +46,6 @@ func NewCaches() Caches {
 		clustersToIngress:              make(map[string][]string),
 		sniMatchesForIngress:           make(map[string][]*envoy.SNIMatch),
 	}
-
-	return caches
 }
 
 func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {

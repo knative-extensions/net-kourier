@@ -5,7 +5,7 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 )
 
-func NewLBEndpoint(ip string, port uint32) endpoint.LbEndpoint {
+func NewLBEndpoint(ip string, port uint32) *endpoint.LbEndpoint {
 	serviceEndpoint := &core.Address{
 		Address: &core.Address_SocketAddress{
 			SocketAddress: &core.SocketAddress{
@@ -19,7 +19,7 @@ func NewLBEndpoint(ip string, port uint32) endpoint.LbEndpoint {
 		},
 	}
 
-	return endpoint.LbEndpoint{
+	return &endpoint.LbEndpoint{
 		HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 			Endpoint: &endpoint.Endpoint{
 				Address: serviceEndpoint,

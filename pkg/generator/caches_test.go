@@ -21,7 +21,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
-		&caches,
+		caches,
 		firstIngressName,
 		firstIngressNamespace,
 		"cluster_for_ingress_1",
@@ -35,7 +35,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	secondIngressName := "ingress_2"
 	secondIngressNamespace := "ingress_2_namespace"
 	createTestDataForIngress(
-		&caches,
+		caches,
 		secondIngressName,
 		secondIngressNamespace,
 		"cluster_for_ingress_2",
@@ -85,7 +85,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
-		&caches,
+		caches,
 		firstIngressName,
 		firstIngressNamespace,
 		"cluster_for_ingress_1",

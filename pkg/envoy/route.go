@@ -16,9 +16,9 @@ func NewRoute(name string,
 	routeTimeout time.Duration,
 	retryAttempts uint32,
 	perTryTimeout time.Duration,
-	headers map[string]string) route.Route {
+	headers map[string]string) *route.Route {
 
-	return route.Route{
+	return &route.Route{
 		Name: name,
 		Match: &route.RouteMatch{
 			PathSpecifier: &route.RouteMatch_Prefix{
@@ -43,8 +43,8 @@ func NewRoute(name string,
 }
 
 // Creates a route that simply returns 200
-func NewRouteStatusOK(name string, path string) route.Route {
-	return route.Route{
+func NewRouteStatusOK(name string, path string) *route.Route {
+	return &route.Route{
 		Name: name,
 		Match: &route.RouteMatch{
 			PathSpecifier: &route.RouteMatch_Path{
