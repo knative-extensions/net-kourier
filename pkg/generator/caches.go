@@ -101,15 +101,13 @@ func (caches *Caches) AddInternalVirtualHostForIngress(vHost *route.VirtualHost,
 }
 
 func (caches *Caches) AddStatusVirtualHost() {
-
 	var ingresses []*v1alpha1.Ingress
 	for _, val := range caches.ingresses {
 		ingresses = append(ingresses, val)
 	}
 
-	ikrs := internalKourierRoutes(ingresses)
-	ikvh := internalKourierVirtualHost(ikrs)
-	caches.statusVirtualHost = &ikvh
+	statusVirtualHost := statusVHost(ingresses)
+	caches.statusVirtualHost = &statusVirtualHost
 }
 
 func (caches *Caches) AddSNIMatch(sniMatch *envoy.SNIMatch, ingressName string, ingressNamespace string) {
@@ -202,9 +200,8 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 		ingresses = append(ingresses, val)
 	}
 
-	ikr := internalKourierRoutes(ingresses)
-	ikvh := internalKourierVirtualHost(ikr)
-	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &ikvh)
+	statusVirtualHost := statusVHost(ingresses)
+	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &statusVirtualHost)
 
 	// We now need the cache in the listenersFromVirtualHosts.
 	caches.listeners, err = listenersFromVirtualHosts(
