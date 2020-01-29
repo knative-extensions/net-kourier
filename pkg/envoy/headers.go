@@ -9,7 +9,7 @@ func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
 	var res []*core.HeaderValueOption
 
 	for headerName, headerVal := range headers {
-		header := core.HeaderValueOption{
+		header := &core.HeaderValueOption{
 			Header: &core.HeaderValue{
 				Key:   headerName,
 				Value: headerVal,
@@ -21,7 +21,7 @@ func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
 			},
 		}
 
-		res = append(res, &header)
+		res = append(res, header)
 
 	}
 

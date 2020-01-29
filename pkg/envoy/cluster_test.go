@@ -15,7 +15,7 @@ func TestNewCluster(t *testing.T) {
 
 	endpoint1 := NewLBEndpoint("127.0.0.1", 1234)
 	endpoint2 := NewLBEndpoint("127.0.0.2", 1234)
-	endpoints := []*endpoint.LbEndpoint{&endpoint1, &endpoint2}
+	endpoints := []*endpoint.LbEndpoint{endpoint1, endpoint2}
 
 	c := NewCluster(name, connectTimeout, endpoints, true)
 

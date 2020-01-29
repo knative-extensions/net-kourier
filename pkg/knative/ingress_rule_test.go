@@ -16,7 +16,7 @@ var testRule = v1alpha1.IngressRule{
 }
 
 func TestExternalDomains(t *testing.T) {
-	externalDomains := ExternalDomains(&testRule, "cluster.local")
+	externalDomains := ExternalDomains(testRule, "cluster.local")
 
 	expected := []string{
 		"helloworld-go.default.example.com",
@@ -28,7 +28,7 @@ func TestExternalDomains(t *testing.T) {
 }
 
 func TestInternalDomains(t *testing.T) {
-	internalDomains := InternalDomains(&testRule, "cluster.local")
+	internalDomains := InternalDomains(testRule, "cluster.local")
 
 	expected := []string{
 		"helloworld-go.default",
@@ -51,18 +51,18 @@ func TestRuleIsExternalWithVisibility(t *testing.T) {
 		Visibility: v1alpha1.IngressVisibilityClusterLocal,
 	}
 
-	assert.Equal(t, RuleIsExternal(&externalRule, ""), true)
-	assert.Equal(t, RuleIsExternal(&internalRule, ""), false)
+	assert.Equal(t, RuleIsExternal(externalRule, ""), true)
+	assert.Equal(t, RuleIsExternal(internalRule, ""), false)
 }
 
 func TestRuleIsExternalWithIngressVisibility(t *testing.T) {
 	ruleWithoutVisibility := v1alpha1.IngressRule{Visibility: ""}
 
 	assert.Equal(
-		t, RuleIsExternal(&ruleWithoutVisibility, v1alpha1.IngressVisibilityClusterLocal), false,
+		t, RuleIsExternal(ruleWithoutVisibility, v1alpha1.IngressVisibilityClusterLocal), false,
 	)
 	assert.Equal(
-		t, RuleIsExternal(&ruleWithoutVisibility, v1alpha1.IngressVisibilityExternalIP), true,
+		t, RuleIsExternal(ruleWithoutVisibility, v1alpha1.IngressVisibilityExternalIP), true,
 	)
 }
 
@@ -70,5 +70,5 @@ func TestRuleIsExternalWithoutVisibility(t *testing.T) {
 	ruleWithoutVisibility := v1alpha1.IngressRule{Visibility: ""}
 
 	// Knative defaults to external, so it should return true
-	assert.Equal(t, RuleIsExternal(&ruleWithoutVisibility, ""), true)
+	assert.Equal(t, RuleIsExternal(ruleWithoutVisibility, ""), true)
 }

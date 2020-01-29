@@ -34,14 +34,14 @@ type ClustersCache struct {
 	clusters *gocache.Cache
 }
 
-func newClustersCache() ClustersCache {
+func newClustersCache() *ClustersCache {
 	goCache := gocache.New(defaultExpiration, defaultCleanupInterval)
-	return ClustersCache{clusters: goCache}
+	return &ClustersCache{clusters: goCache}
 }
 
-func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanupInterval time.Duration) ClustersCache {
+func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanupInterval time.Duration) *ClustersCache {
 	goCache := gocache.New(expiration, cleanupInterval)
-	return ClustersCache{clusters: goCache}
+	return &ClustersCache{clusters: goCache}
 }
 
 func (cc *ClustersCache) set(cluster *v2.Cluster, ingressName string, ingressNamespace string) {

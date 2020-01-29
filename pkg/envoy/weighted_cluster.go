@@ -5,8 +5,8 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
-func NewWeightedCluster(name string, trafficPerc uint32, headers map[string]string) route.WeightedCluster_ClusterWeight {
-	return route.WeightedCluster_ClusterWeight{
+func NewWeightedCluster(name string, trafficPerc uint32, headers map[string]string) *route.WeightedCluster_ClusterWeight {
+	return &route.WeightedCluster_ClusterWeight{
 		Name: name,
 		Weight: &wrappers.UInt32Value{
 			Value: trafficPerc,
