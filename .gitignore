@@ -12,8 +12,4 @@ build/
 *.out
 tests_output
 
-# Vendoring
-/vendor/
-vendor/
-
 .idea
