@@ -52,6 +52,11 @@ func NewCaches(logger *zap.SugaredLogger) *Caches {
 	}
 }
 
+// SetOnEvicted allows to set a function that will be executed when any key on the cache expires.
+func (caches *Caches) SetOnEvicted(f func(string, interface{})) {
+	caches.clusters.clusters.OnEvicted(f)
+}
+
 func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {
 	caches.logger.Debugf("getting ingress: %s/%s", ingressName, ingressNamespace)
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]

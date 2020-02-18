@@ -6,6 +6,9 @@ import (
 	"kourier/pkg/envoy"
 	"kourier/pkg/generator"
 	"kourier/pkg/knative"
+	"strings"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 
@@ -84,6 +87,17 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	statusProber.Start(ctx.Done())
 
 	impl := controller.NewImpl(c, logger, controllerName)
+	c.CurrentCaches.SetOnEvicted(func(key string, value interface{}) {
+		// The format of the key received is "clusterName:ingressName:ingressNamespace"
+		logger.Debugf("Evicted %s", key)
+		keyParts := strings.Split(key, ":")
+		// We enqueue the ingress name and namespace as if it was a new event, to force
+		// a config refresh.
+		impl.EnqueueKey(types.NamespacedName{
+			Namespace: keyParts[2],
+			Name:      keyParts[1],
+		})
+	})
 	c.tracker = tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	// Make sure we initialize a config. Otherwise, there will be no config

@@ -27,9 +27,9 @@ import (
 )
 
 const (
-	clusterExpiration      = 5 * time.Minute
+	clusterExpiration      = 15 * time.Second
 	defaultExpiration      = gocache.NoExpiration
-	defaultCleanupInterval = 10 * time.Minute
+	defaultCleanupInterval = 1 * time.Minute
 )
 
 type ClustersCache struct {
