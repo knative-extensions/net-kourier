@@ -5,6 +5,8 @@ import (
 	"sort"
 	"testing"
 
+	"go.uber.org/zap"
+
 	"gotest.tools/assert"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -14,7 +16,8 @@ import (
 )
 
 func TestDeleteIngressInfo(t *testing.T) {
-	caches := NewCaches()
+	logger := zap.S()
+	caches := NewCaches(logger)
 	kubeClient := fake.Clientset{}
 
 	// Add info for an ingress
@@ -77,8 +80,9 @@ func TestDeleteIngressInfo(t *testing.T) {
 func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	// If the ingress does not exist, nothing should be deleted from the caches
 	// instance.
+	logger := zap.S()
 
-	caches := NewCaches()
+	caches := NewCaches(logger)
 	kubeClient := fake.Clientset{}
 
 	// Add info for an ingress

@@ -3,6 +3,8 @@ package generator
 import (
 	"testing"
 
+	"go.uber.org/zap"
+
 	"knative.dev/pkg/tracker"
 
 	"k8s.io/client-go/kubernetes"
@@ -33,6 +35,8 @@ import (
 // Note: for now, the name of the cluster is the name of the revision plus the
 // path. That might change in the future.
 func TestTrafficSplits(t *testing.T) {
+	logger := zap.S()
+
 	ingress := v1alpha1.Ingress{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Ingress",
@@ -100,17 +104,11 @@ func TestTrafficSplits(t *testing.T) {
 		t.Error(err)
 	}
 
-	caches := NewCaches()
+	caches := NewCaches(logger)
 
 	// Check that there is one route in the result
-	if err := UpdateInfoForIngress(
-		caches,
-		&ingress,
-		kubeClient,
-		newMockedEndpointsLister(),
-		"cluster.local",
-		tr,
-	); err != nil {
+	if err := UpdateInfoForIngress(caches, &ingress, kubeClient, newMockedEndpointsLister(), "cluster.local", tr,
+		logger); err != nil {
 		t.Error(err)
 	}
 	assert.Equal(t, 1, len(caches.routes))
