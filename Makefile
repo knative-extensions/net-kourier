@@ -16,7 +16,7 @@ docker-run: docker-build ## Runs kourier in a docker
 
 build: ## Builds kourier binary, outputs binary to ./build
 	mkdir -p ./build
-	go build -o build/kourier cmd/kourier/main.go 
+	go build -mod vendor -o build/kourier cmd/kourier/main.go 
 
 docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 	docker build -t 3scale-kourier:test ./
