@@ -56,16 +56,20 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	endpointsInformer := endpointsinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 
-	caches := generator.NewCaches()
+	caches := generator.NewCaches(logger.Named("caches"))
 
 	readyCallback := func(ingress *v1alpha1.Ingress) {
+		logger.Debugf("Ready callback triggered for ingress: %s/%s", ingress.Name, ingress.Namespace)
 		err := knative.MarkIngressReady(knativeClient, ingress)
 		if err != nil {
 			logger.Warnf("Failed to update ingress Ready: %v", err)
 		}
 	}
 
-	statusProber := NewStatusProber(logger, podInformer.Lister(), readyCallback)
+	statusProber := NewStatusProber(
+		logger.Named("status-manager"),
+		podInformer.Lister(),
+		readyCallback)
 
 	c := &Reconciler{
 		IngressLister:   ingressInformer.Lister(),
@@ -74,6 +78,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		kubeClient:      kubernetesClient,
 		CurrentCaches:   caches,
 		statusManager:   statusProber,
+		logger:          logger.Named("reconciler"),
 	}
 
 	statusProber.Start(ctx.Done())
@@ -90,6 +95,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	if err != nil {
 		panic(err)
 	}
+
 	snapshot, err := c.CurrentCaches.ToEnvoySnapshot()
 	if err != nil {
 		panic(err)
