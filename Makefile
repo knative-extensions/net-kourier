@@ -36,13 +36,13 @@ test: test-unit test-integration ## Runs all the tests
 
 test-unit: ## Runs unit tests
 	mkdir -p "$(PROJECT_PATH)/tests_output"
-	go test -race $(shell go list ./... | grep -v kourier/test) -coverprofile="$(PROJECT_PATH)/tests_output/unit.cov"
+	go test -mod vendor -race $(shell go list ./... | grep -v kourier/test) -coverprofile="$(PROJECT_PATH)/tests_output/unit.cov"
 
 test-integration: local-setup ## Runs integration tests
-	go test -race test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
+	go test -mod vendor -race test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
 
 test-integration-circleci: circleci-setup ## Runs integration tests for circleCI
-	go test -race test/* -args -kubeconfig="$(HOME)/.kube/config"
+	go test -mod vendor -race test/* -args -kubeconfig="$(HOME)/.kube/config"
 
 test-unit-coverage: test-unit ## Runs unit tests and generates a coverage report
 	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
