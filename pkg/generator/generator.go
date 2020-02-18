@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 
 	"knative.dev/pkg/tracker"
@@ -16,7 +18,6 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	log "github.com/sirupsen/logrus"
 	kubev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
@@ -35,12 +36,7 @@ const (
 
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
-func UpdateInfoForIngress(caches *Caches,
-	ingress *v1alpha1.Ingress,
-	kubeclient kubeclient.Interface,
-	endpointsLister corev1listers.EndpointsLister,
-	localDomainName string,
-	tracker tracker.Interface) error {
+func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string, tracker tracker.Interface, logger *zap.SugaredLogger) error {
 
 	if err := caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient); err != nil {
 		return err
@@ -52,7 +48,7 @@ func UpdateInfoForIngress(caches *Caches,
 		len(caches.externalVirtualHostsForIngress),
 	)
 
-	if err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker); err != nil {
+	if err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker, logger); err != nil {
 		return err
 	}
 
@@ -71,20 +67,21 @@ func addIngressToCaches(caches *Caches,
 	endpointsLister corev1listers.EndpointsLister,
 	localDomainName string,
 	index int,
-	tracker tracker.Interface) error {
+	tracker tracker.Interface,
+	logger *zap.SugaredLogger) error {
 
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
 
 	caches.AddIngress(ingress)
 
-	log.WithFields(log.Fields{"name": ingress.Name, "namespace": ingress.Namespace}).Info("Knative Ingress found")
+	logger.Infof("Knative Ingress found %s/%s", ingress.Name, ingress.Namespace)
 
 	for _, ingressTLS := range ingress.GetSpec().TLS {
 		sniMatch, err := sniMatchFromIngressTLS(ingressTLS, kubeclient)
 
 		if err != nil {
-			log.Errorf("%s", err)
+			logger.Errorf("%s", err)
 
 			// We need to propagate this error to the reconciler so the current
 			// event can be retried. This error might be caused because the
@@ -116,7 +113,7 @@ func addIngressToCaches(caches *Caches,
 
 				endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
 				if err != nil {
-					log.Errorf("%s", err)
+					logger.Errorf("%s", err)
 					break
 				}
 
@@ -130,14 +127,14 @@ func addIngressToCaches(caches *Caches,
 				if tracker != nil {
 					err = tracker.Track(ref, ingress)
 					if err != nil {
-						log.Errorf("%s", err)
+						logger.Errorf("%s", err)
 						break
 					}
 				}
 
 				service, err := kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
 				if err != nil {
-					log.Errorf("%s", err)
+					logger.Errorf("%s", err)
 					break
 				}
 

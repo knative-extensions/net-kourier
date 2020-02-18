@@ -42,9 +42,10 @@ func newClustersCache(logger *zap.SugaredLogger) *ClustersCache {
 	return &ClustersCache{clusters: goCache, logger: logger}
 }
 
-func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanupInterval time.Duration) *ClustersCache {
+func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanupInterval time.Duration,
+	logger *zap.SugaredLogger) *ClustersCache {
 	goCache := gocache.New(expiration, cleanupInterval)
-	return &ClustersCache{clusters: goCache}
+	return &ClustersCache{clusters: goCache, logger: logger}
 }
 
 func (cc *ClustersCache) set(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
@@ -61,10 +62,10 @@ func (cc *ClustersCache) setExpiration(clusterName string, ingressName string, i
 
 func (cc *ClustersCache) list() []envoycache.Resource {
 	var res []envoycache.Resource
-	cc.logger.Debugf("listing clusters\n")
+	cc.logger.Debug("listing clusters")
 
 	for _, cluster := range cc.clusters.Items() {
-		cc.logger.Debugf("listing cluster %#v\n", cluster.Object.(*v2.Cluster))
+		cc.logger.Debugf("listing cluster %#v", cluster.Object.(*v2.Cluster))
 		res = append(res, cluster.Object.(envoycache.Resource))
 	}
 

@@ -53,29 +53,29 @@ func NewCaches(logger *zap.SugaredLogger) *Caches {
 }
 
 func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {
-	caches.logger.Debugf("getting ingress: %s/%s\n", ingressName, ingressNamespace)
+	caches.logger.Debugf("getting ingress: %s/%s", ingressName, ingressNamespace)
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }
 
 func (caches *Caches) AddIngress(ingress *v1alpha1.Ingress) {
-	caches.logger.Debugf("adding ingress: %s/%s\n", ingress.Name, ingress.Namespace)
+	caches.logger.Debugf("adding ingress: %s/%s", ingress.Name, ingress.Namespace)
 	caches.ingresses[mapKey(ingress.Name, ingress.Namespace)] = ingress
 }
 
 func (caches *Caches) DeleteIngress(ingressName, ingressNamespace string) {
-	caches.logger.Debugf("deleting ingress: %s/%s\n", ingressName, ingressNamespace)
+	caches.logger.Debugf("deleting ingress: %s/%s", ingressName, ingressNamespace)
 	delete(caches.ingresses, mapKey(ingressName, ingressNamespace))
 	delete(caches.clustersToIngress, mapKey(ingressName, ingressNamespace))
 }
 
 func (caches *Caches) AddCluster(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding cluster %s for ingress %s/%s\n", cluster.Name, ingressName, ingressNamespace)
+	caches.logger.Debugf("adding cluster %s for ingress %s/%s", cluster.Name, ingressName, ingressNamespace)
 	caches.clusters.set(cluster, ingressName, ingressNamespace)
 	caches.addClustersForIngress(cluster, ingressName, ingressNamespace)
 }
 
 func (caches *Caches) AddRoute(route *route.Route, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding route %s for ingress %s/%s\n", route.Name, ingressName, ingressNamespace)
+	caches.logger.Debugf("adding route %s for ingress %s/%s", route.Name, ingressName, ingressNamespace)
 	caches.routes = append(caches.routes, route)
 
 	key := mapKey(ingressName, ingressNamespace)
@@ -83,7 +83,7 @@ func (caches *Caches) AddRoute(route *route.Route, ingressName string, ingressNa
 }
 
 func (caches *Caches) addClustersForIngress(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding cluster %s for ingress %s/%s\n", cluster.Name, ingressName, ingressNamespace)
+	caches.logger.Debugf("adding cluster %s for ingress %s/%s", cluster.Name, ingressName, ingressNamespace)
 	key := mapKey(ingressName, ingressNamespace)
 
 	caches.clustersToIngress[key] = append(
@@ -93,7 +93,7 @@ func (caches *Caches) addClustersForIngress(cluster *v2.Cluster, ingressName str
 }
 
 func (caches *Caches) AddExternalVirtualHostForIngress(vHost *route.VirtualHost, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding external virtualhost %s for ingress %s/%s\n", vHost.Name, ingressName,
+	caches.logger.Debugf("adding external virtualhost %s for ingress %s/%s", vHost.Name, ingressName,
 		ingressNamespace)
 	key := mapKey(ingressName, ingressNamespace)
 
@@ -104,7 +104,7 @@ func (caches *Caches) AddExternalVirtualHostForIngress(vHost *route.VirtualHost,
 }
 
 func (caches *Caches) AddInternalVirtualHostForIngress(vHost *route.VirtualHost, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding internal virtualhost %s for ingress %s/%s\n", vHost.Name, ingressName,
+	caches.logger.Debugf("adding internal virtualhost %s for ingress %s/%s", vHost.Name, ingressName,
 		ingressNamespace)
 
 	key := mapKey(ingressName, ingressNamespace)
@@ -125,7 +125,7 @@ func (caches *Caches) AddStatusVirtualHost() {
 }
 
 func (caches *Caches) AddSNIMatch(sniMatch *envoy.SNIMatch, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding SNIMatch for ingress %s/%s\n", ingressName, ingressNamespace)
+	caches.logger.Debugf("adding SNIMatch for ingress %s/%s", ingressName, ingressNamespace)
 	key := mapKey(ingressName, ingressNamespace)
 	caches.sniMatchesForIngress[key] = append(caches.sniMatchesForIngress[key], sniMatch)
 }
@@ -151,11 +151,11 @@ func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
 }
 
 func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
-	caches.logger.Debugf("Preparing Envoy Snapshot\n")
+	caches.logger.Debugf("Preparing Envoy Snapshot")
 
 	endpoints := make([]cache.Resource, len(caches.endpoints))
 	for i := range caches.endpoints {
-		caches.logger.Debugf("Adding Endpoint %#v\n", caches.endpoints[i])
+		caches.logger.Debugf("Adding Endpoint %#v", caches.endpoints[i])
 		endpoints[i] = caches.endpoints[i]
 	}
 
@@ -167,13 +167,13 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 		// in the Knative serving test suite fails sometimes.
 		// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
 		caches.routeConfig[i].ValidateClusters = &wrappers.BoolValue{Value: true}
-		caches.logger.Debugf("Adding Route %#v\n", &caches.routeConfig[i])
+		caches.logger.Debugf("Adding Route %#v", &caches.routeConfig[i])
 		routes[i] = &caches.routeConfig[i]
 	}
 
 	listeners := make([]cache.Resource, len(caches.listeners))
 	for i := range caches.listeners {
-		caches.logger.Debugf("Adding listener %#v\n", caches.listeners[i])
+		caches.logger.Debugf("Adding listener %#v", caches.listeners[i])
 		listeners[i] = caches.listeners[i]
 	}
 
