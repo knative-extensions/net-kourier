@@ -5,6 +5,8 @@ import (
 	"kourier/pkg/envoy"
 	"kourier/pkg/generator"
 
+	"go.uber.org/zap"
+
 	"knative.dev/pkg/tracker"
 
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
@@ -26,6 +28,7 @@ type Reconciler struct {
 	CurrentCaches   *generator.Caches
 	tracker         tracker.Interface
 	statusManager   *StatusProber
+	logger          *zap.SugaredLogger
 }
 
 func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
@@ -33,6 +36,7 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 	if err != nil {
 		return err
 	}
+	reconciler.logger.Infof("Got reconcile request for %s namespace: %s", name, namespace)
 
 	ingress, err := reconciler.IngressLister.Ingresses(namespace).Get(name)
 	if apierrors.IsNotFound(err) {
@@ -45,6 +49,7 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 }
 
 func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
+	reconciler.logger.Infof("Deleting Ingress %s namespace: %s", name, namespace)
 	ingress := reconciler.CurrentCaches.GetIngress(name, namespace)
 
 	// We need to check for ingress not being nil, because we can receive an event from an already
@@ -67,15 +72,10 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
 }
 
 func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
+	reconciler.logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
-	err := generator.UpdateInfoForIngress(
-		reconciler.CurrentCaches,
-		ingress,
-		reconciler.kubeClient,
-		reconciler.EndpointsLister,
-		network.GetClusterDomainName(),
-		reconciler.tracker,
-	)
+	err := generator.UpdateInfoForIngress(reconciler.CurrentCaches, ingress, reconciler.kubeClient,
+		reconciler.EndpointsLister, network.GetClusterDomainName(), reconciler.tracker, reconciler.logger)
 	if err != nil {
 		return err
 	}
