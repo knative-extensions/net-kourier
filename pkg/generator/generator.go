@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"go.uber.org/zap"
 
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
@@ -111,12 +113,6 @@ func addIngressToCaches(caches *Caches,
 			for _, split := range httpPath.Splits {
 				headersSplit := split.AppendHeaders
 
-				endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
-				if err != nil {
-					logger.Errorf("%s", err)
-					break
-				}
-
 				ref := kubev1.ObjectReference{
 					Kind:       "Endpoints",
 					APIVersion: "v1",
@@ -125,16 +121,28 @@ func addIngressToCaches(caches *Caches,
 				}
 
 				if tracker != nil {
-					err = tracker.Track(ref, ingress)
+					err := tracker.Track(ref, ingress)
 					if err != nil {
 						logger.Errorf("%s", err)
 						break
 					}
 				}
 
+				endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
+				if apierrors.IsNotFound(err) {
+					logger.Infof("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					break
+				} else if err != nil {
+					logger.Errorf("Failed to fetch endpoints '%s/%s': %v", split.ServiceNamespace, split.ServiceName, err)
+					break
+				}
+
 				service, err := kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
-				if err != nil {
-					logger.Errorf("%s", err)
+				if apierrors.IsNotFound(err) {
+					logger.Infof("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					break
+				} else if err != nil {
+					logger.Errorf("Failed to fetch service '%s/%s': %v", split.ServiceNamespace, split.ServiceName, err)
 					break
 				}
 
