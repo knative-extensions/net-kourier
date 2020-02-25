@@ -5,20 +5,16 @@ import (
 	"knative.dev/pkg/system"
 	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/client/clientset/versioned"
-)
 
-const (
-	// These 2 are defined in the deployment yaml
-	internalServiceName = "kourier-internal"
-	externalServiceName = "kourier"
+	"kourier/pkg/config"
 )
 
 func MarkIngressReady(knativeClient versioned.Interface, ingress *networkingv1alpha1.Ingress) error {
 	var err error
 	status := ingress.GetStatus()
 	if ingress.GetGeneration() != status.ObservedGeneration || !status.IsReady() {
-		internalDomain := domainForServiceName(internalServiceName)
-		externalDomain := domainForServiceName(externalServiceName)
+		internalDomain := domainForServiceName(config.InternalServiceName)
+		externalDomain := domainForServiceName(config.ExternalServiceName)
 
 		status.InitializeConditions()
 		var domain string

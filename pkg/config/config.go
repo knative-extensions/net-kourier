@@ -1,6 +1,9 @@
 package config
 
 const (
+	InternalServiceName = "kourier-internal"
+	ExternalServiceName = "kourier"
+
 	HTTPPortExternal  = uint32(8080)
 	HTTPPortInternal  = uint32(8081)
 	HTTPSPortExternal = uint32(8443)
