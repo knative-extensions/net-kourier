@@ -3,8 +3,6 @@ package generator
 import (
 	"testing"
 
-	"go.uber.org/zap"
-
 	"knative.dev/pkg/tracker"
 
 	"k8s.io/client-go/kubernetes"
@@ -13,7 +11,6 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"gotest.tools/assert"
 	kubev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,8 +32,6 @@ import (
 // Note: for now, the name of the cluster is the name of the revision plus the
 // path. That might change in the future.
 func TestTrafficSplits(t *testing.T) {
-	logger := zap.S()
-
 	ingress := v1alpha1.Ingress{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Ingress",
@@ -104,17 +99,18 @@ func TestTrafficSplits(t *testing.T) {
 		t.Error(err)
 	}
 
-	caches := NewCaches(logger)
+	ingressTranslator := NewIngressTranslator(
+		kubeClient, newMockedEndpointsLister(), "cluster.local", tr,
+	)
 
-	// Check that there is one route in the result
-	if err := UpdateInfoForIngress(caches, &ingress, kubeClient, newMockedEndpointsLister(), "cluster.local", tr,
-		logger, false); err != nil {
+	ingressTranslation, err := ingressTranslator.translateIngress(&ingress, 0, false)
+	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, 1, len(caches.routes))
+	assert.Equal(t, 1, len(ingressTranslation.routes))
 
 	// Check that there are 2 weighted clusters for the route
-	envoyRoute := caches.routes[0]
+	envoyRoute := ingressTranslation.routes[0]
 	weightedClusters := envoyRoute.GetRoute().GetWeightedClusters().Clusters
 	assert.Equal(t, 2, len(weightedClusters))
 
@@ -146,7 +142,7 @@ func TestTrafficSplits(t *testing.T) {
 	assert.Equal(
 		t,
 		true,
-		clustersExist([]string{"hello-world-rev1/", "hello-world-rev2/"}, caches.clusters.list()),
+		clustersExist([]string{"hello-world-rev1/", "hello-world-rev2/"}, ingressTranslation.clusters),
 	)
 }
 
@@ -192,13 +188,7 @@ func createServicesWithNames(kubeclient kubernetes.Interface, names []string, na
 	return nil
 }
 
-func clustersExist(names []string, clustersCache []cache.Resource) bool {
-	// Cast Resources to Clusters
-	var clusters []*v2.Cluster
-	for _, cacheCluster := range clustersCache {
-		clusters = append(clusters, cacheCluster.(*v2.Cluster))
-	}
-
+func clustersExist(names []string, clusters []*v2.Cluster) bool {
 	// Create map that contains names that are present
 	present := make(map[string]bool)
 	for _, cacheCluster := range clusters {

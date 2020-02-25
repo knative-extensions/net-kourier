@@ -14,8 +14,6 @@ import (
 
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 
-	"knative.dev/pkg/network"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -25,16 +23,17 @@ import (
 )
 
 type Reconciler struct {
-	IngressLister   nv1alpha1lister.IngressLister
-	EndpointsLister corev1listers.EndpointsLister
-	EnvoyXDSServer  *envoy.XdsServer
-	kubeClient      kubeclient.Interface
-	knativeClient   knativeclient.Interface
-	CurrentCaches   *generator.Caches
-	tracker         tracker.Interface
-	statusManager   *StatusProber
-	ExtAuthz        bool
-	logger          *zap.SugaredLogger
+	IngressLister     nv1alpha1lister.IngressLister
+	EndpointsLister   corev1listers.EndpointsLister
+	EnvoyXDSServer    *envoy.XdsServer
+	kubeClient        kubeclient.Interface
+	knativeClient     knativeclient.Interface
+	CurrentCaches     *generator.Caches
+	tracker           tracker.Interface
+	statusManager     *StatusProber
+	ingressTranslator *generator.IngressTranslator
+	ExtAuthz          bool
+	logger            *zap.SugaredLogger
 }
 
 func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
@@ -86,8 +85,9 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
 func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 	reconciler.logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
-	err := generator.UpdateInfoForIngress(reconciler.CurrentCaches, ingress, reconciler.kubeClient,
-		reconciler.EndpointsLister, network.GetClusterDomainName(), reconciler.tracker, reconciler.logger, reconciler.ExtAuthz)
+	err := generator.UpdateInfoForIngress(
+		reconciler.CurrentCaches, ingress, reconciler.kubeClient, reconciler.ingressTranslator, reconciler.logger, reconciler.ExtAuthz,
+	)
 	if err != nil {
 		return err
 	}

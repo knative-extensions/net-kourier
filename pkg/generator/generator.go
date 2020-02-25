@@ -1,29 +1,18 @@
 package generator
 
 import (
-	"fmt"
 	"kourier/pkg/config"
 	"kourier/pkg/envoy"
-	"kourier/pkg/knative"
 	"os"
-	"strconv"
-	"time"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"go.uber.org/zap"
 
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 
-	"knative.dev/pkg/tracker"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	kubev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
@@ -38,22 +27,12 @@ const (
 
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
-func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient kubeclient.Interface,
-	endpointsLister corev1listers.EndpointsLister, localDomainName string, tracker tracker.Interface,
-	logger *zap.SugaredLogger, extAuthzEnabled bool) error {
-
+func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, logger *zap.SugaredLogger, extAuthzEnabled bool) error {
 	if err := caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient); err != nil {
 		return err
 	}
 
-	// TODO: is this index really needed?
-	index := max(
-		len(caches.localVirtualHostsForIngress),
-		len(caches.externalVirtualHostsForIngress),
-	)
-
-	if err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker,
-		logger, extAuthzEnabled); err != nil {
+	if err := addIngressToCaches(caches, ingress, translator, logger, extAuthzEnabled); err != nil {
 		return err
 	}
 
@@ -68,164 +47,43 @@ func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient 
 
 func addIngressToCaches(caches *Caches,
 	ingress *v1alpha1.Ingress,
-	kubeclient kubeclient.Interface,
-	endpointsLister corev1listers.EndpointsLister,
-	localDomainName string,
-	index int,
-	tracker tracker.Interface,
+	translator *IngressTranslator,
 	logger *zap.SugaredLogger,
 	extAuthzEnabled bool) error {
 
-	var clusterLocalVirtualHosts []*route.VirtualHost
-	var externalVirtualHosts []*route.VirtualHost
+	logger.Infof("Knative Ingress found %s/%s", ingress.Name, ingress.Namespace)
+
+	// TODO: is this index really needed?
+	index := max(
+		len(caches.localVirtualHostsForIngress),
+		len(caches.externalVirtualHostsForIngress),
+	)
+
+	ingressTranslation, err := translator.translateIngress(ingress, index, extAuthzEnabled)
+	if err != nil {
+		return err
+	}
 
 	caches.AddIngress(ingress)
 
-	logger.Infof("Knative Ingress found %s/%s", ingress.Name, ingress.Namespace)
-
-	for _, ingressTLS := range ingress.GetSpec().TLS {
-		sniMatch, err := sniMatchFromIngressTLS(ingressTLS, kubeclient)
-
-		if err != nil {
-			logger.Errorf("%s", err)
-
-			// We need to propagate this error to the reconciler so the current
-			// event can be retried. This error might be caused because the
-			// secrets referenced in the TLS section of the spec do not exist
-			// yet. That's expected when auto TLS is configured.
-			// See the "TestPerKsvcCert_localCA" test in Knative Serving. It's a
-			// test that fails if this error is not propagated:
-			// https://github.com/knative/serving/blob/571e4db2392839082c559870ea8d4b72ef61e59d/test/e2e/autotls/auto_tls_test.go#L68
-			return err
-		}
+	for _, sniMatch := range ingressTranslation.sniMatches {
 		caches.AddSNIMatch(sniMatch, ingress.Name, ingress.Namespace)
 	}
 
-	for _, rule := range ingress.GetSpec().Rules {
-
-		var ruleRoute []*route.Route
-
-		for _, httpPath := range rule.HTTP.Paths {
-
-			path := "/"
-			if httpPath.Path != "" {
-				path = httpPath.Path
-			}
-
-			var wrs []*route.WeightedCluster_ClusterWeight
-
-			for _, split := range httpPath.Splits {
-				headersSplit := split.AppendHeaders
-
-				ref := kubev1.ObjectReference{
-					Kind:       "Endpoints",
-					APIVersion: "v1",
-					Namespace:  ingress.Namespace,
-					Name:       split.ServiceName,
-				}
-
-				if tracker != nil {
-					err := tracker.Track(ref, ingress)
-					if err != nil {
-						logger.Errorf("%s", err)
-						break
-					}
-				}
-
-				endpoints, err := endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
-				if apierrors.IsNotFound(err) {
-					logger.Infof("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-					break
-				} else if err != nil {
-					logger.Errorf("Failed to fetch endpoints '%s/%s': %v", split.ServiceNamespace, split.ServiceName, err)
-					break
-				}
-
-				service, err := kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
-				if apierrors.IsNotFound(err) {
-					logger.Infof("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-					break
-				} else if err != nil {
-					logger.Errorf("Failed to fetch service '%s/%s': %v", split.ServiceNamespace, split.ServiceName, err)
-					break
-				}
-
-				var targetPort int32
-				http2 := false
-				for _, port := range service.Spec.Ports {
-					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
-						targetPort = port.TargetPort.IntVal
-						http2 = port.Name == "http2" || port.Name == "h2c"
-					}
-				}
-
-				publicLbEndpoints := lbEndpointsForKubeEndpoints(endpoints, targetPort)
-
-				connectTimeout := 5 * time.Second
-				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2, v2.Cluster_STATIC)
-
-				caches.AddCluster(cluster, ingress.Name, ingress.Namespace)
-
-				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), headersSplit)
-
-				wrs = append(wrs, weightedCluster)
-			}
-
-			if len(wrs) != 0 {
-				r := createRouteForRevision(ingress.Name, index, httpPath, wrs)
-				ruleRoute = append(ruleRoute, r)
-				caches.AddRoute(r, ingress.Name, ingress.Namespace)
-			}
-
-		}
-
-		if len(ruleRoute) == 0 {
-			// Propagate the error to the reconciler, we do not want to generate
-			// an envoy config where an ingress has no routes, it would return
-			// 404.
-			return fmt.Errorf("ingress without routes")
-		}
-
-		externalDomains := knative.ExternalDomains(rule, localDomainName)
-		// External should also be accessible internally
-		internalDomains := append(knative.InternalDomains(rule, localDomainName), externalDomains...)
-
-		var virtualHost, internalVirtualHost route.VirtualHost
-		if extAuthzEnabled {
-
-			visibility := ingress.GetSpec().Visibility
-			if visibility == "" { // Needed because visibility is optional
-				visibility = v1alpha1.IngressVisibilityClusterLocal
-			}
-
-			ContextExtensions := map[string]string{
-				"client":     "kourier",
-				"visibility": string(visibility),
-			}
-
-			ContextExtensions = mergeMapString(ContextExtensions, ingress.GetLabels())
-
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, externalDomains, ruleRoute)
-			internalVirtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, internalDomains,
-				ruleRoute)
-		} else {
-			virtualHost = envoy.NewVirtualHost(ingress.GetName(), externalDomains, ruleRoute)
-			internalVirtualHost = envoy.NewVirtualHost(ingress.GetName(), internalDomains, ruleRoute)
-		}
-
-		if knative.RuleIsExternal(rule, ingress.GetSpec().Visibility) {
-			externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
-		}
-
-		clusterLocalVirtualHosts = append(clusterLocalVirtualHosts, &internalVirtualHost)
+	for _, cluster := range ingressTranslation.clusters {
+		caches.AddCluster(cluster, ingress.Name, ingress.Namespace)
 	}
 
-	for _, vHost := range externalVirtualHosts {
-		caches.AddExternalVirtualHostForIngress(vHost, ingress.Name, ingress.Namespace)
+	for _, ingressRoute := range ingressTranslation.routes {
+		caches.AddRoute(ingressRoute, ingress.Name, ingress.Namespace)
 	}
 
-	for _, vHost := range clusterLocalVirtualHosts {
-		caches.AddInternalVirtualHostForIngress(vHost, ingress.Name, ingress.Namespace)
+	for _, externalVHost := range ingressTranslation.externalVirtualHosts {
+		caches.AddExternalVirtualHostForIngress(externalVHost, ingress.Name, ingress.Namespace)
+	}
+
+	for _, internalVHost := range ingressTranslation.internalVirtualHosts {
+		caches.AddInternalVirtualHostForIngress(internalVHost, ingress.Name, ingress.Namespace)
 	}
 
 	return nil
@@ -308,45 +166,6 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 	return listeners, nil
 }
 
-func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
-	for _, subset := range kubeEndpoints.Subsets {
-		for _, address := range subset.Addresses {
-			lbEndpoint := envoy.NewLBEndpoint(address.IP, uint32(targetPort))
-			publicLbEndpoints = append(publicLbEndpoints, lbEndpoint)
-		}
-	}
-
-	return publicLbEndpoints
-}
-
-func createRouteForRevision(routeName string, i int, httpPath v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) *route.Route {
-	name := routeName + "_" + strconv.Itoa(i)
-
-	path := "/"
-	if httpPath.Path != "" {
-		path = httpPath.Path
-	}
-
-	var routeTimeout time.Duration
-	if httpPath.Timeout != nil {
-		routeTimeout = httpPath.Timeout.Duration
-	}
-
-	attempts := 0
-	var perTryTimeout time.Duration
-	if httpPath.Retries != nil {
-		attempts = httpPath.Retries.Attempts
-
-		if httpPath.Retries.PerTryTimeout != nil {
-			perTryTimeout = httpPath.Retries.PerTryTimeout.Duration
-		}
-	}
-
-	return envoy.NewRoute(
-		name, path, wrs, routeTimeout, uint32(attempts), perTryTimeout, httpPath.AppendHeaders,
-	)
-}
-
 // Returns true if we need to modify the HTTPS listener with just one cert
 // instead of one per ingress
 func useHTTPSListenerWithOneCert() bool {
@@ -365,19 +184,6 @@ func sslCreds(kubeClient kubeclient.Interface, secretNamespace string, secretNam
 	privateKey = string(secret.Data[keyFieldInSecret])
 
 	return certificateChain, privateKey, nil
-}
-
-func sniMatchFromIngressTLS(ingressTLS v1alpha1.IngressTLS, kubeClient kubeclient.Interface) (*envoy.SNIMatch, error) {
-	certChain, privateKey, err := sslCreds(
-		kubeClient, ingressTLS.SecretNamespace, ingressTLS.SecretName,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	sniMatch := envoy.NewSNIMatch(ingressTLS.Hosts, certChain, privateKey)
-	return &sniMatch, nil
 }
 
 func newExternalEnvoyListenerWithOneCert(manager *httpconnmanagerv2.HttpConnectionManager, kubeClient kubeclient.Interface) (*v2.Listener, error) {
@@ -410,15 +216,4 @@ func max(x, y int) int {
 	}
 
 	return y
-}
-
-func mergeMapString(a, b map[string]string) map[string]string {
-	merged := make(map[string]string)
-	for k, v := range a {
-		merged[k] = v
-	}
-	for k, v := range b {
-		merged[k] = v
-	}
-	return merged
 }

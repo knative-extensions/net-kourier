@@ -7,6 +7,8 @@ import (
 	"kourier/pkg/generator"
 	"strings"
 
+	"knative.dev/pkg/network"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
@@ -98,6 +100,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		})
 	})
 	c.tracker = tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
+
+	ingressTranslator := generator.NewIngressTranslator(
+		c.kubeClient, c.EndpointsLister, network.GetClusterDomainName(), c.tracker,
+	)
+	c.ingressTranslator = &ingressTranslator
 
 	// Make sure we initialize a config. Otherwise, there will be no config
 	// until a Knative service is deployed. This is important because the
