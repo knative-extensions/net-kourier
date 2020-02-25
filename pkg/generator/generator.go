@@ -54,37 +54,13 @@ func addIngressToCaches(caches *Caches,
 	logger.Infof("Knative Ingress found %s/%s", ingress.Name, ingress.Namespace)
 
 	// TODO: is this index really needed?
-	index := max(
-		len(caches.localVirtualHostsForIngress),
-		len(caches.externalVirtualHostsForIngress),
-	)
-
+	index := caches.numberOfIngresses()
 	ingressTranslation, err := translator.translateIngress(ingress, index, extAuthzEnabled)
 	if err != nil {
 		return err
 	}
 
-	caches.AddIngress(ingress)
-
-	for _, sniMatch := range ingressTranslation.sniMatches {
-		caches.AddSNIMatch(sniMatch, ingress.Name, ingress.Namespace)
-	}
-
-	for _, cluster := range ingressTranslation.clusters {
-		caches.AddCluster(cluster, ingress.Name, ingress.Namespace)
-	}
-
-	for _, ingressRoute := range ingressTranslation.routes {
-		caches.AddRoute(ingressRoute, ingress.Name, ingress.Namespace)
-	}
-
-	for _, externalVHost := range ingressTranslation.externalVirtualHosts {
-		caches.AddExternalVirtualHostForIngress(externalVHost, ingress.Name, ingress.Namespace)
-	}
-
-	for _, internalVHost := range ingressTranslation.internalVirtualHosts {
-		caches.AddInternalVirtualHostForIngress(internalVHost, ingress.Name, ingress.Namespace)
-	}
+	caches.AddTranslatedIngress(ingress, ingressTranslation)
 
 	return nil
 }
@@ -208,12 +184,4 @@ func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) 
 
 func newExternalHTTPSEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*envoy.SNIMatch) (*v2.Listener, error) {
 	return envoy.NewHTTPSListenerWithSNI(manager, config.HTTPSPortExternal, sniMatches)
-}
-
-func max(x, y int) int {
-	if x >= y {
-		return x
-	}
-
-	return y
 }

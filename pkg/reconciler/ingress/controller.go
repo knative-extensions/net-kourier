@@ -168,7 +168,7 @@ func addExtAuthz(caches *generator.Caches) envoy.ExternalAuthzConfig {
 		cluster := extAuthZConfig.GetExtAuthzCluster()
 		// This is a special case, as this cluster is not related to an ingress,
 		// The Ingress Name and Ingress Namespace are not really used.
-		caches.AddCluster(cluster, "__extAuthZCluster", "_internal")
+		caches.AddClusterForIngress(cluster, "__extAuthZCluster", "_internal")
 	}
 	return extAuthZConfig
 }
