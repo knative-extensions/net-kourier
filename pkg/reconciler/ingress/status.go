@@ -125,7 +125,6 @@ func NewStatusProber(
 // this Ingress is the latest known version and therefore anything related to older versions can be ignored.
 // Also, it means that IsReady is not called concurrently.
 func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
-
 	hash, err := resources.ComputeIngressHash(ingress)
 	if err != nil {
 		return false, err
@@ -133,25 +132,22 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 
 	ingressKey := fmt.Sprintf("%x", hash)
 
-	status := ingress.GetStatus()
-	if ingress.GetGeneration() == status.ObservedGeneration && status.IsReady() {
-		if ready, ok := func() (bool, bool) {
-			m.mu.Lock()
-			defer m.mu.Unlock()
-			if state, ok := m.ingressStates[ingressKey]; ok {
-				if state.id == ingressKey {
-					state.lastAccessed = time.Now()
-					return atomic.LoadInt32(&state.pendingCount) == 0, true
-				}
-
-				// Cancel the polling for the outdated version
-				state.cancel()
-				delete(m.ingressStates, ingressKey)
+	if ready, ok := func() (bool, bool) {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if state, ok := m.ingressStates[ingressKey]; ok {
+			if state.id == ingressKey {
+				state.lastAccessed = time.Now()
+				return atomic.LoadInt32(&state.pendingCount) == 0, true
 			}
-			return false, false
-		}(); ok {
-			return ready, nil
+
+			// Cancel the polling for the outdated version
+			state.cancel()
+			delete(m.ingressStates, ingressKey)
 		}
+		return false, false
+	}(); ok {
+		return ready, nil
 	}
 
 	ingCtx, cancel := context.WithCancel(context.Background())
