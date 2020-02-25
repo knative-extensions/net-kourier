@@ -2,8 +2,11 @@ package ingress
 
 import (
 	"context"
+	"fmt"
 	"kourier/pkg/envoy"
 	"kourier/pkg/generator"
+	"kourier/pkg/knative"
+	"reflect"
 
 	"go.uber.org/zap"
 
@@ -17,6 +20,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	knativeclient "knative.dev/serving/pkg/client/clientset/versioned"
 	nv1alpha1lister "knative.dev/serving/pkg/client/listers/networking/v1alpha1"
 )
 
@@ -25,6 +29,7 @@ type Reconciler struct {
 	EndpointsLister corev1listers.EndpointsLister
 	EnvoyXDSServer  *envoy.XdsServer
 	kubeClient      kubeclient.Interface
+	knativeClient   knativeclient.Interface
 	CurrentCaches   *generator.Caches
 	tracker         tracker.Interface
 	statusManager   *StatusProber
@@ -38,14 +43,20 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 	}
 	reconciler.logger.Infof("Got reconcile request for %s namespace: %s", name, namespace)
 
-	ingress, err := reconciler.IngressLister.Ingresses(namespace).Get(name)
+	original, err := reconciler.IngressLister.Ingresses(namespace).Get(name)
 	if apierrors.IsNotFound(err) {
 		return reconciler.deleteIngress(namespace, name)
 	} else if err != nil {
 		return err
 	}
 
-	return reconciler.updateIngress(ingress)
+	ingress := original.DeepCopy()
+
+	if err := reconciler.updateIngress(ingress); err != nil {
+		return fmt.Errorf("failed to update ingress: %w", err)
+	}
+
+	return reconciler.updateStatus(original, ingress)
 }
 
 func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
@@ -90,6 +101,25 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 		return err
 	}
 
-	_, err = reconciler.statusManager.IsReady(ingress)
+	ready, err := reconciler.statusManager.IsReady(ingress)
+	if err != nil {
+		return err
+	}
+
+	if ready {
+		knative.MarkIngressReady(ingress)
+	}
+	return nil
+}
+
+func (reconciler *Reconciler) updateStatus(existing *v1alpha1.Ingress, desired *v1alpha1.Ingress) error {
+	// If there's nothing to update, just return.
+	if reflect.DeepEqual(existing.Status, desired.Status) {
+		return nil
+	}
+
+	existing = existing.DeepCopy()
+	existing.Status = desired.Status
+	_, err := reconciler.knativeClient.NetworkingV1alpha1().Ingresses(existing.Namespace).UpdateStatus(existing)
 	return err
 }

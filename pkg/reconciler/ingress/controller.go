@@ -5,7 +5,6 @@ import (
 	"kourier/pkg/config"
 	"kourier/pkg/envoy"
 	"kourier/pkg/generator"
-	"kourier/pkg/knative"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -61,32 +60,30 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	caches := generator.NewCaches(logger.Named("caches"))
 
-	readyCallback := func(ingress *v1alpha1.Ingress) {
-		logger.Debugf("Ready callback triggered for ingress: %s/%s", ingress.Name, ingress.Namespace)
-		err := knative.MarkIngressReady(knativeClient, ingress)
-		if err != nil {
-			logger.Warnf("Failed to update ingress Ready: %v", err)
-		}
+	c := &Reconciler{
+		IngressLister:   ingressInformer.Lister(),
+		EndpointsLister: endpointsInformer.Lister(),
+		EnvoyXDSServer:  envoyXdsServer,
+		kubeClient:      kubernetesClient,
+		knativeClient:   knativeClient,
+		CurrentCaches:   caches,
+		logger:          logger.Named("reconciler"),
+	}
+
+	impl := controller.NewImpl(c, logger, controllerName)
+
+	readyCallback := func(ing *v1alpha1.Ingress) {
+		logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
+		impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
 	}
 
 	statusProber := NewStatusProber(
 		logger.Named("status-manager"),
 		endpointsInformer.Lister(),
 		readyCallback)
-
-	c := &Reconciler{
-		IngressLister:   ingressInformer.Lister(),
-		EndpointsLister: endpointsInformer.Lister(),
-		EnvoyXDSServer:  envoyXdsServer,
-		kubeClient:      kubernetesClient,
-		CurrentCaches:   caches,
-		statusManager:   statusProber,
-		logger:          logger.Named("reconciler"),
-	}
-
+	c.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 
-	impl := controller.NewImpl(c, logger, controllerName)
 	c.CurrentCaches.SetOnEvicted(func(key string, value interface{}) {
 		// The format of the key received is "clusterName:ingressName:ingressNamespace"
 		logger.Debugf("Evicted %s", key)
