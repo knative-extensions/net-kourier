@@ -71,7 +71,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	statusProber := NewStatusProber(
 		logger.Named("status-manager"),
-		podInformer.Lister(),
+		endpointsInformer.Lister(),
 		readyCallback)
 
 	c := &Reconciler{

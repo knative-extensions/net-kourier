@@ -38,8 +38,6 @@ import (
 	"go.uber.org/zap"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/workqueue"
@@ -48,11 +46,9 @@ import (
 )
 
 const (
-	probeConcurrency          = 5
-	stateExpiration           = 5 * time.Minute
-	cleanupPeriod             = 1 * time.Minute
-	gatewayLabelSelectorKey   = "app"
-	gatewayLabelSelectorValue = "3scale-kourier-gateway"
+	probeConcurrency = 5
+	stateExpiration  = 5 * time.Minute
+	cleanupPeriod    = 1 * time.Minute
 )
 
 var dialContext = (&net.Dialer{}).DialContext
@@ -94,8 +90,8 @@ type StatusProber struct {
 	ingressStates map[string]*ingressState
 	podStates     map[string]*podState
 
-	workQueue workqueue.RateLimitingInterface
-	podLister corev1listers.PodLister
+	workQueue       workqueue.RateLimitingInterface
+	endpointsLister corev1listers.EndpointsLister
 
 	readyCallback    func(ingress *v1alpha1.Ingress)
 	probeConcurrency int
@@ -106,7 +102,7 @@ type StatusProber struct {
 // NewStatusProber creates a new instance of StatusProber
 func NewStatusProber(
 	logger *zap.SugaredLogger,
-	podLister corev1listers.PodLister,
+	endpointsLister corev1listers.EndpointsLister,
 	readyCallback func(ingress *v1alpha1.Ingress)) *StatusProber {
 	return &StatusProber{
 		logger:        logger,
@@ -116,7 +112,7 @@ func NewStatusProber(
 			workqueue.DefaultControllerRateLimiter(),
 			"ProbingQueue"),
 		readyCallback:    readyCallback,
-		podLister:        podLister,
+		endpointsLister:  endpointsLister,
 		probeConcurrency: probeConcurrency,
 		stateExpiration:  stateExpiration,
 		cleanupPeriod:    cleanupPeriod,
@@ -168,24 +164,23 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 	}
 
 	var workItems []*workItem
-	selector := labels.NewSelector()
-	labelSelector, err := labels.NewRequirement(gatewayLabelSelectorKey, selection.Equals, []string{gatewayLabelSelectorValue})
+	eps, err := m.endpointsLister.Endpoints(system.Namespace()).Get(config.InternalServiceName)
 	if err != nil {
-		m.logger.Errorf("Failed to create 'Equals' requirement from %q=%q: %w", gatewayLabelSelectorKey, gatewayLabelSelectorValue, err)
-	}
-	selector = selector.Add(*labelSelector)
-
-	gatewayPods, err := m.podLister.Pods(system.Namespace()).List(selector)
-	if err != nil {
-		m.logger.Errorf("failed to get gateway pods: %w", err)
+		return false, fmt.Errorf("failed to get internal service: %w", err)
 	}
 
-	if len(gatewayPods) == 0 {
+	var readyIPs []string
+	for _, sub := range eps.Subsets {
+		for _, address := range sub.Addresses {
+			readyIPs = append(readyIPs, address.IP)
+		}
+	}
+
+	if len(readyIPs) == 0 {
 		return false, nil
 	}
 
-	for _, gwPod := range gatewayPods {
-		ip := gwPod.Status.PodIP
+	for _, ip := range readyIPs {
 		ctx, cancel := context.WithCancel(ingCtx)
 		podState := &podState{
 			successCount: 0,
@@ -219,7 +214,7 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 		workItem := &workItem{
 			ingressState: snapshotState,
 			podState:     podState,
-			url:          "http://" + gwPod.Status.PodIP + ":" + port + config.InternalKourierPath + "/" + ingressKey,
+			url:          "http://" + ip + ":" + port + config.InternalKourierPath + "/" + ingressKey,
 			podIP:        ip,
 			hostname:     config.InternalKourierDomain,
 		}
@@ -227,7 +222,7 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 
 	}
 
-	snapshotState.pendingCount += int32(len(gatewayPods))
+	snapshotState.pendingCount += int32(len(readyIPs))
 
 	func() {
 		m.mu.Lock()
