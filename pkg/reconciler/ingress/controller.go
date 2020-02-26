@@ -64,14 +64,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	extAuthZConfig := addExtAuthz(caches)
 
 	c := &Reconciler{
-		IngressLister:   ingressInformer.Lister(),
-		EndpointsLister: endpointsInformer.Lister(),
-		EnvoyXDSServer:  envoyXdsServer,
-		kubeClient:      kubernetesClient,
-		knativeClient:   knativeClient,
-		CurrentCaches:   caches,
-		logger:          logger.Named("reconciler"),
-		ExtAuthz:        extAuthZConfig.Enabled,
+		IngressLister:  ingressInformer.Lister(),
+		EnvoyXDSServer: envoyXdsServer,
+		kubeClient:     kubernetesClient,
+		knativeClient:  knativeClient,
+		CurrentCaches:  caches,
+		logger:         logger.Named("reconciler"),
+		ExtAuthz:       extAuthZConfig.Enabled,
 	}
 
 	impl := controller.NewImpl(c, logger, controllerName)
@@ -99,10 +98,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			Name:      keyParts[1],
 		})
 	})
-	c.tracker = tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
+
+	endpointsTracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		c.kubeClient, c.EndpointsLister, network.GetClusterDomainName(), c.tracker,
+		c.kubeClient, endpointsInformer.Lister(), network.GetClusterDomainName(), endpointsTracker,
 	)
 	c.ingressTranslator = &ingressTranslator
 
@@ -139,7 +139,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
-			c.tracker.OnChanged,
+			endpointsTracker.OnChanged,
 			v1.SchemeGroupVersion.WithKind("Endpoints"),
 		),
 	))
