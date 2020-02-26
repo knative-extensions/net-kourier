@@ -44,6 +44,8 @@ import (
 	"knative.dev/pkg/profiling"
 	"knative.dev/pkg/signals"
 	"knative.dev/pkg/system"
+	"knative.dev/pkg/version"
+	"knative.dev/pkg/webhook"
 )
 
 // GetConfig returns a rest.Config to be used for kubernetes client creation.
@@ -104,7 +106,7 @@ func MainWithContext(ctx context.Context, component string, ctors ...injection.C
 
 	cfg, err := GetConfig(*masterURL, *kubeconfig)
 	if err != nil {
-		log.Fatal("Error building kubeconfig", err)
+		log.Fatalf("Error building kubeconfig: %v", err)
 	}
 	MainWithConfig(ctx, component, cfg, ctors...)
 }
@@ -132,39 +134,61 @@ func MainWithConfig(ctx context.Context, component string, cfg *rest.Config, cto
 	// Set up our logger.
 	loggingConfig, err := GetLoggingConfig(ctx)
 	if err != nil {
-		log.Fatal("Error reading/parsing logging configuration:", err)
+		log.Fatalf("Error reading/parsing logging configuration: %v", err)
 	}
 	logger, atomicLevel := logging.NewLoggerFromConfig(loggingConfig, component)
 	defer flush(logger)
 	ctx = logging.WithLogger(ctx, logger)
 
+	kc := kubeclient.Get(ctx)
+	if err := version.CheckMinimumVersion(kc.Discovery()); err != nil {
+		logger.Fatalw("Version check failed", zap.Error(err))
+	}
+
 	// TODO(mattmoor): This should itself take a context and be injection-based.
-	cmw := configmap.NewInformedWatcher(kubeclient.Get(ctx), system.Namespace())
+	cmw := configmap.NewInformedWatcher(kc, system.Namespace())
 
 	// Based on the reconcilers we have linked, build up the set of controllers to run.
 	controllers := make([]*controller.Impl, 0, len(ctors))
+	webhooks := make([]webhook.AdmissionController, 0)
 	for _, cf := range ctors {
-		controllers = append(controllers, cf(ctx, cmw))
+		ctrl := cf(ctx, cmw)
+		controllers = append(controllers, ctrl)
+
+		// Build a list of any reconcilers that implement webhook.AdmissionController
+		if ac, ok := ctrl.Reconciler.(webhook.AdmissionController); ok {
+			webhooks = append(webhooks, ac)
+		}
 	}
 
 	profilingHandler := profiling.NewHandler(logger, false)
 
 	// Watch the logging config map and dynamically update logging levels.
-	cmw.Watch(logging.ConfigMapName(), logging.UpdateLevelFromConfigMap(logger, atomicLevel, component))
+	if _, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(logging.ConfigMapName(),
+		metav1.GetOptions{}); err == nil {
+		cmw.Watch(logging.ConfigMapName(), logging.UpdateLevelFromConfigMap(logger, atomicLevel, component))
+	} else if !apierrors.IsNotFound(err) {
+		logger.With(zap.Error(err)).Fatalf("Error reading ConfigMap %q", logging.ConfigMapName())
+	}
 
 	// Watch the observability config map
-	cmw.Watch(metrics.ConfigMapName(),
-		metrics.UpdateExporterFromConfigMap(component, logger),
-		profilingHandler.UpdateFromConfigMap)
+	if _, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(metrics.ConfigMapName(),
+		metav1.GetOptions{}); err == nil {
+		cmw.Watch(metrics.ConfigMapName(),
+			metrics.UpdateExporterFromConfigMap(component, logger),
+			profilingHandler.UpdateFromConfigMap)
+	} else if !apierrors.IsNotFound(err) {
+		logger.With(zap.Error(err)).Fatalf("Error reading ConfigMap %q", metrics.ConfigMapName())
+	}
 
 	if err := cmw.Start(ctx.Done()); err != nil {
-		logger.Fatalw("failed to start configuration manager", zap.Error(err))
+		logger.Fatalw("Failed to start configuration manager", zap.Error(err))
 	}
 
 	// Start all of the informers and wait for them to sync.
 	logger.Info("Starting informers.")
 	if err := controller.StartInformers(ctx.Done(), informers...); err != nil {
-		logger.Fatalw("Failed to start informers", err)
+		logger.Fatalw("Failed to start informers", zap.Error(err))
 	}
 
 	// Start all of the controllers.
@@ -175,6 +199,21 @@ func MainWithConfig(ctx context.Context, component string, cfg *rest.Config, cto
 
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.Go(profilingServer.ListenAndServe)
+
+	// If we have one or more admission controllers, then start the webhook
+	// and pass them in.
+	if len(webhooks) > 0 {
+		// Register webhook metrics
+		webhook.RegisterMetrics()
+
+		wh, err := webhook.New(ctx, webhooks)
+		if err != nil {
+			logger.Fatalw("Failed to create admission controller", zap.Error(err))
+		}
+		eg.Go(func() error {
+			return wh.Run(ctx.Done())
+		})
+	}
 
 	// This will block until either a signal arrives or one of the grouped functions
 	// returns an error.
