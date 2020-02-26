@@ -84,9 +84,9 @@ func GetExtAuthzDeployment(namespace string) appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name:            "externalauthz",
-							Image:           "quay.io/3scale/test_externalauthz:latest",
+							Image:           "test_externalauthz:test",
 							Resources:       corev1.ResourceRequirements{},
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: "IfNotPresent",
 							Ports:           []corev1.ContainerPort{{ContainerPort: 6000}},
 							StartupProbe: &corev1.Probe{
 								Handler: corev1.Handler{

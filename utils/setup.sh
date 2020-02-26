@@ -26,8 +26,10 @@ export KUBECONFIG="$(k3d get-kubeconfig --name='kourier-integration')"
 # Builds and imports the kourier and gateway images from docker into the k8s cluster
 docker build -t 3scale-kourier:"$tag" ./
 docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:"$tag" ./
+docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:test ./utils/extauthz_test_image/
 k3d import-images 3scale-kourier:"$tag" --name='kourier-integration'
 k3d import-images 3scale-kourier-gateway:"$tag" --name='kourier-integration'
+k3d import-images test_externalauthz:test --name='kourier-integration'
 
 KNATIVE_VERSION=v0.11.1
 # Deploys kourier and patches it.

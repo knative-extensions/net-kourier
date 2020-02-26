@@ -24,6 +24,9 @@ docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 docker-build-gateway: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 	docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:test ./
 
+docker-build-extauthzutil: ## Builds kourier docker, tagged by default as 3scale-kourier:test
+	docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:latest ./utils/extauthz_test_image/
+
 local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
 	./utils/setup.sh
 
@@ -49,7 +52,7 @@ test-unit-coverage: test-unit ## Runs unit tests and generates a coverage report
 
 .PHONY: fmt
 fmt: # Runs code formatting
-	goimports -w $$(find . -type f -name '*.go' -not -path "./vendor/*")
+	goimports -w $$(find . -type f -name '*.go' -not -path './vendor/*' -not -path './utils/extauthz_test_image/vendor/*')
 
 help: ## Print this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-39s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
