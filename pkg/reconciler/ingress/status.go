@@ -29,7 +29,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"knative.dev/serving/pkg/reconciler/ingress/resources"
+	"knative.dev/pkg/network/prober"
+	networkIngress "knative.dev/serving/pkg/network/ingress"
 
 	"knative.dev/pkg/system"
 
@@ -41,8 +42,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/workqueue"
-
-	"knative.dev/serving/pkg/network/prober"
 )
 
 const (
@@ -126,7 +125,7 @@ func NewStatusProber(
 // this Ingress is the latest known version and therefore anything related to older versions can be ignored.
 // Also, it means that IsReady is not called concurrently.
 func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
-	hash, err := resources.ComputeIngressHash(ingress)
+	hash, err := networkIngress.ComputeHash(ingress)
 	if err != nil {
 		return false, err
 	}
@@ -257,7 +256,7 @@ func (m *StatusProber) Start(done <-chan struct{}) {
 func (m *StatusProber) CancelIngress(ingress *v1alpha1.Ingress) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	hash, err := resources.ComputeIngressHash(ingress)
+	hash, err := networkIngress.ComputeHash(ingress)
 	if err != nil {
 		m.logger.Errorf("failed to compute ingress Hash: %s", err)
 	}

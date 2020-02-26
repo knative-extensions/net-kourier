@@ -24,7 +24,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	log "github.com/sirupsen/logrus"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
-	"knative.dev/serving/pkg/reconciler/ingress/resources"
+	networkIngress "knative.dev/serving/pkg/network/ingress"
 )
 
 // Generates an internal virtual host that signals that the Envoy instance has
@@ -45,7 +45,7 @@ func statusRoutes(ingresses []*v1alpha1.Ingress) []*route.Route {
 	var hashes []string
 	var routes []*route.Route
 	for _, ingress := range ingresses {
-		hash, err := resources.ComputeIngressHash(ingress)
+		hash, err := networkIngress.ComputeHash(ingress)
 		if err != nil {
 			log.Errorf("Failed to hash ingress %s: %s", ingress.Name, err)
 			break
