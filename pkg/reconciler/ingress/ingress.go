@@ -33,6 +33,7 @@ type Reconciler struct {
 	CurrentCaches   *generator.Caches
 	tracker         tracker.Interface
 	statusManager   *StatusProber
+	ExtAuthz        bool
 	logger          *zap.SugaredLogger
 }
 
@@ -86,7 +87,7 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 	reconciler.logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
 	err := generator.UpdateInfoForIngress(reconciler.CurrentCaches, ingress, reconciler.kubeClient,
-		reconciler.EndpointsLister, network.GetClusterDomainName(), reconciler.tracker, reconciler.logger)
+		reconciler.EndpointsLister, network.GetClusterDomainName(), reconciler.tracker, reconciler.logger, reconciler.ExtAuthz)
 	if err != nil {
 		return err
 	}

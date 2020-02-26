@@ -59,6 +59,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	podInformer := podinformer.Get(ctx)
 
 	caches := generator.NewCaches(logger.Named("caches"))
+	extAuthZConfig := addExtAuthz(caches)
 
 	c := &Reconciler{
 		IngressLister:   ingressInformer.Lister(),
@@ -68,6 +69,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		knativeClient:   knativeClient,
 		CurrentCaches:   caches,
 		logger:          logger.Named("reconciler"),
+		ExtAuthz:        extAuthZConfig.Enabled,
 	}
 
 	impl := controller.NewImpl(c, logger, controllerName)
@@ -151,4 +153,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	podInformer.Informer().AddEventHandler(podInformerHandler)
 
 	return impl
+}
+
+func addExtAuthz(caches *generator.Caches) envoy.ExternalAuthzConfig {
+	extAuthZConfig := envoy.GetExternalAuthzConfig()
+	if extAuthZConfig.Enabled {
+		cluster := extAuthZConfig.GetExtAuthzCluster()
+		// This is a special case, as this cluster is not related to an ingress,
+		// The Ingress Name and Ingress Namespace are not really used.
+		caches.AddCluster(cluster, "__extAuthZCluster", "_internal")
+	}
+	return extAuthZConfig
 }

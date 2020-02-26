@@ -49,9 +49,10 @@ const (
 	probeConcurrency = 5
 	stateExpiration  = 5 * time.Minute
 	cleanupPeriod    = 1 * time.Minute
+	probeTimeout     = 1 * time.Second
 )
 
-var dialContext = (&net.Dialer{}).DialContext
+var dialContext = (&net.Dialer{Timeout: probeTimeout}).DialContext
 
 // ingressState represents the probing progress at the Ingress scope
 type ingressState struct {

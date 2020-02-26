@@ -38,7 +38,9 @@ const (
 
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
-func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string, tracker tracker.Interface, logger *zap.SugaredLogger) error {
+func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient kubeclient.Interface,
+	endpointsLister corev1listers.EndpointsLister, localDomainName string, tracker tracker.Interface,
+	logger *zap.SugaredLogger, extAuthzEnabled bool) error {
 
 	if err := caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient); err != nil {
 		return err
@@ -50,7 +52,8 @@ func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient 
 		len(caches.externalVirtualHostsForIngress),
 	)
 
-	if err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker, logger); err != nil {
+	if err := addIngressToCaches(caches, ingress, kubeclient, endpointsLister, localDomainName, index, tracker,
+		logger, extAuthzEnabled); err != nil {
 		return err
 	}
 
@@ -70,7 +73,8 @@ func addIngressToCaches(caches *Caches,
 	localDomainName string,
 	index int,
 	tracker tracker.Interface,
-	logger *zap.SugaredLogger) error {
+	logger *zap.SugaredLogger,
+	extAuthzEnabled bool) error {
 
 	var clusterLocalVirtualHosts []*route.VirtualHost
 	var externalVirtualHosts []*route.VirtualHost
@@ -158,7 +162,7 @@ func addIngressToCaches(caches *Caches,
 				publicLbEndpoints := lbEndpointsForKubeEndpoints(endpoints, targetPort)
 
 				connectTimeout := 5 * time.Second
-				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2)
+				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2, v2.Cluster_STATIC)
 
 				caches.AddCluster(cluster, ingress.Name, ingress.Namespace)
 
@@ -183,11 +187,31 @@ func addIngressToCaches(caches *Caches,
 		}
 
 		externalDomains := knative.ExternalDomains(rule, localDomainName)
-		virtualHost := envoy.NewVirtualHost(ingress.Name, externalDomains, ruleRoute)
-
 		// External should also be accessible internally
 		internalDomains := append(knative.InternalDomains(rule, localDomainName), externalDomains...)
-		internalVirtualHost := envoy.NewVirtualHost(ingress.Name, internalDomains, ruleRoute)
+
+		var virtualHost, internalVirtualHost route.VirtualHost
+		if extAuthzEnabled {
+
+			visibility := ingress.GetSpec().Visibility
+			if visibility == "" { // Needed because visibility is optional
+				visibility = v1alpha1.IngressVisibilityClusterLocal
+			}
+
+			ContextExtensions := map[string]string{
+				"client":     "kourier",
+				"visibility": string(visibility),
+			}
+
+			ContextExtensions = mergeMapString(ContextExtensions, ingress.GetLabels())
+
+			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, externalDomains, ruleRoute)
+			internalVirtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, internalDomains,
+				ruleRoute)
+		} else {
+			virtualHost = envoy.NewVirtualHost(ingress.GetName(), externalDomains, ruleRoute)
+			internalVirtualHost = envoy.NewVirtualHost(ingress.GetName(), internalDomains, ruleRoute)
+		}
 
 		if knative.RuleIsExternal(rule, ingress.GetSpec().Visibility) {
 			externalVirtualHosts = append(externalVirtualHosts, &virtualHost)
@@ -386,4 +410,15 @@ func max(x, y int) int {
 	}
 
 	return y
+}
+
+func mergeMapString(a, b map[string]string) map[string]string {
+	merged := make(map[string]string)
+	for k, v := range a {
+		merged[k] = v
+	}
+	for k, v := range b {
+		merged[k] = v
+	}
+	return merged
 }
