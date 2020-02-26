@@ -24,7 +24,7 @@ docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 docker-build-gateway: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 	docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:test ./
 
-docker-build-extauthzutil: ## Builds kourier docker, tagged by default as 3scale-kourier:test
+docker-build-extauthzutil: ## Builds kourier docker, tagged by default as test_externalauthz:latest
 	docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:latest ./utils/extauthz_test_image/
 
 local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy

@@ -44,7 +44,7 @@ jobs:
       - run:
           name: Run formatting check
           command: |
-            unmatched_files=$(goimports -l $(find . -type f -name '*.go' -not -path './vendor/*'))
+            unmatched_files=$(goimports -l $(find . -type f -name '*.go' -not -path './vendor/*' -not -path './utils/extauthz_test_image/vendor/*'))
             if [[ -n "${unmatched_files}" ]]
             then
               echo "Formatting issues exist. Run 'make fmt'"

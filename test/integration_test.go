@@ -28,8 +28,6 @@ const clusterURL string = "http://localhost:8080"
 const domain string = "127.0.0.1.nip.io"
 const kourierNamespace string = "kourier-system"
 
-//var kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-
 func TestKourierIntegration(t *testing.T) {
 	t.Run("SimpleHelloworld", SimpleScenario)
 	t.Run("ExternalAuthz", ExtAuthzScenario)
@@ -63,16 +61,33 @@ func ExtAuthzScenario(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Prepare the request
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", clusterURL+"/success", nil)
+	// Prepare the request, this one should fail.
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
+	req, err := http.NewRequest("GET", clusterURL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = fmt.Sprintf("%s.%s.%s", service.Name, namespace, domain)
+	// Do the request
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, resp.StatusCode, http.StatusForbidden)
+
+	// Prepare the request, this one should succeed
+	req, err = http.NewRequest("GET", clusterURL+"/success", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	req.Host = fmt.Sprintf("%s.%s.%s", service.Name, namespace, domain)
 
 	// Do the request
-	resp, err := client.Do(req)
+	resp, err = client.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,18 +99,6 @@ func ExtAuthzScenario(t *testing.T) {
 	// The "hello world" service just returns "Hello World!"
 	assert.Equal(t, string(respBody), "Hello World!\n")
 
-	req, err = http.NewRequest("GET", clusterURL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Host = fmt.Sprintf("%s.%s.%s", service.Name, namespace, domain)
-	// Do the request
-	resp, err = client.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, resp.StatusCode, http.StatusForbidden)
 	err = cleanExtAuthzScenario(kubeClient, servingClient, service.Name, "externalauthz", "externalauthz")
 	if err != nil {
 		t.Fatal(err)
@@ -106,12 +109,23 @@ func ExtAuthzScenario(t *testing.T) {
 func setupExtAuthzScenario(k8sClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1alpha1Client,
 	networkServingClient *networkingClientSet.NetworkingV1alpha1Client) (*v1alpha1.Service, error) {
 
-	service := ExampleHelloWorldServing()
+	kubeClient := test.KubeClient{
+		Kube: k8sClient,
+	}
 
-	err := DeployExtAuthzService(k8sClient, kourierNamespace)
+	service := ExampleHelloWorldServing()
+	createdService, err := servingClient.Services(namespace).Create(&service)
 	if err != nil {
 		return nil, err
 	}
+
+	err = DeployExtAuthzService(k8sClient, kourierNamespace)
+	if err != nil {
+		return nil, err
+	}
+	// Wait for deployments to be ready
+	test.WaitForDeploymentState(&kubeClient, "externalauthz", isDeploymentScaledUp,
+		"DeploymentIsScaledUp", kourierNamespace, 120*time.Second)
 
 	// Patch kourier control to add required ENV vars to enable External Authz.
 	kourierControlDeployment, err := k8sClient.AppsV1().Deployments(kourierNamespace).Get("3scale-kourier-control",
@@ -143,27 +157,19 @@ func setupExtAuthzScenario(k8sClient *kubernetes.Clientset, servingClient *servi
 	if err != nil {
 		return nil, err
 	}
-	createdService, err := servingClient.Services(namespace).Create(&service)
-	if err != nil {
-		return nil, err
-	}
-
-	kubeClient := test.KubeClient{
-		Kube: k8sClient,
-	}
 
 	// Wait for deployments to be ready
-	test.WaitForDeploymentState(&kubeClient, "externalauthz", isDeploymentScaledUp,
+	test.WaitForDeploymentState(&kubeClient, kourierControlDeployment.GetName(), isDeploymentScaledUp,
 		"DeploymentIsScaledUp", kourierNamespace, 120*time.Second)
-	time.Sleep(15 * time.Second)
+
+	time.Sleep(10 * time.Second)
 
 	eventsIngressReady := make(chan struct{})
 	stopChan := make(chan struct{})
 
+	// Wait until the service is ready.
 	go watchForIngressReady(networkServingClient, service.Name, service.Namespace, eventsIngressReady, stopChan)
 
-	// Wait until the service is ready plus some time to make sure that Envoy
-	// refreshed the config.
 	<-eventsIngressReady
 
 	return createdService, nil

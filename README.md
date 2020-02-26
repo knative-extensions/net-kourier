@@ -83,11 +83,11 @@ CERTS_SECRET_NAME: ${CERT_NAME}
 ```
 ## External Authorization Configuration
 
-If you want to enable the external authorization support you can set those ENV vars in the `3scale-kourier-control`
+If you want to enable the external authorization support you can set these ENV vars in the `3scale-kourier-control`
  deployment:
 
 - `KOURIER_EXTAUTHZ_HOST*`: The external authorization service and port, my-auth:2222
-- `KOURIER_EXTAUTHZ_FAILUREMODEALLOW*`: Allow traffic to go through if the ext auth service is down.
+- `KOURIER_EXTAUTHZ_FAILUREMODEALLOW*`: Allow traffic to go through if the ext auth service is down. Accepts true/false
 - `KOURIER_EXTAUTHZ_MAXREQUESTBYTES`: Max request bytes, if not set, defaults to 8192 Bytes. More info [Envoy Docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html?highlight=max_request_bytes#extensions-filters-http-ext-authz-v3-buffersettings)
 - `KOURIER_EXTAUTHZ_TIMEOUT`: Max time in ms to wait for the ext authz service. Defaults to 2s.
 

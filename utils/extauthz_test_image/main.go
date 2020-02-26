@@ -1,6 +1,7 @@
 package main
 
 // This is a really simple image for the kourier integration tests.
+// Authorizes requests with the path "/success" denies all the others.
 
 import (
 	"context"
@@ -9,12 +10,10 @@ import (
 	"net"
 
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-
-	"google.golang.org/genproto/googleapis/rpc/code"
-
 	"github.com/golang/protobuf/ptypes/any"
 
 	authZ "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
+	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 )
