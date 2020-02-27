@@ -8,7 +8,6 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/google/uuid"
@@ -17,44 +16,25 @@ import (
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
-type VHostsForIngresses map[string][]*route.VirtualHost
-
 type Caches struct {
-	endpoints   []*endpoint.Endpoint
-	clusters    *ClustersCache
-	routes      []*route.Route
-	routeConfig []v2.RouteConfiguration
-	listeners   []*v2.Listener
-	runtimes    []cache.Resource
-	ingresses   map[string]*v1alpha1.Ingress
-	logger      *zap.SugaredLogger
-
-	// These mappings are helpful to know the caches affected when there's a
-	// change in an ingress.
-	localVirtualHostsForIngress    VHostsForIngresses
-	externalVirtualHostsForIngress VHostsForIngresses
-	statusVirtualHost              *route.VirtualHost
-	routesForIngress               map[string][]string
-	clustersToIngress              map[string][]string
-	sniMatchesForIngress           map[string][]*envoy.SNIMatch
+	ingresses           map[string]*v1alpha1.Ingress
+	translatedIngresses map[string]*translatedIngress
+	clusters            *ClustersCache
+	clustersToIngress   map[string][]string
+	routeConfig         []v2.RouteConfiguration
+	listeners           []*v2.Listener
+	statusVirtualHost   *route.VirtualHost
+	logger              *zap.SugaredLogger
 }
 
 func NewCaches(logger *zap.SugaredLogger) *Caches {
 	return &Caches{
-		clusters:                       newClustersCache(logger.Named("cluster-cache")),
-		localVirtualHostsForIngress:    make(VHostsForIngresses),
-		externalVirtualHostsForIngress: make(VHostsForIngresses),
-		routesForIngress:               make(map[string][]string),
-		ingresses:                      make(map[string]*v1alpha1.Ingress),
-		clustersToIngress:              make(map[string][]string),
-		sniMatchesForIngress:           make(map[string][]*envoy.SNIMatch),
-		logger:                         logger,
+		ingresses:           make(map[string]*v1alpha1.Ingress),
+		translatedIngresses: make(map[string]*translatedIngress),
+		clusters:            newClustersCache(logger.Named("cluster-cache")),
+		clustersToIngress:   make(map[string][]string),
+		logger:              logger,
 	}
-}
-
-// SetOnEvicted allows to set a function that will be executed when any key on the cache expires.
-func (caches *Caches) SetOnEvicted(f func(string, interface{})) {
-	caches.clusters.clusters.OnEvicted(f)
 }
 
 func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {
@@ -62,61 +42,21 @@ func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }
 
-func (caches *Caches) AddIngress(ingress *v1alpha1.Ingress) {
+func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) {
 	caches.logger.Debugf("adding ingress: %s/%s", ingress.Name, ingress.Namespace)
-	caches.ingresses[mapKey(ingress.Name, ingress.Namespace)] = ingress
+
+	key := mapKey(ingress.Name, ingress.Namespace)
+	caches.ingresses[key] = ingress
+	caches.translatedIngresses[key] = translatedIngress
+
+	for _, cluster := range translatedIngress.clusters {
+		caches.AddClusterForIngress(cluster, ingress.Name, ingress.Namespace)
+	}
 }
 
-func (caches *Caches) DeleteIngress(ingressName, ingressNamespace string) {
-	caches.logger.Debugf("deleting ingress: %s/%s", ingressName, ingressNamespace)
-	delete(caches.ingresses, mapKey(ingressName, ingressNamespace))
-	delete(caches.clustersToIngress, mapKey(ingressName, ingressNamespace))
-}
-
-func (caches *Caches) AddCluster(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding cluster %s for ingress %s/%s", cluster.Name, ingressName, ingressNamespace)
-	caches.clusters.set(cluster, ingressName, ingressNamespace)
-	caches.addClustersForIngress(cluster, ingressName, ingressNamespace)
-}
-
-func (caches *Caches) AddRoute(route *route.Route, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding route %s for ingress %s/%s", route.Name, ingressName, ingressNamespace)
-	caches.routes = append(caches.routes, route)
-
-	key := mapKey(ingressName, ingressNamespace)
-	caches.routesForIngress[key] = append(caches.routesForIngress[key], route.Name)
-}
-
-func (caches *Caches) addClustersForIngress(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding cluster %s for ingress %s/%s", cluster.Name, ingressName, ingressNamespace)
-	key := mapKey(ingressName, ingressNamespace)
-
-	caches.clustersToIngress[key] = append(
-		caches.clustersToIngress[key],
-		cluster.Name,
-	)
-}
-
-func (caches *Caches) AddExternalVirtualHostForIngress(vHost *route.VirtualHost, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding external virtualhost %s for ingress %s/%s", vHost.Name, ingressName,
-		ingressNamespace)
-	key := mapKey(ingressName, ingressNamespace)
-
-	caches.externalVirtualHostsForIngress[key] = append(
-		caches.externalVirtualHostsForIngress[key],
-		vHost,
-	)
-}
-
-func (caches *Caches) AddInternalVirtualHostForIngress(vHost *route.VirtualHost, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding internal virtualhost %s for ingress %s/%s", vHost.Name, ingressName,
-		ingressNamespace)
-
-	key := mapKey(ingressName, ingressNamespace)
-	caches.localVirtualHostsForIngress[key] = append(
-		caches.localVirtualHostsForIngress[key],
-		vHost,
-	)
+// SetOnEvicted allows to set a function that will be executed when any key on the cache expires.
+func (caches *Caches) SetOnEvicted(f func(string, interface{})) {
+	caches.clusters.clusters.OnEvicted(f)
 }
 
 func (caches *Caches) AddStatusVirtualHost() {
@@ -127,12 +67,6 @@ func (caches *Caches) AddStatusVirtualHost() {
 
 	statusVirtualHost := statusVHost(ingresses)
 	caches.statusVirtualHost = &statusVirtualHost
-}
-
-func (caches *Caches) AddSNIMatch(sniMatch *envoy.SNIMatch, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding SNIMatch for ingress %s/%s", ingressName, ingressNamespace)
-	key := mapKey(ingressName, ingressNamespace)
-	caches.sniMatchesForIngress[key] = append(caches.sniMatchesForIngress[key], sniMatch)
 }
 
 func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
@@ -158,10 +92,9 @@ func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
 func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 	caches.logger.Debugf("Preparing Envoy Snapshot")
 
-	endpoints := make([]cache.Resource, len(caches.endpoints))
-	for i := range caches.endpoints {
-		caches.logger.Debugf("Adding Endpoint %#v", caches.endpoints[i])
-		endpoints[i] = caches.endpoints[i]
+	var translatedIngresses []*translatedIngress
+	for _, translated := range caches.translatedIngresses {
+		translatedIngresses = append(translatedIngresses, translated)
 	}
 
 	// Instead of sending the Routes, we send the RouteConfigs.
@@ -192,11 +125,11 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 
 	return cache.NewSnapshot(
 		snapshotVersion,
-		endpoints,
+		make([]cache.Resource, 0),
 		caches.clusters.list(),
 		routes,
 		listeners,
-		caches.runtimes,
+		make([]cache.Resource, 0),
 	), nil
 }
 
@@ -206,16 +139,7 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string,
 	kubeclient kubeclient.Interface) error {
 	var err error
-	caches.deleteRoutesForIngress(ingressName, ingressNamespace)
-	caches.deleteMappingsForIngress(ingressName, ingressNamespace)
-
-	// Set to expire all the clusters belonging to that Ingress.
-	clusters := caches.clustersToIngress[mapKey(ingressName, ingressNamespace)]
-	for _, cluster := range clusters {
-		caches.clusters.setExpiration(cluster, ingressName, ingressNamespace)
-	}
-
-	caches.DeleteIngress(ingressName, ingressNamespace)
+	caches.deleteTranslatedIngress(ingressName, ingressNamespace)
 
 	newExternalVirtualHosts := caches.externalVirtualHosts()
 	newClusterLocalVirtualHosts := caches.clusterLocalVirtualHosts()
@@ -242,27 +166,36 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	return nil
 }
 
-func (caches *Caches) deleteRoutesForIngress(ingressName string, ingressNamespace string) {
-	var newRoutes []*route.Route
-
-	routesForIngress := caches.routesForIngress[mapKey(ingressName, ingressNamespace)]
-
-	for _, cachesRoute := range caches.routes {
-		if !contains(routesForIngress, cachesRoute.Name) {
-			newRoutes = append(newRoutes, cachesRoute)
-		}
-	}
-
-	caches.routes = newRoutes
+func (caches *Caches) numberOfIngresses() int {
+	return len(caches.ingresses)
 }
 
-func (caches *Caches) deleteMappingsForIngress(ingressName string, ingressNamespace string) {
+func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {
+	caches.logger.Debugf("deleting ingress: %s/%s", ingressName, ingressNamespace)
+
 	key := mapKey(ingressName, ingressNamespace)
 
-	delete(caches.routesForIngress, key)
-	delete(caches.externalVirtualHostsForIngress, key)
-	delete(caches.localVirtualHostsForIngress, key)
-	delete(caches.sniMatchesForIngress, key)
+	// Set to expire all the clusters belonging to that Ingress.
+	clusters := caches.clustersToIngress[key]
+	for _, cluster := range clusters {
+		caches.clusters.setExpiration(cluster, ingressName, ingressNamespace)
+	}
+
+	delete(caches.ingresses, key)
+	delete(caches.translatedIngresses, key)
+	delete(caches.clustersToIngress, key)
+}
+
+func (caches *Caches) AddClusterForIngress(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
+	caches.logger.Debugf("adding cluster %s for ingress %s/%s", cluster.Name, ingressName, ingressNamespace)
+
+	caches.clusters.set(cluster, ingressName, ingressNamespace)
+
+	key := mapKey(ingressName, ingressNamespace)
+	caches.clustersToIngress[key] = append(
+		caches.clustersToIngress[key],
+		cluster.Name,
+	)
 }
 
 func (caches *Caches) getNewSnapshotVersion() (string, error) {
@@ -278,8 +211,8 @@ func (caches *Caches) getNewSnapshotVersion() (string, error) {
 func (caches *Caches) externalVirtualHosts() []*route.VirtualHost {
 	var res []*route.VirtualHost
 
-	for _, virtualHosts := range caches.externalVirtualHostsForIngress {
-		res = append(res, virtualHosts...)
+	for _, translatedIngress := range caches.translatedIngresses {
+		res = append(res, translatedIngress.externalVirtualHosts...)
 	}
 
 	return res
@@ -288,8 +221,8 @@ func (caches *Caches) externalVirtualHosts() []*route.VirtualHost {
 func (caches *Caches) clusterLocalVirtualHosts() []*route.VirtualHost {
 	var res []*route.VirtualHost
 
-	for _, virtualHosts := range caches.localVirtualHostsForIngress {
-		res = append(res, virtualHosts...)
+	for _, translatedIngress := range caches.translatedIngresses {
+		res = append(res, translatedIngress.internalVirtualHosts...)
 	}
 
 	return res
@@ -298,8 +231,8 @@ func (caches *Caches) clusterLocalVirtualHosts() []*route.VirtualHost {
 func (caches *Caches) sniMatches() []*envoy.SNIMatch {
 	var res []*envoy.SNIMatch
 
-	for _, sniMatches := range caches.sniMatchesForIngress {
-		res = append(res, sniMatches...)
+	for _, translatedIngress := range caches.translatedIngresses {
+		res = append(res, translatedIngress.sniMatches...)
 	}
 
 	return res
@@ -307,13 +240,4 @@ func (caches *Caches) sniMatches() []*envoy.SNIMatch {
 
 func mapKey(ingressName string, ingressNamespace string) string {
 	return ingressNamespace + "/" + ingressName
-}
-
-func contains(slice []string, s string) bool {
-	for _, elem := range slice {
-		if elem == s {
-			return true
-		}
-	}
-	return false
 }

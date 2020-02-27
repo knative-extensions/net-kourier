@@ -5,12 +5,15 @@ import (
 	"sort"
 	"testing"
 
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+
 	"go.uber.org/zap"
 
 	"gotest.tools/assert"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -50,10 +53,6 @@ func TestDeleteIngressInfo(t *testing.T) {
 
 	// Delete the first ingress
 	_ = caches.DeleteIngressInfo(firstIngressName, firstIngressNamespace, &kubeClient)
-
-	// Check that there's only the route of the second ingress
-	assert.Equal(t, 1, len(caches.routes))
-	assert.Equal(t, "route_for_ingress_2", caches.routes[0].Name)
 
 	// Check that the listeners only have the virtual hosts of the second
 	// ingress.
@@ -127,8 +126,8 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete)
 }
 
-// Creates a cluster, a route, and listeners from the given names and
-// associates them with the ingress name/namespace received
+// Creates an ingress translation and listeners from the given names an
+// associates them with the ingress name/namespace received.
 func createTestDataForIngress(caches *Caches,
 	ingressName string,
 	ingressNamespace string,
@@ -138,17 +137,22 @@ func createTestDataForIngress(caches *Caches,
 	externalVHostName string,
 	kubeClient kubeclient.Interface) {
 
-	cluster := v2.Cluster{Name: clusterName}
-	caches.AddCluster(&cluster, ingressName, ingressNamespace)
+	translatedIngress := translatedIngress{
+		ingressName:          ingressName,
+		ingressNamespace:     ingressNamespace,
+		routes:               []*route.Route{{Name: routeName}},
+		clusters:             []*v2.Cluster{{Name: clusterName}},
+		externalVirtualHosts: []*route.VirtualHost{{Name: externalVHostName}},
+		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName}},
+	}
 
-	r := route.Route{Name: routeName}
-	caches.AddRoute(&r, ingressName, ingressNamespace)
+	caches.AddTranslatedIngress(&v1alpha1.Ingress{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      ingressName,
+			Namespace: ingressNamespace,
+		},
+	}, &translatedIngress)
 
-	externalvHost := route.VirtualHost{Name: externalVHostName}
-	internalvHost := route.VirtualHost{Name: internalVHostName}
-
-	caches.AddExternalVirtualHostForIngress(&externalvHost, ingressName, ingressNamespace)
-	caches.AddInternalVirtualHostForIngress(&internalvHost, ingressName, ingressNamespace)
 	caches.AddStatusVirtualHost()
 	_ = caches.SetListeners(kubeClient)
 }

@@ -7,6 +7,8 @@ import (
 	"kourier/pkg/generator"
 	"strings"
 
+	"knative.dev/pkg/network"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
@@ -99,6 +101,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	})
 	c.tracker = tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
+	ingressTranslator := generator.NewIngressTranslator(
+		c.kubeClient, c.EndpointsLister, network.GetClusterDomainName(), c.tracker,
+	)
+	c.ingressTranslator = &ingressTranslator
+
 	// Make sure we initialize a config. Otherwise, there will be no config
 	// until a Knative service is deployed. This is important because the
 	// gateway pods will not be marked as healthy until they have been able to
@@ -161,7 +168,7 @@ func addExtAuthz(caches *generator.Caches) envoy.ExternalAuthzConfig {
 		cluster := extAuthZConfig.GetExtAuthzCluster()
 		// This is a special case, as this cluster is not related to an ingress,
 		// The Ingress Name and Ingress Namespace are not really used.
-		caches.AddCluster(cluster, "__extAuthZCluster", "_internal")
+		caches.AddClusterForIngress(cluster, "__extAuthZCluster", "_internal")
 	}
 	return extAuthZConfig
 }
