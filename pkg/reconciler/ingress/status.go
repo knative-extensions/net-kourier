@@ -174,7 +174,7 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 	}
 
 	if len(readyIPs) == 0 {
-		return false, nil
+		return false, fmt.Errorf("no gateway pods available")
 	}
 
 	for _, ip := range readyIPs {
