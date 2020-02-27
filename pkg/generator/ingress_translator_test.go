@@ -1,7 +1,10 @@
 package generator
 
 import (
+	"kourier/pkg/envoy"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"knative.dev/pkg/tracker"
 
@@ -146,6 +149,93 @@ func TestTrafficSplits(t *testing.T) {
 	)
 }
 
+func TestIngressWithTLS(t *testing.T) {
+	// TLS data for the test
+	tlsSecretName := "tls-secret"
+	tlsSecretNamespace := "default"
+	tlsHosts := []string{"hello-world.example.com"}
+	tlsCert := "some-cert"
+	tlsKey := "tls-key"
+
+	// Define an ingress with a TLS section in the spec
+	ingress := v1alpha1.Ingress{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "Ingress",
+			APIVersion: "networking.internal.knative.dev/v1alpha1",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: "hello-world",
+		},
+		Spec: v1alpha1.IngressSpec{
+			TLS: []v1alpha1.IngressTLS{{
+				Hosts:           tlsHosts,
+				SecretName:      tlsSecretName,
+				SecretNamespace: tlsSecretNamespace,
+			}},
+			Rules: []v1alpha1.IngressRule{
+				{
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{
+							{
+								Splits: []v1alpha1.IngressBackendSplit{
+									{
+										IngressBackend: v1alpha1.IngressBackend{
+											ServiceNamespace: "default",
+											ServiceName:      "hello-world",
+											ServicePort: intstr.IntOrString{
+												Type:   intstr.Int,
+												IntVal: 80,
+											},
+										},
+										AppendHeaders: map[string]string{
+											"Knative-Serving-Namespace": "default",
+											"Knative-Serving-Revision":  "hello-world",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Visibility: "",
+		},
+		Status: v1alpha1.IngressStatus{},
+	}
+
+	kubeClient := fake.NewSimpleClientset()
+
+	// Create the Kubernetes services associated to the Knative service that
+	// appears in the ingress above
+	if err := createServicesWithNames(kubeClient, []string{ingress.ObjectMeta.Name}, "default"); err != nil {
+		t.Error(err)
+	}
+
+	// Create secret with TLS data
+	err := createSecret(kubeClient, tlsSecretNamespace, tlsSecretName, tlsCert, tlsKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var tr tracker.Interface
+	ingressTranslator := NewIngressTranslator(
+		kubeClient, newMockedEndpointsLister(), "cluster.local", tr,
+	)
+
+	translatedIngress, err := ingressTranslator.translateIngress(&ingress, 0, false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, 1, len(translatedIngress.sniMatches))
+	assert.DeepEqual(
+		t,
+		envoy.NewSNIMatch(tlsHosts, tlsCert, tlsKey),
+		*translatedIngress.sniMatches[0],
+		cmp.AllowUnexported(envoy.SNIMatch{}),
+	)
+}
+
 func newMockedEndpointsLister() corev1listers.EndpointsLister {
 	return new(endpointsLister)
 }
@@ -168,6 +258,21 @@ func (endpoints *endpoints) List(selector labels.Selector) ([]*kubev1.Endpoints,
 
 func (endpoints *endpoints) Get(name string) (*kubev1.Endpoints, error) {
 	return &kubev1.Endpoints{}, nil
+}
+
+func createSecret(kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert string, key string) error {
+	tlsSecret := kubev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name: secretName,
+		},
+		Data: map[string][]byte{
+			certFieldInSecret: []byte(cert),
+			keyFieldInSecret:  []byte(key),
+		},
+	}
+
+	_, err := kubeClient.CoreV1().Secrets(secretNamespace).Create(&tlsSecret)
+	return err
 }
 
 func createServicesWithNames(kubeclient kubernetes.Interface, names []string, namespace string) error {
