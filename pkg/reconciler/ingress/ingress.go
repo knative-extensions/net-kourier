@@ -10,13 +10,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"knative.dev/pkg/tracker"
-
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kubeclient "k8s.io/client-go/kubernetes"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	knativeclient "knative.dev/serving/pkg/client/clientset/versioned"
 	nv1alpha1lister "knative.dev/serving/pkg/client/listers/networking/v1alpha1"
@@ -24,12 +21,10 @@ import (
 
 type Reconciler struct {
 	IngressLister     nv1alpha1lister.IngressLister
-	EndpointsLister   corev1listers.EndpointsLister
 	EnvoyXDSServer    *envoy.XdsServer
 	kubeClient        kubeclient.Interface
 	knativeClient     knativeclient.Interface
 	CurrentCaches     *generator.Caches
-	tracker           tracker.Interface
 	statusManager     *StatusProber
 	ingressTranslator *generator.IngressTranslator
 	ExtAuthz          bool
