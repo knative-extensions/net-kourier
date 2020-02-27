@@ -8,8 +8,7 @@ Kourier consists of an Envoy proxy and a control plane for it. Kourier is meant
 to be a lightweight replacement for the Istio ingress. In the future, it
 will provide API management capabilities.
 
-This project is under early development, but it already passes all the
-end-to-end tests of the Knative suite.
+Kourier is passing the knative serving e2e and conformance tests: [Kourier Testgrid](https://testgrid.knative.dev/serving#kourier-stable).
 
 - [**Getting started**](#getting-started)
 - [**Features**](#features)
@@ -66,8 +65,7 @@ curl -v -H "Host: helloworld-go.default.127.0.0.1.nip.io" http://localhost:8080
 - Support for gRPC services.
 - Timeouts and retries.
 - TLS
-
-
+- External Authorization support.
 
 ## Setup TLS certificate
 
@@ -83,7 +81,17 @@ Add the following env vars to 3scale-Kourier in the "kourier" container :
 CERTS_SECRET_NAMESPACE: ${NAMESPACES_WHERE_THE_SECRET_HAS_BEEN_CREATED}
 CERTS_SECRET_NAME: ${CERT_NAME}
 ```
+## External Authorization Configuration
 
+If you want to enable the external authorization support you can set these ENV vars in the `3scale-kourier-control`
+ deployment:
+
+- `KOURIER_EXTAUTHZ_HOST*`: The external authorization service and port, my-auth:2222
+- `KOURIER_EXTAUTHZ_FAILUREMODEALLOW*`: Allow traffic to go through if the ext auth service is down. Accepts true/false
+- `KOURIER_EXTAUTHZ_MAXREQUESTBYTES`: Max request bytes, if not set, defaults to 8192 Bytes. More info [Envoy Docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html?highlight=max_request_bytes#extensions-filters-http-ext-authz-v3-buffersettings)
+- `KOURIER_EXTAUTHZ_TIMEOUT`: Max time in ms to wait for the ext authz service. Defaults to 2s.
+
+ `*` Required
 ## Development
 
 - Run the test suite:

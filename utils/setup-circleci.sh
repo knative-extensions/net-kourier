@@ -34,6 +34,11 @@ docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:"$tag" ./
 docker image save 3scale-kourier-gateway:"$tag" >image.tar
 microk8s.ctr --namespace k8s.io images import image.tar
 
+# Builds and imports the kourier and gateway images from docker into the k8s cluster
+docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:test ./utils/extauthz_test_image/
+docker image save test_externalauthz:test >image.tar
+microk8s.ctr --namespace k8s.io images import image.tar
+
 # Enable the microk8s DNS plugin
 microk8s.enable dns
 

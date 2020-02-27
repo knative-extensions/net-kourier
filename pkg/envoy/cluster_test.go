@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+
 	"gotest.tools/assert"
 
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -17,14 +19,14 @@ func TestNewCluster(t *testing.T) {
 	endpoint2 := NewLBEndpoint("127.0.0.2", 1234)
 	endpoints := []*endpoint.LbEndpoint{endpoint1, endpoint2}
 
-	c := NewCluster(name, connectTimeout, endpoints, true)
+	c := NewCluster(name, connectTimeout, endpoints, true, v2.Cluster_STATIC)
 
 	assert.Equal(t, c.GetConnectTimeout().Seconds, int64(connectTimeout.Seconds()))
 	assert.Assert(t, c.Http2ProtocolOptions != nil)
 	assert.Equal(t, c.GetName(), name)
 	assert.DeepEqual(t, c.LoadAssignment.Endpoints[0].LbEndpoints, endpoints)
 
-	c = NewCluster(name, connectTimeout, endpoints, false)
+	c = NewCluster(name, connectTimeout, endpoints, false, v2.Cluster_STATIC)
 
 	assert.Assert(t, c.GetHttp2ProtocolOptions() == nil)
 }

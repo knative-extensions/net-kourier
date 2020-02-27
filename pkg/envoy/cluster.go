@@ -9,11 +9,13 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-func NewCluster(name string, connectTimeout time.Duration, endpoints []*endpoint.LbEndpoint, isHTTP2 bool) *v2.Cluster {
+func NewCluster(name string, connectTimeout time.Duration, endpoints []*endpoint.LbEndpoint,
+	isHTTP2 bool, discoveryType v2.Cluster_DiscoveryType) *v2.Cluster {
+
 	cluster := &v2.Cluster{
 		Name: name,
 		ClusterDiscoveryType: &v2.Cluster_Type{
-			Type: v2.Cluster_STRICT_DNS,
+			Type: discoveryType,
 		},
 		ConnectTimeout: ptypes.DurationProto(connectTimeout),
 		LoadAssignment: &v2.ClusterLoadAssignment{

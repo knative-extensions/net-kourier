@@ -1,19 +1,38 @@
 package envoy
 
 import (
+	"kourier/pkg/config"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/duration"
-
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/duration"
 )
 
 func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
+
+	var filters []*httpconnectionmanagerv2.HttpFilter
+
+	// Get the extAuthzConf from envs vars.
+	extAuthzConf := GetExternalAuthzConfig()
+
+	// If ExtAuthz is enabled, generate the extauthz filter
+	if extAuthzConf.Enabled {
+		extAuthzFilter := extAuthzConf.GetExternalAuthZFilter(config.ExternalAuthzCluster)
+		filters = append(filters, &extAuthzFilter)
+	}
+
+	// Append the Router filter at the end.
+	routerFilter := httpconnectionmanagerv2.HttpFilter{
+		Name: wellknown.Router,
+	}
+	filters = append(filters, &routerFilter)
+
 	return httpconnectionmanagerv2.HttpConnectionManager{
 		CodecType:  httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix: "ingress_http",
@@ -23,12 +42,8 @@ func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 				VirtualHosts: virtualHosts,
 			},
 		},
-		HttpFilters: []*httpconnectionmanagerv2.HttpFilter{
-			{
-				Name: wellknown.Router,
-			},
-		},
-		AccessLog: accessLogs(),
+		HttpFilters: filters,
+		AccessLog:   accessLogs(),
 	}
 }
 
