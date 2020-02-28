@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.10] - 2020-02-28
+### Added
+- Envoy External Authz support. Now you can define an external point for authorizing traffic.
+### Fixed
+- Kourier control will not try to probe non ready gateways.
+- If there's no gateway available, the event will be retried.
+
 ## [0.3.9] - 2020-02-20
 ### Added
 - Added more debug logging.
@@ -106,6 +113,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.3.10]: https://github.com/3scale/kourier/compare/v0.3.9...v0.3.10
 [0.3.9]: https://github.com/3scale/kourier/compare/v0.3.8...v0.3.9
 [0.3.8]: https://github.com/3scale/kourier/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/3scale/kourier/compare/v0.3.6...v0.3.7
