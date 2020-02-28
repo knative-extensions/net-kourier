@@ -102,8 +102,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	endpointsTracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		c.kubeClient, endpointsInformer.Lister(), network.GetClusterDomainName(), endpointsTracker,
-	)
+		c.kubeClient, endpointsInformer.Lister(), network.GetClusterDomainName(), endpointsTracker, logger)
 	c.ingressTranslator = &ingressTranslator
 
 	// Make sure we initialize a config. Otherwise, there will be no config
