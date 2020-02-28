@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	logtest "knative.dev/pkg/logging/testing"
 	"knative.dev/pkg/tracker"
 
 	"k8s.io/client-go/kubernetes"
@@ -103,8 +104,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), "cluster.local", tr,
-	)
+		kubeClient, newMockedEndpointsLister(), "cluster.local", tr, logtest.TestLogger(t))
 
 	ingressTranslation, err := ingressTranslator.translateIngress(&ingress, 0, false)
 	if err != nil {
@@ -219,8 +219,7 @@ func TestIngressWithTLS(t *testing.T) {
 
 	var tr tracker.Interface
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), "cluster.local", tr,
-	)
+		kubeClient, newMockedEndpointsLister(), "cluster.local", tr, logtest.TestLogger(t))
 
 	translatedIngress, err := ingressTranslator.translateIngress(&ingress, 0, false)
 	if err != nil {

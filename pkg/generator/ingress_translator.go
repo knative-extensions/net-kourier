@@ -41,12 +41,14 @@ type translatedIngress struct {
 	internalVirtualHosts []*route.VirtualHost
 }
 
-func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string, tracker tracker.Interface) IngressTranslator {
+func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string, tracker tracker.Interface,
+	logger *zap.SugaredLogger) IngressTranslator {
 	return IngressTranslator{
 		kubeclient:      kubeclient,
 		endpointsLister: endpointsLister,
 		localDomainName: localDomainName,
 		tracker:         tracker,
+		logger:          logger,
 	}
 }
 
