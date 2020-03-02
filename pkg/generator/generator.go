@@ -69,9 +69,7 @@ func addIngressToCaches(caches *Caches,
 
 	logger.Infof("Knative Ingress found %s/%s", ingress.Name, ingress.Namespace)
 
-	// TODO: is this index really needed?
-	index := caches.numberOfIngresses()
-	ingressTranslation, err := translator.translateIngress(ingress, index, extAuthzEnabled)
+	ingressTranslation, err := translator.translateIngress(ingress, extAuthzEnabled)
 	if err != nil {
 		return err
 	}

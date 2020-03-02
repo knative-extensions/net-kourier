@@ -122,7 +122,7 @@ func TestTrafficSplits(t *testing.T) {
 	ingressTranslator := NewIngressTranslator(
 		kubeClient, newMockedEndpointsLister(), "cluster.local", tr, logtest.TestLogger(t))
 
-	ingressTranslation, err := ingressTranslator.translateIngress(&ingress, 0, false)
+	ingressTranslation, err := ingressTranslator.translateIngress(&ingress, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -237,7 +237,7 @@ func TestIngressWithTLS(t *testing.T) {
 	ingressTranslator := NewIngressTranslator(
 		kubeClient, newMockedEndpointsLister(), "cluster.local", tr, logtest.TestLogger(t))
 
-	translatedIngress, err := ingressTranslator.translateIngress(&ingress, 0, false)
+	translatedIngress, err := ingressTranslator.translateIngress(&ingress, false)
 	if err != nil {
 		t.Error(err)
 	}

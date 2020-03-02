@@ -182,10 +182,6 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	return nil
 }
 
-func (caches *Caches) numberOfIngresses() int {
-	return len(caches.ingresses)
-}
-
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {
 	caches.logger.Debugf("deleting ingress: %s/%s", ingressName, ingressNamespace)
 
