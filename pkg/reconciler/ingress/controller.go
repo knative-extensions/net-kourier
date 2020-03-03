@@ -62,14 +62,6 @@ const (
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	kubernetesClient := kubeclient.Get(ctx)
 	knativeClient := knativeclient.Get(ctx)
-
-	envoyXdsServer := envoy.NewXdsServer(
-		gatewayPort,
-		managementPort,
-	)
-	go envoyXdsServer.RunManagementServer()
-	go envoyXdsServer.RunGateway()
-
 	logger := logging.FromContext(ctx)
 
 	ingressInformer := ingressinformer.Get(ctx)
@@ -80,16 +72,36 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	extAuthZConfig := addExtAuthz(caches)
 
 	c := &Reconciler{
-		IngressLister:  ingressInformer.Lister(),
-		EnvoyXDSServer: envoyXdsServer,
-		kubeClient:     kubernetesClient,
-		knativeClient:  knativeClient,
-		CurrentCaches:  caches,
-		logger:         logger.Named("reconciler"),
-		ExtAuthz:       extAuthZConfig.Enabled,
+		IngressLister: ingressInformer.Lister(),
+		kubeClient:    kubernetesClient,
+		knativeClient: knativeClient,
+		CurrentCaches: caches,
+		logger:        logger.Named("reconciler"),
+		ExtAuthz:      extAuthZConfig.Enabled,
 	}
 
 	impl := controller.NewImpl(c, logger, controllerName)
+
+	var callbacks = envoy.Callbacks{
+		Logger: logger,
+		OnError: func() {
+			impl.FilteredGlobalResync(func(obj interface{}) bool {
+				ingress := obj.(*v1alpha1.Ingress)
+				return !ingress.Status.IsReady()
+			}, ingressInformer.Informer())
+		},
+	}
+
+	envoyXdsServer := envoy.NewXdsServer(
+		gatewayPort,
+		managementPort,
+		&callbacks,
+	)
+
+	c.EnvoyXDSServer = envoyXdsServer
+
+	go envoyXdsServer.RunManagementServer()
+	go envoyXdsServer.RunGateway()
 
 	readyCallback := func(ing *v1alpha1.Ingress) {
 		logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
