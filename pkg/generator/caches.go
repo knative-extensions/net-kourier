@@ -108,11 +108,6 @@ func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
 func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 	caches.logger.Debugf("Preparing Envoy Snapshot")
 
-	var translatedIngresses []*translatedIngress
-	for _, translated := range caches.translatedIngresses {
-		translatedIngresses = append(translatedIngresses, translated)
-	}
-
 	// Instead of sending the Routes, we send the RouteConfigs.
 	routes := make([]cache.Resource, len(caches.routeConfig))
 	for i := range caches.routeConfig {
