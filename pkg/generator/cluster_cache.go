@@ -16,18 +16,23 @@
 
 // This is a cache of Envoy clusters
 //
-// To figure out the Envoy clusters that we need to set in the Envoy config, we
-// check the Ingress. However, there's a case where there are old clusters being
-// used that cannot be extracted from the Ingress.
-//
-// Imagine a scenario where a revision of a Knative Serving is deployed. Later,
-// another revision is deployed. Even if the new revision is configured to get
-// 100% of the traffic, Envoy will keep the existing connections to the old
-// revision for some time. Envoy marks the listeners attending those connections
-// as draining. The routing info associated with the old revision no longer
-// appears in the Ingress. However, we need to set the old clusters in order to
-// be able to attend those connections in "draining" state. Otherwise, requests
-// coming from those connections fail with a 5xx "No route" error.
+// This cache is needed to avoid downtime during Envoy config updates. When we
+// send a new config to Envoy we include listeners, routes and clusters. The
+// problem is that routes and clusters are not updated atomically by Envoy, so a
+// situation like this is possible:
+// 1) Kourier sends a config where route R1 points to cluster C1.
+// 2) Kourier send a config where route R2 points to cluster C2. R1 and C1 are
+// not included because the ingress they belong to have been deleted.
+// 3) Envoy can update the clusters before the routes, so internally, it can see
+// route R1 pointing to a cluster that no longer exists. If a request comes, it
+// will fail.
+// Envoy guarantees eventual consistency, but does not guarantee that all the
+// elements in the config are updated atomically. Check this for a more detailed
+// explanation:
+// https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol#eventual-consistency-considerations
+// The best solution I have found is to include clusters in new configs even if
+// they are no longer referenced by the routes of the new config. This cache
+// keeps those old cluster for a small period of time.
 
 package generator
 
