@@ -111,7 +111,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			for _, split := range httpPath.Splits {
 				headersSplit := split.AppendHeaders
 
-				ref := kubev1.ObjectReference{
+				ref := tracker.Reference{
 					Kind:       "Endpoints",
 					APIVersion: "v1",
 					Namespace:  ingress.Namespace,
@@ -119,7 +119,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 				}
 
 				if translator.tracker != nil {
-					err := translator.tracker.Track(ref, ingress)
+					err := translator.tracker.TrackReference(ref, ingress)
 					if err != nil {
 						translator.logger.Errorf("%s", err)
 						break
