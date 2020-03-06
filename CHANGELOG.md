@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.11] - 2020-03-06
+### Fixed
+- Now when Envoy rejects a configuration, Kourier retries it.
+### Changed
+- Now the gateway pod uses `docker.io/maistra/proxyv2-ubi8:1.0.8`.
+
 ## [0.3.10] - 2020-02-28
 ### Added
 - Envoy External Authz support. Now you can define an external point for authorizing traffic.
@@ -113,6 +119,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.3.11]: https://github.com/3scale/kourier/compare/v0.3.10...v0.3.11
 [0.3.10]: https://github.com/3scale/kourier/compare/v0.3.9...v0.3.10
 [0.3.9]: https://github.com/3scale/kourier/compare/v0.3.8...v0.3.9
 [0.3.8]: https://github.com/3scale/kourier/compare/v0.3.7...v0.3.8
