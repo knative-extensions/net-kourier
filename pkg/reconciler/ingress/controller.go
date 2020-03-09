@@ -22,14 +22,13 @@ import (
 	"kourier/pkg/envoy"
 	"kourier/pkg/generator"
 	"strings"
+	"time"
 
 	"knative.dev/pkg/network"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
-
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 
 	"knative.dev/serving/pkg/apis/networking"
 	"knative.dev/serving/pkg/reconciler"
@@ -53,10 +52,11 @@ const (
 	gatewayLabelKey   = "app"
 	gatewayLabelValue = "3scale-kourier-gateway"
 
-	controllerName = "KourierController"
-	nodeID         = "3scale-kourier-gateway"
-	gatewayPort    = 19001
-	managementPort = 18000
+	globalResyncPeriod = 30 * time.Second
+	controllerName     = "KourierController"
+	nodeID             = "3scale-kourier-gateway"
+	gatewayPort        = 19001
+	managementPort     = 18000
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
@@ -114,6 +114,22 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		readyCallback)
 	c.statusManager = statusProber
 	statusProber.Start(ctx.Done())
+
+	// This global resync could be removed once we move to envoy >= 1.12
+	ticker := time.NewTicker(globalResyncPeriod)
+	done := ctx.Done()
+	go func() {
+		for {
+			select {
+			case <-done:
+				logger.Info("GlobalResync stopped.")
+				return
+			case <-ticker.C:
+				logger.Info("GlobalResync triggered.")
+				impl.FilteredGlobalResync(ingressNotReady, ingressInformer.Informer())
+			}
+		}
+	}()
 
 	c.CurrentCaches.SetOnEvicted(func(key string, value interface{}) {
 		// The format of the key received is "clusterName:ingressName:ingressNamespace"
@@ -198,4 +214,9 @@ func addExtAuthz(caches *generator.Caches) envoy.ExternalAuthzConfig {
 		caches.AddClusterForIngress(cluster, "__extAuthZCluster", "_internal")
 	}
 	return extAuthZConfig
+}
+
+func ingressNotReady(obj interface{}) bool {
+	ingress := obj.(*v1alpha1.Ingress)
+	return !ingress.Status.IsReady()
 }
