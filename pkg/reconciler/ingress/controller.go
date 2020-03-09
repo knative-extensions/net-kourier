@@ -24,15 +24,11 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
 	"knative.dev/pkg/network"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
-	informersv1alpha1 "knative.dev/serving/pkg/client/informers/externalversions/networking/v1alpha1"
-
-	v1 "k8s.io/api/core/v1"
 
 	"knative.dev/serving/pkg/apis/networking"
 	"knative.dev/serving/pkg/reconciler"
@@ -107,7 +103,21 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	c.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 
-	startGlobalResync(ctx, logger, impl, ingressInformer)
+	// This global resync could be removed once we move to envoy >= 1.12
+	ticker := time.NewTicker(globalResyncPeriod)
+	done := ctx.Done()
+	go func() {
+		for {
+			select {
+			case <-done:
+				logger.Info("GlobalResync stopped.")
+				return
+			case <-ticker.C:
+				logger.Info("GlobalResync triggered.")
+				impl.FilteredGlobalResync(ingressNotReady, ingressInformer.Informer())
+			}
+		}
+	}()
 
 	c.CurrentCaches.SetOnEvicted(func(key string, value interface{}) {
 		// The format of the key received is "clusterName:ingressName:ingressNamespace"
@@ -181,24 +191,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	podInformer.Informer().AddEventHandler(podInformerHandler)
 
 	return impl
-}
-
-func startGlobalResync(ctx context.Context, logger *zap.SugaredLogger, impl *controller.Impl, ingressInformer informersv1alpha1.IngressInformer) {
-	ticker := time.NewTicker(globalResyncPeriod)
-	done := ctx.Done()
-
-	go func() {
-		for {
-			select {
-			case <-done:
-				logger.Info("GlobalResync stopped.")
-				return
-			case <-ticker.C:
-				logger.Info("GlobalResync triggered.")
-				impl.FilteredGlobalResync(ingressNotReady, ingressInformer.Informer())
-			}
-		}
-	}()
 }
 
 func addExtAuthz(caches *generator.Caches) envoy.ExternalAuthzConfig {
