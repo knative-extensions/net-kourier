@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.12] - 2020-03-10
+### Fixed
+- Overall reliability improvements, now kourier resyncs failed ingresses every 30s.
+
 ## [0.3.11] - 2020-03-06
 ### Fixed
 - Now when Envoy rejects a configuration, Kourier retries it.
@@ -119,6 +123,7 @@ Knative Serving < 0.9.
 
 First release.
 
+[0.3.12]: https://github.com/3scale/kourier/compare/v0.3.11...v0.3.12
 [0.3.11]: https://github.com/3scale/kourier/compare/v0.3.10...v0.3.11
 [0.3.10]: https://github.com/3scale/kourier/compare/v0.3.9...v0.3.10
 [0.3.9]: https://github.com/3scale/kourier/compare/v0.3.8...v0.3.9
