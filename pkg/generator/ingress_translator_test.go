@@ -171,58 +171,15 @@ func TestIngressWithTLS(t *testing.T) {
 	tlsHosts := []string{"hello-world.example.com"}
 	tlsCert := "some-cert"
 	tlsKey := "tls-key"
+	svcNamespace := "default"
 
-	// Define an ingress with a TLS section in the spec
-	ingress := v1alpha1.Ingress{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "Ingress",
-			APIVersion: "networking.internal.knative.dev/v1alpha1",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name: "hello-world",
-		},
-		Spec: v1alpha1.IngressSpec{
-			TLS: []v1alpha1.IngressTLS{{
-				Hosts:           tlsHosts,
-				SecretName:      tlsSecretName,
-				SecretNamespace: tlsSecretNamespace,
-			}},
-			Rules: []v1alpha1.IngressRule{
-				{
-					HTTP: &v1alpha1.HTTPIngressRuleValue{
-						Paths: []v1alpha1.HTTPIngressPath{
-							{
-								Splits: []v1alpha1.IngressBackendSplit{
-									{
-										IngressBackend: v1alpha1.IngressBackend{
-											ServiceNamespace: "default",
-											ServiceName:      "hello-world",
-											ServicePort: intstr.IntOrString{
-												Type:   intstr.Int,
-												IntVal: 80,
-											},
-										},
-										AppendHeaders: map[string]string{
-											"Knative-Serving-Namespace": "default",
-											"Knative-Serving-Revision":  "hello-world",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Visibility: "",
-		},
-		Status: v1alpha1.IngressStatus{},
-	}
+	ingress := createIngressWithTLS(tlsHosts, tlsSecretName, tlsSecretNamespace, svcNamespace)
 
 	kubeClient := fake.NewSimpleClientset()
 
 	// Create the Kubernetes services associated to the Knative service that
 	// appears in the ingress above
-	if err := createServicesWithNames(kubeClient, []string{ingress.ObjectMeta.Name}, "default"); err != nil {
+	if err := createServicesWithNames(kubeClient, []string{ingress.ObjectMeta.Name}, svcNamespace); err != nil {
 		t.Error(err)
 	}
 
@@ -235,7 +192,7 @@ func TestIngressWithTLS(t *testing.T) {
 	ingressTranslator := NewIngressTranslator(
 		kubeClient, newMockedEndpointsLister(), "cluster.local", &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
-	translatedIngress, err := ingressTranslator.translateIngress(&ingress, false)
+	translatedIngress, err := ingressTranslator.translateIngress(ingress, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -271,6 +228,54 @@ func (endpoints *endpoints) List(selector labels.Selector) ([]*kubev1.Endpoints,
 
 func (endpoints *endpoints) Get(name string) (*kubev1.Endpoints, error) {
 	return &kubev1.Endpoints{}, nil
+}
+
+func createIngressWithTLS(hosts []string, secretName string, secretNamespace string, svcNamespace string) *v1alpha1.Ingress {
+	return &v1alpha1.Ingress{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "Ingress",
+			APIVersion: "networking.internal.knative.dev/v1alpha1",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: "hello-world",
+		},
+		Spec: v1alpha1.IngressSpec{
+			TLS: []v1alpha1.IngressTLS{{
+				Hosts:           hosts,
+				SecretName:      secretName,
+				SecretNamespace: secretNamespace,
+			}},
+			Rules: []v1alpha1.IngressRule{
+				{
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{
+							{
+								Splits: []v1alpha1.IngressBackendSplit{
+									{
+										IngressBackend: v1alpha1.IngressBackend{
+											ServiceNamespace: svcNamespace,
+											ServiceName:      "hello-world",
+											ServicePort: intstr.IntOrString{
+												Type:   intstr.Int,
+												IntVal: 80,
+											},
+										},
+										AppendHeaders: map[string]string{
+											"Knative-Serving-Namespace": svcNamespace,
+											"Knative-Serving-Revision":  "hello-world",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Visibility: "",
+		},
+		Status: v1alpha1.IngressStatus{},
+	}
+
 }
 
 func createSecret(kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert string, key string) error {
