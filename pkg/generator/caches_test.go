@@ -137,6 +137,17 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	routesAfterDelete := snapshotAfterDelete.Routes.Items
 	listenersAfterDelete := snapshotAfterDelete.Listeners.Items
 
+	// This is a temporary workaround. Remove when we delete the route with a
+	// randomly generated name in status_vhost.go
+	// This deletes the last route of "internal_services" which we know is the
+	// one randomly generated and changes when we call caches.ToEnvoySnapshot(),
+	// so we do not want to check it, but we want to check everything else which
+	// should have not changed.
+	vHostsRoutesBefore := routesBeforeDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts
+	routesBeforeDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts = vHostsRoutesBefore[:len(vHostsRoutesBefore)-1]
+	vHostsRoutesAfter := routesAfterDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts
+	routesAfterDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts = vHostsRoutesAfter[:len(vHostsRoutesAfter)-1]
+
 	assert.DeepEqual(t, clustersBeforeDelete, clustersAfterDelete)
 	assert.DeepEqual(t, routesBeforeDelete, routesAfterDelete)
 	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete)
