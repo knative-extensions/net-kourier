@@ -73,8 +73,9 @@ func addIngressToCaches(caches *Caches,
 	if err != nil {
 		return err
 	}
-
-	caches.AddTranslatedIngress(ingress, ingressTranslation)
+	if ingressTranslation != nil {
+		caches.AddTranslatedIngress(ingress, ingressTranslation)
+	}
 
 	return nil
 }

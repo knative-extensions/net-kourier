@@ -17,7 +17,6 @@
 package generator
 
 import (
-	"fmt"
 	"kourier/pkg/envoy"
 	"kourier/pkg/knative"
 	"time"
@@ -67,15 +66,11 @@ func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev
 	}
 }
 
-func newTranslatedIngress(ingressName string, ingressNamespace string) translatedIngress {
-	return translatedIngress{
-		ingressName:      ingressName,
-		ingressNamespace: ingressNamespace,
-	}
-}
-
 func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress, extAuthzEnabled bool) (*translatedIngress, error) {
-	res := newTranslatedIngress(ingress.Name, ingress.Namespace)
+	res := &translatedIngress{
+		ingressName:      ingress.Name,
+		ingressNamespace: ingress.Namespace,
+	}
 
 	for _, ingressTLS := range ingress.Spec.TLS {
 		sniMatch, err := sniMatchFromIngressTLS(ingressTLS, translator.kubeclient)
@@ -118,12 +113,10 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 					Name:       split.ServiceName,
 				}
 
-				if translator.tracker != nil {
-					err := translator.tracker.TrackReference(ref, ingress)
-					if err != nil {
-						translator.logger.Errorf("%s", err)
-						break
-					}
+				err := translator.tracker.TrackReference(ref, ingress)
+				if err != nil {
+					translator.logger.Errorf("%s", err)
+					break
 				}
 
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
@@ -174,10 +167,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		}
 
 		if len(ruleRoute) == 0 {
-			// Propagate the error to the reconciler, we do not want to generate
-			// an envoy config where an ingress has no routes, it would return
-			// 404.
-			return nil, fmt.Errorf("ingress without routes")
+			// Return nothing if there are not routes to generate.
+			return nil, nil
 		}
 
 		externalDomains := knative.ExternalDomains(rule, translator.localDomainName)
@@ -215,7 +206,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		res.internalVirtualHosts = append(res.internalVirtualHosts, &internalVirtualHost)
 	}
 
-	return &res, nil
+	return res, nil
 }
 
 func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
