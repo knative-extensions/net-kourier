@@ -22,6 +22,7 @@ import (
 	"kourier/pkg/envoy"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	networkIngress "knative.dev/serving/pkg/network/ingress"
@@ -58,6 +59,10 @@ func statusRoutes(ingresses []*v1alpha1.Ingress) []*route.Route {
 		path := fmt.Sprintf("%s/%s", config.InternalKourierPath, hash)
 		routes = append(routes, envoy.NewRouteStatusOK(name, path))
 	}
+
+	// HACK: There's a bug/behaviour in envoy <1.12.0 that doesn't retry loading the config if it's the same.
+	random, _ := uuid.NewUUID()
+	routes = append(routes, envoy.NewRouteStatusOK(random.String(), "/ready"))
 
 	staticRoute := envoy.NewRouteStatusOK(
 		config.InternalKourierDomain,
