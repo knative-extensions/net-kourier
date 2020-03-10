@@ -29,11 +29,6 @@ docker build -t 3scale-kourier:"$tag" ./
 docker image save 3scale-kourier:"$tag" >image.tar
 microk8s.ctr --namespace k8s.io images import image.tar
 
-#Builds the gateway image and imports into the k8s cluster
-docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:"$tag" ./
-docker image save 3scale-kourier-gateway:"$tag" >image.tar
-microk8s.ctr --namespace k8s.io images import image.tar
-
 # Builds and imports the kourier and gateway images from docker into the k8s cluster
 docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:test ./utils/extauthz_test_image/
 docker image save test_externalauthz:test >image.tar
@@ -45,7 +40,6 @@ microk8s.enable dns
 # Deploys kourier and patches it.
 microk8s.kubectl apply -f deploy/kourier-knative.yaml
 microk8s.kubectl patch deployment 3scale-kourier-control -n ${KOURIER_NAMESPACE} --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-control\",\"image\": \"3scale-kourier:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
-microk8s.kubectl patch deployment 3scale-kourier-gateway -n ${KOURIER_NAMESPACE} --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"kourier-gateway\",\"image\": \"3scale-kourier-gateway:$tag\",\"imagePullPolicy\": \"IfNotPresent\"}]}}}}"
 microk8s.kubectl patch configmap/config-domain -n ${KNATIVE_NAMESPACE} --type merge -p '{"data":{"127.0.0.1.nip.io":""}}'
 microk8s.kubectl patch configmap/config-network -n ${KNATIVE_NAMESPACE} --type merge -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev","ingress.class":"kourier.ingress.networking.knative.dev"}}'
 
