@@ -8,7 +8,7 @@ run: ## runs kourier locally with "go run"
 	@go run ./cmd/kourier/main.go
 
 docker-run-envoy: ## Runs envoy in a docker
-	docker run --rm  -p 19000:19000 -p 10000:10000 --link kourier --name kourier_envoy -v $(PWD)/conf/:/tmp/conf -ti quay.io/3scale/kourier-gateway:v0.1.0 -c /tmp/conf/envoy-bootstrap.yaml
+	docker run --rm  -p 19000:19000 -p 10000:10000 --link kourier --name kourier_envoy -v $(PWD)/conf/:/tmp/conf --entrypoint=/usr/local/bin/envoy -ti docker.io/maistra/proxyv2-ubi8:1.0.8 -c /tmp/conf/envoy-bootstrap.yaml
 
 docker-run: docker-build ## Runs kourier in a docker
 	@echo "[i] Remember to have a valid kubeconfig in $(HOME)/.kube/config"
@@ -20,9 +20,6 @@ build: ## Builds kourier binary, outputs binary to ./build
 
 docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
 	docker build -t 3scale-kourier:test ./
-
-docker-build-gateway: ## Builds kourier docker, tagged by default as 3scale-kourier:test
-	docker build -f Dockerfile.gateway -t 3scale-kourier-gateway:test ./
 
 docker-build-extauthzutil: ## Builds kourier docker, tagged by default as test_externalauthz:latest
 	docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:latest ./utils/extauthz_test_image/

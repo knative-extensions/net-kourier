@@ -1,3 +1,0 @@
-FROM envoyproxy/envoy-alpine:v1.12.2
-USER 1001
-CMD ["envoy" "-c" "/etc/envoy/envoy.yaml"]
