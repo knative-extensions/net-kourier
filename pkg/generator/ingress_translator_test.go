@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	logtest "knative.dev/pkg/logging/testing"
-	"knative.dev/pkg/tracker"
+	pkgtest "knative.dev/pkg/reconciler/testing"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -108,7 +108,6 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	kubeClient := fake.NewSimpleClientset()
-	var tr tracker.Interface
 	// Create the Kubernetes services associated to the Knative services that
 	// appear in the ingress above
 	if err := createServicesWithNames(
@@ -120,7 +119,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), "cluster.local", tr, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), "cluster.local", &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 	ingressTranslation, err := ingressTranslator.translateIngress(&ingress, false)
 	if err != nil {
@@ -233,9 +232,8 @@ func TestIngressWithTLS(t *testing.T) {
 		t.Error(err)
 	}
 
-	var tr tracker.Interface
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), "cluster.local", tr, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), "cluster.local", &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 	translatedIngress, err := ingressTranslator.translateIngress(&ingress, false)
 	if err != nil {

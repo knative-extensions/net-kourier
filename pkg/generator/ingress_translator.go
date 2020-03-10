@@ -67,15 +67,11 @@ func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev
 	}
 }
 
-func newTranslatedIngress(ingressName string, ingressNamespace string) translatedIngress {
-	return translatedIngress{
-		ingressName:      ingressName,
-		ingressNamespace: ingressNamespace,
-	}
-}
-
 func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress, extAuthzEnabled bool) (*translatedIngress, error) {
-	res := newTranslatedIngress(ingress.Name, ingress.Namespace)
+	res := &translatedIngress{
+		ingressName:      ingress.Name,
+		ingressNamespace: ingress.Namespace,
+	}
 
 	for _, ingressTLS := range ingress.Spec.TLS {
 		sniMatch, err := sniMatchFromIngressTLS(ingressTLS, translator.kubeclient)
@@ -109,39 +105,24 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			var wrs []*route.WeightedCluster_ClusterWeight
 
 			for _, split := range httpPath.Splits {
-				headersSplit := split.AppendHeaders
-
-				ref := tracker.Reference{
-					Kind:       "Endpoints",
-					APIVersion: "v1",
-					Namespace:  ingress.Namespace,
-					Name:       split.ServiceName,
-				}
-
-				if translator.tracker != nil {
-					err := translator.tracker.TrackReference(ref, ingress)
-					if err != nil {
-						translator.logger.Errorf("%s", err)
-						break
-					}
+				if err := trackService(translator.tracker, split.ServiceName, ingress); err != nil {
+					return nil, err
 				}
 
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
 				if apierrors.IsNotFound(err) {
-					translator.logger.Infof("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					translator.logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					break
 				} else if err != nil {
-					translator.logger.Errorf("Failed to fetch endpoints '%s/%s': %v", split.ServiceNamespace, split.ServiceName, err)
-					break
+					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
 				service, err := translator.kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
 				if apierrors.IsNotFound(err) {
-					translator.logger.Infof("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					translator.logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					break
 				} else if err != nil {
-					translator.logger.Errorf("Failed to fetch service '%s/%s': %v", split.ServiceNamespace, split.ServiceName, err)
-					break
+					return nil, fmt.Errorf("failed to fetch service '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
 				var targetPort int32
@@ -160,7 +141,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 
 				res.clusters = append(res.clusters, cluster)
 
-				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), headersSplit)
+				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
 
 				wrs = append(wrs, weightedCluster)
 			}
@@ -174,10 +155,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		}
 
 		if len(ruleRoute) == 0 {
-			// Propagate the error to the reconciler, we do not want to generate
-			// an envoy config where an ingress has no routes, it would return
-			// 404.
-			return nil, fmt.Errorf("ingress without routes")
+			// Return nothing if there are not routes to generate.
+			return nil, nil
 		}
 
 		externalDomains := knative.ExternalDomains(rule, translator.localDomainName)
@@ -215,7 +194,28 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		res.internalVirtualHosts = append(res.internalVirtualHosts, &internalVirtualHost)
 	}
 
-	return &res, nil
+	return res, nil
+}
+
+func trackService(t tracker.Interface, svcName string, ingress *v1alpha1.Ingress) error {
+	if err := t.TrackReference(tracker.Reference{
+		Kind:       "Service",
+		APIVersion: "v1",
+		Namespace:  ingress.Namespace,
+		Name:       svcName,
+	}, ingress); err != nil {
+		return fmt.Errorf("could not track service reference: %w", err)
+	}
+
+	if err := t.TrackReference(tracker.Reference{
+		Kind:       "Endpoints",
+		APIVersion: "v1",
+		Namespace:  ingress.Namespace,
+		Name:       svcName,
+	}, ingress); err != nil {
+		return fmt.Errorf("could not track endpoints reference: %w", err)
+	}
+	return nil
 }
 
 func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
