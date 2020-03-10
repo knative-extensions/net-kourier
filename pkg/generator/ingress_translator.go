@@ -105,18 +105,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			var wrs []*route.WeightedCluster_ClusterWeight
 
 			for _, split := range httpPath.Splits {
-				headersSplit := split.AppendHeaders
-
-				ref := tracker.Reference{
-					Kind:       "Endpoints",
-					APIVersion: "v1",
-					Namespace:  ingress.Namespace,
-					Name:       split.ServiceName,
-				}
-
-				err := translator.tracker.TrackReference(ref, ingress)
-				if err != nil {
-					return nil, fmt.Errorf("could not track reference: %w", err)
+				if err := trackService(translator.tracker, split.ServiceName, ingress); err != nil {
+					return nil, err
 				}
 
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
@@ -151,7 +141,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 
 				res.clusters = append(res.clusters, cluster)
 
-				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), headersSplit)
+				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
 
 				wrs = append(wrs, weightedCluster)
 			}
@@ -205,6 +195,27 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 	}
 
 	return res, nil
+}
+
+func trackService(t tracker.Interface, svcName string, ingress *v1alpha1.Ingress) error {
+	if err := t.TrackReference(tracker.Reference{
+		Kind:       "Service",
+		APIVersion: "v1",
+		Namespace:  ingress.Namespace,
+		Name:       svcName,
+	}, ingress); err != nil {
+		return fmt.Errorf("could not track service reference: %w", err)
+	}
+
+	if err := t.TrackReference(tracker.Reference{
+		Kind:       "Endpoints",
+		APIVersion: "v1",
+		Namespace:  ingress.Namespace,
+		Name:       svcName,
+	}, ingress); err != nil {
+		return fmt.Errorf("could not track endpoints reference: %w", err)
+	}
+	return nil
 }
 
 func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
