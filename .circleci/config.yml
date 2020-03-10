@@ -18,8 +18,6 @@ commands:
               then
                 docker tag 3scale-kourier:test_master quay.io/3scale/kourier:master
                 docker push quay.io/3scale/kourier:master
-                docker tag 3scale-kourier-gateway:test_master quay.io/3scale/kourier-gateway:master
-                docker push quay.io/3scale/kourier-gateway:master
               fi
             else
               echo "Missing docker credentials"
