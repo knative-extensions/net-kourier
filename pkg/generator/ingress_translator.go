@@ -17,6 +17,7 @@
 package generator
 
 import (
+	"fmt"
 	"kourier/pkg/envoy"
 	"kourier/pkg/knative"
 	"time"
@@ -115,26 +116,23 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 
 				err := translator.tracker.TrackReference(ref, ingress)
 				if err != nil {
-					translator.logger.Errorf("%s", err)
-					break
+					return nil, fmt.Errorf("could not track reference: %w", err)
 				}
 
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
 				if apierrors.IsNotFound(err) {
-					translator.logger.Infof("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					translator.logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					break
 				} else if err != nil {
-					translator.logger.Errorf("Failed to fetch endpoints '%s/%s': %v", split.ServiceNamespace, split.ServiceName, err)
-					break
+					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
 				service, err := translator.kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
 				if apierrors.IsNotFound(err) {
-					translator.logger.Infof("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					translator.logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					break
 				} else if err != nil {
-					translator.logger.Errorf("Failed to fetch service '%s/%s': %v", split.ServiceNamespace, split.ServiceName, err)
-					break
+					return nil, fmt.Errorf("failed to fetch service '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
 				var targetPort int32
