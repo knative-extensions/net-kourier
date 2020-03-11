@@ -17,6 +17,7 @@
 package generator
 
 import (
+	"fmt"
 	"kourier/pkg/envoy"
 	"testing"
 
@@ -204,6 +205,30 @@ func TestIngressWithTLS(t *testing.T) {
 		*translatedIngress.sniMatches[0],
 		cmp.AllowUnexported(envoy.SNIMatch{}),
 	)
+}
+
+func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
+	tlsSecretName := "tls-secret"
+	tlsSecretNamespace := "default"
+	tlsHosts := []string{"hello-world.example.com"}
+	svcNamespace := "default"
+
+	ingress := createIngressWithTLS(tlsHosts, tlsSecretName, tlsSecretNamespace, svcNamespace)
+
+	kubeClient := fake.NewSimpleClientset()
+
+	// Create the Kubernetes services associated to the Knative service that
+	// appears in the ingress above
+	if err := createServicesWithNames(kubeClient, []string{ingress.ObjectMeta.Name}, "default"); err != nil {
+		t.Error(err)
+	}
+
+	ingressTranslator := NewIngressTranslator(
+		kubeClient, newMockedEndpointsLister(), "cluster.local", &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+
+	_, err := ingressTranslator.translateIngress(ingress, false)
+
+	assert.Error(t, err, fmt.Sprintf("secrets \"%s\" not found", tlsSecretName))
 }
 
 func newMockedEndpointsLister() corev1listers.EndpointsLister {
