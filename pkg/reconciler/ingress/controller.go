@@ -208,7 +208,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 func addExtAuthz(caches *generator.Caches) envoy.ExternalAuthzConfig {
 	extAuthZConfig := envoy.GetExternalAuthzConfig()
 	if extAuthZConfig.Enabled {
-		cluster := extAuthZConfig.GetExtAuthzCluster()
+		cluster := extAuthZConfig.Cluster
 		// This is a special case, as this cluster is not related to an ingress,
 		// The Ingress Name and Ingress Namespace are not really used.
 		caches.AddClusterForIngress(cluster, "__extAuthZCluster", "_internal")

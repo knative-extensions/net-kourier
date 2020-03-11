@@ -43,6 +43,8 @@ type ExternalAuthzConfig struct {
 	FailureModeAllow bool
 	MaxRequestBytes  int
 	Timeout          duration.Duration
+	Cluster          *v2.Cluster
+	HTTPFilter       *httpconnectionmanagerv2.HttpFilter
 }
 
 func GetExternalAuthzConfig() ExternalAuthzConfig {
@@ -98,16 +100,19 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 		}
 	}
 
+	res.Cluster = res.extAuthzCluster()
+	res.HTTPFilter = res.externalAuthZFilter(res.Cluster.Name)
+
 	return res
 }
 
-func (e *ExternalAuthzConfig) GetExtAuthzCluster() *v2.Cluster {
+func (e *ExternalAuthzConfig) extAuthzCluster() *v2.Cluster {
 	endpoints := []*endpoint.LbEndpoint{NewLBEndpoint(e.Host, uint32(e.Port))}
 	return NewCluster(config.ExternalAuthzCluster, 5*time.Second, endpoints,
 		true, v2.Cluster_STRICT_DNS)
 }
 
-func (e *ExternalAuthzConfig) GetExternalAuthZFilter(clusterName string) httpconnectionmanagerv2.HttpFilter {
+func (e *ExternalAuthzConfig) externalAuthZFilter(clusterName string) *httpconnectionmanagerv2.HttpFilter {
 
 	extAuthConfig := extAuthService.ExtAuthz{
 		Services: &extAuthService.ExtAuthz_GrpcService{
@@ -144,5 +149,5 @@ func (e *ExternalAuthzConfig) GetExternalAuthZFilter(clusterName string) httpcon
 		},
 	}
 
-	return extAuthzFilter
+	return &extAuthzFilter
 }

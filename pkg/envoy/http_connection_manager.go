@@ -17,8 +17,6 @@
 package envoy
 
 import (
-	"kourier/pkg/config"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -37,10 +35,8 @@ func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 	// Get the extAuthzConf from envs vars.
 	extAuthzConf := GetExternalAuthzConfig()
 
-	// If ExtAuthz is enabled, generate the extauthz filter
 	if extAuthzConf.Enabled {
-		extAuthzFilter := extAuthzConf.GetExternalAuthZFilter(config.ExternalAuthzCluster)
-		filters = append(filters, &extAuthzFilter)
+		filters = append(filters, extAuthzConf.HTTPFilter)
 	}
 
 	// Append the Router filter at the end.
