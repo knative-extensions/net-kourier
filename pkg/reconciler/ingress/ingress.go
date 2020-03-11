@@ -19,10 +19,11 @@ package ingress
 import (
 	"context"
 	"fmt"
-	"kourier/pkg/envoy"
-	"kourier/pkg/generator"
-	"kourier/pkg/knative"
 	"reflect"
+
+	"github.com/3scale/kourier/pkg/envoy"
+	"github.com/3scale/kourier/pkg/generator"
+	"github.com/3scale/kourier/pkg/knative"
 
 	"go.uber.org/zap"
 

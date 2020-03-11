@@ -20,10 +20,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"kourier/pkg/config"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/3scale/kourier/pkg/config"
 
 	"knative.dev/pkg/test"
 

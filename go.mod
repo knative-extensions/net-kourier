@@ -1,4 +1,4 @@
-module kourier
+module github.com/3scale/kourier
 
 go 1.13
 

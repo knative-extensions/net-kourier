@@ -17,11 +17,12 @@ limitations under the License.
 package envoy
 
 import (
-	"kourier/pkg/config"
 	"net"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/3scale/kourier/pkg/config"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
