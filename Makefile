@@ -48,7 +48,7 @@ test-unit-coverage: test-unit ## Runs unit tests and generates a coverage report
 	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
 
 .PHONY: fmt
-fmt: # Runs code formatting
+fmt: ## Runs code formatting
 	goimports -w $$(find . -type f -name '*.go' -not -path './vendor/*' -not -path './utils/extauthz_test_image/vendor/*')
 
 help: ## Print this help
