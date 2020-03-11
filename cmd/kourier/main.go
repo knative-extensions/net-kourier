@@ -17,8 +17,9 @@ limitations under the License.
 package main
 
 import (
-	kourierIngressController "kourier/pkg/reconciler/ingress"
 	"os"
+
+	kourierIngressController "github.com/3scale/kourier/pkg/reconciler/ingress"
 
 	"knative.dev/pkg/controller"
 

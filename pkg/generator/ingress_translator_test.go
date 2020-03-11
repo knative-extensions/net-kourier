@@ -18,8 +18,9 @@ package generator
 
 import (
 	"fmt"
-	"kourier/pkg/envoy"
 	"testing"
+
+	"github.com/3scale/kourier/pkg/envoy"
 
 	"github.com/google/go-cmp/cmp"
 

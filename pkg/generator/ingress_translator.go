@@ -18,9 +18,10 @@ package generator
 
 import (
 	"fmt"
-	"kourier/pkg/envoy"
-	"kourier/pkg/knative"
 	"time"
+
+	"github.com/3scale/kourier/pkg/envoy"
+	"github.com/3scale/kourier/pkg/knative"
 
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 

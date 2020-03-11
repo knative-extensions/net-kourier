@@ -17,9 +17,10 @@ limitations under the License.
 package generator
 
 import (
-	"kourier/pkg/config"
 	"sort"
 	"testing"
+
+	"github.com/3scale/kourier/pkg/config"
 
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 

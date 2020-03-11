@@ -18,11 +18,12 @@ package ingress
 
 import (
 	"context"
-	"kourier/pkg/config"
-	"kourier/pkg/envoy"
-	"kourier/pkg/generator"
 	"strings"
 	"time"
+
+	"github.com/3scale/kourier/pkg/config"
+	"github.com/3scale/kourier/pkg/envoy"
+	"github.com/3scale/kourier/pkg/generator"
 
 	"knative.dev/pkg/network"
 
