@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/3scale/kourier/pkg/config"
+	"github.com/knative/net-kourier/pkg/config"
 
 	"knative.dev/pkg/test"
 

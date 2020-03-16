@@ -19,8 +19,8 @@ package generator
 import (
 	"fmt"
 
-	"github.com/3scale/kourier/pkg/config"
-	"github.com/3scale/kourier/pkg/envoy"
+	"github.com/knative/net-kourier/pkg/config"
+	"github.com/knative/net-kourier/pkg/envoy"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/google/uuid"

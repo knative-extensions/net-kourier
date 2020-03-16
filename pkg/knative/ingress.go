@@ -21,7 +21,7 @@ import (
 	"knative.dev/pkg/system"
 	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
 
-	"github.com/3scale/kourier/pkg/config"
+	"github.com/knative/net-kourier/pkg/config"
 )
 
 func MarkIngressReady(ingress *networkingv1alpha1.Ingress) {

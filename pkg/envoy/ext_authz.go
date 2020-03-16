@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/3scale/kourier/pkg/config"
+	"github.com/knative/net-kourier/pkg/config"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 

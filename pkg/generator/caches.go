@@ -17,7 +17,7 @@ limitations under the License.
 package generator
 
 import (
-	"github.com/3scale/kourier/pkg/envoy"
+	"github.com/knative/net-kourier/pkg/envoy"
 
 	"go.uber.org/zap"
 
