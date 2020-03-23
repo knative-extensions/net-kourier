@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.25.43 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.1
+	github.com/gogo/protobuf v1.3.0
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.1

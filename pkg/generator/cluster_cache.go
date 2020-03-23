@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	clusterExpiration      = 15 * time.Second
+	clusterExpiration      = 10 * time.Minute
 	defaultExpiration      = gocache.NoExpiration
 	defaultCleanupInterval = 1 * time.Minute
 )

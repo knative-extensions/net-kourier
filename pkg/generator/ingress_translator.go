@@ -18,6 +18,8 @@ package generator
 
 import (
 	"fmt"
+	"github.com/google/uuid"
+	knativeIngress "knative.dev/serving/pkg/network/ingress"
 	"time"
 
 	"knative.dev/net-kourier/pkg/envoy"
@@ -92,9 +94,14 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		res.sniMatches = append(res.sniMatches, sniMatch)
 	}
 
-	for _, rule := range ingress.Spec.Rules {
+	statusRoute := createStatusRouteForIngress(ingress, extAuthzEnabled)
+
+	for i, rule := range ingress.Spec.Rules {
 
 		var ruleRoute []*route.Route
+		if i == 0 {
+			ruleRoute = append(ruleRoute, statusRoute)
+		}
 
 		for _, httpPath := range rule.HTTP.Paths {
 
@@ -166,6 +173,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		internalDomains := append(knative.InternalDomains(rule, translator.localDomainName), externalDomains...)
 
 		var virtualHost, internalVirtualHost route.VirtualHost
+
+		// If kourier has extAuthzEnabled, the virtualHosts should be generated with ExtAuthz enabled
 		if extAuthzEnabled {
 
 			visibility := ingress.Spec.Visibility
@@ -228,6 +237,16 @@ func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int
 	}
 
 	return publicLbEndpoints
+}
+
+func createStatusRouteForIngress(ingress *v1alpha1.Ingress, extAuthzEnabled bool) *route.Route {
+	hash, _ := knativeIngress.ComputeHash(ingress)
+	ingressKey := fmt.Sprintf("%x", hash)
+	uuidVar, _ := uuid.NewUUID()
+	routeName := uuidVar.String()
+	readyPath := "/ready_" + ingressKey
+	return envoy.NewRouteReadiness(routeName, readyPath,
+		map[string]string{"KOURIER-PROBER":"ready"}, extAuthzEnabled)
 }
 
 func createRouteForRevision(ingressName string, ingressNamespace string, httpPath v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) *route.Route {

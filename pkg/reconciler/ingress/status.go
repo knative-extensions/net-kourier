@@ -208,12 +208,29 @@ func (m *StatusProber) IsReady(ingress *v1alpha1.Ingress) (bool, error) {
 
 		port := strconv.Itoa(int(config.HTTPPortInternal))
 
+		var hostname string
+		for _, r := range ingress.Spec.Rules {
+			if hostname != "" {
+				break
+			}
+			for _, h := range r.Hosts {
+				if h != "" {
+					hostname = h
+					break
+				}
+			}
+		}
+
+		if hostname == "" {
+			m.logger.Errorf("ingress: %s doesn't have a hostname we can use", ingress.Name)
+		}
+
 		workItem := &workItem{
 			ingressState: snapshotState,
 			podState:     podState,
-			url:          "http://" + ip + ":" + port + config.InternalKourierPath + "/" + ingressKey,
+			url:          "http://" + ip + ":" + port + "/ready_" + ingressKey,
 			podIP:        ip,
-			hostname:     config.InternalKourierDomain,
+			hostname:     hostname,
 		}
 		workItems = append(workItems, workItem)
 
@@ -323,7 +340,8 @@ func (m *StatusProber) processWorkItem() bool {
 		item.podState.context,
 		transport,
 		item.url,
-		prober.WithHost(config.InternalKourierDomain),
+		prober.WithHost(item.hostname),
+		prober.WithHeader("KOURIER-PROBER", "ready"),
 		prober.ExpectsStatusCodes([]int{http.StatusOK}),
 	)
 
