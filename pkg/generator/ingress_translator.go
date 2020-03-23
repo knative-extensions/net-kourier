@@ -246,7 +246,7 @@ func createStatusRouteForIngress(ingress *v1alpha1.Ingress, extAuthzEnabled bool
 	routeName := uuidVar.String()
 	readyPath := "/ready_" + ingressKey
 	return envoy.NewRouteReadiness(routeName, readyPath,
-		map[string]string{"KOURIER-PROBER":"ready"}, extAuthzEnabled)
+		map[string]string{"KOURIER-PROBER": "ready"}, extAuthzEnabled)
 }
 
 func createRouteForRevision(ingressName string, ingressNamespace string, httpPath v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) *route.Route {
