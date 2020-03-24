@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/3scale/kourier/pkg/config"
-	"github.com/3scale/kourier/pkg/envoy"
-	"github.com/3scale/kourier/pkg/generator"
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/generator"
 
 	"knative.dev/pkg/network"
 

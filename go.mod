@@ -1,4 +1,4 @@
-module github.com/3scale/kourier
+module knative.dev/net-kourier
 
 go 1.13
 

@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/3scale/kourier/pkg/envoy"
-	"github.com/3scale/kourier/pkg/knative"
+	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/knative"
 
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 

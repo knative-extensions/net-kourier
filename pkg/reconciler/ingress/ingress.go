@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/3scale/kourier/pkg/envoy"
-	"github.com/3scale/kourier/pkg/generator"
-	"github.com/3scale/kourier/pkg/knative"
+	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/generator"
+	"knative.dev/net-kourier/pkg/knative"
 
 	"go.uber.org/zap"
 

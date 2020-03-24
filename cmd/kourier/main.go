@@ -19,7 +19,7 @@ package main
 import (
 	"os"
 
-	kourierIngressController "github.com/3scale/kourier/pkg/reconciler/ingress"
+	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
 
 	"knative.dev/pkg/controller"
 

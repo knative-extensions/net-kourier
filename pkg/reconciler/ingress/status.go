@@ -28,7 +28,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/3scale/kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/config"
 
 	"knative.dev/pkg/network/prober"
 	networkIngress "knative.dev/serving/pkg/network/ingress"
