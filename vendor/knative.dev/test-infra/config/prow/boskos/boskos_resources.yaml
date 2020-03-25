@@ -1,0 +1,118 @@
+# Copyright 2018 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+resources:
+- names:
+  - knative-boskos-01
+  - knative-boskos-02
+  - knative-boskos-03
+  - knative-boskos-04
+  - knative-boskos-05
+  - knative-boskos-06
+  - knative-boskos-07
+  - knative-boskos-08
+  - knative-boskos-09
+  - knative-boskos-10
+  - knative-boskos-11
+  - knative-boskos-12
+  - knative-boskos-13
+  - knative-boskos-14
+  - knative-boskos-15
+  - knative-boskos-16
+  - knative-boskos-17
+  - knative-boskos-18
+  - knative-boskos-19
+  - knative-boskos-20
+  - knative-boskos-21
+  - knative-boskos-22
+  - knative-boskos-23
+  - knative-boskos-24
+  - knative-boskos-25
+  - knative-boskos-26
+  - knative-boskos-27
+  - knative-boskos-28
+  - knative-boskos-29
+  - knative-boskos-30
+  - knative-boskos-31
+  - knative-boskos-32
+  - knative-boskos-33
+  - knative-boskos-34
+  - knative-boskos-35
+  - knative-boskos-36
+  - knative-boskos-37
+  - knative-boskos-38
+  - knative-boskos-39
+  - knative-boskos-40
+  - knative-boskos-41
+  - knative-boskos-42
+  - knative-boskos-43
+  - knative-boskos-44
+  - knative-boskos-45
+  - knative-boskos-46
+  - knative-boskos-47
+  - knative-boskos-48
+  - knative-boskos-49
+  - knative-boskos-50
+  - knative-boskos-51
+  - knative-boskos-52
+  - knative-boskos-53
+  - knative-boskos-54
+  - knative-boskos-55
+  - knative-boskos-56
+  - knative-boskos-57
+  - knative-boskos-58
+  - knative-boskos-59
+  - knative-boskos-60
+  - knative-boskos-61
+  - knative-boskos-62
+  - knative-boskos-63
+  - knative-boskos-64
+  - knative-boskos-65
+  - knative-boskos-66
+  - knative-boskos-67
+  - knative-boskos-68
+  - knative-boskos-69
+  - knative-boskos-70
+  - knative-boskos-71
+  - knative-boskos-72
+  - knative-boskos-73
+  - knative-boskos-74
+  - knative-boskos-75
+  - knative-boskos-76
+  - knative-boskos-77
+  - knative-boskos-78
+  - knative-boskos-79
+  - knative-boskos-80
+  - knative-boskos-81
+  - knative-boskos-82
+  - knative-boskos-83
+  - knative-boskos-84
+  - knative-boskos-85
+  - knative-boskos-86
+  - knative-boskos-87
+  - knative-boskos-88
+  - knative-boskos-89
+  - knative-boskos-90
+  - knative-boskos-91
+  - knative-boskos-92
+  - knative-boskos-93
+  - knative-boskos-94
+  - knative-boskos-95
+  - knative-boskos-96
+  - knative-boskos-97
+  - knative-boskos-98
+  - knative-boskos-99
+  - knative-boskos-100
+  state: dirty
+  type: gke-project

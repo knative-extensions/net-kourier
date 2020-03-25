@@ -1,0 +1,74 @@
+# Copyright 2019 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitoring-service
+  labels:
+    app: monitoring
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: http-server
+  selector:
+    app: monitoring
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: monitoring-app
+  labels:
+    app: monitoring
+spec:
+  template:
+    metadata:
+      labels:
+        app: monitoring
+    spec:
+      containers:
+      - name: monitoring-app
+        image: gcr.io/knative-tests/test-infra/monitoring:v20191029-cc28ee3
+        command: ["/monitoring"]
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secrets/google-app-credential/knative-monitoring-credential.json
+        # This setting makes nodes pull the docker image every time before
+        # starting the pod. This is useful when debugging, but should be turned
+        # off in production.
+        # TODO(yt3liu) Turn this off once monitoring is more stable
+        imagePullPolicy: Always
+        ports:
+        - name: http-server
+          containerPort: 8080
+        volumeMounts:
+        - name: monitoring-db-credentials
+          mountPath: /secrets/cloudsql/monitoringdb
+          readOnly: true
+        - name: sender-email-credentials
+          mountPath: /secrets/sender-email
+        - name: google-app-credentials
+          mountPath: /secrets/google-app-credential/
+          readOnly: true
+      volumes:
+      - name: monitoring-db-credentials
+        secret:
+          secretName: monitoring-db-credentials
+      - name: sender-email-credentials
+        secret:
+          secretName: sender-email-credentials
+      - name: google-app-credentials
+        secret:
+          secretName: google-app-credentials

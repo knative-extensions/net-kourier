@@ -1,0 +1,115 @@
+# Copyright 2019 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Settings for the "approve" plugin.
+approve:
+- repos:
+  [[indent_array 2 .TideRepos]]
+  require_self_approval: false
+  ignore_review_state: false
+
+# Settings for the "heart" plugin.
+heart:
+  adorees:
+  - knative-test-reporter-robot
+  commentregexp: ".*"
+
+# Settings for the "milestone" plugin.
+repo_milestone:
+  # Default maintainer
+  '':
+    # You can curl the following endpoint in order to determine the github ID of
+    # your team responsible for maintaining the milestones:
+    # curl -H "Authorization: token <token>" https://api.github.com/orgs/<org-name>/teams
+    maintainers_id: 3012514
+    maintainers_team: knative-milestone-maintainers
+
+# Settings for the "project" plugin.
+project_config:
+  project_org_configs:
+    knative:
+      org_maintainers_team_id: 2652083 # knative-admin
+      # TODO(chizhg): Enable the plugin for other repos when needed.
+      project_repo_configs:
+        eventing:
+          # TODO(grantr): replace with a new team eventing-project-maintainers
+          repo_maintainers_team_id: 3012514 # knative-milestone-maintainers
+          repo_default_column_map:
+            perf/measurement: "To do"
+        eventing-contrib:
+          # TODO(grantr): replace with a new team eventing-contrib-project-maintainers
+          repo_maintainers_team_id: 3012514 # knative-milestone-maintainers
+
+# Settings for the "label" plugin.
+label:
+  additional_labels:
+  - proposal/0.11
+  - proposal/0.12
+  - proposal/0.13
+  - proposal/0.14
+  - proposal/0.15
+  - proposal/0.16
+  - proposal/0.17
+  - proposal/0.18
+  - proposal/0.19
+
+  # eventing-contrib labels
+  - channel/kafka
+  - channel/natss
+  - source/awssqs
+  - source/camel
+  - source/ceph
+  - source/couchdb
+  - source/github
+  - source/kafka
+  - source/prometheus
+# Plugins enabled for each repo.
+
+plugins:
+[[range .TideRepos]]
+  [[.]]:
+  - approve
+  - assign
+  - blunderbuss
+  - buildifier
+  - cat
+  - dog
+  - golint
+  - heart
+  - help
+  - hold
+  - label
+  - lgtm
+  - lifecycle
+  - milestone
+  - owners-label
+  - project
+  - shrug
+  - size
+  - skip
+  - trigger
+  - verify-owners
+  - welcome
+  - wip
+  - yuks
+[[end]]
+
+external_plugins:
+[[range .TideRepos]]
+  [[.]]:
+  - name: needs-rebase
+    events:
+      - issue_comment
+      - pull_request
+[[end]]

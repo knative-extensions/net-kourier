@@ -1,0 +1,31 @@
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
+# for detailed Gopkg.toml documentation.
+
+required = [
+  # prow-cluster-operation is temporary solution for calling clustermanager lib
+  # from bash during e2e tests
+  "knative.dev/pkg/testutils/clustermanager/prow-cluster-operation",
+  "knative.dev/pkg/testutils/metahelper",
+  "knative.dev/pkg/testutils/clustermanager/perf-tests"
+]
+
+[[constraint]]
+  name = "github.com/google/go-containerregistry"
+  # HEAD as of 2020-01-23
+  revision = "53ce695e4179e310fd4f7c34099a731829a5d41f"
+
+[[override]]
+  name = "knative.dev/pkg"
+  branch = "master"
+
+# TODO(mattmoor): Find a way to bundle the licenseclassifier's
+# license database, so folks don't have to go get it.
+
+[prune]
+  go-tests = true
+  unused-packages = true
+  non-go = true
+
+[[prune.project]]
+  name = "github.com/google/licenseclassifier"
+  non-go = false

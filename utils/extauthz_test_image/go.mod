@@ -1,4 +1,4 @@
-module github.com/3scale/kourier/extauthz_test_image
+module knative.dev/net-kourier/extauthz_test_image
 
 go 1.13
 

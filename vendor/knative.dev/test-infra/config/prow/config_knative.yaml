@@ -1,0 +1,863 @@
+# Copyright 2018 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This is the meta config file for Prow Jobs in all Knative projects.
+# Run `make config` after making changes to this file, the config-generator
+# will generate Prow jobs for you in jobs/config.yaml.
+
+presubmits:
+  knative/serving:
+    - repo-settings:
+      performance: true
+    - build-tests: true
+      dot-dev: true
+      resources:
+        requests:
+          memory: 12Gi # Real request for this pod is 16 as sidecar requests 4
+        limits:
+          memory: 16Gi
+    - unit-tests: true
+      dot-dev: true
+      needs-monitor: true
+    - integration-tests: true
+      dot-dev: true
+      needs-monitor: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh"
+    - custom-test: upgrade-tests
+      dot-dev: true
+      needs-monitor: true
+      args:
+      - "--run-test"
+      - "./test/e2e-upgrade-tests.sh"
+    - custom-test: autotls-tests
+      dot-dev: true
+      needs-monitor: true
+      args:
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh"
+    - go-coverage: true
+      go-coverage-threshold: 80
+      dot-dev: true
+    - custom-test: istio-1.5-mesh
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version 1.5-latest --mesh"
+    - custom-test: istio-1.5-no-mesh
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version 1.5-latest --no-mesh"
+    - custom-test: istio-1.4-mesh
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version 1.4-latest --mesh"
+    - custom-test: istio-1.4-no-mesh
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version 1.4-latest --no-mesh"
+    - custom-test: gloo-0.17.1
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --gloo-version 0.17.1"
+    - custom-test: kourier-stable
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+        - "--run-test"
+        - "./test/e2e-tests.sh --kourier-version stable"
+    - custom-test: contour-latest
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+        - "--run-test"
+        - "./test/e2e-tests.sh --contour-version latest"
+    - custom-test: ambassador-latest
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+        - "--run-test"
+        - "./test/e2e-tests.sh --ambassador-version latest"
+    - custom-test: https
+      dot-dev: true
+      always_run: false
+      optional: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --https"
+    - custom-test: build-tests-go114
+      dot-dev: true
+      always_run: false
+      optional: true
+      go114: true
+      resources:
+        requests:
+          memory: 12Gi # Real request for this pod is 16 as sidecar requests 4
+        limits:
+          memory: 16Gi
+      args:
+        - "--build-tests"
+    - custom-test: integration-tests-go114
+      dot-dev: true
+      always_run: false
+      optional: true
+      go114: true
+      args:
+        - "--run-test"
+        - "./test/e2e-tests.sh"
+
+  knative/client:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+    - custom-test: integration-tests-latest-release
+      always_run: true
+      command:
+        - "./test/presubmit-integration-tests-latest-release.sh"
+      dot-dev: true
+
+  knative/client-contrib:
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/eventing:
+    - repo-settings:
+      performance: true
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+      dot-dev: true
+      resources:
+        requests:
+          memory: 12Gi # Real request for this pod is 16 as sidecar requests 4
+        limits:
+          memory: 16Gi
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/eventing-contrib:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+      dot-dev: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/docs:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+    - unit-tests: true
+    - integration-tests: true
+      needs-dind: true
+    - go-coverage: true
+    - custom-test: markdown-link-check
+      always_run: true
+      optional: true
+      command:
+        - "./test/presubmit-link-check.sh"
+
+  knative/pkg:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/test-infra:
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - custom-test: check-config
+      dot-dev: true
+      command:
+        - "./test/presubmit-config-check.sh"
+
+  knative/caching:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/observability:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+    - unit-tests: true
+    - integration-tests: true
+
+  knative/sample-controller:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+
+  knative/sample-source:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+
+  google/knative-gcp:
+    - repo-settings:
+      performance: true
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+    - unit-tests: true
+    - integration-tests: true
+    - go-coverage: true
+
+  knative/net-contour:
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: false
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/net-istio:
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/net-kourier:
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: false
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/serving-operator:
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+    - custom-test: upgrade-tests
+      dot-dev: true
+      args:
+        - "--run-test"
+        - "./test/e2e-upgrade-tests.sh"
+
+  knative/eventing-operator:
+    - repo-settings:
+      go112-branches:
+      - release-0.10
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+    - custom-test: upgrade-tests
+      dot-dev: true
+      args:
+        - "--run-test"
+        - "./test/e2e-upgrade-tests.sh"
+
+  knative/website:
+    # This repo only uses Tide
+    - build-tests: false
+    - unit-tests: false
+    - integration-tests: false
+    - go-coverage: false
+
+  knative/community:
+    # This repo only uses Tide
+    - build-tests: false
+    - unit-tests: false
+    - integration-tests: false
+    - go-coverage: false
+
+periodics:
+  knative/serving:
+    - continuous: true
+      timeout: 100
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - branch-ci: true
+      release: "0.10"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.11"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.12"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.13"
+      dot-dev: true
+      go113: true
+    - custom-job: istio-1.5-mesh
+      full-command: "./test/e2e-tests.sh --istio-version 1.5-latest --mesh"
+      dot-dev: true
+      go113: true
+    - custom-job: istio-1.5-no-mesh
+      full-command: "./test/e2e-tests.sh --istio-version 1.5-latest --no-mesh"
+      dot-dev: true
+      go113: true
+    - custom-job: istio-1.4-mesh
+      full-command: "./test/e2e-tests.sh --istio-version 1.4-latest --mesh"
+      dot-dev: true
+      go113: true
+    - custom-job: istio-1.4-no-mesh
+      full-command: "./test/e2e-tests.sh --istio-version 1.4-latest --no-mesh"
+      dot-dev: true
+      go113: true
+    - custom-job: gloo-0.17.1
+      full-command: "./test/e2e-tests.sh --gloo-version 0.17.1"
+      dot-dev: true
+      go113: true
+    - custom-job: kourier-stable
+      full-command: "./test/e2e-tests.sh --kourier-version stable"
+      dot-dev: true
+      go113: true
+    - custom-job: contour-latest
+      full-command: "./test/e2e-tests.sh --contour-version latest"
+      dot-dev: true
+      go113: true
+    - custom-job: ambassador-latest
+      full-command: "./test/e2e-tests.sh --ambassador-version latest"
+      dot-dev: true
+      go113: true
+    - custom-job: https
+      full-command: "./test/e2e-tests.sh --https"
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.10"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.11"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.12"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - auto-release: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - webhook-apicoverage: true
+      dot-dev: true
+      go113: true
+    - custom-job: continuous-go114
+      full-command: "./test/e2e-tests.sh"
+      timeout: 100
+      dot-dev: true
+      go114: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+            memory: 16Gi
+
+  knative/client:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.11"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.12"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.13"
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - custom-job: tekton
+      # This job must run after the nightly job so it uses the latest nightly.
+      # Nightly jobs run between 1AM and 3AM PST.
+      # Run this job at 5AM PST (1PM UTC)
+      cron: "0 13 * * *"
+      full-command: "./test/tekton-tests.sh"
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.11"
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.12"
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true
+
+  knative/client-contrib:
+    - continuous: true
+      dot-dev: true
+      go113: true
+
+  knative/docs:
+    - continuous: true
+      needs-dind: true
+
+  knative/eventing:
+    - continuous: true
+      timeout: 90
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - branch-ci: true
+      release: "0.10"
+      dot-dev: true
+    - branch-ci: true
+      release: "0.11"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.12"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.13"
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.10"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.11"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.12"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - auto-release: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+
+  knative/eventing-contrib:
+    - continuous: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - branch-ci: true
+      release: "0.10"
+      dot-dev: true
+    - branch-ci: true
+      release: "0.11"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.12"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.13"
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.10"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.11"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.12"
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+    - auto-release: true
+      dot-dev: true
+      go113: true
+      resources:
+        requests:
+          memory: 12Gi
+        limits:
+          memory: 16Gi
+
+  knative/pkg:
+    - continuous: true
+      dot-dev: true
+      go113: true
+
+  knative/caching:
+    - continuous: true
+      dot-dev: true
+      go113: true
+
+  knative/observability:
+    - continuous: true
+      go113: true
+
+  knative/sample-controller:
+    - continuous: true
+      dot-dev: true
+      go113: true
+
+  knative/sample-source:
+    - continuous: true
+      dot-dev: true
+      go113: true
+
+  knative/test-infra:
+    - continuous: true
+      dot-dev: true
+      go113: true
+
+  knative/serving-operator:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.11"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.12"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.13"
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.11"
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.12"
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true
+
+  knative/eventing-operator:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.11"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.12"
+      dot-dev: true
+      go113: true
+    - branch-ci: true
+      release: "0.13"
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.11"
+    - dot-release: true
+      dot-dev: true
+      go113: true
+      release: "0.12"
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true
+
+  google/knative-gcp:
+    - continuous: true
+      go113: true
+    - branch-ci: true
+      release: "0.12"
+      go113: true
+    - branch-ci: true
+      release: "0.13"
+      go113: true
+    - nightly: true
+      go113: true
+    - dot-release: true
+      go113: true
+      release: "0.12"
+      env-vars:
+      - ORG_NAME=google
+    - dot-release: true
+      go113: true
+      env-vars:
+      - ORG_NAME=google
+    - auto-release: true
+      go113: true
+      env-vars:
+      - ORG_NAME=google
+
+  knative/net-contour:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true
+
+  knative/net-istio:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true
+
+  knative/net-kourier:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true

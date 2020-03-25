@@ -1,4 +1,4 @@
-module github.com/3scale/kourier
+module knative.dev/net-kourier
 
 go 1.13
 
@@ -43,4 +43,5 @@ require (
 	knative.dev/caching v0.0.0-20191127155022-3feb9f69e85e // indirect
 	knative.dev/pkg v0.0.0-20200109221655-bd9fe634a992
 	knative.dev/serving v0.12.1
+	knative.dev/test-infra v0.0.0-20200317221506-244b563932f9 // indirect
 )

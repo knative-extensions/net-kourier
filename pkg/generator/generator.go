@@ -19,8 +19,8 @@ package generator
 import (
 	"os"
 
-	"github.com/3scale/kourier/pkg/config"
-	"github.com/3scale/kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/envoy"
 
 	"go.uber.org/zap"
 

@@ -1,0 +1,15 @@
+# Aliases for approvers and reviewers in test-infra
+
+aliases:
+  productivity-approvers:
+  - chaodaiG
+  - chizhg
+  productivity-reviewers:
+  - chaodaiG
+  - coryrc
+  - chizhg
+  - steuhs
+  - yt3liu
+  - peterfeifanchen
+  - efiturri
+  - nbarthwal
