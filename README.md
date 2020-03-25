@@ -1,12 +1,9 @@
 # Kourier
 
-[![CircleCI](https://circleci.com/gh/3scale/kourier.svg?style=svg)](https://circleci.com/gh/3scale/kourier)
 [![Docker Repository on Quay](https://quay.io/repository/3scale/kourier/status "Docker Repository on Quay")](https://quay.io/repository/3scale/kourier)
 
-Kourier is an Ingress for [Knative](https://knative.dev/). A deployment of
-Kourier consists of an Envoy proxy and a control plane for it. Kourier is meant
-to be a lightweight replacement for the Istio ingress. In the future, it
-will provide API management capabilities.
+Kourier is an Ingress for [Knative Serving](https://knative.dev/). Kourier is a lightweight alternative
+for the Istio ingress as its deployment consists only of an Envoy proxy and a control plane for it.
 
 Kourier is passing the knative serving e2e and conformance tests: [Kourier Testgrid](https://testgrid.knative.dev/serving#kourier-stable).
 
@@ -15,12 +12,11 @@ Kourier is passing the knative serving e2e and conformance tests: [Kourier Testg
 - [**Development**](#development)
 - [**License**](#license)
 
-
 ## Getting started
 
 - Install Knative Serving, ideally without Istio by using the "serving-core.yaml":
 ```bash 
-kubectl apply -f https://github.com/knative/serving/releases/download/v0.9.0/serving-core.yaml
+kubectl apply -f https://github.com/knative/serving/releases/download/v0.12.1/serving-core.yaml
 ```
 
 - Then install Kourier:
