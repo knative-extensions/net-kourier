@@ -27,11 +27,6 @@ docker-build-extauthzutil: ## Builds kourier docker, tagged by default as test_e
 local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
 	./utils/setup.sh
 
-circleci-setup: ## Builds and deploys kourier locally in a microk8s cluster with knative, forwards the local 8080 to kourier/envoy
-	sudo ./utils/setup-circleci.sh
-
-test-circleci: test-unit test-integration-circleci ## Runs all the tests for circleCI use.
-
 test: test-unit test-integration ## Runs all the tests
 
 test-unit: ## Runs unit tests
@@ -40,9 +35,6 @@ test-unit: ## Runs unit tests
 
 test-integration: local-setup ## Runs integration tests
 	go test -mod vendor -race test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
-
-test-integration-circleci: circleci-setup ## Runs integration tests for circleCI
-	go test -mod vendor -race test/* -args -kubeconfig="$(HOME)/.kube/config"
 
 test-unit-coverage: test-unit ## Runs unit tests and generates a coverage report
 	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
