@@ -17,10 +17,6 @@ limitations under the License.
 package envoy
 
 import (
-	externalAuthzService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
 	"net/http"
 	"time"
 
@@ -78,62 +74,13 @@ func NewRouteStatusOK(name string, path string) *route.Route {
 	}
 }
 
-func NewRouteReadiness(name string, path string, headers map[string]string, extAuthzEnabled bool) *route.Route {
-
-	var routeHeaders []*route.HeaderMatcher
-	for k, v := range headers {
-		rhm := &route.HeaderMatcher{
-			Name: k,
-			HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-				ExactMatch: v,
-			},
-		}
-		routeHeaders = append(routeHeaders, rhm)
-	}
-
-	r := &route.Route{
-		Name: name,
-		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Path{
-				Path: path,
-			},
-			Headers: routeHeaders,
-		},
-		Action: &route.Route_DirectResponse{
-			DirectResponse: &route.DirectResponseAction{Status: http.StatusOK},
-		},
-	}
-
-	if extAuthzEnabled {
-		// We need to disable the exthAuthService for this route, or all the readiness
-		// probes will fail otherwise. Safe to disable even when it's not enabled.
-		perFilterConfig := externalAuthzService.ExtAuthzPerRoute{
-			Override: &externalAuthzService.ExtAuthzPerRoute_Disabled{
-				Disabled: true,
-			},
-		}
-		b := proto.NewBuffer(nil)
-		b.SetDeterministic(true)
-		_ = b.Marshal(&perFilterConfig)
-		filter := &any.Any{
-			TypeUrl: "type.googleapis.com/" + proto.MessageName(&perFilterConfig),
-			Value:   b.Bytes(),
-		}
-
-		r.TypedPerFilterConfig = map[string]*any.Any{
-			wellknown.HTTPExternalAuthorization: filter,
-		}
-	}
-	return r
-}
-
 func retryPolicy(retryAttempts uint32, perTryTimeout time.Duration) *route.RetryPolicy {
 	if retryAttempts == 0 {
 		return nil
 	}
 
 	return &route.RetryPolicy{
-		RetryOn: "5xx",
+		RetryOn: "5xx,connect-failure,refused-stream,unavailable,cancelled",
 		NumRetries: &wrappers.UInt32Value{
 			Value: retryAttempts,
 		},

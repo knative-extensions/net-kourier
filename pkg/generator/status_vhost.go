@@ -21,7 +21,6 @@ import (
 	"knative.dev/net-kourier/pkg/envoy"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
 
 // Generates an internal virtual host that signals that the Envoy instance has
@@ -30,15 +29,15 @@ import (
 // params. The path of the routes are hashed ingresses. With this, if the
 // request for a hashed ingress is successful, we know that the gateway has been
 // configured for that ingress.
-func statusVHost(ingresses []*v1alpha1.Ingress) route.VirtualHost {
+func statusVHost() route.VirtualHost {
 	return envoy.NewVirtualHost(
 		config.InternalKourierDomain,
 		[]string{config.InternalKourierDomain},
-		statusRoutes(ingresses),
+		statusRoutes(),
 	)
 }
 
-func statusRoutes(ingresses []*v1alpha1.Ingress) []*route.Route {
+func statusRoutes() []*route.Route {
 	var routes []*route.Route
 
 	staticRoute := envoy.NewRouteStatusOK(

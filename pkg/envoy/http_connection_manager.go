@@ -26,6 +26,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
@@ -48,10 +49,21 @@ func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 	return httpconnectionmanagerv2.HttpConnectionManager{
 		CodecType:  httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix: "ingress_http",
+		// TODO test with RDS
+		//RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_Rds{
+		//	Rds: &httpconnectionmanagerv2.Rds{
+		//		ConfigSource: &envoy_api_v2_core.ConfigSource{
+		//			ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{Ads: &envoy_api_v2_core.AggregatedConfigSource{}},
+		//			InitialFetchTimeout:   nil,
+		//		},
+		//		RouteConfigName: "",
+		//	},
+		//},
 		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_RouteConfig{
 			RouteConfig: &v2.RouteConfiguration{
-				Name:         "local_route",
-				VirtualHosts: virtualHosts,
+				Name:             "local_route",
+				VirtualHosts:     virtualHosts,
+				ValidateClusters: &wrappers.BoolValue{Value: true},
 			},
 		},
 		HttpFilters: filters,

@@ -18,6 +18,8 @@ package ingress
 
 import (
 	"context"
+	"knative.dev/pkg/reconciler"
+	"knative.dev/serving/pkg/network/status"
 	"strings"
 	"time"
 
@@ -32,7 +34,6 @@ import (
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 
 	"knative.dev/serving/pkg/apis/networking"
-	"knative.dev/serving/pkg/reconciler"
 
 	"k8s.io/client-go/tools/cache"
 
@@ -104,15 +105,17 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	go envoyXdsServer.RunManagementServer()
 	go envoyXdsServer.RunGateway()
 
-	readyCallback := func(ing *v1alpha1.Ingress) {
+	resyncOnIngressReady := func(ing *v1alpha1.Ingress) {
 		logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
-		impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
+		impl.EnqueueKey(types.NamespacedName{Namespace: ing.GetNamespace(), Name: ing.GetName()})
 	}
 
-	statusProber := NewStatusProber(
+	statusProber := status.NewProber(
 		logger.Named("status-manager"),
-		endpointsInformer.Lister(),
-		readyCallback)
+		NewProbeTargetLister(
+			logger,
+			endpointsInformer.Lister()),
+		resyncOnIngressReady)
 	c.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 

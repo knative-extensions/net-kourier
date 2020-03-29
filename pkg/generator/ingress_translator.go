@@ -18,8 +18,7 @@ package generator
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	knativeIngress "knative.dev/serving/pkg/network/ingress"
+	ingress2 "knative.dev/serving/pkg/network/ingress"
 	"time"
 
 	"knative.dev/net-kourier/pkg/envoy"
@@ -94,14 +93,9 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		res.sniMatches = append(res.sniMatches, sniMatch)
 	}
 
-	statusRoute := createStatusRouteForIngress(ingress, extAuthzEnabled)
-
-	for i, rule := range ingress.Spec.Rules {
+	for _, rule := range ingress.Spec.Rules {
 
 		var ruleRoute []*route.Route
-		if i == 0 {
-			ruleRoute = append(ruleRoute, statusRoute)
-		}
 
 		for _, httpPath := range rule.HTTP.Paths {
 
@@ -155,6 +149,10 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			}
 
 			if len(wrs) != 0 {
+				_, err := ingress2.InsertProbe(ingress)
+				if err != nil {
+					return nil, fmt.Errorf("failed to insert probe: '%s'", err)
+				}
 				r := createRouteForRevision(ingress.Name, ingress.Namespace, httpPath, wrs)
 				ruleRoute = append(ruleRoute, r)
 				res.routes = append(res.routes, r)
@@ -239,15 +237,15 @@ func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int
 	return publicLbEndpoints
 }
 
-func createStatusRouteForIngress(ingress *v1alpha1.Ingress, extAuthzEnabled bool) *route.Route {
-	hash, _ := knativeIngress.ComputeHash(ingress)
-	ingressKey := fmt.Sprintf("%x", hash)
-	uuidVar, _ := uuid.NewUUID()
-	routeName := uuidVar.String()
-	readyPath := "/ready_" + ingressKey
-	return envoy.NewRouteReadiness(routeName, readyPath,
-		map[string]string{"KOURIER-PROBER": "ready"}, extAuthzEnabled)
-}
+//func createStatusRouteForIngress(ingress *v1alpha1.Ingress, extAuthzEnabled bool) *route.Route {
+//	hash, _ := knativeIngress.ComputeHash(ingress)
+//	ingressKey := fmt.Sprintf("%x", hash)
+//	uuidVar, _ := uuid.NewUUID()
+//	routeName := uuidVar.String()
+//	readyPath := "/ready_" + ingressKey
+//	return envoy.NewRouteReadiness(routeName, readyPath,
+//		map[string]string{"KOURIER-PROBER": "ready"}, extAuthzEnabled)
+//}
 
 func createRouteForRevision(ingressName string, ingressNamespace string, httpPath v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) *route.Route {
 	routeName := ingressName + "_" + ingressNamespace + "_" + httpPath.Path
@@ -271,7 +269,6 @@ func createRouteForRevision(ingressName string, ingressNamespace string, httpPat
 			perTryTimeout = httpPath.Retries.PerTryTimeout.Duration
 		}
 	}
-
 	return envoy.NewRoute(
 		routeName, path, wrs, routeTimeout, uint32(attempts), perTryTimeout, httpPath.AppendHeaders,
 	)
