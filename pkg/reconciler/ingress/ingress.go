@@ -122,6 +122,8 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 
 	if ready {
 		knative.MarkIngressReady(ingress)
+	} else {
+		ingress.Status.MarkLoadBalancerNotReady()
 	}
 	return nil
 }

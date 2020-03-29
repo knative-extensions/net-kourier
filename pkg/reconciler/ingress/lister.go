@@ -65,7 +65,8 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 
 	sort.Strings(readyIPs)
 	var targets []status.ProbeTarget
-
+	//TODO: Fix ssl
+	// TODO: Fix pod not having an IP (not ready)
 	var urls []*url.URL
 	schema := "http"
 	if len(ing.Spec.TLS) != 0 {

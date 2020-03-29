@@ -87,10 +87,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	var callbacks = envoy.Callbacks{
 		Logger: logger,
 		OnError: func() {
-			impl.FilteredGlobalResync(func(obj interface{}) bool {
-				ingress := obj.(*v1alpha1.Ingress)
-				return !ingress.Status.IsReady()
-			}, ingressInformer.Informer())
+			return
+			//impl.FilteredGlobalResync(func(obj interface{}) bool {
+			//	ingress := obj.(*v1alpha1.Ingress)
+			//	return !ingress.Status.IsReady()
+			//}, ingressInformer.Informer())
 		},
 	}
 
@@ -120,20 +121,20 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	statusProber.Start(ctx.Done())
 
 	// This global resync could be removed once we move to envoy >= 1.12
-	ticker := time.NewTicker(globalResyncPeriod)
-	done := ctx.Done()
-	go func() {
-		for {
-			select {
-			case <-done:
-				logger.Info("GlobalResync stopped.")
-				return
-			case <-ticker.C:
-				logger.Info("GlobalResync triggered.")
-				impl.FilteredGlobalResync(ingressNotReady, ingressInformer.Informer())
-			}
-		}
-	}()
+	//ticker := time.NewTicker(globalResyncPeriod)
+	//done := ctx.Done()
+	//go func() {
+	//	for {
+	//		select {
+	//		case <-done:
+	//			logger.Info("GlobalResync stopped.")
+	//			return
+	//		case <-ticker.C:
+	//			logger.Info("GlobalResync triggered.")
+	//			impl.FilteredGlobalResync(ingressNotReady, ingressInformer.Informer())
+	//		}
+	//	}
+	//}()
 
 	c.CurrentCaches.SetOnEvicted(func(key string, value interface{}) {
 		// The format of the key received is "clusterName:ingressName:ingressNamespace"
