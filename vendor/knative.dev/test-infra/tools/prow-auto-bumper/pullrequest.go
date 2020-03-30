@@ -30,7 +30,7 @@ import (
 	"knative.dev/pkg/test/ghutil"
 	"knative.dev/pkg/test/helpers"
 
-	"knative.dev/test-infra/shared/git"
+	"knative.dev/test-infra/pkg/git"
 )
 
 func generatePRBody(extraMsgs []string) string {

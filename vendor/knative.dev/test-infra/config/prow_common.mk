@@ -21,10 +21,6 @@ ZONE          ?= us-central1-f
 JOB_NAMESPACE ?= test-pods
 
 SKIP_CONFIG_BACKUP        ?=
-GENERATE_MAINTENANCE_JOBS ?= true
-GENERATE_TESTGRID_CONFIG  ?= true
-
-CONFIG_GENERATOR_DIR ?= ../../tools/config-generator
 
 # Any changes to file location must be made to staging directory also
 # or overridden in the Makefile before this file is included.
@@ -42,15 +38,13 @@ BOSKOS_RESOURCES ?= boskos/boskos_resources.yaml
 
 SET_CONTEXT   := gcloud container clusters get-credentials "$(CLUSTER)" --project="$(PROJECT)" --zone="$(ZONE)"
 UNSET_CONTEXT := kubectl config unset current-context
-MAKE_CONFIG   := go run "${CONFIG_GENERATOR_DIR}"
 
-.PHONY: help get-cluster-credentials unset-cluster-credentials config
+.PHONY: help get-cluster-credentials unset-cluster-credentials
 help:
 	@echo "Help"
 	@echo "'Update' means updating the servers and can only be run by oncall staff."
 	@echo "Common usage:"
 	@echo " make update-prow-cluster: Update all Prow things on the server to match the current branch. Errors if not master."
-	@echo " make config: Update all generated files"
 	@echo " make update-testgrid-config: Update the Testgrid config"
 	@echo " make get-cluster-credentials: Setup kubectl to point to Prow cluster"
 	@echo " make unset-cluster-credentials: Clear kubectl context"
@@ -61,21 +55,6 @@ get-cluster-credentials:
 
 unset-cluster-credentials:
 	$(UNSET_CONTEXT)
-
-# Generate the Prow config file
-config $(PROW_JOB_CONFIG) $(PROW_CONFIG) $(PROW_PLUGINS) $(TESTGRID_CONFIG): $(KNATIVE_CONFIG) $(wildcard $(CONFIG_GENERATOR_DIR)/templates/*.yaml)
-	$(MAKE_CONFIG) \
-		--gcs-bucket=$(PROW_GCS) \
-		--generate-testgrid-config=$(GENERATE_TESTGRID_CONFIG) \
-		--generate-maintenance-jobs=$(GENERATE_MAINTENANCE_JOBS) \
-		--image-docker=gcr.io/$(PROJECT)/test-infra \
-		--plugins-config-output=$(PROW_PLUGINS) \
-		--prow-config-output=$(PROW_CONFIG) \
-		--prow-jobs-config-output=$(PROW_JOB_CONFIG) \
-		--prow-host=$(PROW_HOST) \
-		--testgrid-config-output=$(TESTGRID_CONFIG) \
-		--testgrid-gcs-bucket=$(TESTGRID_GCS) \
-		$(KNATIVE_CONFIG)
 
 .PHONY: update-prow-config update-prow-job-config update-prow-plugins update-all-boskos-deployments update-boskos-resource update-almost-all-cluster-deployments update-single-cluster-deployment update-prow test update-testgrid-config confirm-master
 

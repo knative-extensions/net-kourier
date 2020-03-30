@@ -934,7 +934,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:66b9990459cccee8a348f0b9e6f450096ca653fc3dbb11573fff1d7e9bff9997"
+  digest = "1:907c509dfa754ee63f3ee2dcc1ea533ca5d39cbc1fd030296f118525b7cef7f6"
   name = "knative.dev/pkg"
   packages = [
     "test",
@@ -963,7 +963,7 @@
     "testutils/metahelper/client",
   ]
   pruneopts = "NUT"
-  revision = "7cbd0bcc1a30e5205033b35a60149063abeda8e3"
+  revision = "0840da9555a3a75f801abc1d654fb00dfe9a687a"
 
 [[projects]]
   digest = "1:8730e0150dfb2b7e173890c8b9868e7a273082ef8e39f4940e3506a481cf895c"
@@ -987,17 +987,20 @@
     "github.com/google/go-containerregistry/pkg/v1/remote",
     "github.com/google/go-github/github",
     "github.com/google/licenseclassifier",
+    "github.com/kelseyhightower/envconfig",
     "github.com/pkg/errors",
     "golang.org/x/oauth2",
     "google.golang.org/api/iterator",
     "google.golang.org/api/option",
     "gopkg.in/yaml.v2",
     "k8s.io/apimachinery/pkg/util/sets",
+    "k8s.io/apimachinery/pkg/util/wait",
     "knative.dev/pkg/test/cmd",
     "knative.dev/pkg/test/ghutil",
     "knative.dev/pkg/test/ghutil/fakeghutil",
     "knative.dev/pkg/test/gke",
     "knative.dev/pkg/test/helpers",
+    "knative.dev/pkg/test/prow",
     "knative.dev/pkg/test/slackutil",
     "knative.dev/pkg/testutils/clustermanager/perf-tests",
     "knative.dev/pkg/testutils/clustermanager/prow-cluster-operation",

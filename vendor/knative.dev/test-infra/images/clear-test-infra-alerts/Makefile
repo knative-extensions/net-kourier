@@ -13,4 +13,4 @@
 # limitations under the License.
 
 IMAGE_NAME = monitoring/clear-alerts
-include ../../shared/Makefile.simple-image
+include ../Makefile.simple-image

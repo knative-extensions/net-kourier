@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2019 The Knative Authors
+# Copyright 2020 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,12 @@ set -o pipefail
 
 source $(dirname $0)/../scripts/library.sh
 
-readonly TMP_DIFFROOT="$(mktemp -d ${REPO_ROOT_DIR}/tmpdiffroot.XXXXXX)"
+readonly TMP_DIFFROOT="$(mktemp -d)"
+DIRS_TOBE_INSPECTED=(
+  "Gopkg.lock"
+  "vendor"
+  "config"
+)
 
 cleanup() {
   rm -rf "${TMP_DIFFROOT}"
@@ -30,18 +35,24 @@ trap "cleanup" EXIT SIGINT
 
 cleanup
 
-# Save working tree state
 mkdir -p "${TMP_DIFFROOT}/pkg"
-cp -aR "${REPO_ROOT_DIR}/Gopkg.lock" "${REPO_ROOT_DIR}/vendor" "${TMP_DIFFROOT}"
+# Save working tree state
+for dir in ${DIRS_TOBE_INSPECTED[@]}; do
+  cp -aR "${REPO_ROOT_DIR}/${dir}" "${TMP_DIFFROOT}"
+done
 
 "${REPO_ROOT_DIR}/hack/update-codegen.sh"
 echo "Diffing ${REPO_ROOT_DIR} against freshly generated codegen"
 ret=0
-diff -Nupr --no-dereference "${REPO_ROOT_DIR}/vendor" "${TMP_DIFFROOT}/vendor" || ret=1
-diff -Nup --no-dereference "${REPO_ROOT_DIR}/Gopkg.lock" "${TMP_DIFFROOT}/Gopkg.lock" || ret=1
+for dir in ${DIRS_TOBE_INSPECTED[@]}; do
+  diff -Nupr --no-dereference "${REPO_ROOT_DIR}/${dir}" "${TMP_DIFFROOT}/${dir}" || \
+    { ret=1; echo "--- FAIL: ${REPO_ROOT_DIR}/${dir} is not up-to-date"; }
+done
 
 # Restore working tree state
-rm -fr "${REPO_ROOT_DIR}/Gopkg.lock" "${REPO_ROOT_DIR}/pkg" "${REPO_ROOT_DIR}/vendor"
+for dir in {DIRS_TOBE_INSPECTED[@]}; do
+  rm -fr "${REPO_ROOT_DIR}/${dir}"
+done
 cp -aR "${TMP_DIFFROOT}"/* "${REPO_ROOT_DIR}"
 
 if [[ $ret -eq 0 ]]

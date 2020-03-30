@@ -13,5 +13,4 @@
 # limitations under the License.
 
 IMAGE_NAME = prow-auto-bumper
-include ../../shared/Makefile.simple-image
-
+include ../Makefile.simple-image

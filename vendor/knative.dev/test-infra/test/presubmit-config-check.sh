@@ -16,42 +16,11 @@
 
 source $(dirname $0)/../scripts/library.sh
 
-# Run diff on the two configuration files.
-# Parameters: $1 - the regenerated temp file.
-#             $2 - the existing file.
-function diff_config_files() {
-  diff --ignore-matching-lines="^# Copyright " "$1" "$2"
-}
-
-# Run diff on the Prow configuration files.
-# Parameters: $1 - the environent, can be prow or prow-staging.
-function diff_prow_config_files() {
-  local prow_env="$1"
-  diff_config_files "${PROW_CONFIG}" "config/${prow_env}/core/config.yaml"
-  diff_config_files "${PROW_PLUGINS}" "config/${prow_env}/core/plugins.yaml"
-  diff_config_files "${PROW_JOB_CONFIG}" "config/${prow_env}/jobs/config.yaml"
-}
-
 set -e
 
-trap 'echo "--- FAIL: Please rerun \`make -C config/prow config\`."' ERR
-header "Checking generated config for production prow and testgrid"
-export PROW_CONFIG=$(mktemp)
-export PROW_JOB_CONFIG=$(mktemp)
-export PROW_PLUGINS=$(mktemp)
-export TESTGRID_CONFIG=$(mktemp)
-subheader "Regenerating config for production prow and testgrid"
-make -C config/prow config
-subheader "Comparing the generated config files with the existing config files"
-diff_prow_config_files "prow"
-diff_config_files "${TESTGRID_CONFIG}" "config/prow/testgrid/testgrid.yaml"
-
-trap 'echo "--- FAIL: Please rerun \`make -C config/prow-staging config\`."' ERR
-header "Checking generated config for staging prow"
-subheader "Regenerating config for staging prow"
-make -C config/prow-staging config
-subheader "Comparing the generated config files with the existing config files"
-diff_prow_config_files "prow-staging"
+trap 'echo "--- FAIL: Directly changing production Prow config files is not allowed, please move the changes to staging directories."' ERR
+header "Checking to make sure Prow productions config files are not modified manually"
+go run "${REPO_ROOT_DIR}"/tools/prow-config-updater/presubmit-checker --github-token="/etc/repoview-token/token"
 
 trap 'echo "--- FAIL: Prow config files have errors, please check."' ERR
 header "Validating production Prow config files"

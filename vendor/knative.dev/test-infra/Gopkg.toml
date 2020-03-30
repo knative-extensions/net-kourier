@@ -6,7 +6,9 @@ required = [
   # from bash during e2e tests
   "knative.dev/pkg/testutils/clustermanager/prow-cluster-operation",
   "knative.dev/pkg/testutils/metahelper",
-  "knative.dev/pkg/testutils/clustermanager/perf-tests"
+  "knative.dev/pkg/testutils/clustermanager/perf-tests",
+
+  "github.com/kelseyhightower/envconfig"
 ]
 
 [[constraint]]

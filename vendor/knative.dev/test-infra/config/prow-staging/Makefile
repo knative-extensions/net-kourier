@@ -18,8 +18,6 @@ PROJECT                   := knative-tests-staging
 PROW_GCS                  := knative-prow-staging
 PROW_HOST                 := https://prow-staging.knative.dev
 TESTGRID_GCS              := knative-testgrid-staging
-GENERATE_TESTGRID_CONFIG  := false
-GENERATE_MAINTENANCE_JOBS := false
 
 KNATIVE_CONFIG   := config_staging.yaml
 

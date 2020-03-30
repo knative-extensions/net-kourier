@@ -28,7 +28,7 @@ import (
 
 	"knative.dev/pkg/test/helpers"
 
-	"knative.dev/test-infra/shared/common"
+	"knative.dev/test-infra/pkg/common"
 )
 
 // Update all tags in a byte slice

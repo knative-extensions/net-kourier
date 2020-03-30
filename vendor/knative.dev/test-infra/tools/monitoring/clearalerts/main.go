@@ -21,7 +21,7 @@ import (
 	"log"
 	"time"
 
-	"knative.dev/test-infra/shared/mysql"
+	"knative.dev/test-infra/pkg/mysql"
 	"knative.dev/test-infra/tools/monitoring/config"
 	msql "knative.dev/test-infra/tools/monitoring/mysql"
 )

@@ -26,7 +26,7 @@ import (
 
 	"knative.dev/pkg/test/helpers"
 	"knative.dev/pkg/test/slackutil"
-	"knative.dev/test-infra/shared/testgrid"
+	"knative.dev/test-infra/pkg/testgrid"
 )
 
 const (

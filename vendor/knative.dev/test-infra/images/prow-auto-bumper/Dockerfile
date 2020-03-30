@@ -22,7 +22,7 @@ ENV TOOL_NAME prow-auto-bumper
 # Temporarily add test-infra to the image to build custom tools
 ADD . $TEMP_REPO_DIR
 
-# Build flaky test reporter tool in the container
+# Build Prow auto bumper tool in the container
 RUN make -C $TEMP_REPO_DIR/tools/$TOOL_NAME/
 RUN cp $TEMP_REPO_DIR/tools/$TOOL_NAME/$TOOL_NAME /$TOOL_NAME
 

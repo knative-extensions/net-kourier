@@ -17,7 +17,7 @@
 # sync
 
 # TODO(chizhg): probably build the image from scratch?
-FROM gcr.io/k8s-testimages/kubekins-e2e:v20200302-c921a88-master
+FROM gcr.io/k8s-testimages/kubekins-e2e:v20200326-e946722-master
 LABEL maintainer "Adriano Cunha <adrcunha@google.com>"
 
 # Install extras on top of base image
