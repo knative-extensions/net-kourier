@@ -36,6 +36,9 @@ function test_setup() {
   echo ">> Creating test resources (test/config/)"
   ko apply ${KO_FLAGS} -f test/config/ || return 1
 
+  # Replace the pinned version and use the code in master instead
+  sed -ri 's@quay.io/3scale/kourier:.*@ko://knative.dev/net-kourier/cmd/kourier@g' deploy/kourier-knative.yaml
+
   # Bringing up controllers.
   echo ">> Bringing up Kourier"
   ko apply -f deploy/ || return 1
