@@ -25,8 +25,8 @@ import (
 	"strings"
 	"time"
 
-	"knative.dev/test-infra/shared/common"
-	"knative.dev/test-infra/shared/prow"
+	"knative.dev/test-infra/pkg/common"
+	"knative.dev/test-infra/pkg/prow"
 )
 
 const (

@@ -31,6 +31,9 @@ const (
 	// perfPostsubmitJob is the template for the performance operations
 	// postsubmit job.
 	perfPostsubmitJob = "prow_postsubmit_perf_job.yaml"
+
+	// Template for postsubmit custom jobs.
+	postsubmitCustomJob = "prow_postsubmit_custom_job.yaml"
 )
 
 // postsubmitJobTemplateData contains data about a postsubmit Prow job.
@@ -68,4 +71,29 @@ func generateGoCoveragePostsubmit(title, repoName string, _ yaml.MapSlice) {
 		data.Base.Image = strings.Replace(data.Base.Image, "coverage:latest", "coverage-dev:latest", -1)
 		executeJobTemplate("postsubmit go coverage", readTemplate(goCoveragePostsubmitJob), title, repoName, data.PostsubmitJobName, false, data)
 	}
+}
+
+func generateConfigUpdaterToolPostsubmitJob() {
+	var data postsubmitJobTemplateData
+	data.Base = newbaseProwJobTemplateData("knative/test-infra")
+	data.Base.Image = prowconfigupdaterDockerImage
+	data.PostsubmitJobName = "post-knative-prow-config-updater"
+	data.Base.RunIfChanged = "run_if_changed: \"^(config/(prow|prow-staging)/(cluster|core|jobs|testgrid)/.*.yaml)|(tools/config-generator/templates/(prow|prow-staging)/.*.yaml)$\""
+	// Run the job on the prow-trusted build cluster.
+	data.Base.Cluster = "cluster: \"prow-trusted\""
+	data.Base.Command = "/prow-config-updater"
+	data.Base.Args = []string{
+		"--github-token-file=/etc/prow-robot-github-token/token",
+		"--github-userid=knative-prow-robot",
+		"--git-username='Knative Prow Robot'",
+		"--git-email=adrcunha+knative-prow-robot@google.com",
+		"--comment-github-token-file=/etc/prow-updater-robot-github-token/token",
+	}
+	addExtraEnvVarsToJob(extraEnvVars, &data.Base)
+	configureServiceAccountForJob(&data.Base)
+	addVolumeToJob(&data.Base, "/etc/prow-robot-github-token", "prow-robot-github-token", true, "")
+	addVolumeToJob(&data.Base, "/etc/prow-updater-robot-github-token", "prow-updater-robot-github-token", true, "")
+	addVolumeToJob(&data.Base, "/root/.ssh", "prow-robot-ssh-key", true, "0400")
+	addEnvToJob(&data.Base, "GOOGLE_APPLICATION_CREDENTIALS", "/etc/test-account/service-account.json")
+	executeJobTemplate("postsubmit Prow config updater", readTemplate(postsubmitCustomJob), "postsubmits", "", data.PostsubmitJobName, false, data)
 }

@@ -58,6 +58,8 @@ presubmits:
       args:
       - "--run-test"
       - "./test/e2e-tests.sh --istio-version 1.5-latest --mesh"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --istio-version 1.5-latest --mesh"
     - custom-test: istio-1.5-no-mesh
       dot-dev: true
       always_run: false
@@ -65,6 +67,8 @@ presubmits:
       args:
       - "--run-test"
       - "./test/e2e-tests.sh --istio-version 1.5-latest --no-mesh"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --istio-version 1.5-latest --no-mesh"
     - custom-test: istio-1.4-mesh
       dot-dev: true
       always_run: false
@@ -72,6 +76,8 @@ presubmits:
       args:
       - "--run-test"
       - "./test/e2e-tests.sh --istio-version 1.4-latest --mesh"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --istio-version 1.4-latest --mesh"
     - custom-test: istio-1.4-no-mesh
       dot-dev: true
       always_run: false
@@ -79,6 +85,8 @@ presubmits:
       args:
       - "--run-test"
       - "./test/e2e-tests.sh --istio-version 1.4-latest --no-mesh"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --istio-version 1.4-latest --no-mesh"
     - custom-test: gloo-0.17.1
       dot-dev: true
       always_run: false
@@ -86,27 +94,35 @@ presubmits:
       args:
       - "--run-test"
       - "./test/e2e-tests.sh --gloo-version 0.17.1"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --gloo-version 0.17.1"
     - custom-test: kourier-stable
       dot-dev: true
       always_run: false
       optional: true
       args:
-        - "--run-test"
-        - "./test/e2e-tests.sh --kourier-version stable"
+      - "--run-test"
+      - "./test/e2e-tests.sh --kourier-version stable"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --kourier-version stable"
     - custom-test: contour-latest
       dot-dev: true
       always_run: false
       optional: true
       args:
-        - "--run-test"
-        - "./test/e2e-tests.sh --contour-version latest"
+      - "--run-test"
+      - "./test/e2e-tests.sh --contour-version latest"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --contour-version latest"
     - custom-test: ambassador-latest
       dot-dev: true
       always_run: false
       optional: true
       args:
-        - "--run-test"
-        - "./test/e2e-tests.sh --ambassador-version latest"
+      - "--run-test"
+      - "./test/e2e-tests.sh --ambassador-version latest"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --ambassador-version latest"
     - custom-test: https
       dot-dev: true
       always_run: false
@@ -114,6 +130,8 @@ presubmits:
       args:
       - "--run-test"
       - "./test/e2e-tests.sh --https"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --https"
     - custom-test: build-tests-go114
       dot-dev: true
       always_run: false
@@ -159,8 +177,6 @@ presubmits:
     - unit-tests: true
       dot-dev: true
     - integration-tests: true
-      dot-dev: true
-    - go-coverage: true
       dot-dev: true
 
   knative/eventing:
@@ -235,6 +251,8 @@ presubmits:
       dot-dev: true
     - integration-tests: true
       dot-dev: true
+    - go-coverage: true
+      dot-dev: true
     - custom-test: check-config
       dot-dev: true
       command:
@@ -289,12 +307,32 @@ presubmits:
     - integration-tests: true
     - go-coverage: true
 
-  knative/net-contour:
+  knative/net-certmanager:
     - build-tests: true
       dot-dev: true
     - unit-tests: true
       dot-dev: true
     - integration-tests: false
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/net-contour:
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/net-http01:
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
       dot-dev: true
     - go-coverage: true
       dot-dev: true
@@ -308,13 +346,19 @@ presubmits:
       dot-dev: true
     - go-coverage: true
       dot-dev: true
+    - custom-test: latest
+      dot-dev: true
+      optional: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version latest"
 
   knative/net-kourier:
     - build-tests: true
       dot-dev: true
     - unit-tests: true
       dot-dev: true
-    - integration-tests: false
+    - integration-tests: true
       dot-dev: true
     - go-coverage: true
       dot-dev: true
@@ -366,6 +410,12 @@ presubmits:
     - integration-tests: false
     - go-coverage: false
 
+  knative-sandbox/operator:
+    - build-tests: true
+    - unit-tests: true
+    - integration-tests: true
+    - go-coverage: true
+
 periodics:
   knative/serving:
     - continuous: true
@@ -394,39 +444,93 @@ periodics:
       dot-dev: true
       go113: true
     - custom-job: istio-1.5-mesh
-      full-command: "./test/e2e-tests.sh --istio-version 1.5-latest --mesh"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version 1.5-latest --mesh"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --istio-version 1.5-latest --mesh"
       dot-dev: true
       go113: true
     - custom-job: istio-1.5-no-mesh
-      full-command: "./test/e2e-tests.sh --istio-version 1.5-latest --no-mesh"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version 1.5-latest --no-mesh"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --istio-version 1.5-latest --no-mesh"
       dot-dev: true
       go113: true
     - custom-job: istio-1.4-mesh
-      full-command: "./test/e2e-tests.sh --istio-version 1.4-latest --mesh"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version 1.4-latest --mesh"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --istio-version 1.4-latest --mesh"
       dot-dev: true
       go113: true
     - custom-job: istio-1.4-no-mesh
-      full-command: "./test/e2e-tests.sh --istio-version 1.4-latest --no-mesh"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version 1.4-latest --no-mesh"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --istio-version 1.4-latest --no-mesh"
       dot-dev: true
       go113: true
     - custom-job: gloo-0.17.1
-      full-command: "./test/e2e-tests.sh --gloo-version 0.17.1"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --gloo-version 0.17.1"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --gloo-version 0.17.1"
       dot-dev: true
       go113: true
     - custom-job: kourier-stable
-      full-command: "./test/e2e-tests.sh --kourier-version stable"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --kourier-version stable"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --kourier-version stable"
       dot-dev: true
       go113: true
     - custom-job: contour-latest
-      full-command: "./test/e2e-tests.sh --contour-version latest"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --contour-version latest"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --contour-version latest"
       dot-dev: true
       go113: true
     - custom-job: ambassador-latest
-      full-command: "./test/e2e-tests.sh --ambassador-version latest"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --ambassador-version latest"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --ambassador-version latest"
       dot-dev: true
       go113: true
     - custom-job: https
-      full-command: "./test/e2e-tests.sh --https"
+      command:
+      - "./test/presubmit-tests.sh"
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --https"
+      - "--run-test"
+      - "./test/e2e-auto-tls-tests.sh --https"
       dot-dev: true
       go113: true
     - nightly: true
@@ -492,7 +596,7 @@ periodics:
         requests:
           memory: 12Gi
         limits:
-            memory: 16Gi
+          memory: 16Gi
 
   knative/client:
     - continuous: true
@@ -820,7 +924,35 @@ periodics:
       env-vars:
       - ORG_NAME=google
 
+  knative/net-certmanager:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true
+
   knative/net-contour:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true
+
+  knative/net-http01:
     - continuous: true
       dot-dev: true
       go113: true
@@ -861,3 +993,17 @@ periodics:
     - auto-release: true
       dot-dev: true
       go113: true
+
+  knative-sandbox/operator:
+    - continuous: true
+      go113: true
+    - nightly: true
+      go113: true
+    - dot-release: true
+      go113: true
+      env-vars:
+      - ORG_NAME=knative-sandbox
+    - auto-release: true
+      go113: true
+      env-vars:
+      - ORG_NAME=knative-sandbox

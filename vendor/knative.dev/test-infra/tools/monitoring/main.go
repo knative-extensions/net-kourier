@@ -24,8 +24,8 @@ import (
 	"net/http"
 	"os"
 
-	"knative.dev/test-infra/shared/gcs"
-	"knative.dev/test-infra/shared/mysql"
+	"knative.dev/test-infra/pkg/gcs"
+	"knative.dev/test-infra/pkg/mysql"
 	"knative.dev/test-infra/tools/monitoring/alert"
 	"knative.dev/test-infra/tools/monitoring/mail"
 	msql "knative.dev/test-infra/tools/monitoring/mysql"

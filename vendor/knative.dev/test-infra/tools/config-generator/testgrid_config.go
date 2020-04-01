@@ -145,13 +145,13 @@ func generateTestGroup(projName string, repoName string, jobNames []string) {
 		case "continuous":
 			if contRegex.FindString(testGroupName) != "" {
 				extras["num_failures_to_alert"] = "3"
-				extras["alert_options"] = "\n    alert_mail_to_addresses: \"knative-productivity-dev@googlegroups.com\""
+				extras["alert_options"] = "\n    alert_mail_to_addresses: \"prime-engprod-sea@google.com\""
 			} else {
 				extras["alert_stale_results_hours"] = "3"
 			}
 		case "dot-release", "auto-release", "nightly":
 			extras["num_failures_to_alert"] = "1"
-			extras["alert_options"] = "\n    alert_mail_to_addresses: \"knative-productivity-dev@googlegroups.com\""
+			extras["alert_options"] = "\n    alert_mail_to_addresses: \"prime-engprod-sea@google.com\""
 			if jobName == "dot-release" {
 				extras["alert_stale_results_hours"] = "170" // 1 week + 2h
 			}
@@ -187,7 +187,7 @@ func generateDashboard(projName string, repoName string, jobNames []string) {
 		case "continuous":
 			extras := make(map[string]string)
 			extras["num_failures_to_alert"] = "3"
-			extras["alert_options"] = "\n      alert_mail_to_addresses: \"knative-productivity-dev@googlegroups.com\""
+			extras["alert_options"] = "\n      alert_mail_to_addresses: \"prime-engprod-sea@google.com\""
 			executeDashboardTabTemplate("continuous", testGroupName, testgridTabSortByName, extras)
 			// This is a special case for knative/serving, as conformance tab is just a filtered view of the continuous tab.
 			if projRepoStr == "knative-serving" {
@@ -196,7 +196,7 @@ func generateDashboard(projName string, repoName string, jobNames []string) {
 		case "dot-release", "auto-release":
 			extras := make(map[string]string)
 			extras["num_failures_to_alert"] = "1"
-			extras["alert_options"] = "\n      alert_mail_to_addresses: \"knative-productivity-dev@googlegroups.com\""
+			extras["alert_options"] = "\n      alert_mail_to_addresses: \"prime-engprod-sea@google.com\""
 			baseOptions := testgridTabSortByName
 			executeDashboardTabTemplate(jobName, testGroupName, baseOptions, extras)
 		case "webhook-apicoverage":
@@ -205,7 +205,7 @@ func generateDashboard(projName string, repoName string, jobNames []string) {
 		case "nightly":
 			extras := make(map[string]string)
 			extras["num_failures_to_alert"] = "1"
-			extras["alert_options"] = "\n      alert_mail_to_addresses: \"knative-productivity-dev@googlegroups.com\""
+			extras["alert_options"] = "\n      alert_mail_to_addresses: \"prime-engprod-sea@google.com\""
 			executeDashboardTabTemplate("nightly", testGroupName, testgridTabSortByName, extras)
 		case "test-coverage":
 			executeDashboardTabTemplate("coverage", testGroupName, testgridTabGroupByDir, noExtras)
@@ -244,12 +244,14 @@ func generateDashboardsForReleases() {
 		repos := metaData[projName]
 		outputConfig("- name: " + projName + "\n" + baseIndent + "dashboard_tab:")
 		for _, repoName := range repoNames {
-			if _, exists := repos[repoName]; exists {
-				extras := make(map[string]string)
-				extras["num_failures_to_alert"] = "3"
-				extras["alert_options"] = "\n      alert_mail_to_addresses: \"knative-productivity-dev@googlegroups.com\""
-				testGroupName := getTestGroupName(buildProjRepoStr(projName, repoName), "continuous")
-				executeDashboardTabTemplate(repoName, testGroupName, testgridTabSortByName, extras)
+			if jobNames, exists := repos[repoName]; exists {
+				for _, jobName := range jobNames {
+					extras := make(map[string]string)
+					extras["num_failures_to_alert"] = "3"
+					extras["alert_options"] = "\n      alert_mail_to_addresses: \"prime-engprod-sea@google.com\""
+					testGroupName := getTestGroupName(buildProjRepoStr(projName, repoName), jobName)
+					executeDashboardTabTemplate(repoName+"-"+jobName, testGroupName, testgridTabSortByName, extras)
+				}
 			}
 		}
 	}

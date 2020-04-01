@@ -13,4 +13,4 @@
 # limitations under the License.
 
 IMAGE_NAME = flaky-test-reporter
-include ../../shared/Makefile.simple-image
+include ../Makefile.simple-image

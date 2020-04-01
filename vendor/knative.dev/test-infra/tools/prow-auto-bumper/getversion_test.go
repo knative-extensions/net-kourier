@@ -29,7 +29,7 @@ import (
 	"knative.dev/pkg/test/ghutil"
 	"knative.dev/pkg/test/ghutil/fakeghutil"
 
-	"knative.dev/test-infra/shared/git"
+	"knative.dev/test-infra/pkg/git"
 )
 
 func getFakeGitInfo() git.Info {

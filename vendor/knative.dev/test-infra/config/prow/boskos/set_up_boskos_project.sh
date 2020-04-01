@@ -77,6 +77,8 @@ readonly RESOURCES=(
     "compute.googleapis.com"
     "container.googleapis.com"
     "cloudscheduler.googleapis.com"
+    # For Workload Identity testing
+    "iamcredentials.googleapis.com"
 )
 
 # Loop through the list of resources and add them.

@@ -15,6 +15,7 @@
 approve:
 - repos:
   - "google/knative-gcp"
+  - "knative-sandbox/operator"
   - "knative/caching"
   - "knative/client"
   - "knative/client-contrib"
@@ -23,7 +24,9 @@ approve:
   - "knative/eventing"
   - "knative/eventing-contrib"
   - "knative/eventing-operator"
+  - "knative/net-certmanager"
   - "knative/net-contour"
+  - "knative/net-http01"
   - "knative/net-istio"
   - "knative/net-kourier"
   - "knative/observability"
@@ -90,6 +93,31 @@ label:
 # Plugins enabled for each repo.
 plugins:
   google/knative-gcp:
+  - approve
+  - assign
+  - blunderbuss
+  - buildifier
+  - cat
+  - dog
+  - golint
+  - heart
+  - help
+  - hold
+  - label
+  - lgtm
+  - lifecycle
+  - milestone
+  - owners-label
+  - project
+  - shrug
+  - size
+  - skip
+  - trigger
+  - verify-owners
+  - welcome
+  - wip
+  - yuks
+  knative-sandbox/operator:
   - approve
   - assign
   - blunderbuss
@@ -314,7 +342,57 @@ plugins:
   - welcome
   - wip
   - yuks
+  knative/net-certmanager:
+  - approve
+  - assign
+  - blunderbuss
+  - buildifier
+  - cat
+  - dog
+  - golint
+  - heart
+  - help
+  - hold
+  - label
+  - lgtm
+  - lifecycle
+  - milestone
+  - owners-label
+  - project
+  - shrug
+  - size
+  - skip
+  - trigger
+  - verify-owners
+  - welcome
+  - wip
+  - yuks
   knative/net-contour:
+  - approve
+  - assign
+  - blunderbuss
+  - buildifier
+  - cat
+  - dog
+  - golint
+  - heart
+  - help
+  - hold
+  - label
+  - lgtm
+  - lifecycle
+  - milestone
+  - owners-label
+  - project
+  - shrug
+  - size
+  - skip
+  - trigger
+  - verify-owners
+  - welcome
+  - wip
+  - yuks
+  knative/net-http01:
   - approve
   - assign
   - blunderbuss
@@ -595,6 +673,11 @@ external_plugins:
     events:
       - issue_comment
       - pull_request
+  knative-sandbox/operator:
+  - name: needs-rebase
+    events:
+      - issue_comment
+      - pull_request
   knative/caching:
   - name: needs-rebase
     events:
@@ -635,7 +718,17 @@ external_plugins:
     events:
       - issue_comment
       - pull_request
+  knative/net-certmanager:
+  - name: needs-rebase
+    events:
+      - issue_comment
+      - pull_request
   knative/net-contour:
+  - name: needs-rebase
+    events:
+      - issue_comment
+      - pull_request
+  knative/net-http01:
   - name: needs-rebase
     events:
       - issue_comment

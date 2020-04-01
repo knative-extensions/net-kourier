@@ -25,7 +25,7 @@ import (
 
 	"knative.dev/pkg/test/ghutil"
 
-	"knative.dev/test-infra/shared/git"
+	"knative.dev/test-infra/pkg/git"
 )
 
 func main() {

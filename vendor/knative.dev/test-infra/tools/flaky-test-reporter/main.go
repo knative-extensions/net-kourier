@@ -25,10 +25,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"knative.dev/pkg/test/helpers"
 	"knative.dev/pkg/test/slackutil"
-	"knative.dev/test-infra/shared/prow"
+	"knative.dev/test-infra/pkg/prow"
 	"knative.dev/test-infra/tools/flaky-test-reporter/config"
 )
 
@@ -126,7 +127,17 @@ func githubOperations(ghToken string, repoData []RepoData, dryrun bool) (map[str
 	return gih.processGithubIssues(repoData, dryrun)
 }
 
+func isWeekend(t time.Time) bool {
+	weekDay := t.Weekday()
+	return weekDay == time.Saturday || weekDay == time.Sunday
+}
+
 func slackOperations(slackToken string, repoData []RepoData, flakyIssues map[string][]flakyIssue, dryrun bool) error {
+	if isWeekend(time.Now()) {
+		log.Print("Skip Slack notification on weekend")
+		return nil
+	}
+
 	// Verify that there are issues to notify on.
 	if len(flakyIssues) == 0 {
 		return nil

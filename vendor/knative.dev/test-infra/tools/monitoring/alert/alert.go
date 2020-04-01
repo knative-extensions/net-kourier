@@ -20,7 +20,7 @@ import (
 	"context"
 	"log"
 
-	"knative.dev/test-infra/shared/gcs"
+	"knative.dev/test-infra/pkg/gcs"
 	"knative.dev/test-infra/tools/monitoring/config"
 	"knative.dev/test-infra/tools/monitoring/log_parser"
 	"knative.dev/test-infra/tools/monitoring/mail"
@@ -31,7 +31,7 @@ import (
 
 const subName = "test-infra-monitoring-sub"
 
-var alertEmailRecipients = []string{"knative-productivity-dev@googlegroups.com"}
+var alertEmailRecipients = []string{"prime-engprod-sea@google.com"}
 
 // Client holds all the resources required to run alerting
 type Client struct {

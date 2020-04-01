@@ -64,11 +64,11 @@
 1. Add the new repo to
    [config_knative.yaml](../config/prow/config_knative.yaml), without any job
    settings. Check the top-level section `presubmits:` and `periodics:` for
-   blueprints for what to add. Then run `make config` to regenerate
-   [config.yaml](../config/prow/jobs/config.yaml), otherwise the presubmit test
-   in test-infra will fail. Create a PR with the changes; once it's merged ask
-   the [oncall](https://knative.github.io/test-infra/) to update the Prow
-   cluster.
+   blueprints for what to add. Then run `./hack/generate-configs.sh` to
+   regenerate [config.yaml](../config/prow/jobs/config.yaml), otherwise the
+   presubmit test in test-infra will fail. Create a PR with the changes; once
+   it's merged ask the [oncall](https://knative.github.io/test-infra/) to update
+   the Prow cluster.
 
 1. Wait a few minutes, check that Prow is working by entering `/woof` as a
    comment in any PR in the new repo.
@@ -86,7 +86,7 @@
 1. Merge a pull request that updates
    [config_knative.yaml](../config/prow/config_knative.yaml), the Prow config
    file (usually, copy and update the existing configuration from another
-   repository). Run `make config` to regenerate
+   repository). Run `./hack/generate-configs.sh` to regenerate
    [config.yaml](../config/prow/jobs/config.yaml), otherwise the presubmit test
    will fail.
 

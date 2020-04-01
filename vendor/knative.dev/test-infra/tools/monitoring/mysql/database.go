@@ -22,7 +22,7 @@ import (
 	"log"
 	"time"
 
-	"knative.dev/test-infra/shared/mysql"
+	"knative.dev/test-infra/pkg/mysql"
 )
 
 const alertInsertStmt = `

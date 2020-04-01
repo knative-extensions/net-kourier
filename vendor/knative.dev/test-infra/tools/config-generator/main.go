@@ -27,6 +27,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
@@ -115,6 +116,8 @@ type baseProwJobTemplateData struct {
 	Image               string
 	Labels              []string
 	PathAlias           string
+	RunIfChanged        string
+	Cluster             string
 	Optional            string
 	NeedsMonitor        bool
 }
@@ -144,10 +147,10 @@ var (
 	releaseAccount               string
 	flakesreporterDockerImage    string
 	prowversionbumperDockerImage string
+	prowconfigupdaterDockerImage string
 	githubCommenterDockerImage   string
 	coverageDockerImage          string
 	prowTestsDockerImage         string
-	metricsDockerImage           string
 	backupsDockerImage           string
 	presubmitScript              string
 	releaseScript                string
@@ -1106,6 +1109,7 @@ func main() {
 	prowConfigOutput := ""
 	prowJobsConfigOutput := ""
 	testgridConfigOutput := ""
+	var env = flag.String("env", "prow", "The name of the environment, can be prow or prow-staging")
 	var generateProwConfig = flag.Bool("generate-prow-config", true, "Whether to generate the prow configuration file from the template")
 	var generatePluginsConfig = flag.Bool("generate-plugins-config", true, "Whether to generate the plugins configuration file from the template")
 	var generateTestgridConfig = flag.Bool("generate-testgrid-config", true, "Whether to generate the testgrid config from the template file")
@@ -1128,9 +1132,9 @@ func main() {
 	flag.StringVar(&releaseAccount, "release-account", "/etc/release-account/service-account.json", "Path to the service account JSON for release jobs")
 	var flakesreporterDockerImageName = flag.String("flaky-test-reporter-docker", "flaky-test-reporter:latest", "Docker image for flaky test reporting tool")
 	var prowversionbumperDockerImageName = flag.String("prow-auto-bumper", "prow-auto-bumper:latest", "Docker image for Prow version bumping tool")
+	var prowconfigupdaterDockerImageName = flag.String("prow-config-updater", "prow-config-updater:latest", "Docker image for Prow config updater tool")
 	var coverageDockerImageName = flag.String("coverage-docker", "coverage-go112:latest", "Docker image for coverage tool")
 	var prowTestsDockerImageName = flag.String("prow-tests-docker", "prow-tests-go112:stable", "prow-tests docker image")
-	var metricsDockerImageName = flag.String("metrics-docker", "metrics:latest", "Docker image for the metrics reporting tool")
 	var backupsDockerImageName = flag.String("backups-docker", "backups:latest", "Docker image for the backups job")
 	flag.StringVar(&githubCommenterDockerImage, "github-commenter-docker", "gcr.io/k8s-prow/commenter:v20190731-e3f7b9853", "github commenter docker image")
 	flag.StringVar(&presubmitScript, "presubmit-script", "./test/presubmit-tests.sh", "Executable for running presubmit tests")
@@ -1148,9 +1152,9 @@ func main() {
 
 	flakesreporterDockerImage = path.Join(*dockerImagesBase, *flakesreporterDockerImageName)
 	prowversionbumperDockerImage = path.Join(*dockerImagesBase, *prowversionbumperDockerImageName)
+	prowconfigupdaterDockerImage = path.Join(*dockerImagesBase, *prowconfigupdaterDockerImageName)
 	coverageDockerImage = path.Join(*dockerImagesBase, *coverageDockerImageName)
 	prowTestsDockerImage = path.Join(*dockerImagesBase, *prowTestsDockerImageName)
-	metricsDockerImage = path.Join(*dockerImagesBase, *metricsDockerImageName)
 	backupsDockerImage = path.Join(*dockerImagesBase, *backupsDockerImageName)
 
 	// We use MapSlice instead of maps to keep key order and create predictable output.
@@ -1170,7 +1174,7 @@ func main() {
 
 	if *generatePluginsConfig {
 		setOutput(*pluginsConfigOutput)
-		executeTemplate("plugins config", readTemplate(pluginsConfig), prowConfigData)
+		executeTemplate("plugins config", readTemplate(filepath.Join(*env, pluginsConfig)), prowConfigData)
 	}
 
 	// Generate Prow config.
@@ -1180,7 +1184,7 @@ func main() {
 		sectionMap = make(map[string]bool)
 		if *includeConfig {
 			executeTemplate("general header", readTemplate(commonHeaderConfig), prowConfigData)
-			executeTemplate("general config", readTemplate(generalProwConfig), prowConfigData)
+			executeTemplate("general config", readTemplate(filepath.Join(*env, generalProwConfig)), prowConfigData)
 		}
 
 		setOutput(prowJobsConfigOutput)
@@ -1203,6 +1207,9 @@ func main() {
 		for _, repo := range repositories {
 			if repo.EnableGoCoverage {
 				generateGoCoveragePostsubmit("postsubmits", repo.Name, nil)
+				if repo.Name == "knative/test-infra" && *generateMaintenanceJobs {
+					generateConfigUpdaterToolPostsubmitJob()
+				}
 			}
 			if repo.EnablePerformanceTests {
 				generatePerfClusterPostsubmitJob(repo)

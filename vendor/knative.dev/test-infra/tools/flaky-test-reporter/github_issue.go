@@ -31,7 +31,7 @@ import (
 
 	"knative.dev/pkg/test/ghutil"
 	"knative.dev/pkg/test/helpers"
-	"knative.dev/test-infra/shared/junit"
+	"knative.dev/test-infra/pkg/junit"
 )
 
 const (

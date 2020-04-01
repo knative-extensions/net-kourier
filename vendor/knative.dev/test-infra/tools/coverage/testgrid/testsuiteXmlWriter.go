@@ -21,7 +21,7 @@ import (
 	"os"
 	"strconv"
 
-	"knative.dev/test-infra/shared/junit"
+	"knative.dev/test-infra/pkg/junit"
 	"knative.dev/test-infra/tools/coverage/artifacts"
 	"knative.dev/test-infra/tools/coverage/calc"
 	"knative.dev/test-infra/tools/coverage/logUtil"

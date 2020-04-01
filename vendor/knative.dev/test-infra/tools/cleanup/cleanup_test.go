@@ -251,7 +251,7 @@ func TestNewImageDeleter(t *testing.T) {
 		},
 		{ // Bad service account file.
 			"/boot/foo/bar/nonono",
-			errors.New("No such file or directory"),
+			errors.New("cannot activate service account"),
 		},
 		// TODO: Test with a valid service account file.
 	}

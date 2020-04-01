@@ -22,14 +22,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
+	"knative.dev/pkg/test/ghutil"
 )
 
 var (
@@ -41,28 +39,18 @@ var (
 	// Shared useful variables
 	ctx     = context.Background()
 	verbose = false
-	client  *github.Client
+	client  *ghutil.GithubClient
 )
 
 // authenticate creates client with given token if it's provided and exists,
 // otherwise it falls back to use an anonymous client
 func authenticate(githubTokenPath *string) {
-	client = github.NewClient(nil)
-	if githubTokenPath == nil || *githubTokenPath == "" {
-		infof("Using unauthenticated github client")
-		return
-	}
-
-	infof("Reading github token from file %q", *githubTokenPath)
-	if b, err := ioutil.ReadFile(*githubTokenPath); err == nil {
-		infof("Authenticating using provided github token")
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: strings.TrimSpace(string(b))},
-		)
-		client = github.NewClient(oauth2.NewClient(ctx, ts))
-	} else {
-		infof("Error reading file %q: %v", *githubTokenPath, err)
-		infof("Proceeding unauthenticated")
+	var err error
+	client, err = ghutil.NewGithubClient(*githubTokenPath)
+	if err != nil {
+		infof("Error creating client with token %q: %v", *githubTokenPath, err)
+		infof("Proceeding with unauthenticated client")
+		client = &ghutil.GithubClient{Client: github.NewClient(nil)}
 	}
 }
 
@@ -85,22 +73,9 @@ func infof(template string, args ...interface{}) {
 // listChangedFiles simply lists the files changed by the current PR.
 func listChangedFiles() {
 	infof("Listing changed files for PR %d in repository %s/%s", pullNumber, repoOwner, repoName)
-	files := make([]*github.CommitFile, 0)
-
-	listOptions := &github.ListOptions{
-		Page:    1,
-		PerPage: 300,
-	}
-	for {
-		commitFiles, rsp, err := client.PullRequests.ListFiles(ctx, repoOwner, repoName, pullNumber, listOptions)
-		if err != nil {
-			log.Fatalf("Error listing files: %v", err)
-		}
-		files = append(files, commitFiles...)
-		if rsp.NextPage == 0 {
-			break
-		}
-		listOptions.Page = rsp.NextPage
+	files, err := client.ListFiles(repoOwner, repoName, pullNumber)
+	if err != nil {
+		log.Fatalf("Error listing files: %v", err)
 	}
 
 	for _, file := range files {
