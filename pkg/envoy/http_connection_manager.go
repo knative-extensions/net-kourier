@@ -80,7 +80,7 @@ func NewRDSHTTPConnectionManager(routeConfigName string) httpconnectionmanagerv2
 					Ads: &envoy_api_v2_core.AggregatedConfigSource{},
 				},
 				InitialFetchTimeout: &duration.Duration{
-					Seconds: 10,
+					Seconds: 0,
 					Nanos:   0,
 				},
 			},

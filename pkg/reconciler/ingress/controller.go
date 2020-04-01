@@ -88,10 +88,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		Logger: logger,
 		OnError: func() {
 			return
-			//impl.FilteredGlobalResync(func(obj interface{}) bool {
-			//	ingress := obj.(*v1alpha1.Ingress)
-			//	return !ingress.Status.IsReady()
-			//}, ingressInformer.Informer())
+			impl.FilteredGlobalResync(func(obj interface{}) bool {
+				ingress := obj.(*v1alpha1.Ingress)
+				return !ingress.Status.IsReady()
+			}, ingressInformer.Informer())
 		},
 	}
 

@@ -118,6 +118,10 @@ func (envoyXdsServer *XdsServer) RunGateway() {
 }
 
 func (envoyXdsServer *XdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeID string) error {
+	if err := snapshot.Consistent(); err != nil {
+		return err
+	}
+
 	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeID, *snapshot)
 
 	if err != nil {
