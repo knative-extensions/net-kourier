@@ -142,15 +142,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 
 				res.clusters = append(res.clusters, cluster)
 
-				// Workaround: in some environments, split.Percent can be 0
-				// instead of 100 when there's only one split. We need to set it
-				// to 100 to avoid errors.
-				clusterPercent := split.Percent
-				if clusterPercent == 0 && len(httpPath.Splits) == 1 {
-					clusterPercent = 100
-				}
-
-				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(clusterPercent), split.AppendHeaders)
+				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
 
 				wrs = append(wrs, weightedCluster)
 			}
