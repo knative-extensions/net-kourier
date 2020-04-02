@@ -1,3 +1,0 @@
-- name: [[.Base.TestGroupName]]
-  gcs_prefix: [[.GcsLogDir]]
-  [[indent_map 2 .Extras]]

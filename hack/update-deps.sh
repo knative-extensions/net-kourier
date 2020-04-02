@@ -19,25 +19,43 @@
 # does not handle them because they are only used in the scripts under the
 # "/test" directory.
 
-readonly ROOT_DIR=$(dirname "$0")/..
+readonly ROOT_DIR=$(dirname $0)/..
+source ${ROOT_DIR}/vendor/knative.dev/test-infra/scripts/library.sh
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-SERVING_VERSION=0.12.1
-TEST_INFRA_VERSION=master
+cd ${ROOT_DIR}
 
-cd "${ROOT_DIR}"
+# This controls the release branch we track.
+VERSION="release-0.12"
 
-# Update serving
-rm -rf "${ROOT_DIR}"/vendor/knative.dev/serving
-wget -qO- github.com/knative/serving/archive/v"${SERVING_VERSION}".zip &> /tmp/serving.zip
-unzip /tmp/serving.zip -d "${ROOT_DIR}"/vendor/knative.dev/
-mv "${ROOT_DIR}"/vendor/knative.dev/serving-"$SERVING_VERSION" "${ROOT_DIR}"/vendor/knative.dev/serving
+# The list of dependencies that we track at HEAD and periodically
+# float forward in this repository.
+FLOATING_DEPS=(
+  "knative.dev/test-infra"
+  "knative.dev/pkg@${VERSION}"
+  "knative.dev/serving@${VERSION}"
+)
 
-# Update test-infra
-rm -rf "${ROOT_DIR}"/vendor/knative.dev/test-infra
-wget -qO- github.com/knative/test-infra/archive/"${TEST_INFRA_VERSION}".zip &> /tmp/test-infra.zip
-unzip /tmp/test-infra.zip -d "${ROOT_DIR}"/vendor/knative.dev/
-mv "${ROOT_DIR}"/vendor/knative.dev/test-infra-"$TEST_INFRA_VERSION" "${ROOT_DIR}"/vendor/knative.dev/test-infra
+# Parse flags to determine any we should pass to dep.
+GO_GET=0
+while [[ $# -ne 0 ]]; do
+  parameter=$1
+  case ${parameter} in
+    --upgrade) GO_GET=1 ;;
+    *) abort "unknown option ${parameter}" ;;
+  esac
+  shift
+done
+readonly GO_GET
+
+if (( GO_GET )); then
+  go get -d ${FLOATING_DEPS[@]}
+fi
+
+
+# Prune modules.
+go mod tidy
+go mod vendor

@@ -772,5 +772,8 @@ knative.dev/serving/pkg/network
 knative.dev/serving/pkg/network/ingress
 knative.dev/serving/pkg/reconciler
 knative.dev/serving/pkg/reconciler/route/config
+# knative.dev/test-infra v0.0.0-20200401140617-163337c1d67d
+knative.dev/test-infra
+knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml
