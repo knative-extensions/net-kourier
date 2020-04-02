@@ -130,6 +130,8 @@ github.com/googleapis/gax-go/v2
 github.com/googleapis/gnostic/OpenAPIv2
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
+# github.com/gorilla/websocket v1.4.2
+github.com/gorilla/websocket
 # github.com/grpc-ecosystem/grpc-gateway v1.9.4
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
@@ -663,9 +665,12 @@ k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/pkg/version
 k8s.io/client-go/plugin/pkg/client/auth/exec
+k8s.io/client-go/plugin/pkg/client/auth/gcp
+k8s.io/client-go/plugin/pkg/client/auth/oidc
 k8s.io/client-go/rest
 k8s.io/client-go/rest/watch
 k8s.io/client-go/testing
+k8s.io/client-go/third_party/forked/golang/template
 k8s.io/client-go/tools/auth
 k8s.io/client-go/tools/cache
 k8s.io/client-go/tools/clientcmd
@@ -682,6 +687,7 @@ k8s.io/client-go/util/cert
 k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/homedir
+k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
@@ -732,6 +738,7 @@ knative.dev/pkg/signals
 knative.dev/pkg/system
 knative.dev/pkg/system/testing
 knative.dev/pkg/test
+knative.dev/pkg/test/helpers
 knative.dev/pkg/test/ingress
 knative.dev/pkg/test/logging
 knative.dev/pkg/test/monitoring
@@ -785,6 +792,24 @@ knative.dev/serving/pkg/network
 knative.dev/serving/pkg/network/ingress
 knative.dev/serving/pkg/reconciler
 knative.dev/serving/pkg/reconciler/route/config
+knative.dev/serving/pkg/reconciler/route/domains
+knative.dev/serving/pkg/reconciler/route/resources/labels
+knative.dev/serving/pkg/reconciler/route/resources/names
+knative.dev/serving/pkg/reconciler/service/resources/names
+knative.dev/serving/pkg/resources
+knative.dev/serving/pkg/testing/v1alpha1
+knative.dev/serving/test
+knative.dev/serving/test/conformance/ingress
+knative.dev/serving/test/test_images/flaky
+knative.dev/serving/test/test_images/grpc-ping
+knative.dev/serving/test/test_images/grpc-ping/proto
+knative.dev/serving/test/test_images/httpproxy
+knative.dev/serving/test/test_images/runtime
+knative.dev/serving/test/test_images/runtime/handlers
+knative.dev/serving/test/test_images/timeout
+knative.dev/serving/test/test_images/wsserver
+knative.dev/serving/test/types
+knative.dev/serving/test/v1alpha1
 # knative.dev/test-infra v0.0.0-20200401140617-163337c1d67d
 knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.1.0

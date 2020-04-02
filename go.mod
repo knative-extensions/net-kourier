@@ -15,6 +15,7 @@ require (
 	github.com/google/go-cmp v0.3.1
 	github.com/google/go-containerregistry v0.0.0-20191115225042-f8574ec722f4 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/openzipkin/zipkin-go v0.2.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
