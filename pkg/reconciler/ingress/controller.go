@@ -18,6 +18,7 @@ package ingress
 
 import (
 	"context"
+	knativeReconciler "knative.dev/pkg/reconciler"
 	"strings"
 	"time"
 
@@ -31,10 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 
-	"knative.dev/serving/pkg/apis/networking"
-	"knative.dev/serving/pkg/reconciler"
-
 	"k8s.io/client-go/tools/cache"
+	"knative.dev/serving/pkg/apis/networking"
 
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
@@ -173,7 +172,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
 	ingressInformerHandler := cache.FilteringResourceEventHandler{
-		FilterFunc: reconciler.AnnotationFilterFunc(
+		FilterFunc: knativeReconciler.AnnotationFilterFunc(
 			networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
 		),
 		Handler: controller.HandleAll(impl.Enqueue),
@@ -189,7 +188,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	))
 
 	podInformerHandler := cache.FilteringResourceEventHandler{
-		FilterFunc: reconciler.LabelFilterFunc(gatewayLabelKey, gatewayLabelValue, false),
+		FilterFunc: knativeReconciler.LabelFilterFunc(gatewayLabelKey, gatewayLabelValue, false),
 		Handler: cache.ResourceEventHandlerFuncs{
 			// Cancel probing when a Pod is deleted
 			DeleteFunc: func(obj interface{}) {
