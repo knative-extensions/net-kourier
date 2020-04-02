@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"knative.dev/pkg/apis/duck"
 	"knative.dev/pkg/test/logging"
 	v1 "knative.dev/serving/pkg/apis/serving/v1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
@@ -43,37 +44,71 @@ func CreateConfiguration(t pkgTest.T, clients *test.Clients, names test.Resource
 	return clients.ServingAlphaClient.Configs.Create(config)
 }
 
+// PatchConfig patches the existing config with the provided options. Returns the latest Configuration object
+func PatchConfig(clients *test.Clients, cfg *v1alpha1.Configuration, fopt ...v1alpha1testing.ConfigOption) (*v1alpha1.Configuration, error) {
+	newCfg := cfg.DeepCopy()
+
+	for _, opt := range fopt {
+		opt(newCfg)
+	}
+
+	patchBytes, err := duck.CreateBytePatch(cfg, newCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return clients.ServingAlphaClient.Configs.Patch(cfg.ObjectMeta.Name, types.JSONPatchType, patchBytes, "")
+}
+
 // PatchConfigImage patches the existing config passed in with a new imagePath. Returns the latest Configuration object
 func PatchConfigImage(clients *test.Clients, cfg *v1alpha1.Configuration, imagePath string) (*v1alpha1.Configuration, error) {
 	newCfg := cfg.DeepCopy()
 	newCfg.Spec.GetTemplate().Spec.GetContainer().Image = imagePath
-	patchBytes, err := test.CreateBytePatch(cfg, newCfg)
+	patchBytes, err := duck.CreateBytePatch(cfg, newCfg)
 	if err != nil {
 		return nil, err
 	}
 	return clients.ServingAlphaClient.Configs.Patch(cfg.ObjectMeta.Name, types.JSONPatchType, patchBytes, "")
 }
 
+// WaitForConfigLatestPinnedRevision enables the check for pinned revision in WaitForConfigLatestRevision.
+func WaitForConfigLatestPinnedRevision(clients *test.Clients, names test.ResourceNames) (string, error) {
+	return WaitForConfigLatestRevision(clients, names, true /*wait for pinned revision*/)
+}
+
+// WaitForConfigLatestUnpinnedRevision disables the check for pinned revision in WaitForConfigLatestRevision.
+func WaitForConfigLatestUnpinnedRevision(clients *test.Clients, names test.ResourceNames) (string, error) {
+	return WaitForConfigLatestRevision(clients, names, false /*wait for unpinned revision*/)
+}
+
 // WaitForConfigLatestRevision takes a revision in through names and compares it to the current state of LatestCreatedRevisionName in Configuration.
 // Once an update is detected in the LatestCreatedRevisionName, the function waits for the created revision to be set in LatestReadyRevisionName
 // before returning the name of the revision.
-func WaitForConfigLatestRevision(clients *test.Clients, names test.ResourceNames) (string, error) {
+// Make sure to enable ensurePinned flag if the revision has an associated Route.
+func WaitForConfigLatestRevision(clients *test.Clients, names test.ResourceNames, ensurePinned bool) (string, error) {
 	var revisionName string
 	err := WaitForConfigurationState(clients.ServingAlphaClient, names.Config, func(c *v1alpha1.Configuration) (bool, error) {
 		if c.Status.LatestCreatedRevisionName != names.Revision {
 			revisionName = c.Status.LatestCreatedRevisionName
+			if ensurePinned {
+				// Without this it might happen that the latest created revision is later overridden by a newer one
+				// that is pinned and the following check for LatestReadyRevisionName would fail.
+				return CheckRevisionState(clients.ServingAlphaClient, revisionName, IsRevisionPinned) == nil, nil
+			}
 			return true, nil
 		}
 		return false, nil
 	}, "ConfigurationUpdatedWithRevision")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("LatestCreatedRevisionName not updated: %w", err)
 	}
-	err = WaitForConfigurationState(clients.ServingAlphaClient, names.Config, func(c *v1alpha1.Configuration) (bool, error) {
+	if err = WaitForConfigurationState(clients.ServingAlphaClient, names.Config, func(c *v1alpha1.Configuration) (bool, error) {
 		return (c.Status.LatestReadyRevisionName == revisionName), nil
-	}, "ConfigurationReadyWithRevision")
+	}, "ConfigurationReadyWithRevision"); err != nil {
+		return "", fmt.Errorf("LatestReadyRevisionName not updated with %s: %w", revisionName, err)
+	}
 
-	return revisionName, err
+	return revisionName, nil
 }
 
 // ConfigurationSpec returns the spec of a configuration to be used throughout different

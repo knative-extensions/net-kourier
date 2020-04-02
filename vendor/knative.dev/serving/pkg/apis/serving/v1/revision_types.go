@@ -25,6 +25,7 @@ import (
 )
 
 // +genclient
+// +genreconciler
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Revision is an immutable snapshot of code and configuration.  A revision
@@ -89,7 +90,30 @@ const (
 	// RevisionConditionReady is set when the revision is starting to materialize
 	// runtime resources, and becomes true when those resources are ready.
 	RevisionConditionReady = apis.ConditionReady
+
+	// RevisionConditionResourcesAvailable is set when underlying
+	// Kubernetes resources have been provisioned.
+	RevisionConditionResourcesAvailable apis.ConditionType = "ResourcesAvailable"
+
+	// RevisionConditionContainerHealthy is set when the revision readiness check completes.
+	RevisionConditionContainerHealthy apis.ConditionType = "ContainerHealthy"
+
+	// RevisionConditionActive is set when the revision is receiving traffic.
+	RevisionConditionActive apis.ConditionType = "Active"
 )
+
+// IsRevisionCondition returns true if the ConditionType is a revision condition type
+func IsRevisionCondition(t apis.ConditionType) bool {
+	switch t {
+	case
+		RevisionConditionReady,
+		RevisionConditionResourcesAvailable,
+		RevisionConditionContainerHealthy,
+		RevisionConditionActive:
+		return true
+	}
+	return false
+}
 
 // RevisionStatus communicates the observed state of the Revision (from the controller).
 type RevisionStatus struct {

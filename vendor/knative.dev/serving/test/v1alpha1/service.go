@@ -23,25 +23,16 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"net"
-	"net/http"
-	"strings"
-	"sync"
 	"time"
 
-	istiov1alpha3 "istio.io/api/networking/v1alpha3"
-	"istio.io/client-go/pkg/apis/networking/v1alpha3"
-	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/watch"
-	"knative.dev/pkg/test/spoof"
+	"knative.dev/pkg/apis/duck"
 
 	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
@@ -53,17 +44,8 @@ import (
 	serviceresourcenames "knative.dev/serving/pkg/reconciler/service/resources/names"
 
 	pkgTest "knative.dev/pkg/test"
-	"knative.dev/serving/pkg/apis/networking"
 	rtesting "knative.dev/serving/pkg/testing/v1alpha1"
 	"knative.dev/serving/test"
-)
-
-const (
-	// Namespace is the namespace of the ingress gateway
-	Namespace = "knative-serving"
-
-	// GatewayName is the name of the ingress gateway
-	GatewayName = networking.KnativeIngressGateway
 )
 
 func validateCreatedServiceStatus(clients *test.Clients, names *test.ResourceNames) error {
@@ -118,17 +100,16 @@ func GetResourceObjects(clients *test.Clients, names test.ResourceNames) (*Resou
 
 // CreateRunLatestServiceReady creates a new Service in state 'Ready'. This function expects Service and Image name passed in through 'names'.
 // Names is updated with the Route and Configuration created by the Service and ResourceObjects is returned with the Service, Route, and Configuration objects.
-// If this function is called with https == true, the gateway MUST be restored afterwards.
 // Returns error if the service does not come up correctly.
-func CreateRunLatestServiceReady(t pkgTest.TLegacy, clients *test.Clients, names *test.ResourceNames, https bool, fopt ...rtesting.ServiceOption) (*ResourceObjects, *spoof.TransportOption, error) {
+func CreateRunLatestServiceReady(t pkgTest.TLegacy, clients *test.Clients, names *test.ResourceNames, fopt ...rtesting.ServiceOption) (*ResourceObjects, error) {
 	if names.Image == "" {
-		return nil, nil, fmt.Errorf("expected non-empty Image name; got Image=%v", names.Image)
+		return nil, fmt.Errorf("expected non-empty Image name; got Image=%v", names.Image)
 	}
 
 	t.Log("Creating a new Service.", "service", names.Service)
 	svc, err := CreateLatestService(t, clients, *names, fopt...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Populate Route and Configuration Objects with name
@@ -142,36 +123,13 @@ func CreateRunLatestServiceReady(t pkgTest.TLegacy, clients *test.Clients, names
 
 	t.Log("Waiting for Service to transition to Ready.", "service", names.Service)
 	if err = WaitForServiceState(clients.ServingAlphaClient, names.Service, IsServiceReady, "ServiceIsReady"); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	t.Log("Checking to ensure Service Status is populated for Ready service")
 	err = validateCreatedServiceStatus(clients, names)
 	if err != nil {
-		return nil, nil, err
-	}
-
-	var httpsTransportOption *spoof.TransportOption
-	if https {
-		tlsOptions := &istiov1alpha3.Server_TLSOptions{
-			Mode:              istiov1alpha3.Server_TLSOptions_SIMPLE,
-			PrivateKey:        "/etc/istio/ingressgateway-certs/tls.key",
-			ServerCertificate: "/etc/istio/ingressgateway-certs/tls.crt",
-		}
-		servers := []*istiov1alpha3.Server{{
-			Hosts: []string{"*"},
-			Port: &istiov1alpha3.Port{
-				Name:     "standard-https",
-				Number:   443,
-				Protocol: "HTTPS",
-			},
-			Tls: tlsOptions,
-		}}
-		httpsTransportOption, err = setupHTTPS(t, clients.KubeClient, names.URL.Host)
-		if err != nil {
-			return nil, nil, err
-		}
-		setupGateway(t, clients, servers)
+		return nil, err
 	}
 
 	t.Log("Getting latest objects Created by Service")
@@ -179,7 +137,7 @@ func CreateRunLatestServiceReady(t pkgTest.TLegacy, clients *test.Clients, names
 	if err == nil {
 		t.Log("Successfully created Service", names.Service)
 	}
-	return resources, httpsTransportOption, err
+	return resources, err
 }
 
 // CreateRunLatestServiceLegacyReady creates a new Service in state 'Ready'. This function expects Service and Image name passed in through 'names'.
@@ -253,7 +211,7 @@ func PatchServiceImage(t pkgTest.T, clients *test.Clients, svc *v1alpha1.Service
 		newSvc.Spec.ConfigurationSpec.GetTemplate().Spec.GetContainer().Image = imagePath
 	}
 	LogResourceObject(t, ResourceObjects{Service: newSvc})
-	patchBytes, err := test.CreateBytePatch(svc, newSvc)
+	patchBytes, err := duck.CreateBytePatch(svc, newSvc)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +221,7 @@ func PatchServiceImage(t pkgTest.T, clients *test.Clients, svc *v1alpha1.Service
 // PatchService creates and applies a patch from the diff between curSvc and desiredSvc. Returns the latest service object.
 func PatchService(t pkgTest.T, clients *test.Clients, curSvc *v1alpha1.Service, desiredSvc *v1alpha1.Service) (*v1alpha1.Service, error) {
 	LogResourceObject(t, ResourceObjects{Service: desiredSvc})
-	patchBytes, err := test.CreateBytePatch(curSvc, desiredSvc)
+	patchBytes, err := duck.CreateBytePatch(curSvc, desiredSvc)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +247,7 @@ func PatchServiceTemplateMetadata(t pkgTest.T, clients *test.Clients, svc *v1alp
 	newSvc := svc.DeepCopy()
 	newSvc.Spec.ConfigurationSpec.Template.ObjectMeta = metadata
 	LogResourceObject(t, ResourceObjects{Service: newSvc})
-	patchBytes, err := test.CreateBytePatch(svc, newSvc)
+	patchBytes, err := duck.CreateBytePatch(svc, newSvc)
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +323,7 @@ func WaitForServiceState(client *test.ServingAlphaClients, name string, inState 
 	})
 
 	if waitErr != nil {
-		return fmt.Errorf("service %q is not in desired state, got: %+v: %w", name, lastState, waitErr)
+		return fmt.Errorf("service %q is not in desired state, got: %#v: %w", name, lastState, waitErr)
 	}
 	return nil
 }
@@ -381,7 +339,7 @@ func CheckServiceState(client *test.ServingAlphaClients, name string, inState fu
 	if done, err := inState(s); err != nil {
 		return err
 	} else if !done {
-		return fmt.Errorf("service %q is not in desired state, got: %+v", name, s)
+		return fmt.Errorf("service %q is not in desired state, got: %#v", name, s)
 	}
 	return nil
 }
@@ -402,125 +360,6 @@ func IsServiceNotReady(s *v1alpha1.Service) (bool, error) {
 func IsServiceRoutesNotReady(s *v1alpha1.Service) (bool, error) {
 	result := s.Status.GetCondition(v1alpha1.ServiceConditionRoutesReady)
 	return s.Generation == s.Status.ObservedGeneration && result != nil && result.Status == corev1.ConditionFalse, nil
-}
-
-// RestoreGateway updates the gateway object to the oldGateway
-func RestoreGateway(t pkgTest.TLegacy, clients *test.Clients, oldGateway v1alpha3.Gateway) {
-	currGateway, err := clients.IstioClient.NetworkingV1alpha3().Gateways(Namespace).Get(GatewayName, metav1.GetOptions{})
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to get Gateway %s/%s", Namespace, GatewayName))
-	}
-	if equality.Semantic.DeepEqual(*currGateway, oldGateway) {
-		t.Log("Gateway not restored because it's still the same")
-		return
-	}
-	currGateway.Spec.Servers = oldGateway.Spec.Servers
-	if _, err := clients.IstioClient.NetworkingV1alpha3().Gateways(Namespace).Update(currGateway); err != nil {
-		t.Fatal(fmt.Sprintf("Failed to restore Gateway %s/%s: %v", Namespace, GatewayName, err))
-	}
-}
-
-// setupGateway updates the ingress Gateway to the provided Servers and waits until all Envoy pods have been updated.
-func setupGateway(t pkgTest.TLegacy, clients *test.Clients, servers []*istiov1alpha3.Server) {
-	// Get the current Gateway
-	curGateway, err := clients.IstioClient.NetworkingV1alpha3().Gateways(Namespace).Get(GatewayName, metav1.GetOptions{})
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to get Gateway %s/%s: %v", Namespace, GatewayName, err))
-	}
-
-	// Update its Spec
-	newGateway := curGateway.DeepCopy()
-	newGateway.Spec.Servers = servers
-
-	// Update the Gateway
-	gw, err := clients.IstioClient.NetworkingV1alpha3().Gateways(Namespace).Update(newGateway)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to update Gateway %s/%s: %v", Namespace, GatewayName, err))
-	}
-
-	var selectors []string
-	for k, v := range gw.Spec.Selector {
-		selectors = append(selectors, k+"="+v)
-	}
-	selector := strings.Join(selectors, ",")
-
-	// Restart the Gateway pods: this is needed because Istio without SDS won't refresh the cert when the secret is updated
-	pods, err := clients.KubeClient.Kube.CoreV1().Pods("istio-system").List(metav1.ListOptions{LabelSelector: selector})
-	if err != nil {
-		t.Fatal("Failed to list Gateway pods", "error", err.Error())
-	}
-
-	// TODO(bancel): there is a race condition here if a pod listed in the call above is deleted before calling watch below
-
-	var wg sync.WaitGroup
-	wg.Add(len(pods.Items))
-	wtch, err := clients.KubeClient.Kube.CoreV1().Pods("istio-system").Watch(metav1.ListOptions{LabelSelector: selector})
-	if err != nil {
-		t.Fatal("Failed to watch Gateway pods", "error", err.Error())
-	}
-	defer wtch.Stop()
-
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case event := <-wtch.ResultChan():
-				if event.Type == watch.Deleted {
-					wg.Done()
-				}
-			case <-done:
-				return
-			}
-		}
-	}()
-
-	err = clients.KubeClient.Kube.CoreV1().Pods("istio-system").DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: selector})
-	if err != nil {
-		t.Fatal("Failed to delete Gateway pods", "error", err.Error())
-	}
-
-	wg.Wait()
-	done <- struct{}{}
-}
-
-// setupHTTPS creates a self-signed certificate, installs it as a Secret and returns an *http.Transport
-// trusting the certificate as a root CA.
-func setupHTTPS(t pkgTest.T, kubeClient *pkgTest.KubeClient, host string) (*spoof.TransportOption, error) {
-	t.Helper()
-	cert, key, err := generateCertificate(host)
-	if err != nil {
-		return nil, err
-	}
-
-	rootCAs, _ := x509.SystemCertPool()
-	if rootCAs == nil {
-		rootCAs = x509.NewCertPool()
-	}
-
-	if ok := rootCAs.AppendCertsFromPEM(cert); !ok {
-		return nil, errors.New("failed to add the certificate to the root CA")
-	}
-
-	kubeClient.Kube.CoreV1().Secrets("istio-system").Delete("istio-ingressgateway-certs", &metav1.DeleteOptions{})
-	_, err = kubeClient.Kube.CoreV1().Secrets("istio-system").Create(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "istio-system",
-			Name:      "istio-ingressgateway-certs",
-		},
-		Type: corev1.SecretTypeTLS,
-		Data: map[string][]byte{
-			"tls.key": key,
-			"tls.crt": cert,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	var transportOption spoof.TransportOption = func(transport *http.Transport) *http.Transport {
-		transport.TLSClientConfig = &tls.Config{RootCAs: rootCAs}
-		return transport
-	}
-	return &transportOption, nil
 }
 
 // generateCertificate generates a self-signed certificate for the provided host and returns

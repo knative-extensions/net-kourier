@@ -25,6 +25,7 @@ import (
 )
 
 // +genclient
+// +genreconciler
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Route is responsible for configuring ingress over a collection of Revisions.
@@ -118,7 +119,33 @@ const (
 	// RouteConditionReady is set when the service is configured
 	// and has available backends ready to receive traffic.
 	RouteConditionReady = apis.ConditionReady
+
+	// RouteConditionAllTrafficAssigned is set to False when the
+	// service is not configured properly or has no available
+	// backends ready to receive traffic.
+	RouteConditionAllTrafficAssigned apis.ConditionType = "AllTrafficAssigned"
+
+	// RouteConditionIngressReady is set to False when the
+	// Ingress fails to become Ready.
+	RouteConditionIngressReady apis.ConditionType = "IngressReady"
+
+	// RouteConditionCertificateProvisioned is set to False when the
+	// Knative Certificates fail to be provisioned for the Route.
+	RouteConditionCertificateProvisioned apis.ConditionType = "CertificateProvisioned"
 )
+
+// IsRouteCondition returns true if the ConditionType is a route condition type
+func IsRouteCondition(t apis.ConditionType) bool {
+	switch t {
+	case
+		RouteConditionReady,
+		RouteConditionAllTrafficAssigned,
+		RouteConditionIngressReady,
+		RouteConditionCertificateProvisioned:
+		return true
+	}
+	return false
+}
 
 // RouteStatusFields holds the fields of Route's status that
 // are not generally shared.  This is defined separately and inlined so that
