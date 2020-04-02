@@ -63,6 +63,8 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 	}
 
 	ingress := original.DeepCopy()
+	ingress.SetDefaults(ctx)
+	ingress.Status.InitializeConditions()
 
 	if err := reconciler.updateIngress(ingress); err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
