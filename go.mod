@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.49.0 // indirect
+	contrib.go.opencensus.io/exporter/ocagent v0.6.0 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0 // indirect
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.0 // indirect
 	github.com/aws/aws-sdk-go v1.25.43 // indirect
@@ -14,6 +15,7 @@ require (
 	github.com/google/go-cmp v0.3.1
 	github.com/google/go-containerregistry v0.0.0-20191115225042-f8574ec722f4 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/openzipkin/zipkin-go v0.2.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -41,6 +43,7 @@ require (
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.17.2
 	knative.dev/caching v0.0.0-20191127155022-3feb9f69e85e // indirect
-	knative.dev/pkg v0.0.0-20200109221655-bd9fe634a992
+	knative.dev/pkg v0.0.0-20200113182502-b8dc5fbc6d2f
 	knative.dev/serving v0.12.1
+	knative.dev/test-infra v0.0.0-20200402165424-cdec09517ea8
 )

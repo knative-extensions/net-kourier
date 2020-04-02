@@ -1,4 +1,0 @@
-  - name: [[.Name]]
-    test_group_name: [[.Base.TestGroupName]]
-    base_options: "[[.BaseOptions]]"
-    [[indent_map 4 .Extras]]
