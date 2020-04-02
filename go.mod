@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.49.0 // indirect
+	contrib.go.opencensus.io/exporter/ocagent v0.6.0 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0 // indirect
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.0 // indirect
 	github.com/aws/aws-sdk-go v1.25.43 // indirect
@@ -41,7 +42,7 @@ require (
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.17.2
 	knative.dev/caching v0.0.0-20191127155022-3feb9f69e85e // indirect
-	knative.dev/pkg v0.0.0-20200109221655-bd9fe634a992
+	knative.dev/pkg v0.0.0-20200113182502-b8dc5fbc6d2f
 	knative.dev/serving v0.12.1
 	knative.dev/test-infra v0.0.0-20200401140617-163337c1d67d
 )
