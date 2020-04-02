@@ -45,5 +45,5 @@ require (
 	knative.dev/caching v0.0.0-20191127155022-3feb9f69e85e // indirect
 	knative.dev/pkg v0.0.0-20200113182502-b8dc5fbc6d2f
 	knative.dev/serving v0.12.1
-	knative.dev/test-infra v0.0.0-20200401140617-163337c1d67d
+	knative.dev/test-infra v0.0.0-20200402165424-cdec09517ea8
 )

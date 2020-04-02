@@ -810,7 +810,7 @@ knative.dev/serving/test/test_images/timeout
 knative.dev/serving/test/test_images/wsserver
 knative.dev/serving/test/types
 knative.dev/serving/test/v1alpha1
-# knative.dev/test-infra v0.0.0-20200401140617-163337c1d67d
+# knative.dev/test-infra v0.0.0-20200402165424-cdec09517ea8
 knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml
