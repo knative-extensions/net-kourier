@@ -18,6 +18,7 @@ package ingress
 
 import (
 	"context"
+	"knative.dev/serving/pkg/network/status"
 	"strings"
 	"time"
 
