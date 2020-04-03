@@ -31,7 +31,6 @@ import (
 	v12 "k8s.io/api/core/v1"
 
 	"gotest.tools/assert"
-	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -47,7 +46,6 @@ const kourierNamespace string = "kourier-system"
 
 func TestKourierIntegration(t *testing.T) {
 	t.Skip("Skip for now until we figure out how to run these in the Knative infra")
-	t.Run("SimpleHelloworld", SimpleScenario)
 	t.Run("ExternalAuthz", ExtAuthzScenario)
 }
 
@@ -250,91 +248,4 @@ func DeployExtAuthzService(kubeClient *kubernetes.Clientset, namespace string) e
 	}
 
 	return nil
-}
-
-func SimpleScenario(t *testing.T) {
-
-	kubeconfig := flag.Lookup("kubeconfig").Value.String()
-
-	servingClient, err := KnativeServingClient(kubeconfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	servingNetworkClient, err := KnativeServingNetworkClient(kubeconfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	service, err := setupSimpleScenario(servingClient, servingNetworkClient)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Prepare the request
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", clusterURL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Host = fmt.Sprintf("%s.%s.%s", service.Name, namespace, domain)
-
-	// Do the request
-	resp, err := client.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// The "hello world" service just returns "Hello World!"
-	assert.Equal(t, string(respBody), "Hello World!\n")
-
-	err = cleanSimpleScenario(servingClient, service.Name)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// Deploys a simple "Hello World" serving and returns it.
-func setupSimpleScenario(servingClient *servingClientSet.ServingV1alpha1Client,
-	networkServingClient *networkingClientSet.NetworkingV1alpha1Client) (*v1alpha1.Service, error) {
-
-	service := ExampleHelloWorldServing()
-
-	// Make sure there's nothing left from previous tests
-	err := cleanSimpleScenario(servingClient, service.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	eventsIngressReady := make(chan struct{})
-	stopChan := make(chan struct{})
-	go watchForIngressReady(networkServingClient, service.Name, service.Namespace, eventsIngressReady, stopChan)
-
-	createdService, err := servingClient.Services(namespace).Create(&service)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Wait until the service is ready plus some time to make sure that Envoy
-	// refreshed the config.
-	<-eventsIngressReady
-	time.Sleep(5 * time.Second)
-
-	return createdService, nil
-}
-
-// Cleans the serving deployed in the simple scenario test.
-// If the serving does not exist, it does not return an error, it simply does
-// nothing.
-func cleanSimpleScenario(servingClient *servingClientSet.ServingV1alpha1Client, serviceName string) error {
-	err := servingClient.Services(namespace).Delete(serviceName, &v1.DeleteOptions{})
-	if errors.IsNotFound(err) {
-		return nil
-	}
-	return err
 }
