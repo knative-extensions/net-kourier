@@ -44,7 +44,7 @@ const (
 	SKSLabelKey = GroupName + "/serverlessservice"
 
 	// ServiceTypeKey is the label key attached to a service specifying the type of service.
-	// e.g. Public, Metrics
+	// e.g. Public, Private.
 	ServiceTypeKey = GroupName + "/serviceType"
 
 	// OriginSecretNameLabelKey is the label key attached to the TLS secret to indicate
@@ -59,7 +59,7 @@ const (
 	// explicit class of Certificate that a particular resource has
 	// opted into. For example,
 	//
-	//    networking.internal.knative.dev/certificate.class: some-network-impl
+	//    networking.knative.dev/certificate.class: some-network-impl
 	//
 	// This uses a different domain because unlike the resource, it is
 	// user-facing.
@@ -68,7 +68,7 @@ const (
 	// annotation value for the Certificate it uses.  Based on such
 	// value a different reconciliation logic may be used (for examples,
 	// Cert-Manager-based Certificate will reconcile into a Cert-Manager Certificate).
-	CertificateClassAnnotationKey = GroupName + "/certificate.class"
+	CertificateClassAnnotationKey = "networking.knative.dev/certificate.class"
 
 	// ActivatorServiceName is the name of the activator Kubernetes service.
 	ActivatorServiceName = "activator-service"
@@ -98,10 +98,6 @@ const (
 	// ServiceTypePublic is the label value for externally reachable
 	// services for user applications.
 	ServiceTypePublic ServiceType = "Public"
-	// ServiceTypeMetrics is the label value for Metrics services. Such services
-	// are used for meric scraping.
-	// TODO(5900): Remove after 0.12 is cut.
-	ServiceTypeMetrics ServiceType = "Metrics"
 )
 
 // Pseudo-constants

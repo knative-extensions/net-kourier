@@ -28,12 +28,14 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -43,6 +45,7 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	pkgTest "knative.dev/pkg/test"
 	"knative.dev/serving/pkg/apis/networking"
@@ -53,6 +56,19 @@ import (
 )
 
 var rootCAs = x509.NewCertPool()
+
+// uaRoundTripper wraps the given http.RoundTripper and
+// sets a custom UserAgent.
+type uaRoundTripper struct {
+	http.RoundTripper
+	ua string
+}
+
+// RoundTrip implements http.RoundTripper.
+func (ua *uaRoundTripper) RoundTrip(rq *http.Request) (*http.Response, error) {
+	rq.Header.Set("User-Agent", ua.ua)
+	return ua.RoundTripper.RoundTrip(rq)
+}
 
 // CreateRuntimeService creates a Kubernetes service that will respond to the protocol
 // specified with the given portName.  It returns the service name, the port on
@@ -125,6 +141,89 @@ func CreateRuntimeService(t *testing.T, clients *test.Clients, portName string) 
 	}
 
 	return name, port, createPodAndService(t, clients, pod, svc)
+}
+
+// CreateProxyService creates a Kubernetes service that will forward requests to
+// the specified target.  It returns the service name, the port on which the service
+// is listening, and a "cancel" function to clean up the created resources.
+func CreateProxyService(t *testing.T, clients *test.Clients, target string, gatewayDomain string) (string, int, context.CancelFunc) {
+	t.Helper()
+	name := test.ObjectNameForTest(t)
+
+	// Avoid zero, but pick a low port number.
+	port := 50 + rand.Intn(50)
+	t.Logf("[%s] Using port %d", name, port)
+
+	// Pick a high port number.
+	containerPort := 8000 + rand.Intn(100)
+	t.Logf("[%s] Using containerPort %d", name, containerPort)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: test.ServingNamespace,
+			Labels: map[string]string{
+				"test-pod": name,
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "foo",
+				Image: pkgTest.ImagePath("httpproxy"),
+				Ports: []corev1.ContainerPort{{
+					ContainerPort: int32(containerPort),
+				}},
+				Env: []corev1.EnvVar{{
+					Name:  "TARGET_HOST",
+					Value: target,
+				}, {
+					Name:  "PORT",
+					Value: strconv.Itoa(containerPort),
+				}},
+			}},
+		},
+	}
+
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: test.ServingNamespace,
+			Labels: map[string]string{
+				"test-pod": name,
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Type: "ClusterIP",
+			Ports: []corev1.ServicePort{{
+				Port:       int32(port),
+				TargetPort: intstr.FromInt(int(containerPort)),
+			}},
+			Selector: map[string]string{
+				"test-pod": name,
+			},
+		},
+	}
+	proxyServiceCancel := createPodAndService(t, clients, pod, svc)
+
+	targetName := strings.Split(target, ".")
+	externalNameSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName[0],
+			Namespace: targetName[1],
+		},
+		Spec: corev1.ServiceSpec{
+			Type:            corev1.ServiceTypeExternalName,
+			ExternalName:    gatewayDomain,
+			SessionAffinity: corev1.ServiceAffinityNone,
+		},
+	}
+
+	externalNameServiceCancel := createService(t, clients, externalNameSvc)
+
+	return name, port, func() {
+		externalNameServiceCancel()
+		proxyServiceCancel()
+	}
 }
 
 // CreateTimeoutService creates a Kubernetes service that will respond to the protocol
@@ -420,6 +519,26 @@ func CreateGRPCService(t *testing.T, clients *test.Clients, suffix string) (stri
 	return name, port, createPodAndService(t, clients, pod, svc)
 }
 
+// createService is a helper for creating the service resource.
+func createService(t *testing.T, clients *test.Clients, svc *corev1.Service) context.CancelFunc {
+	t.Helper()
+
+	test.CleanupOnInterrupt(func() {
+		clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Delete(svc.Name, &metav1.DeleteOptions{})
+	})
+	svc, err := clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Create(svc)
+	if err != nil {
+		t.Fatalf("Error creating Service: %v", err)
+	}
+
+	return func() {
+		err := clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Delete(svc.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			t.Errorf("Error cleaning up Service %s: %v", svc.Name, err)
+		}
+	}
+}
+
 // createPodAndService is a helper for creating the pod and service resources, setting
 // up their context.CancelFunc, and waiting for it to become ready.
 func createPodAndService(t *testing.T, clients *test.Clients, pod *corev1.Pod, svc *corev1.Service) context.CancelFunc {
@@ -478,6 +597,7 @@ func createPodAndService(t *testing.T, clients *test.Clients, pod *corev1.Pod, s
 // CreateIngress creates a Knative Ingress resource
 func CreateIngress(t *testing.T, clients *test.Clients, spec v1alpha1.IngressSpec) (*v1alpha1.Ingress, context.CancelFunc) {
 	t.Helper()
+
 	name := test.ObjectNameForTest(t)
 
 	// Create a simple Ingress over the Service.
@@ -539,9 +659,12 @@ func CreateIngressReady(t *testing.T, clients *test.Clients, spec v1alpha1.Ingre
 	}
 
 	return ing, &http.Client{
-		Transport: &http.Transport{
-			DialContext:     dialer,
-			TLSClientConfig: tlsConfig,
+		Transport: &uaRoundTripper{
+			RoundTripper: &http.Transport{
+				DialContext:     dialer,
+				TLSClientConfig: tlsConfig,
+			},
+			ua: fmt.Sprintf("knative.dev/%s/%s", t.Name(), ing.Name),
 		},
 	}, cancel
 }
@@ -706,6 +829,11 @@ func CreateDialContext(t *testing.T, ing *v1alpha1.Ingress, clients *test.Client
 		if err != nil {
 			return nil, err
 		}
+		// Allow "ingressendpoint" flag to override the discovered ingress IP/hostname,
+		// this is required in minikube-like environments.
+		if pkgTest.Flags.IngressEndpoint != "" {
+			return net.Dial("tcp", pkgTest.Flags.IngressEndpoint+":"+port)
+		}
 		if ingress.IP != "" {
 			return net.Dial("tcp", ingress.IP+":"+port)
 		}
@@ -717,8 +845,22 @@ func CreateDialContext(t *testing.T, ing *v1alpha1.Ingress, clients *test.Client
 }
 
 type RequestOption func(*http.Request)
+type ResponseExpectation func(response *http.Response) error
 
 func RuntimeRequest(t *testing.T, client *http.Client, url string, opts ...RequestOption) *types.RuntimeInfo {
+	return RuntimeRequestWithExpectations(t, client, url,
+		[]ResponseExpectation{StatusCodeExpectation(sets.NewInt(http.StatusOK))},
+		false,
+		opts...)
+}
+
+// RuntimeRequestWithExpectations attempts to make a request to url and return runtime information.
+// If connection is successful only then it will validate all response expectations.
+// If allowDialError is set to true then function will not fail if connection is a dial error.
+func RuntimeRequestWithExpectations(t *testing.T, client *http.Client, url string,
+	responseExpectations []ResponseExpectation,
+	allowDialError bool,
+	opts ...RequestOption) *types.RuntimeInfo {
 	t.Helper()
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -732,37 +874,65 @@ func RuntimeRequest(t *testing.T, client *http.Client, url string, opts ...Reque
 	}
 
 	resp, err := client.Do(req)
+
 	if err != nil {
-		t.Errorf("Error making GET request: %v", err)
-		return nil
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Got non-OK status: %d", resp.StatusCode)
-		DumpResponse(t, resp)
+		if !allowDialError || !IsDialError(err) {
+			t.Errorf("Error making GET request: %v", err)
+		}
 		return nil
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Errorf("Unable to read response body: %v", err)
-		DumpResponse(t, resp)
-		return nil
+	defer resp.Body.Close()
+
+	if resp != nil {
+		for _, e := range responseExpectations {
+			if err := e(resp); err != nil {
+				t.Errorf("Error meeting response expectations: %v", err)
+				DumpResponse(t, resp)
+				return nil
+			}
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			b, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("Unable to read response body: %v", err)
+				DumpResponse(t, resp)
+				return nil
+			}
+			ri := &types.RuntimeInfo{}
+			if err := json.Unmarshal(b, ri); err != nil {
+				t.Errorf("Unable to parse runtime image's response payload: %v", err)
+				return nil
+			}
+			return ri
+		}
 	}
-	ri := &types.RuntimeInfo{}
-	if err := json.Unmarshal(b, ri); err != nil {
-		t.Errorf("Unable to parse runtime image's response payload: %v", err)
-		return nil
-	}
-	return ri
+	return nil
 }
 
 func DumpResponse(t *testing.T, resp *http.Response) {
 	t.Helper()
-
 	b, err := httputil.DumpResponse(resp, true)
 	if err != nil {
 		t.Errorf("Error dumping response: %v", err)
 	}
 	t.Log(string(b))
+}
+
+func StatusCodeExpectation(statusCodes sets.Int) ResponseExpectation {
+	return func(response *http.Response) error {
+		if !statusCodes.Has(response.StatusCode) {
+			return fmt.Errorf("got unexpected status: %d, expected %v", response.StatusCode, statusCodes)
+		}
+		return nil
+	}
+}
+
+func IsDialError(err error) bool {
+	if err, ok := err.(*url.Error); ok {
+		err, ok := err.Err.(*net.OpError)
+		return ok && err.Op == "dial"
+	}
+	return false
 }

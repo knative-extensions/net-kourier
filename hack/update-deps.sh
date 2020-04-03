@@ -29,7 +29,7 @@ set -o pipefail
 cd ${ROOT_DIR}
 
 # This controls the release branch we track.
-VERSION="release-0.12"
+VERSION="master"
 
 # The list of dependencies that we track at HEAD and periodically
 # float forward in this repository.
