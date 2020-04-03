@@ -27,7 +27,7 @@ docker-build-extauthzutil: ## Builds kourier docker, tagged by default as test_e
 local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
 	./utils/setup.sh
 
-test: test-unit test-integration ## Runs all the tests
+test: test-unit test-integration test-serving-conformance ## Runs all the tests
 
 test-unit: ## Runs unit tests
 	mkdir -p "$(PROJECT_PATH)/tests_output"
@@ -35,6 +35,10 @@ test-unit: ## Runs unit tests
 
 test-integration: local-setup ## Runs integration tests
 	go test -mod vendor -race test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
+
+test-serving-conformance: local-setup ## Runs Knative Serving conformance tests
+	ko apply -f test/config/100-test-namespace.yaml --kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
+	go test -v -tags=e2e ./vendor/knative.dev/serving/test/conformance/ingress/... -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')" --ingressClass="kourier.ingress.networking.knative.dev"
 
 test-unit-coverage: test-unit ## Runs unit tests and generates a coverage report
 	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
