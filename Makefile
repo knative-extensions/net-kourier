@@ -34,7 +34,7 @@ test-unit: ## Runs unit tests
 	go test -mod vendor -race $(shell go list ./... | grep -v kourier/test) -coverprofile="$(PROJECT_PATH)/tests_output/unit.cov"
 
 test-integration: local-setup ## Runs integration tests
-	go test -mod vendor -race test/* -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
+	go test -mod vendor -race test/*.go -args -kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
 
 test-serving-conformance: local-setup ## Runs Knative Serving conformance tests
 	ko apply -f test/config/100-test-namespace.yaml --kubeconfig="$(shell k3d get-kubeconfig --name='kourier-integration')"
