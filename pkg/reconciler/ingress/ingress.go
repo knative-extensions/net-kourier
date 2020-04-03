@@ -117,7 +117,7 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 		return err
 	}
 
-	ready, err := reconciler.statusManager.IsReady(context.TODO(),ingress)
+	ready, err := reconciler.statusManager.IsReady(context.TODO(), ingress)
 	if err != nil {
 		return err
 	}
