@@ -14,11 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# There are a couple of dependencies that we need to update manually. go mod
-# does not handle them because they are only used in the scripts under the
-# "/test" directory.
-
 readonly ROOT_DIR=$(dirname $0)/..
 source ${ROOT_DIR}/vendor/knative.dev/test-infra/scripts/library.sh
 
