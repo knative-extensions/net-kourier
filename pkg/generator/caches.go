@@ -76,12 +76,7 @@ func (caches *Caches) SetOnEvicted(f func(string, interface{})) {
 }
 
 func (caches *Caches) AddStatusVirtualHost() {
-	var ingresses []*v1alpha1.Ingress
-	for _, val := range caches.ingresses {
-		ingresses = append(ingresses, val)
-	}
-
-	statusVirtualHost := statusVHost(ingresses)
+	statusVirtualHost := statusVHost()
 	caches.statusVirtualHost = &statusVirtualHost
 }
 
@@ -155,12 +150,7 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	newExternalVirtualHosts := caches.externalVirtualHosts()
 	newClusterLocalVirtualHosts := caches.clusterLocalVirtualHosts()
 
-	var ingresses []*v1alpha1.Ingress
-	for _, val := range caches.ingresses {
-		ingresses = append(ingresses, val)
-	}
-
-	statusVirtualHost := statusVHost(ingresses)
+	statusVirtualHost := statusVHost()
 	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &statusVirtualHost)
 
 	// We now need the cache in the listenersFromVirtualHosts.
