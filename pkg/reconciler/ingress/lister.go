@@ -66,38 +66,37 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 
 func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
 	var targets []status.ProbeTarget
-	var urls []*url.URL
-	schema := "http"
 
 	for _, ip := range gatewayIps {
-		target := status.ProbeTarget{
-			PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
-			Port:    strconv.Itoa(int(config.HTTPPortInternal)),
-			PodIPs:  sets.String{ip: sets.Empty{}},
-		}
-
 		for _, rule := range ing.Spec.Rules {
+			schema := "http"
+			var urls []*url.URL
+			target := status.ProbeTarget{
+				PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
+				PodIPs:  sets.String{ip: sets.Empty{}},
+			}
+			if len(ing.Spec.TLS) != 0 {
+				schema = "https"
+				target.PodPort = strconv.Itoa(int(config.HTTPSPortExternal))
+			} else {
+				if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
+					target.PodPort = strconv.Itoa(int(config.HTTPPortExternal))
+				}
+			}
 			for _, path := range rule.HTTP.Paths {
 				for _, host := range rule.Hosts {
-					targetURL, _ := url.ParseRequestURI(schema + "://" + host + path.Path)
+					targetURL, err := url.ParseRequestURI(schema + "://" + host + path.Path)
+					if err != nil {
+						return nil, err
+					}
 					urls = append(urls, targetURL)
 				}
 			}
 			target.URLs = urls
 
-			if len(ing.Spec.TLS) != 0 {
-				schema = "https"
-				target.PodPort = strconv.Itoa(int(config.HTTPSPortExternal))
-				target.Port = target.PodPort
-			} else {
-				if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
-					target.PodPort = strconv.Itoa(int(config.HTTPPortExternal))
-					target.Port = target.PodPort
-				}
-			}
-			l.logger.Debugf("Adding target URLs: %s for ingress: %s in namespace: %s using port: %s for gatewayIP: %s", target.URLs, ing.Name, ing.Namespace, target.Port, ip)
+			l.logger.Debugf("Adding target URLs: %s for ingress: %s in namespace: %s using port: %s for gatewayIP: %s", target.URLs, ing.Name, ing.Namespace, target.PodPort, ip)
 			targets = append(targets, target)
 		}
 	}
-	return nil, nil
+	return targets, nil
 }
