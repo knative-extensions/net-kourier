@@ -18,12 +18,13 @@ package generator
 
 import (
 	"fmt"
+	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/serving/pkg/network"
 	"time"
 
-	"knative.dev/net-kourier/pkg/envoy"
-	"knative.dev/net-kourier/pkg/knative"
-
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	"knative.dev/net-kourier/pkg/knative"
+	knativeIngress "knative.dev/serving/pkg/network/ingress"
 
 	"go.uber.org/zap"
 	kubev1 "k8s.io/api/core/v1"
@@ -148,6 +149,11 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			}
 
 			if len(wrs) != 0 {
+				// Insert the header containing the ingress hash for the prober.
+				_, err := insertProbe(ingress)
+				if err != nil {
+					break
+				}
 				r := createRouteForRevision(ingress.Name, ingress.Namespace, httpPath, wrs)
 				ruleRoute = append(ruleRoute, r)
 				res.routes = append(res.routes, r)
@@ -280,4 +286,28 @@ func mergeMapString(a, b map[string]string) map[string]string {
 		merged[k] = v
 	}
 	return merged
+}
+
+// insertProbe adds a AppendHeader rule so that any request going through a Gateway is tagged with
+// the version of the Ingress currently deployed on the Gateway.
+func insertProbe(ing *v1alpha1.Ingress) (string, error) {
+	bytes, err := knativeIngress.ComputeHash(ing)
+	if err != nil {
+		return "", fmt.Errorf("failed to compute the hash of the Ingress: %w", err)
+	}
+	hash := fmt.Sprintf("%x", bytes)
+
+	for _, rule := range ing.Spec.Rules {
+		if rule.HTTP == nil {
+			return "", fmt.Errorf("rule is missing HTTP block: %+v", rule)
+		}
+		for i := range rule.HTTP.Paths {
+			if rule.HTTP.Paths[i].AppendHeaders == nil {
+				rule.HTTP.Paths[i].AppendHeaders = make(map[string]string, 1)
+			}
+			rule.HTTP.Paths[i].AppendHeaders[network.HashHeaderName] = hash
+		}
+	}
+
+	return hash, nil
 }
