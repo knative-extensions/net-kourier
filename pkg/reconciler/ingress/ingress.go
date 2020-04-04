@@ -100,6 +100,11 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
 func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 	reconciler.logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
+	// We create a copy of the ingress object to get the original one, without the modifications (we add some headers to the object)
+	// so IsReady can generate a clean Hash from ingress that will match.
+	var notModifiedIngress v1alpha1.Ingress
+	ingress.DeepCopyInto(&notModifiedIngress)
+
 	err := generator.UpdateInfoForIngress(
 		reconciler.CurrentCaches, ingress, reconciler.kubeClient, reconciler.ingressTranslator, reconciler.logger, reconciler.ExtAuthz,
 	)
@@ -117,7 +122,7 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 		return err
 	}
 
-	ready, err := reconciler.statusManager.IsReady(context.TODO(), ingress)
+	ready, err := reconciler.statusManager.IsReady(context.TODO(), &notModifiedIngress)
 	if err != nil {
 		return err
 	}

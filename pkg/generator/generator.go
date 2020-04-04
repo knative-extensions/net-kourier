@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"fmt"
 	"os"
 
 	"knative.dev/net-kourier/pkg/config"
@@ -45,6 +46,13 @@ const (
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
 func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, logger *zap.SugaredLogger, extAuthzEnabled bool) error {
+
+	// Adds a header with the ingress Hash and a random value header to force the config reload.
+	err := InsertKourierHeaders(ingress)
+	if err != nil {
+		return fmt.Errorf("failed to knative probe header in ingress: %s", ingress.GetName())
+	}
+
 	if err := caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient); err != nil {
 		return err
 	}

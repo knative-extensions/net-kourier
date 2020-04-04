@@ -18,18 +18,19 @@ package generator
 
 import (
 	"fmt"
+	"github.com/google/uuid"
+	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/serving/pkg/network"
+	"knative.dev/serving/pkg/network/ingress"
 	"time"
 
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"knative.dev/net-kourier/pkg/knative"
-	knativeIngress "knative.dev/serving/pkg/network/ingress"
-
 	"go.uber.org/zap"
 	kubev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"knative.dev/net-kourier/pkg/knative"
 
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -149,11 +150,6 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			}
 
 			if len(wrs) != 0 {
-				// Insert the header containing the ingress hash for the prober.
-				_, err := insertProbe(ingress)
-				if err != nil {
-					break
-				}
 				r := createRouteForRevision(ingress.Name, ingress.Namespace, httpPath, wrs)
 				ruleRoute = append(ruleRoute, r)
 				res.routes = append(res.routes, r)
@@ -288,26 +284,30 @@ func mergeMapString(a, b map[string]string) map[string]string {
 	return merged
 }
 
-// insertProbe adds a AppendHeader rule so that any request going through a Gateway is tagged with
-// the version of the Ingress currently deployed on the Gateway.
-func insertProbe(ing *v1alpha1.Ingress) (string, error) {
-	bytes, err := knativeIngress.ComputeHash(ing)
+// InsertKourierHeaders adds an AppendHeader rule so that any request going through a Gateway is tagged with
+// the version of the Ingress currently deployed on the Gateway and also a Random header to force envoy to reload
+// the new config part. This is a hack, this should be removed once we can move to the latest version of envoy.
+func InsertKourierHeaders(ing *v1alpha1.Ingress) error {
+	bytes, err := ingress.ComputeHash(ing)
 	if err != nil {
-		return "", fmt.Errorf("failed to compute the hash of the Ingress: %w", err)
+		return fmt.Errorf("failed to compute the hash of the Ingress: %w", err)
 	}
 	hash := fmt.Sprintf("%x", bytes)
-
+	uuid, err := uuid.NewUUID()
+	if err != nil {
+		return fmt.Errorf("failed to generate UUID for the uniq header of the Ingress: %w", err)
+	}
 	for _, rule := range ing.Spec.Rules {
 		if rule.HTTP == nil {
-			return "", fmt.Errorf("rule is missing HTTP block: %+v", rule)
+			return fmt.Errorf("rule is missing HTTP block: %+v", rule)
 		}
 		for i := range rule.HTTP.Paths {
 			if rule.HTTP.Paths[i].AppendHeaders == nil {
-				rule.HTTP.Paths[i].AppendHeaders = make(map[string]string, 1)
+				rule.HTTP.Paths[i].AppendHeaders = make(map[string]string, 2)
 			}
 			rule.HTTP.Paths[i].AppendHeaders[network.HashHeaderName] = hash
+			rule.HTTP.Paths[i].AppendHeaders[config.KourierHeaderRandom] = uuid.String()
 		}
 	}
-
-	return hash, nil
+	return nil
 }

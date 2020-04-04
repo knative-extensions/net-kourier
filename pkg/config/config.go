@@ -33,4 +33,6 @@ const (
 	ExternalAuthzCluster     = "extAuthz"
 
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
+	// Hack to force envoy reload
+	KourierHeaderRandom = "Kourier-random-header"
 )
