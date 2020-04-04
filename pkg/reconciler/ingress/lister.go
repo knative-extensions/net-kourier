@@ -19,17 +19,18 @@ package ingress
 import (
 	"context"
 	"fmt"
-	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/knative"
-	"knative.dev/pkg/system"
-	"net/url"
-	"strconv"
-
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/knative"
+	"knative.dev/pkg/network"
+	"knative.dev/pkg/system"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/network/status"
+	"net/url"
+	"strconv"
+	"strings"
 )
 
 func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
@@ -57,7 +58,6 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 			readyIPs = append(readyIPs, address.IP)
 		}
 	}
-
 	if len(readyIPs) == 0 {
 		return nil, fmt.Errorf("no gateway pods available")
 	}
@@ -66,37 +66,78 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 
 func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
 	var targets []status.ProbeTarget
+	localDomainName := network.GetClusterDomainName()
+	ips := sets.NewString()
 
 	for _, ip := range gatewayIps {
-		for _, rule := range ing.Spec.Rules {
-			schema := "http"
-			var urls []*url.URL
-			target := status.ProbeTarget{
-				PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
-				PodIPs:  sets.String{ip: sets.Empty{}},
+		ips.Insert(ip)
+	}
+
+	for _, rule := range ing.Spec.Rules {
+		var target status.ProbeTarget
+
+		externalDomains := getExternalDomains(rule, localDomainName)
+		internalDomains := getInternalDomains(rule, localDomainName)
+		scheme := "http"
+
+		if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
+			target = status.ProbeTarget{
+				PodIPs: ips,
 			}
 			if len(ing.Spec.TLS) != 0 {
-				schema = "https"
 				target.PodPort = strconv.Itoa(int(config.HTTPSPortExternal))
+				target.URLs = domainsToURL(externalDomains, "https")
 			} else {
-				if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
-					target.PodPort = strconv.Itoa(int(config.HTTPPortExternal))
-				}
+				target.PodPort = strconv.Itoa(int(config.HTTPPortExternal))
+				target.URLs = domainsToURL(externalDomains, scheme)
 			}
-			for _, path := range rule.HTTP.Paths {
-				for _, host := range rule.Hosts {
-					targetURL, err := url.ParseRequestURI(schema + "://" + host + path.Path)
-					if err != nil {
-						return nil, err
-					}
-					urls = append(urls, targetURL)
-				}
-			}
-			target.URLs = urls
-
-			l.logger.Debugf("Adding target URLs: %s for ingress: %s in namespace: %s using port: %s for gatewayIP: %s", target.URLs, ing.Name, ing.Namespace, target.PodPort, ip)
 			targets = append(targets, target)
 		}
+
+		target = status.ProbeTarget{
+			PodIPs:  ips,
+			PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
+			URLs:    domainsToURL(internalDomains, scheme),
+		}
+
+		targets = append(targets, target)
+
 	}
 	return targets, nil
+}
+
+func domainsToURL(domains []string, scheme string) []*url.URL {
+	var urls []*url.URL
+
+	for _, domain := range domains {
+		url := &url.URL{
+			Scheme: scheme,
+			Host:   domain,
+			Path:   "/",
+		}
+		urls = append(urls, url)
+	}
+	return urls
+}
+
+func getInternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
+	var res []string
+
+	for _, host := range rule.Hosts {
+		if strings.Contains(host, localDomainName) {
+			res = append(res, host)
+		}
+	}
+
+	return res
+}
+
+func getExternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
+	var res []string
+	for _, host := range rule.Hosts {
+		if !strings.Contains(host, localDomainName) {
+			res = append(res, host)
+		}
+	}
+	return res
 }
