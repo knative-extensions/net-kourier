@@ -14,6 +14,7 @@ docker-run: docker-build ## Runs kourier in a docker
 	@echo "[i] Remember to have a valid kubeconfig in $(HOME)/.kube/config"
 	docker run --rm  --name kourier -v $(HOME)/.kube:/tmp/.kube -ti 3scale-kourier:test -kubeconfig /tmp/.kube/config
 
+.PHONY: build
 build: ## Builds kourier binary, outputs binary to ./build
 	mkdir -p ./build
 	go build -mod vendor -o build/kourier cmd/kourier/main.go 
@@ -27,6 +28,7 @@ docker-build-extauthzutil: ## Builds kourier docker, tagged by default as test_e
 local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
 	./utils/setup.sh
 
+.PHONY: test
 test: test-unit test-integration test-serving-conformance ## Runs all the tests
 
 test-unit: ## Runs unit tests
