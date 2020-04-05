@@ -19,8 +19,9 @@ package ingress
 import (
 	"context"
 	"fmt"
-	"knative.dev/serving/pkg/network/status"
 	"reflect"
+
+	"knative.dev/serving/pkg/network/status"
 
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/generator"

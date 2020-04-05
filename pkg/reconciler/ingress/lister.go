@@ -19,6 +19,10 @@ package ingress
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -28,9 +32,6 @@ import (
 	"knative.dev/pkg/system"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/network/status"
-	"net/url"
-	"strconv"
-	"strings"
 )
 
 func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
