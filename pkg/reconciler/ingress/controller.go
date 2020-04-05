@@ -18,9 +18,10 @@ package ingress
 
 import (
 	"context"
-	knativeReconciler "knative.dev/pkg/reconciler"
 	"strings"
 	"time"
+
+	knativeReconciler "knative.dev/pkg/reconciler"
 
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
