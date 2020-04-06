@@ -29,18 +29,13 @@ func statusVHost() route.VirtualHost {
 	return envoy.NewVirtualHost(
 		config.InternalKourierDomain,
 		[]string{config.InternalKourierDomain},
-		statusRoutes(),
+		[]*route.Route{statusRoute()},
 	)
 }
 
-func statusRoutes() []*route.Route {
-	var routes []*route.Route
-
-	staticRoute := envoy.NewRouteStatusOK(
+func statusRoute() *route.Route {
+	return envoy.NewRouteStatusOK(
 		config.InternalKourierDomain,
 		config.InternalKourierPath,
 	)
-	routes = append(routes, staticRoute)
-
-	return routes
 }
