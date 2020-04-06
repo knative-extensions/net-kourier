@@ -43,7 +43,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.17.2 // indirect
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.17.2
-	knative.dev/pkg v0.0.0-20200402224918-0cf29f826c40
-	knative.dev/serving v0.13.1-0.20200403065318-dc98e1cd54aa
-	knative.dev/test-infra v0.0.0-20200402234318-01c151837ed8
+	knative.dev/pkg v0.0.0-20200404181734-92cdec5b3593
+	knative.dev/serving v0.13.1-0.20200403170819-0e8f7a9e34f0
+	knative.dev/test-infra v0.0.0-20200403181419-e84f0d1a3647
 )
