@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"knative.dev/serving/pkg/network/status"
+
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/generator"
 	"knative.dev/net-kourier/pkg/knative"
@@ -42,7 +44,7 @@ type Reconciler struct {
 	kubeClient        kubeclient.Interface
 	knativeClient     knativeclient.Interface
 	CurrentCaches     *generator.Caches
-	statusManager     *StatusProber
+	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
 	ExtAuthz          bool
 	logger            *zap.SugaredLogger
@@ -80,7 +82,7 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
 	// We need to check for ingress not being nil, because we can receive an event from an already
 	// removed ingress, like for example, when the endpoints object for that ingress is updated/removed.
 	if ingress != nil {
-		reconciler.statusManager.CancelIngress(ingress)
+		reconciler.statusManager.CancelIngressProbing(ingress)
 	}
 
 	err := reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
@@ -99,6 +101,11 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
 func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 	reconciler.logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
+	// We create a copy of the ingress object to get the original one, without the modifications (we add some headers to the object)
+	// so IsReady can generate a clean Hash from ingress that will match.
+	var notModifiedIngress v1alpha1.Ingress
+	ingress.DeepCopyInto(&notModifiedIngress)
+
 	err := generator.UpdateInfoForIngress(
 		reconciler.CurrentCaches, ingress, reconciler.kubeClient, reconciler.ingressTranslator, reconciler.logger, reconciler.ExtAuthz,
 	)
@@ -116,7 +123,7 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 		return err
 	}
 
-	ready, err := reconciler.statusManager.IsReady(ingress)
+	ready, err := reconciler.statusManager.IsReady(context.TODO(), &notModifiedIngress)
 	if err != nil {
 		return err
 	}

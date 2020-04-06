@@ -797,6 +797,7 @@ knative.dev/serving/pkg/client/listers/serving/v1beta1
 knative.dev/serving/pkg/gc
 knative.dev/serving/pkg/network
 knative.dev/serving/pkg/network/ingress
+knative.dev/serving/pkg/network/status
 knative.dev/serving/pkg/reconciler/route/config
 knative.dev/serving/pkg/reconciler/route/domains
 knative.dev/serving/pkg/reconciler/route/resources/labels

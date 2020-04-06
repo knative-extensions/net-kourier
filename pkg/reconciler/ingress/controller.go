@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	knativeReconciler "knative.dev/pkg/reconciler"
-
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/generator"
+	knativeReconciler "knative.dev/pkg/reconciler"
+	"knative.dev/serving/pkg/network/status"
 
 	"knative.dev/pkg/network"
 
@@ -104,15 +104,17 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	go envoyXdsServer.RunManagementServer()
 	go envoyXdsServer.RunGateway()
 
-	readyCallback := func(ing *v1alpha1.Ingress) {
+	resyncOnIngressReady := func(ing *v1alpha1.Ingress) {
 		logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
 		impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
 	}
 
-	statusProber := NewStatusProber(
+	statusProber := status.NewProber(
 		logger.Named("status-manager"),
-		endpointsInformer.Lister(),
-		readyCallback)
+		NewProbeTargetLister(
+			logger,
+			endpointsInformer.Lister()),
+		resyncOnIngressReady)
 	c.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 
