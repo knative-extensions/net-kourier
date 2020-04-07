@@ -47,3 +47,9 @@ require (
 	knative.dev/serving v0.13.1-0.20200403170819-0e8f7a9e34f0
 	knative.dev/test-infra v0.0.0-20200403181419-e84f0d1a3647
 )
+
+replace (
+        k8s.io/apimachinery => k8s.io/apimachinery v0.17.2
+        k8s.io/client-go => k8s.io/client-go v0.17.2
+        k8s.io/api => k8s.io/api v0.17.2
+) 
