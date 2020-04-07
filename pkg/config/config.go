@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 const (
+	ControllerName = "kourier"
+
 	InternalServiceName = "kourier-internal"
 	ExternalServiceName = "kourier"
 

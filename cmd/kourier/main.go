@@ -19,6 +19,8 @@ package main
 import (
 	"os"
 
+	"knative.dev/net-kourier/pkg/config"
+
 	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
 
 	"knative.dev/pkg/controller"
@@ -49,5 +51,5 @@ func main() {
 	// TODO: Improve reconcile to support multiple threads
 	controller.DefaultThreadsPerController = 1
 
-	sharedmain.Main("KourierIngressController", kourierIngressController.NewController)
+	sharedmain.Main(config.ControllerName, kourierIngressController.NewController)
 }
