@@ -16,6 +16,14 @@ metadata:
   namespace: kourier-system
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-leader-election
+  namespace: kourier-system
+data:
+  enabledComponents: kourier
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: kourier
@@ -123,6 +131,9 @@ rules:
   - apiGroups: [""]
     resources: ["pods", "endpoints", "namespaces", "services", "secrets", "configmaps"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
   - apiGroups: ["networking.internal.knative.dev"]
     resources: ["clusteringresses","ingresses"]
     verbs: ["get", "list", "watch"]
