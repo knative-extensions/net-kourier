@@ -35,8 +35,7 @@ kubectl apply -f deploy/kourier-knative.yaml
 kubectl patch configmap/config-network \
   -n knative-serving \
   --type merge \
-  -p '{"data":{"clusteringress.class":"kourier.ingress.networking.knative.dev",
-               "ingress.class":"kourier.ingress.networking.knative.dev"}}'
+  -p '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
 ```
 
 - (OPTIONAL) Set your desired domain (replace 127.0.0.1.nip.io to your prefered
