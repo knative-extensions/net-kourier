@@ -48,6 +48,10 @@ parallelism=""
 use_https=""
 (( MESH )) && parallelism="-parallel 1"
 
+if [[ "${ISTIO_VERSION}" == "1.5-latest" ]]; then
+  parallelism="-parallel 1"
+fi
+
 if (( HTTPS )); then
   use_https="--https"
   # TODO: parallel 1 is necessary until https://github.com/knative/serving/issues/7406 is solved.
@@ -100,11 +104,18 @@ if [[ -n "${ISTIO_VERSION}" ]]; then
 fi
 
 # Run HA tests separately as they're stopping core Knative Serving pods
-kubectl -n ${E2E_SYSTEM_NAMESPACE} patch configmap/config-leader-election --type=merge \
-  --patch='{"data":{"enabledComponents":"controller,hpaautoscaler,certcontroller,istiocontroller,nscontroller"}}'
+kubectl -n "${E2E_SYSTEM_NAMESPACE}" patch configmap/config-leader-election --type=merge \
+  --patch='{"data":{"enabledComponents":"controller,hpaautoscaler"}}'
 add_trap "kubectl get cm config-leader-election -n ${E2E_SYSTEM_NAMESPACE} -oyaml | sed '/.*enabledComponents.*/d' | kubectl replace -f -" SIGKILL SIGTERM SIGQUIT
-go_test_e2e -timeout=10m -parallel=1 ./test/ha "--systemNamespace=${E2E_SYSTEM_NAMESPACE}" || failed=1
-kubectl get cm config-leader-election -n ${E2E_SYSTEM_NAMESPACE} -oyaml | sed '/.*enabledComponents.*/d' | kubectl replace -f -
+# Delete HPA to stabilize HA tests
+kubectl -n "${E2E_SYSTEM_NAMESPACE}" delete hpa activator
+# Scale up components for HA tests
+for deployment in controller autoscaler-hpa activator; do
+  kubectl -n "${E2E_SYSTEM_NAMESPACE}" patch deployment "$deployment" --patch '{"spec":{"replicas":2}}'
+done
+# Define short -spoofinterval to ensure frequent probing while stopping pods
+go_test_e2e -timeout=10m -parallel=1 ./test/ha "--systemNamespace=${E2E_SYSTEM_NAMESPACE}" -spoofinterval="10ms" || failed=1
+kubectl get cm config-leader-election -n "${E2E_SYSTEM_NAMESPACE}" -oyaml | sed '/.*enabledComponents.*/d' | kubectl replace -f -
 
 # Dump cluster state in case of failure
 (( failed )) && dump_cluster_state
