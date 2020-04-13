@@ -46,6 +46,7 @@ function test_setup() {
   # Wait for pods to be running.
   echo ">> Waiting for Kourier components to be running..."
   wait_until_pods_running kourier-system || return 1
+  wait_until_service_has_external_ip kourier-system kourier || return 1
 }
 
 # Add function call to trap
