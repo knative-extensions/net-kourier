@@ -21,8 +21,6 @@ initialize $@  --skip-istio-addon
 
 go_test_e2e -timeout=20m -parallel=12 \
 	    ./vendor/knative.dev/serving/test/conformance/ingress \
-            `# TODO(#30): TestRetry is blocking the nightly release.` \
-	     -run="Test[^R]" \
 	    --ingressClass=kourier.ingress.networking.knative.dev || fail_test
 
 success
