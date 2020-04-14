@@ -24,12 +24,12 @@ set -o pipefail
 cd ${ROOT_DIR}
 
 # This controls the release branch we track.
-VERSION="master"
+VERSION="release-0.14"
 
 # The list of dependencies that we track at HEAD and periodically
 # float forward in this repository.
 FLOATING_DEPS=(
-  "knative.dev/test-infra"
+  "knative.dev/test-infra@${VERSION}"
   "knative.dev/pkg@${VERSION}"
   "knative.dev/serving@${VERSION}"
 )
