@@ -148,7 +148,7 @@ spec:
         app: 3scale-kourier-control
     spec:
       containers:
-        - image: quay.io/3scale/kourier:v0.3.12
+        - image: ko://knative.dev/net-kourier/cmd/kourier
           imagePullPolicy: Always
           name: kourier-control
           env:
