@@ -17,8 +17,8 @@ limitations under the License.
 package generator
 
 import (
-	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/errors"
 
 	"go.uber.org/zap"
 
@@ -59,7 +59,7 @@ func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }
 
-func (caches *Caches) ValidateIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) bool {
+func (caches *Caches) ValidateIngress(translatedIngress *translatedIngress) error {
 
 	// We compare the Translated Ingress to current cached Virtualhosts, and look for any domain
 	// clashes. If there's one clashing domain, we reject the ingress.
@@ -67,7 +67,7 @@ func (caches *Caches) ValidateIngress(ingress *v1alpha1.Ingress, translatedIngre
 
 	// Return true early.
 	if len(localVhosts) == 0 {
-		return true
+		return nil
 	}
 
 	for _, vhost := range translatedIngress.internalVirtualHosts {
@@ -75,16 +75,14 @@ func (caches *Caches) ValidateIngress(ingress *v1alpha1.Ingress, translatedIngre
 			for _, cacheVhost := range localVhosts {
 				for _, cachedDomain := range cacheVhost.Domains {
 					if domain == cachedDomain {
-						caches.logger.Errorf("ingress %s/%s was rejected as domain %s clashes with another ingress", ingress.Name, ingress.Namespace, domain)
-						ingress.Status.MarkLoadBalancerFailed(config.DuplicatedDomainReason, config.DuplicatedDomainMessage)
-						return false
+						return errors.ErrDomainConflict
 					}
 				}
 			}
 		}
 	}
 
-	return true
+	return nil
 }
 
 func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) {

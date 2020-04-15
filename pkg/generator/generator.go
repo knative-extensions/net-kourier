@@ -84,8 +84,12 @@ func addIngressToCaches(caches *Caches,
 	}
 
 	// If the translated ingress is not nil, and gets validated successfully we add it to the config cache.
-	if ingressTranslation != nil && caches.ValidateIngress(ingress, ingressTranslation) {
-		caches.AddTranslatedIngress(ingress, ingressTranslation)
+	if ingressTranslation != nil {
+		if err := caches.ValidateIngress(ingressTranslation); err == nil {
+			caches.AddTranslatedIngress(ingress, ingressTranslation)
+		} else {
+			return err
+		}
 	}
 
 	return nil
