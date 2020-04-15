@@ -17,10 +17,10 @@ limitations under the License.
 package generator
 
 import (
-	"knative.dev/net-kourier/pkg/envoy"
-	"knative.dev/net-kourier/pkg/errors"
+	"errors"
 
 	"go.uber.org/zap"
+	"knative.dev/net-kourier/pkg/envoy"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -32,6 +32,8 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
+
+var ErrDomainConflict = errors.New("ingress has a conflicting domain with another ingress")
 
 type Caches struct {
 	ingresses           map[string]*v1alpha1.Ingress
@@ -75,7 +77,7 @@ func (caches *Caches) ValidateIngress(translatedIngress *translatedIngress) erro
 			for _, cacheVhost := range localVhosts {
 				for _, cachedDomain := range cacheVhost.Domains {
 					if domain == cachedDomain {
-						return errors.ErrDomainConflict
+						return ErrDomainConflict
 					}
 				}
 			}
