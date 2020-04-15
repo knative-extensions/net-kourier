@@ -25,11 +25,9 @@ import (
 )
 
 func MarkIngressReady(ingress *networkingv1alpha1.Ingress) {
-	status := ingress.Status
 	internalDomain := domainForServiceName(config.InternalServiceName)
 	externalDomain := domainForServiceName(config.ExternalServiceName)
 
-	status.InitializeConditions()
 	var domain string
 
 	if ingress.Spec.Visibility == networkingv1alpha1.IngressVisibilityClusterLocal {
@@ -38,7 +36,7 @@ func MarkIngressReady(ingress *networkingv1alpha1.Ingress) {
 		domain = externalDomain
 	}
 
-	status.MarkLoadBalancerReady(
+	ingress.Status.MarkLoadBalancerReady(
 		[]networkingv1alpha1.LoadBalancerIngressStatus{{
 			DomainInternal: domain,
 		}},
@@ -49,9 +47,7 @@ func MarkIngressReady(ingress *networkingv1alpha1.Ingress) {
 			DomainInternal: internalDomain,
 		}},
 	)
-	status.MarkNetworkConfigured()
-	status.ObservedGeneration = ingress.GetGeneration()
-	ingress.Status = status
+	ingress.Status.MarkNetworkConfigured()
 }
 
 func domainForServiceName(serviceName string) string {
