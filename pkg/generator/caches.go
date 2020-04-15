@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
 
 	"go.uber.org/zap"
@@ -75,6 +76,7 @@ func (caches *Caches) ValidateIngress(ingress *v1alpha1.Ingress, translatedIngre
 				for _, cachedDomain := range cacheVhost.Domains {
 					if domain == cachedDomain {
 						caches.logger.Errorf("ingress %s/%s was rejected as domain %s clashes with another ingress", ingress.Name, ingress.Namespace, domain)
+						ingress.Status.MarkLoadBalancerFailed(config.DuplicatedDomainReason, config.DuplicatedDomainMessage)
 						return false
 					}
 				}
