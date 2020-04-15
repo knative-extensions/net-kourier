@@ -170,8 +170,8 @@ func createTestDataForIngress(caches *Caches,
 		ingressNamespace:     ingressNamespace,
 		routes:               []*route.Route{{Name: routeName}},
 		clusters:             []*v2.Cluster{{Name: clusterName}},
-		externalVirtualHosts: []*route.VirtualHost{{Name: externalVHostName}},
-		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName}},
+		externalVirtualHosts: []*route.VirtualHost{{Name: externalVHostName, Domains: []string{externalVHostName}}},
+		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
 	}
 
 	caches.AddTranslatedIngress(&v1alpha1.Ingress{
@@ -183,6 +183,40 @@ func createTestDataForIngress(caches *Caches,
 
 	caches.AddStatusVirtualHost()
 	_ = caches.SetListeners(kubeClient)
+}
+
+func TestValidateIngress(t *testing.T) {
+	logger := zap.S()
+
+	caches := NewCaches(logger)
+	kubeClient := fake.Clientset{}
+
+	createTestDataForIngress(
+		caches,
+		"ingress_1",
+		"ingress_1_namespace",
+		"cluster_for_ingress_1",
+		"route_for_ingress_1",
+		"internal_host_for_ingress_1",
+		"external_host_for_ingress_1",
+		&kubeClient,
+	)
+
+	translatedIngress := translatedIngress{
+		ingressName:          "ingress_2",
+		ingressNamespace:     "ingress_2_namespace",
+		routes:               []*route.Route{{Name: "route_for_ingress_2"}},
+		clusters:             []*v2.Cluster{{Name: "cluster_for_ingress_2"}},
+		externalVirtualHosts: []*route.VirtualHost{{Name: "external_host_for_ingress_2", Domains: []string{"external_host_for_ingress_2"}}},
+		//This domain should clash with the cached ingress.
+		internalVirtualHosts: []*route.VirtualHost{{Name: "internal_host_for_ingress_2", Domains: []string{"internal_host_for_ingress_1"}}},
+	}
+
+	err := caches.ValidateIngress(&translatedIngress)
+	if err == nil {
+		t.FailNow()
+	}
+
 }
 
 func getVHostsNames(routeConfigs []v2.RouteConfiguration) ([]string, error) {
