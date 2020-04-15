@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"reflect"
 
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/errors"
+
 	"knative.dev/serving/pkg/network/status"
 
 	"knative.dev/net-kourier/pkg/envoy"
@@ -67,8 +70,16 @@ func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
 	ingress := original.DeepCopy()
 	ingress.SetDefaults(ctx)
 	ingress.Status.InitializeConditions()
+	// This is the generation we are going to handle during this reconciliation loop.
+	ingress.Status.ObservedGeneration = ingress.GetGeneration()
 
-	if err := reconciler.updateIngress(ingress); err != nil {
+	err = reconciler.updateIngress(ingress)
+	if err != nil && err == errors.ErrDomainConflict {
+		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
+		// custom status. We don't want to return an error in this case as we want to update its status.
+		reconciler.logger.Errorw(err.Error(), ingress.Name, ingress.Namespace)
+		ingress.Status.MarkLoadBalancerFailed(config.DuplicatedDomainReason, config.DuplicatedDomainMessage)
+	} else if err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
 	}
 
