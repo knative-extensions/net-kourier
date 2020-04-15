@@ -34,8 +34,8 @@ const (
 	ExtAuthzTimeout          = "KOURIER_EXTAUTHZ_TIMEOUT"
 	ExternalAuthzCluster     = "extAuthz"
 
-	DuplicatedDomainReason  = "DuplicatedDomain"
-	DuplicatedDomainMessage = "Ingress rejected as domain clashes with another ingress"
+	DuplicatedDomainReason  = "DomainConflict"
+	DuplicatedDomainMessage = "Ingress rejected as its domain conflicts with another ingress"
 
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
 	// Hack to force envoy reload
