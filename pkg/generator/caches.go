@@ -58,6 +58,33 @@ func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }
 
+func (caches *Caches) ValidateIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) bool {
+
+	// We compare the Translated Ingress to current cached Virtualhosts, and look for any domain
+	// clashes. If there's one clashing domain, we reject the ingress.
+	localVhosts := caches.clusterLocalVirtualHosts()
+
+	// Return true early.
+	if len(localVhosts) == 0 {
+		return true
+	}
+
+	for _, vhost := range translatedIngress.internalVirtualHosts {
+		for _, domain := range vhost.Domains {
+			for _, cacheVhost := range localVhosts {
+				for _, cachedDomain := range cacheVhost.Domains {
+					if domain == cachedDomain {
+						caches.logger.Errorf("ingress %s/%s was rejected as domain %s clashes with another ingress", ingress.Name, ingress.Namespace, domain)
+						return false
+					}
+				}
+			}
+		}
+	}
+
+	return true
+}
+
 func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) {
 	caches.logger.Debugf("adding ingress: %s/%s", ingress.Name, ingress.Namespace)
 
