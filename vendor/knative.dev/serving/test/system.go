@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Knative Authors
+Copyright 2020 The Knative Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,23 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package handlers
+package test
 
 import (
-	"net/http"
-	"time"
+	"os"
 
-	"knative.dev/serving/test/types"
+	"knative.dev/pkg/system"
 )
 
-func requestInfo(r *http.Request) *types.RequestInfo {
-	return &types.RequestInfo{
-		Ts:         time.Now(),
-		URI:        r.RequestURI,
-		Host:       r.Host,
-		Method:     r.Method,
-		Headers:    r.Header,
-		ProtoMajor: r.ProtoMajor,
-		ProtoMinor: r.ProtoMinor,
+func init() {
+	if ns := os.Getenv(system.NamespaceEnvKey); ns != "" {
+		return
 	}
+	os.Setenv(system.NamespaceEnvKey, "knative-serving")
 }
