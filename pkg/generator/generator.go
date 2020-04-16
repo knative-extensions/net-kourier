@@ -86,11 +86,8 @@ func addIngressToCaches(caches *Caches,
 	if ingressTranslation == nil {
 		return nil
 	}
-	if err := caches.ValidateIngress(ingressTranslation); err != nil {
-		return err
-	}
-	caches.AddTranslatedIngress(ingress, ingressTranslation)
-	return nil
+
+	return caches.AddTranslatedIngress(ingress, ingressTranslation)
 }
 
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,

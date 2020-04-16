@@ -61,7 +61,7 @@ func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }
 
-func (caches *Caches) ValidateIngress(translatedIngress *translatedIngress) error {
+func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
 
 	// We compare the Translated Ingress to current cached Virtualhosts, and look for any domain
 	// clashes. If there's one clashing domain, we reject the ingress.
@@ -87,8 +87,12 @@ func (caches *Caches) ValidateIngress(translatedIngress *translatedIngress) erro
 	return nil
 }
 
-func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) {
+func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) error {
 	caches.logger.Debugf("adding ingress: %s/%s", ingress.Name, ingress.Namespace)
+
+	if err := caches.validateIngress(translatedIngress); err != nil {
+		return err
+	}
 
 	key := mapKey(ingress.Name, ingress.Namespace)
 	caches.ingresses[key] = ingress
@@ -97,6 +101,8 @@ func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translated
 	for _, cluster := range translatedIngress.clusters {
 		caches.AddClusterForIngress(cluster, ingress.Name, ingress.Namespace)
 	}
+
+	return nil
 }
 
 // SetOnEvicted allows to set a function that will be executed when any key on the cache expires.

@@ -212,11 +212,8 @@ func TestValidateIngress(t *testing.T) {
 		internalVirtualHosts: []*route.VirtualHost{{Name: "internal_host_for_ingress_2", Domains: []string{"internal_host_for_ingress_1"}}},
 	}
 
-	err := caches.ValidateIngress(&translatedIngress)
-	if err == nil {
-		t.FailNow()
-	}
-
+	err := caches.validateIngress(&translatedIngress)
+	assert.Error(t, err, ErrDomainConflict.Error())
 }
 
 func getVHostsNames(routeConfigs []v2.RouteConfiguration) ([]string, error) {
