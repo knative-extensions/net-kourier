@@ -17,9 +17,10 @@ limitations under the License.
 package generator
 
 import (
-	"knative.dev/net-kourier/pkg/envoy"
+	"errors"
 
 	"go.uber.org/zap"
+	"knative.dev/net-kourier/pkg/envoy"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -31,6 +32,8 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
+
+var ErrDomainConflict = errors.New("ingress has a conflicting domain with another ingress")
 
 type Caches struct {
 	ingresses           map[string]*v1alpha1.Ingress
@@ -58,8 +61,38 @@ func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }
 
-func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) {
+func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
+
+	// We compare the Translated Ingress to current cached Virtualhosts, and look for any domain
+	// clashes. If there's one clashing domain, we reject the ingress.
+	localVhosts := caches.clusterLocalVirtualHosts()
+
+	// Return true early.
+	if len(localVhosts) == 0 {
+		return nil
+	}
+
+	for _, vhost := range translatedIngress.internalVirtualHosts {
+		for _, domain := range vhost.Domains {
+			for _, cacheVhost := range localVhosts {
+				for _, cachedDomain := range cacheVhost.Domains {
+					if domain == cachedDomain {
+						return ErrDomainConflict
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) error {
 	caches.logger.Debugf("adding ingress: %s/%s", ingress.Name, ingress.Namespace)
+
+	if err := caches.validateIngress(translatedIngress); err != nil {
+		return err
+	}
 
 	key := mapKey(ingress.Name, ingress.Namespace)
 	caches.ingresses[key] = ingress
@@ -68,6 +101,8 @@ func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translated
 	for _, cluster := range translatedIngress.clusters {
 		caches.AddClusterForIngress(cluster, ingress.Name, ingress.Namespace)
 	}
+
+	return nil
 }
 
 // SetOnEvicted allows to set a function that will be executed when any key on the cache expires.
