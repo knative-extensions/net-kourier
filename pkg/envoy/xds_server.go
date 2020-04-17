@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -95,26 +94,6 @@ func (envoyXdsServer *XdsServer) RunManagementServer() {
 	}()
 	<-envoyXdsServer.ctx.Done()
 	grpcServer.GracefulStop()
-}
-
-// RunManagementGateway starts an HTTP gateway to an xDS server.
-func (envoyXdsServer *XdsServer) RunGateway() {
-	port := envoyXdsServer.gatewayPort
-	server := envoyXdsServer.server
-	ctx := envoyXdsServer.ctx
-
-	log.Printf("Starting HTTP/1.1 gateway on Port %d\n", port)
-	httpServer := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: &xds.HTTPGateway{Server: server}}
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil {
-			panic(err)
-		}
-	}()
-
-	<-ctx.Done()
-	if err := httpServer.Shutdown(ctx); err != nil {
-		panic(err)
-	}
 }
 
 func (envoyXdsServer *XdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeID string) error {
