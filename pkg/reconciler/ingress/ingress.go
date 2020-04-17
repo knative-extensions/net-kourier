@@ -93,17 +93,7 @@ func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
 		reconciler.statusManager.CancelIngressProbing(ingress)
 	}
 
-	err := reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
-	if err != nil {
-		return err
-	}
-
-	snapshot, err := reconciler.CurrentCaches.ToEnvoySnapshot()
-	if err != nil {
-		return err
-	}
-
-	return reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
+	return reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
 }
 
 func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
