@@ -682,10 +682,10 @@ k8s.io/kubernetes v1.11.10/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk
 k8s.io/utils v0.0.0-20190221042446-c2654d5206da/go.mod h1:8k8uAuAQ0rXslZKaEWd0c3oVhZz7sSzSiPnVZayjIX0=
 k8s.io/utils v0.0.0-20191114184206-e782cd3c129f h1:GiPwtSzdP43eI1hpPCbROQCCIgCuiMMNF8YUVLF3vJo=
 k8s.io/utils v0.0.0-20191114184206-e782cd3c129f/go.mod h1:sZAwmy6armz5eXlNoLmJcl4F1QuKu7sr+mFQ0byX7Ew=
-knative.dev/pkg v0.0.0-20200416021448-f68639f04b39 h1:54yDzAqYlsqp2f22p4NXNOB6KKkoGjU9zRR18zcvuhs=
-knative.dev/pkg v0.0.0-20200416021448-f68639f04b39/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
-knative.dev/serving v0.14.1-0.20200416124848-7633ea2f50bb h1:3c0Lcx5sIj5uDdQNUNoVmHEpbVsoCK8TMBUH7TRdcFs=
-knative.dev/serving v0.14.1-0.20200416124848-7633ea2f50bb/go.mod h1:x2n255JS2XBI39tmjZ8CwTxIf9EKNMCrkVuiOttLRm0=
+knative.dev/pkg v0.0.0-20200417013048-9d7c06b6ab64 h1:u4rM1zIlVAhrXa/oO/ZaZSQkoT3MVlIc2Mx3KL2TaPY=
+knative.dev/pkg v0.0.0-20200417013048-9d7c06b6ab64/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
+knative.dev/serving v0.14.1-0.20200417135148-4832e3ce5b12 h1:rkMkxqrW8221ZhAqvaUgA7FIEP51w/glY602r5AYCKU=
+knative.dev/serving v0.14.1-0.20200417135148-4832e3ce5b12/go.mod h1:x2n255JS2XBI39tmjZ8CwTxIf9EKNMCrkVuiOttLRm0=
 knative.dev/test-infra v0.0.0-20200416141448-2f62d241ccc0 h1:U+snr0LfUXz22aPz2uRGZvqcYcl6fQ7dvZHbrQvmkK0=
 knative.dev/test-infra v0.0.0-20200416141448-2f62d241ccc0/go.mod h1:xcdUkMJrLlBswIZqL5zCuBFOC22WIPMQoVX1L35i0vQ=
 modernc.org/cc v1.0.0/go.mod h1:1Sk4//wdnYJiUIxnW8ddKpaOJCF37yAdqYnkxUpaYxw=
