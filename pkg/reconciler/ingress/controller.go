@@ -102,7 +102,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	c.EnvoyXDSServer = envoyXdsServer
 
 	go envoyXdsServer.RunManagementServer()
-	go envoyXdsServer.RunGateway()
 
 	resyncOnIngressReady := func(ing *v1alpha1.Ingress) {
 		logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
