@@ -19,6 +19,8 @@ package config
 const (
 	ControllerName = "kourier"
 
+	EnvoyNodeID = "3scale-kourier-gateway"
+
 	InternalServiceName = "kourier-internal"
 	ExternalServiceName = "kourier"
 
