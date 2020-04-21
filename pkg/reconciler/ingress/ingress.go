@@ -79,10 +79,14 @@ func (r *Reconciler) updateEnvoyConfig() error {
 
 	// Let's warm the Clusters first, by sending the previous snapshot with the new cluster list, that includes
 	// both new and old clusters.
-	// TODO: Find a way to wait for ack from callbacks.
 	currentSnapshot.Clusters = newSnapshot.Clusters
-	err = r.xdsServer.SetSnapshot(&currentSnapshot, nodeID)
-	if err != nil {
+
+	//Validate that the snapshot is consistent.
+	if err := currentSnapshot.Consistent(); err != nil {
+		return err
+	}
+
+	if err := r.xdsServer.SetSnapshot(&currentSnapshot, nodeID); err != nil {
 		return err
 	}
 
