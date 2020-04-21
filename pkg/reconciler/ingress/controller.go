@@ -83,14 +83,18 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	impl := controller.NewImpl(c, logger, controllerName)
 
+	classFilter := knativeReconciler.AnnotationFilterFunc(
+		networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
+	)
+
+	resyncNotReady := func() {
+		impl.FilteredGlobalResync(func(obj interface{}) bool {
+			return classFilter(obj) && !obj.(*v1alpha1.Ingress).Status.IsReady()
+		}, ingressInformer.Informer())
+	}
 	var callbacks = envoy.Callbacks{
-		Logger: logger,
-		OnError: func() {
-			impl.FilteredGlobalResync(func(obj interface{}) bool {
-				ingress := obj.(*v1alpha1.Ingress)
-				return !ingress.Status.IsReady()
-			}, ingressInformer.Informer())
-		},
+		Logger:  logger,
+		OnError: resyncNotReady,
 	}
 
 	envoyXdsServer := envoy.NewXdsServer(
@@ -98,22 +102,16 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		managementPort,
 		&callbacks,
 	)
-
 	c.EnvoyXDSServer = envoyXdsServer
-
 	go envoyXdsServer.RunManagementServer()
-
-	resyncOnIngressReady := func(ing *v1alpha1.Ingress) {
-		logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
-		impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
-	}
 
 	statusProber := status.NewProber(
 		logger.Named("status-manager"),
-		NewProbeTargetLister(
-			logger,
-			endpointsInformer.Lister()),
-		resyncOnIngressReady)
+		NewProbeTargetLister(logger, endpointsInformer.Lister()),
+		func(ing *v1alpha1.Ingress) {
+			logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
+			impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
+		})
 	c.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 
@@ -128,7 +126,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 				return
 			case <-ticker.C:
 				logger.Info("GlobalResync triggered.")
-				impl.FilteredGlobalResync(ingressNotReady, ingressInformer.Informer())
+				resyncNotReady()
 			}
 		}
 	}()
@@ -173,14 +171,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
-	ingressInformerHandler := cache.FilteringResourceEventHandler{
-		FilterFunc: knativeReconciler.AnnotationFilterFunc(
-			networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
-		),
-		Handler: controller.HandleAll(impl.Enqueue),
-	}
-
-	ingressInformer.Informer().AddEventHandler(ingressInformerHandler)
+	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		FilterFunc: classFilter,
+		Handler:    controller.HandleAll(impl.Enqueue),
+	})
 
 	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
@@ -189,7 +183,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		),
 	))
 
-	podInformerHandler := cache.FilteringResourceEventHandler{
+	podInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: knativeReconciler.LabelFilterFunc(gatewayLabelKey, gatewayLabelValue, false),
 		Handler: cache.ResourceEventHandlerFuncs{
 			// Cancel probing when a Pod is deleted
@@ -200,9 +194,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 				}
 			},
 		},
-	}
-
-	podInformer.Informer().AddEventHandler(podInformerHandler)
+	})
 
 	return impl
 }
@@ -216,9 +208,4 @@ func addExtAuthz(caches *generator.Caches) envoy.ExternalAuthzConfig {
 		caches.AddClusterForIngress(cluster, "__extAuthZCluster", "_internal")
 	}
 	return extAuthZConfig
-}
-
-func ingressNotReady(obj interface{}) bool {
-	ingress := obj.(*v1alpha1.Ingress)
-	return !ingress.Status.IsReady()
 }
