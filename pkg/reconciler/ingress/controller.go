@@ -73,7 +73,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		kubeClient:    kubernetesClient,
 		knativeClient: knativeClient,
 		caches:        caches,
-		logger:        logger.Named("reconciler"),
 		extAuthz:      extAuthZConfig.Enabled,
 	}
 

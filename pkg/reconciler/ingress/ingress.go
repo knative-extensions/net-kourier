@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
 	kubeclient "k8s.io/client-go/kubernetes"
 
+	"knative.dev/pkg/logging"
 	reconciler "knative.dev/pkg/reconciler"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	knativeclient "knative.dev/serving/pkg/client/clientset/versioned"
@@ -42,7 +42,6 @@ type Reconciler struct {
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
 	extAuthz          bool
-	logger            *zap.SugaredLogger
 }
 
 var _ ingress.Interface = (*Reconciler)(nil)
@@ -53,11 +52,11 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingres
 	ingress.Status.InitializeConditions()
 	ingress.Status.ObservedGeneration = ingress.Generation
 
-	err := r.updateIngress(ingress)
+	err := r.updateIngress(ctx, ingress)
 	if err == generator.ErrDomainConflict {
 		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
 		// custom status. We don't want to return an error in this case as we want to update its status.
-		r.logger.Errorw(err.Error(), ingress.Name, ingress.Namespace)
+		logging.FromContext(ctx).Errorw(err.Error(), ingress.Name, ingress.Namespace)
 		ingress.Status.MarkLoadBalancerFailed("DomainConflict", "Ingress rejected as its domain conflicts with another ingress")
 	} else if err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
@@ -66,7 +65,8 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingres
 }
 
 func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
-	r.logger.Infof("Deleting Ingress %s namespace: %s", ing.Name, ing.Namespace)
+	logger := logging.FromContext(ctx)
+	logger.Infof("Deleting Ingress %s namespace: %s", ing.Name, ing.Namespace)
 	ingress := r.caches.GetIngress(ing.Name, ing.Namespace)
 
 	// We need to check for ingress not being nil, because we can receive an event from an already
@@ -87,13 +87,14 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) re
 	return r.xdsServer.SetSnapshot(&snapshot, nodeID)
 }
 
-func (r *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
-	r.logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
+func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingress) error {
+	logger := logging.FromContext(ctx)
+	logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
 	before := ingress.DeepCopy()
 
 	if err := generator.UpdateInfoForIngress(
-		r.caches, ingress, r.kubeClient, r.ingressTranslator, r.logger, r.extAuthz,
+		r.caches, ingress, r.kubeClient, r.ingressTranslator, logger, r.extAuthz,
 	); err != nil {
 		return err
 	}
