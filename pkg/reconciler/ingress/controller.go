@@ -21,32 +21,29 @@ import (
 	"strings"
 	"time"
 
-	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/envoy"
-	"knative.dev/net-kourier/pkg/generator"
-	knativeReconciler "knative.dev/pkg/reconciler"
-	"knative.dev/serving/pkg/network/status"
-
-	"knative.dev/pkg/network"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
-
 	"k8s.io/client-go/tools/cache"
-	"knative.dev/serving/pkg/apis/networking"
 
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
-
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+	"knative.dev/pkg/network"
+	knativeReconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/tracker"
-
+	"knative.dev/serving/pkg/apis/networking"
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	knativeclient "knative.dev/serving/pkg/client/injection/client"
 	ingressinformer "knative.dev/serving/pkg/client/injection/informers/networking/v1alpha1/ingress"
+	v1alpha1ingress "knative.dev/serving/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
+	"knative.dev/serving/pkg/network/status"
+
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/generator"
 )
 
 const (
@@ -72,16 +69,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	caches := generator.NewCaches(logger.Named("caches"))
 	extAuthZConfig := addExtAuthz(caches)
 
-	c := &Reconciler{
-		IngressLister: ingressInformer.Lister(),
+	r := &Reconciler{
 		kubeClient:    kubernetesClient,
 		knativeClient: knativeClient,
-		CurrentCaches: caches,
-		logger:        logger.Named("reconciler"),
-		ExtAuthz:      extAuthZConfig.Enabled,
+		caches:        caches,
+		extAuthz:      extAuthZConfig.Enabled,
 	}
 
-	impl := controller.NewImpl(c, logger, controllerName)
+	impl := v1alpha1ingress.NewImpl(ctx, r)
 
 	classFilter := knativeReconciler.AnnotationFilterFunc(
 		networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
@@ -102,7 +97,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		managementPort,
 		&callbacks,
 	)
-	c.EnvoyXDSServer = envoyXdsServer
+	r.xdsServer = envoyXdsServer
 	go envoyXdsServer.RunManagementServer()
 
 	statusProber := status.NewProber(
@@ -112,7 +107,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
 			impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
 		})
-	c.statusManager = statusProber
+	r.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 
 	// This global resync could be removed once we move to envoy >= 1.12
@@ -131,7 +126,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		}
 	}()
 
-	c.CurrentCaches.SetOnEvicted(func(key string, value interface{}) {
+	r.caches.SetOnEvicted(func(key string, value interface{}) {
 		// The format of the key received is "clusterName:ingressName:ingressNamespace"
 		logger.Debugf("Evicted %s", key)
 		keyParts := strings.Split(key, ":")
@@ -146,25 +141,25 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	endpointsTracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		c.kubeClient, endpointsInformer.Lister(), network.GetClusterDomainName(), endpointsTracker, logger)
-	c.ingressTranslator = &ingressTranslator
+		r.kubeClient, endpointsInformer.Lister(), network.GetClusterDomainName(), endpointsTracker, logger)
+	r.ingressTranslator = &ingressTranslator
 
 	// Make sure we initialize a config. Otherwise, there will be no config
 	// until a Knative service is deployed. This is important because the
 	// gateway pods will not be marked as healthy until they have been able to
 	// fetch a config.
-	c.CurrentCaches.AddStatusVirtualHost()
-	err := c.CurrentCaches.SetListeners(kubernetesClient)
+	r.caches.AddStatusVirtualHost()
+	err := r.caches.SetListeners(kubernetesClient)
 	if err != nil {
 		panic(err)
 	}
 
-	snapshot, err := c.CurrentCaches.ToEnvoySnapshot()
+	snapshot, err := r.caches.ToEnvoySnapshot()
 	if err != nil {
 		panic(err)
 	}
 
-	err = c.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
+	err = r.xdsServer.SetSnapshot(&snapshot, nodeID)
 	if err != nil {
 		panic(err)
 	}

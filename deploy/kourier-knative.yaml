@@ -177,7 +177,7 @@ rules:
     verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
   - apiGroups: ["networking.internal.knative.dev"]
     resources: ["ingresses"]
-    verbs: ["get", "list", "watch"]
+    verbs: ["get", "list", "watch", "patch"]
   - apiGroups: ["networking.internal.knative.dev"]
     resources: ["ingresses/status"]
     verbs: ["update"]

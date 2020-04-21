@@ -19,119 +19,96 @@ package ingress
 import (
 	"context"
 	"fmt"
-	"reflect"
 
+	kubeclient "k8s.io/client-go/kubernetes"
+
+	"knative.dev/pkg/logging"
+	reconciler "knative.dev/pkg/reconciler"
+	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	knativeclient "knative.dev/serving/pkg/client/clientset/versioned"
+	"knative.dev/serving/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	"knative.dev/serving/pkg/network/status"
 
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/generator"
 	"knative.dev/net-kourier/pkg/knative"
-
-	"go.uber.org/zap"
-
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	kubeclient "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
-	knativeclient "knative.dev/serving/pkg/client/clientset/versioned"
-	nv1alpha1lister "knative.dev/serving/pkg/client/listers/networking/v1alpha1"
 )
 
 type Reconciler struct {
-	IngressLister     nv1alpha1lister.IngressLister
-	EnvoyXDSServer    *envoy.XdsServer
+	xdsServer         *envoy.XdsServer
 	kubeClient        kubeclient.Interface
 	knativeClient     knativeclient.Interface
-	CurrentCaches     *generator.Caches
+	caches            *generator.Caches
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
-	ExtAuthz          bool
-	logger            *zap.SugaredLogger
+	extAuthz          bool
 }
 
-func (reconciler *Reconciler) Reconcile(ctx context.Context, key string) error {
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		return err
-	}
-	reconciler.logger.Infof("Got reconcile request for %s namespace: %s", name, namespace)
+var _ ingress.Interface = (*Reconciler)(nil)
+var _ ingress.Finalizer = (*Reconciler)(nil)
 
-	original, err := reconciler.IngressLister.Ingresses(namespace).Get(name)
-	if apierrors.IsNotFound(err) {
-		return reconciler.deleteIngress(namespace, name)
-	} else if err != nil {
-		return err
-	}
-
-	ingress := original.DeepCopy()
+func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
 	ingress.SetDefaults(ctx)
 	ingress.Status.InitializeConditions()
-	// This is the generation we are going to handle during this reconciliation loop.
-	ingress.Status.ObservedGeneration = ingress.GetGeneration()
+	ingress.Status.ObservedGeneration = ingress.Generation
 
-	err = reconciler.updateIngress(ingress)
+	err := r.updateIngress(ctx, ingress)
 	if err == generator.ErrDomainConflict {
 		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
 		// custom status. We don't want to return an error in this case as we want to update its status.
-		reconciler.logger.Errorw(err.Error(), ingress.Name, ingress.Namespace)
+		logging.FromContext(ctx).Errorw(err.Error(), ingress.Name, ingress.Namespace)
 		ingress.Status.MarkLoadBalancerFailed("DomainConflict", "Ingress rejected as its domain conflicts with another ingress")
 	} else if err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
 	}
-
-	return reconciler.updateStatus(original, ingress)
+	return nil
 }
 
-func (reconciler *Reconciler) deleteIngress(namespace, name string) error {
-	reconciler.logger.Infof("Deleting Ingress %s namespace: %s", name, namespace)
-	ingress := reconciler.CurrentCaches.GetIngress(name, namespace)
+func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+	logger := logging.FromContext(ctx)
+	logger.Infof("Deleting Ingress %s namespace: %s", ing.Name, ing.Namespace)
+	ingress := r.caches.GetIngress(ing.Name, ing.Namespace)
 
 	// We need to check for ingress not being nil, because we can receive an event from an already
 	// removed ingress, like for example, when the endpoints object for that ingress is updated/removed.
 	if ingress != nil {
-		reconciler.statusManager.CancelIngressProbing(ingress)
+		r.statusManager.CancelIngressProbing(ingress)
 	}
 
-	err := reconciler.CurrentCaches.DeleteIngressInfo(name, namespace, reconciler.kubeClient)
+	if err := r.caches.DeleteIngressInfo(ing.Name, ing.Namespace, r.kubeClient); err != nil {
+		return err
+	}
+
+	snapshot, err := r.caches.ToEnvoySnapshot()
 	if err != nil {
 		return err
 	}
 
-	snapshot, err := reconciler.CurrentCaches.ToEnvoySnapshot()
-	if err != nil {
-		return err
-	}
-
-	return reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
+	return r.xdsServer.SetSnapshot(&snapshot, nodeID)
 }
 
-func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
-	reconciler.logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
+func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingress) error {
+	logger := logging.FromContext(ctx)
+	logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
-	// We create a copy of the ingress object to get the original one, without the modifications (we add some headers to the object)
-	// so IsReady can generate a clean Hash from ingress that will match.
-	var notModifiedIngress v1alpha1.Ingress
-	ingress.DeepCopyInto(&notModifiedIngress)
+	before := ingress.DeepCopy()
 
-	err := generator.UpdateInfoForIngress(
-		reconciler.CurrentCaches, ingress, reconciler.kubeClient, reconciler.ingressTranslator, reconciler.logger, reconciler.ExtAuthz,
-	)
+	if err := generator.UpdateInfoForIngress(
+		r.caches, ingress, r.kubeClient, r.ingressTranslator, logger, r.extAuthz,
+	); err != nil {
+		return err
+	}
+
+	snapshot, err := r.caches.ToEnvoySnapshot()
 	if err != nil {
 		return err
 	}
 
-	snapshot, err := reconciler.CurrentCaches.ToEnvoySnapshot()
-	if err != nil {
+	if err := r.xdsServer.SetSnapshot(&snapshot, nodeID); err != nil {
 		return err
 	}
 
-	err = reconciler.EnvoyXDSServer.SetSnapshot(&snapshot, nodeID)
-	if err != nil {
-		return err
-	}
-
-	ready, err := reconciler.statusManager.IsReady(context.TODO(), &notModifiedIngress)
+	ready, err := r.statusManager.IsReady(context.TODO(), before)
 	if err != nil {
 		return err
 	}
@@ -140,16 +117,4 @@ func (reconciler *Reconciler) updateIngress(ingress *v1alpha1.Ingress) error {
 		knative.MarkIngressReady(ingress)
 	}
 	return nil
-}
-
-func (reconciler *Reconciler) updateStatus(existing *v1alpha1.Ingress, desired *v1alpha1.Ingress) error {
-	// If there's nothing to update, just return.
-	if reflect.DeepEqual(existing.Status, desired.Status) {
-		return nil
-	}
-
-	existing = existing.DeepCopy()
-	existing.Status = desired.Status
-	_, err := reconciler.knativeClient.NetworkingV1alpha1().Ingresses(existing.Namespace).UpdateStatus(existing)
-	return err
 }
