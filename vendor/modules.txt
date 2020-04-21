@@ -786,6 +786,7 @@ knative.dev/serving/pkg/client/informers/externalversions/serving/v1beta1
 knative.dev/serving/pkg/client/injection/client
 knative.dev/serving/pkg/client/injection/informers/factory
 knative.dev/serving/pkg/client/injection/informers/networking/v1alpha1/ingress
+knative.dev/serving/pkg/client/injection/reconciler/networking/v1alpha1/ingress
 knative.dev/serving/pkg/client/istio/clientset/versioned
 knative.dev/serving/pkg/client/istio/clientset/versioned/scheme
 knative.dev/serving/pkg/client/istio/clientset/versioned/typed/networking/v1alpha3
