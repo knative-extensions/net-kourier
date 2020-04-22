@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/serving/pkg/network"
 	"knative.dev/serving/pkg/network/ingress"
@@ -294,10 +292,6 @@ func InsertKourierHeaders(ing *v1alpha1.Ingress) error {
 		return fmt.Errorf("failed to compute the hash of the Ingress: %w", err)
 	}
 	hash := fmt.Sprintf("%x", bytes)
-	uuid, err := uuid.NewUUID()
-	if err != nil {
-		return fmt.Errorf("failed to generate UUID for the uniq header of the Ingress: %w", err)
-	}
 	for _, rule := range ing.Spec.Rules {
 		if rule.HTTP == nil {
 			return fmt.Errorf("rule is missing HTTP block: %+v", rule)
@@ -307,7 +301,6 @@ func InsertKourierHeaders(ing *v1alpha1.Ingress) error {
 				rule.HTTP.Paths[i].AppendHeaders = make(map[string]string, 2)
 			}
 			rule.HTTP.Paths[i].AppendHeaders[network.HashHeaderName] = hash
-			rule.HTTP.Paths[i].AppendHeaders[config.KourierHeaderRandom] = uuid.String()
 		}
 	}
 	return nil

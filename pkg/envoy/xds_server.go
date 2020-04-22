@@ -96,12 +96,10 @@ func (envoyXdsServer *XdsServer) RunManagementServer() {
 	grpcServer.GracefulStop()
 }
 
+func (envoyXdsServer *XdsServer) GetSnapshot(nodeid string) (cache.Snapshot, error) {
+	return envoyXdsServer.snapshotCache.GetSnapshot(nodeid)
+}
+
 func (envoyXdsServer *XdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeID string) error {
-	err := envoyXdsServer.snapshotCache.SetSnapshot(nodeID, *snapshot)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return envoyXdsServer.snapshotCache.SetSnapshot(nodeID, *snapshot)
 }

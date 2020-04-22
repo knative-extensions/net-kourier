@@ -20,10 +20,12 @@ import (
 	"context"
 	"fmt"
 
+	"knative.dev/net-kourier/pkg/config"
+
 	kubeclient "k8s.io/client-go/kubernetes"
 
 	"knative.dev/pkg/logging"
-	reconciler "knative.dev/pkg/reconciler"
+	"knative.dev/pkg/reconciler"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	knativeclient "knative.dev/serving/pkg/client/clientset/versioned"
 	"knative.dev/serving/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
@@ -64,6 +66,34 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingres
 	return nil
 }
 
+func (r *Reconciler) updateEnvoyConfig() error {
+
+	currentSnapshot, err := r.xdsServer.GetSnapshot(config.EnvoyNodeID)
+	if err != nil {
+		return err
+	}
+	newSnapshot, err := r.caches.ToEnvoySnapshot()
+	if err != nil {
+		return err
+	}
+
+	// Let's warm the Clusters first, by sending the previous snapshot with the new cluster list, that includes
+	// both new and old clusters.
+	currentSnapshot.Clusters = newSnapshot.Clusters
+
+	//Validate that the snapshot is consistent.
+	if err := currentSnapshot.Consistent(); err != nil {
+		return err
+	}
+
+	if err := r.xdsServer.SetSnapshot(&currentSnapshot, nodeID); err != nil {
+		return err
+	}
+
+	// Now, send the full new snapshot.
+	return r.xdsServer.SetSnapshot(&newSnapshot, nodeID)
+}
+
 func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
 	logger := logging.FromContext(ctx)
 	logger.Infof("Deleting Ingress %s namespace: %s", ing.Name, ing.Namespace)
@@ -79,12 +109,7 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) re
 		return err
 	}
 
-	snapshot, err := r.caches.ToEnvoySnapshot()
-	if err != nil {
-		return err
-	}
-
-	return r.xdsServer.SetSnapshot(&snapshot, nodeID)
+	return r.updateEnvoyConfig()
 }
 
 func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingress) error {
@@ -99,12 +124,8 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 		return err
 	}
 
-	snapshot, err := r.caches.ToEnvoySnapshot()
+	err := r.updateEnvoyConfig()
 	if err != nil {
-		return err
-	}
-
-	if err := r.xdsServer.SetSnapshot(&snapshot, nodeID); err != nil {
 		return err
 	}
 
