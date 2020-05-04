@@ -18,6 +18,7 @@ package generator
 
 import (
 	"errors"
+	"sync"
 
 	"go.uber.org/zap"
 	"knative.dev/net-kourier/pkg/envoy"
@@ -36,6 +37,7 @@ import (
 var ErrDomainConflict = errors.New("ingress has a conflicting domain with another ingress")
 
 type Caches struct {
+	mu                  sync.Mutex
 	ingresses           map[string]*v1alpha1.Ingress
 	translatedIngresses map[string]*translatedIngress
 	clusters            *ClustersCache
@@ -56,13 +58,38 @@ func NewCaches(logger *zap.SugaredLogger) *Caches {
 	}
 }
 
+func (caches *Caches) UpdateIngress(ingress *v1alpha1.Ingress, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
+	// we hold a lock for Updating the ingress, to avoid another worker to generate an snapshot just when we have
+	// deleted the ingress before adding it.
+	caches.mu.Lock()
+	defer caches.mu.Unlock()
+
+	caches.deleteTranslatedIngress(ingress.Name, ingress.Namespace)
+
+	if err := caches.addTranslatedIngress(ingress, ingressTranslation); err != nil {
+		return err
+	}
+
+	return caches.setListeners(kubeclient)
+}
+
+func (caches *Caches) InitConfig(kubernetesClient kubeclient.Interface, extAuthz bool) error {
+	caches.mu.Lock()
+	defer caches.mu.Unlock()
+	if extAuthz {
+		extAuthZConfig := envoy.GetExternalAuthzConfig()
+		caches.addClusterForIngress(extAuthZConfig.Cluster, "__extAuthZCluster", "_internal")
+	}
+	caches.addStatusVirtualHost()
+	return caches.setListeners(kubernetesClient)
+}
+
 func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {
 	caches.logger.Debugf("getting ingress: %s/%s", ingressName, ingressNamespace)
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }
 
 func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
-
 	// We compare the Translated Ingress to current cached Virtualhosts, and look for any domain
 	// clashes. If there's one clashing domain, we reject the ingress.
 	localVhosts := caches.clusterLocalVirtualHosts()
@@ -87,7 +114,7 @@ func (caches *Caches) validateIngress(translatedIngress *translatedIngress) erro
 	return nil
 }
 
-func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) error {
+func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) error {
 	caches.logger.Debugf("adding ingress: %s/%s", ingress.Name, ingress.Namespace)
 
 	if err := caches.validateIngress(translatedIngress); err != nil {
@@ -99,7 +126,7 @@ func (caches *Caches) AddTranslatedIngress(ingress *v1alpha1.Ingress, translated
 	caches.translatedIngresses[key] = translatedIngress
 
 	for _, cluster := range translatedIngress.clusters {
-		caches.AddClusterForIngress(cluster, ingress.Name, ingress.Namespace)
+		caches.addClusterForIngress(cluster, ingress.Name, ingress.Namespace)
 	}
 
 	return nil
@@ -110,12 +137,12 @@ func (caches *Caches) SetOnEvicted(f func(string, interface{})) {
 	caches.clusters.clusters.OnEvicted(f)
 }
 
-func (caches *Caches) AddStatusVirtualHost() {
+func (caches *Caches) addStatusVirtualHost() {
 	statusVirtualHost := statusVHost()
 	caches.statusVirtualHost = &statusVirtualHost
 }
 
-func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
+func (caches *Caches) setListeners(kubeclient kubeclient.Interface) error {
 	localVHosts := append(caches.clusterLocalVirtualHosts(), caches.statusVirtualHost)
 
 	listeners, err := listenersFromVirtualHosts(
@@ -136,8 +163,10 @@ func (caches *Caches) SetListeners(kubeclient kubeclient.Interface) error {
 }
 
 func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
-	caches.logger.Debugf("Preparing Envoy Snapshot")
+	caches.mu.Lock()
+	defer caches.mu.Unlock()
 
+	caches.logger.Debugf("Preparing Envoy Snapshot")
 	// Instead of sending the Routes, we send the RouteConfigs.
 	routes := make([]cache.Resource, len(caches.routeConfig))
 	for i := range caches.routeConfig {
@@ -179,27 +208,11 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 // time set in the "ClustersCache" struct.
 func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string,
 	kubeclient kubeclient.Interface) error {
-	var err error
+	caches.mu.Lock()
+	defer caches.mu.Unlock()
+
 	caches.deleteTranslatedIngress(ingressName, ingressNamespace)
-
-	newExternalVirtualHosts := caches.externalVirtualHosts()
-	newClusterLocalVirtualHosts := caches.clusterLocalVirtualHosts()
-
-	statusVirtualHost := statusVHost()
-	newClusterLocalVirtualHosts = append(newClusterLocalVirtualHosts, &statusVirtualHost)
-
-	// We now need the cache in the listenersFromVirtualHosts.
-	caches.listeners, err = listenersFromVirtualHosts(
-		newExternalVirtualHosts,
-		newClusterLocalVirtualHosts,
-		caches.sniMatches(),
-		kubeclient,
-		caches,
-	)
-	if err != nil {
-		return err
-	}
-	return nil
+	return caches.setListeners(kubeclient)
 }
 
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {
@@ -218,7 +231,7 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 	delete(caches.clustersToIngress, key)
 }
 
-func (caches *Caches) AddClusterForIngress(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
+func (caches *Caches) addClusterForIngress(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
 	caches.logger.Debugf("adding cluster %s for ingress %s/%s", cluster.Name, ingressName, ingressNamespace)
 
 	caches.clusters.set(cluster, ingressName, ingressNamespace)

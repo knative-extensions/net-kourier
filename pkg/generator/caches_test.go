@@ -174,15 +174,15 @@ func createTestDataForIngress(caches *Caches,
 		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
 	}
 
-	caches.AddTranslatedIngress(&v1alpha1.Ingress{
+	_ = caches.addTranslatedIngress(&v1alpha1.Ingress{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      ingressName,
 			Namespace: ingressNamespace,
 		},
 	}, &translatedIngress)
 
-	caches.AddStatusVirtualHost()
-	_ = caches.SetListeners(kubeClient)
+	caches.addStatusVirtualHost()
+	_ = caches.setListeners(kubeClient)
 }
 
 func TestValidateIngress(t *testing.T) {
