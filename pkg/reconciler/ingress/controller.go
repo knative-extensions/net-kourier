@@ -67,7 +67,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	podInformer := podinformer.Get(ctx)
 
 	caches := generator.NewCaches(logger.Named("caches"))
-	extAuthZConfig := addExtAuthz(caches)
+	extAuthZConfig := envoy.GetExternalAuthzConfig()
 
 	r := &Reconciler{
 		kubeClient:    kubernetesClient,
@@ -148,8 +148,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// until a Knative service is deployed. This is important because the
 	// gateway pods will not be marked as healthy until they have been able to
 	// fetch a config.
-	r.caches.AddStatusVirtualHost()
-	err := r.caches.SetListeners(kubernetesClient)
+	err := r.caches.InitConfig(kubernetesClient, r.extAuthz)
 	if err != nil {
 		panic(err)
 	}
@@ -192,15 +191,4 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	})
 
 	return impl
-}
-
-func addExtAuthz(caches *generator.Caches) envoy.ExternalAuthzConfig {
-	extAuthZConfig := envoy.GetExternalAuthzConfig()
-	if extAuthZConfig.Enabled {
-		cluster := extAuthZConfig.Cluster
-		// This is a special case, as this cluster is not related to an ingress,
-		// The Ingress Name and Ingress Namespace are not really used.
-		caches.AddClusterForIngress(cluster, "__extAuthZCluster", "_internal")
-	}
-	return extAuthZConfig
 }
