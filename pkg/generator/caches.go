@@ -48,14 +48,16 @@ type Caches struct {
 	logger              *zap.SugaredLogger
 }
 
-func NewCaches(logger *zap.SugaredLogger) *Caches {
-	return &Caches{
+func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
+	c := &Caches{
 		ingresses:           make(map[string]*v1alpha1.Ingress),
 		translatedIngresses: make(map[string]*translatedIngress),
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
 		clustersToIngress:   make(map[string][]string),
 		logger:              logger,
 	}
+	err := c.initConfig(kubernetesClient, extAuthz)
+	return c, err
 }
 
 func (caches *Caches) UpdateIngress(ingress *v1alpha1.Ingress, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
@@ -73,9 +75,7 @@ func (caches *Caches) UpdateIngress(ingress *v1alpha1.Ingress, ingressTranslatio
 	return caches.setListeners(kubeclient)
 }
 
-func (caches *Caches) InitConfig(kubernetesClient kubeclient.Interface, extAuthz bool) error {
-	caches.mu.Lock()
-	defer caches.mu.Unlock()
+func (caches *Caches) initConfig(kubernetesClient kubeclient.Interface, extAuthz bool) error {
 	if extAuthz {
 		extAuthZConfig := envoy.GetExternalAuthzConfig()
 		caches.addClusterForIngress(extAuthZConfig.Cluster, "__extAuthZCluster", "_internal")
@@ -85,6 +85,8 @@ func (caches *Caches) InitConfig(kubernetesClient kubeclient.Interface, extAuthz
 }
 
 func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {
+	caches.mu.Lock()
+	defer caches.mu.Unlock()
 	caches.logger.Debugf("getting ingress: %s/%s", ingressName, ingressNamespace)
 	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }

@@ -65,9 +65,12 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	ingressInformer := ingressinformer.Get(ctx)
 	endpointsInformer := endpointsinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
-
-	caches := generator.NewCaches(logger.Named("caches"))
 	extAuthZConfig := envoy.GetExternalAuthzConfig()
+
+	caches, err := generator.NewCaches(logger.Named("caches"), kubernetesClient, extAuthZConfig.Enabled)
+	if err != nil {
+		panic(err)
+	}
 
 	r := &Reconciler{
 		kubeClient:    kubernetesClient,
@@ -143,15 +146,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	ingressTranslator := generator.NewIngressTranslator(
 		r.kubeClient, endpointsInformer.Lister(), network.GetClusterDomainName(), endpointsTracker, logger)
 	r.ingressTranslator = &ingressTranslator
-
-	// Make sure we initialize a config. Otherwise, there will be no config
-	// until a Knative service is deployed. This is important because the
-	// gateway pods will not be marked as healthy until they have been able to
-	// fetch a config.
-	err := r.caches.InitConfig(kubernetesClient, r.extAuthz)
-	if err != nil {
-		panic(err)
-	}
 
 	snapshot, err := r.caches.ToEnvoySnapshot()
 	if err != nil {
