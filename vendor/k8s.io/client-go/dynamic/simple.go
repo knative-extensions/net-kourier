@@ -18,12 +18,14 @@ package dynamic
 
 import (
 	"fmt"
+	"io"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
@@ -35,19 +37,6 @@ type dynamicClient struct {
 
 var _ Interface = &dynamicClient{}
 
-// ConfigFor returns a copy of the provided config with the
-// appropriate dynamic client defaults set.
-func ConfigFor(inConfig *rest.Config) *rest.Config {
-	config := rest.CopyConfig(inConfig)
-	config.AcceptContentTypes = "application/json"
-	config.ContentType = "application/json"
-	config.NegotiatedSerializer = basicNegotiatedSerializer{} // this gets used for discovery and error handling types
-	if config.UserAgent == "" {
-		config.UserAgent = rest.DefaultKubernetesUserAgent()
-	}
-	return config
-}
-
 // NewForConfigOrDie creates a new Interface for the given config and
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) Interface {
@@ -58,12 +47,17 @@ func NewForConfigOrDie(c *rest.Config) Interface {
 	return ret
 }
 
-// NewForConfig creates a new dynamic client or returns an error.
 func NewForConfig(inConfig *rest.Config) (Interface, error) {
-	config := ConfigFor(inConfig)
+	config := rest.CopyConfig(inConfig)
 	// for serializing the options
 	config.GroupVersion = &schema.GroupVersion{}
 	config.APIPath = "/if-you-see-this-search-for-the-break"
+	config.AcceptContentTypes = "application/json"
+	config.ContentType = "application/json"
+	config.NegotiatedSerializer = basicNegotiatedSerializer{} // this gets used for discovery and error handling types
+	if config.UserAgent == "" {
+		config.UserAgent = rest.DefaultKubernetesUserAgent()
+	}
 
 	restClient, err := rest.RESTClientFor(config)
 	if err != nil {
@@ -280,10 +274,31 @@ func (c *dynamicResourceClient) List(opts metav1.ListOptions) (*unstructured.Uns
 }
 
 func (c *dynamicResourceClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	internalGV := schema.GroupVersions{
+		{Group: c.resource.Group, Version: runtime.APIVersionInternal},
+		// always include the legacy group as a decoding target to handle non-error `Status` return types
+		{Group: "", Version: runtime.APIVersionInternal},
+	}
+	s := &rest.Serializers{
+		Encoder: watchNegotiatedSerializerInstance.EncoderForVersion(watchJsonSerializerInfo.Serializer, c.resource.GroupVersion()),
+		Decoder: watchNegotiatedSerializerInstance.DecoderToVersion(watchJsonSerializerInfo.Serializer, internalGV),
+
+		RenegotiatedDecoder: func(contentType string, params map[string]string) (runtime.Decoder, error) {
+			return watchNegotiatedSerializerInstance.DecoderToVersion(watchJsonSerializerInfo.Serializer, internalGV), nil
+		},
+		StreamingSerializer: watchJsonSerializerInfo.StreamSerializer.Serializer,
+		Framer:              watchJsonSerializerInfo.StreamSerializer.Framer,
+	}
+
+	wrappedDecoderFn := func(body io.ReadCloser) streaming.Decoder {
+		framer := s.Framer.NewFrameReader(body)
+		return streaming.NewDecoder(framer, s.StreamingSerializer)
+	}
+
 	opts.Watch = true
 	return c.client.client.Get().AbsPath(c.makeURLSegments("")...).
 		SpecificallyVersionedParams(&opts, dynamicParameterCodec, versionV1).
-		Watch()
+		WatchWithSpecificDecoders(wrappedDecoderFn, unstructured.UnstructuredJSONScheme)
 }
 
 func (c *dynamicResourceClient) Patch(name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (*unstructured.Unstructured, error) {
