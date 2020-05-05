@@ -29,7 +29,6 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 )
@@ -191,7 +190,7 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 	// to each envoy
 	snapshotVersion, err := caches.getNewSnapshotVersion()
 	if err != nil {
-		log.Errorf("Failed generating a new Snapshot version: %s", err)
+		caches.logger.Errorf("Failed generating a new Snapshot version: %s", err)
 		return cache.Snapshot{}, err
 	}
 
