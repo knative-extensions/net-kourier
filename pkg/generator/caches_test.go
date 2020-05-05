@@ -37,8 +37,12 @@ import (
 
 func TestDeleteIngressInfo(t *testing.T) {
 	logger := zap.S()
-	caches := NewCaches(logger)
 	kubeClient := fake.Clientset{}
+
+	caches, err := NewCaches(logger, &kubeClient, false)
+	if err != nil {
+		t.Fail()
+	}
 
 	// Add info for an ingress
 	firstIngressName := "ingress_1"
@@ -97,9 +101,12 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	// If the ingress does not exist, nothing should be deleted from the caches
 	// instance.
 	logger := zap.S()
-
-	caches := NewCaches(logger)
 	kubeClient := fake.Clientset{}
+
+	caches, err := NewCaches(logger, &kubeClient, false)
+	if err != nil {
+		t.Fail()
+	}
 
 	// Add info for an ingress
 	firstIngressName := "ingress_1"
@@ -174,22 +181,25 @@ func createTestDataForIngress(caches *Caches,
 		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
 	}
 
-	caches.AddTranslatedIngress(&v1alpha1.Ingress{
+	_ = caches.addTranslatedIngress(&v1alpha1.Ingress{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      ingressName,
 			Namespace: ingressNamespace,
 		},
 	}, &translatedIngress)
 
-	caches.AddStatusVirtualHost()
-	_ = caches.SetListeners(kubeClient)
+	caches.addStatusVirtualHost()
+	_ = caches.setListeners(kubeClient)
 }
 
 func TestValidateIngress(t *testing.T) {
 	logger := zap.S()
-
-	caches := NewCaches(logger)
 	kubeClient := fake.Clientset{}
+
+	caches, err := NewCaches(logger, &kubeClient, false)
+	if err != nil {
+		t.Fail()
+	}
 
 	createTestDataForIngress(
 		caches,
@@ -212,7 +222,7 @@ func TestValidateIngress(t *testing.T) {
 		internalVirtualHosts: []*route.VirtualHost{{Name: "internal_host_for_ingress_2", Domains: []string{"internal_host_for_ingress_1"}}},
 	}
 
-	err := caches.validateIngress(&translatedIngress)
+	err = caches.validateIngress(&translatedIngress)
 	assert.Error(t, err, ErrDomainConflict.Error())
 }
 

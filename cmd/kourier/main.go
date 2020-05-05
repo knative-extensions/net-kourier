@@ -23,8 +23,6 @@ import (
 
 	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
 
-	"knative.dev/pkg/controller"
-
 	log "github.com/sirupsen/logrus"
 
 	// This defines the shared main for injected controllers.
@@ -46,10 +44,6 @@ func init() {
 func main() {
 	// TODO: make this configurable
 	_ = os.Setenv("METRICS_DOMAIN", "knative.dev/samples")
-
-	// The controller by defaults uses 2 threads, but our reconcile logic doesn't support it yet
-	// TODO: Improve reconcile to support multiple threads
-	controller.DefaultThreadsPerController = 1
 
 	sharedmain.Main(config.ControllerName, kourierIngressController.NewController)
 }

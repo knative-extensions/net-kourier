@@ -13,7 +13,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.9.1
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/golang/protobuf v1.3.2
-	github.com/google/go-cmp v0.3.1
+	github.com/google/go-cmp v0.4.0
 	github.com/google/go-containerregistry v0.0.0-20191115225042-f8574ec722f4 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.2 // indirect

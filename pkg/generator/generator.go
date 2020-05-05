@@ -46,37 +46,13 @@ const (
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
 func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, logger *zap.SugaredLogger, extAuthzEnabled bool) error {
+	logger.Infof("Updating Knative Ingress %s/%s", ingress.Name, ingress.Namespace)
 
 	// Adds a header with the ingress Hash and a random value header to force the config reload.
 	err := InsertKourierHeaders(ingress)
 	if err != nil {
-		return fmt.Errorf("failed to knative probe header in ingress: %s", ingress.GetName())
+		return fmt.Errorf("failed to add knative probe header in ingress: %s", ingress.GetName())
 	}
-
-	if err := caches.DeleteIngressInfo(ingress.Name, ingress.Namespace, kubeclient); err != nil {
-		return err
-	}
-
-	if err := addIngressToCaches(caches, ingress, translator, logger, extAuthzEnabled); err != nil {
-		return err
-	}
-
-	caches.AddStatusVirtualHost()
-
-	if err := caches.SetListeners(kubeclient); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func addIngressToCaches(caches *Caches,
-	ingress *v1alpha1.Ingress,
-	translator *IngressTranslator,
-	logger *zap.SugaredLogger,
-	extAuthzEnabled bool) error {
-
-	logger.Infof("Knative Ingress found %s/%s", ingress.Name, ingress.Namespace)
 
 	ingressTranslation, err := translator.translateIngress(ingress, extAuthzEnabled)
 	if err != nil {
@@ -87,7 +63,7 @@ func addIngressToCaches(caches *Caches,
 		return nil
 	}
 
-	return caches.AddTranslatedIngress(ingress, ingressTranslation)
+	return caches.UpdateIngress(ingress, ingressTranslation, kubeclient)
 }
 
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
