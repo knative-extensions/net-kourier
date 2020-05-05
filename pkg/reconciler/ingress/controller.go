@@ -99,6 +99,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		gatewayPort,
 		managementPort,
 		&callbacks,
+		logger,
 	)
 	r.xdsServer = envoyXdsServer
 	go envoyXdsServer.RunManagementServer()

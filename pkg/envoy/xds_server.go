@@ -26,7 +26,7 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -40,6 +40,7 @@ type XdsServer struct {
 	ctx            context.Context
 	server         xds.Server
 	snapshotCache  cache.SnapshotCache
+	logger         *zap.SugaredLogger
 }
 
 // hasher returns node ID as an ID
@@ -53,7 +54,7 @@ func (h hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewXdsServer(gatewayPort uint, managementPort uint, callbacks xds.Callbacks) *XdsServer {
+func NewXdsServer(gatewayPort uint, managementPort uint, callbacks xds.Callbacks, logger *zap.SugaredLogger) *XdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, hasher{}, nil)
 	srv := xds.NewServer(ctx, snapshotCache, callbacks)
@@ -64,6 +65,7 @@ func NewXdsServer(gatewayPort uint, managementPort uint, callbacks xds.Callbacks
 		ctx:            ctx,
 		server:         srv,
 		snapshotCache:  snapshotCache,
+		logger:         logger,
 	}
 }
 
@@ -77,7 +79,7 @@ func (envoyXdsServer *XdsServer) RunManagementServer() {
 	grpcServer := grpc.NewServer(grpcOptions...)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		log.Error("Failed to listen")
+		envoyXdsServer.logger.Fatalw("Failed to listen", zap.Error(err))
 	}
 
 	// register services
@@ -86,10 +88,10 @@ func (envoyXdsServer *XdsServer) RunManagementServer() {
 	envoyv2.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	envoyv2.RegisterRouteDiscoveryServiceServer(grpcServer, server)
 
-	log.Printf("Starting Management Server on Port %d\n", port)
+	envoyXdsServer.logger.Infof("Starting Management Server on Port %d", port)
 	go func() {
 		if err = grpcServer.Serve(lis); err != nil {
-			log.Errorf("%s", err)
+			envoyXdsServer.logger.Fatalw("Failed to serve", zap.Error(err))
 		}
 	}()
 	<-envoyXdsServer.ctx.Done()
