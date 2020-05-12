@@ -19,7 +19,6 @@ package ingress
 import (
 	"context"
 	"strings"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,10 +49,9 @@ const (
 	gatewayLabelKey   = "app"
 	gatewayLabelValue = "3scale-kourier-gateway"
 
-	globalResyncPeriod = 30 * time.Second
-	nodeID             = "3scale-kourier-gateway"
-	gatewayPort        = 19001
-	managementPort     = 18000
+	nodeID         = "3scale-kourier-gateway"
+	gatewayPort    = 19001
+	managementPort = 18000
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
@@ -112,22 +110,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		})
 	r.statusManager = statusProber
 	statusProber.Start(ctx.Done())
-
-	// This global resync could be removed once we move to envoy >= 1.12
-	ticker := time.NewTicker(globalResyncPeriod)
-	done := ctx.Done()
-	go func() {
-		for {
-			select {
-			case <-done:
-				logger.Info("GlobalResync stopped.")
-				return
-			case <-ticker.C:
-				logger.Info("GlobalResync triggered.")
-				resyncNotReady()
-			}
-		}
-	}()
 
 	r.caches.SetOnEvicted(func(key string, value interface{}) {
 		// The format of the key received is "clusterName:ingressName:ingressNamespace"
