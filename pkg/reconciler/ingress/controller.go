@@ -51,7 +51,6 @@ const (
 	gatewayLabelValue = "3scale-kourier-gateway"
 
 	globalResyncPeriod = 30 * time.Second
-	controllerName     = "KourierController"
 	nodeID             = "3scale-kourier-gateway"
 	gatewayPort        = 19001
 	managementPort     = 18000
