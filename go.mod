@@ -1,6 +1,6 @@
 module knative.dev/net-kourier
 
-go 1.13
+go 1.14
 
 require (
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.0 // indirect
