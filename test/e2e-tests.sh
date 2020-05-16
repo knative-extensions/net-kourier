@@ -20,7 +20,7 @@ source $(dirname $0)/e2e-common.sh
 initialize $@  --skip-istio-addon
 
 go_test_e2e -timeout=20m -parallel=12 \
-	    ./vendor/knative.dev/serving/test/conformance/ingress \
+	    knative.dev/serving/test/conformance/ingress \
 	    --ingressClass=kourier.ingress.networking.knative.dev || fail_test
 
 success
