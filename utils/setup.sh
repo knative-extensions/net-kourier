@@ -1,8 +1,10 @@
 #!/bin/bash
+
+source $(dirname $0)/../test/e2e-common.sh
+
 set -euo pipefail
 IFS=$'\n\t'
 
-KOURIER_NAMESPACE=kourier-system
 KNATIVE_NAMESPACE=knative-serving
 
 if ! command -v k3d >/dev/null; then
