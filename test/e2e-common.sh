@@ -17,6 +17,10 @@
 # This script includes common functions for testing setup and teardown.
 source $(dirname $0)/../vendor/knative.dev/test-infra/scripts/e2e-tests.sh
 
+export KOURIER_NAMESPACE=kourier-system
+export GATEWAY_NAMESPACE_OVERRIDE=$KOURIER_NAMESPACE
+export GATEWAY_OVERRIDE=kourier
+
 # Setup resources.
 function test_setup() {
   echo ">> Setting up logging..."
@@ -42,8 +46,8 @@ function test_setup() {
 
   # Wait for pods to be running.
   echo ">> Waiting for Kourier components to be running..."
-  wait_until_pods_running kourier-system || return 1
-  wait_until_service_has_external_http_address kourier-system kourier || return 1
+  wait_until_pods_running "${KOURIER_NAMESPACE}" || return 1
+  wait_until_service_has_external_ip "${KOURIER_NAMESPACE}" kourier || return 1
 }
 
 # Add function call to trap
@@ -58,4 +62,20 @@ function add_trap() {
     [[ -n "${current_trap}" ]] && new_cmd="${current_trap};${new_cmd}"
     trap -- "${new_cmd}" $trap_signal
   done
+}
+
+function wait_for_leader_controller() {
+  echo -n "Waiting for leader Controller"
+  for i in {1..150}; do  # timeout after 5 minutes
+    local leader=$(kubectl get lease kourier -n "${KOURIER_NAMESPACE}" -ojsonpath='{.spec.holderIdentity}' | cut -d"_" -f1)
+    # Make sure the leader pod exists.
+    if [ -n "${leader}" ] && kubectl get pod "${leader}" -n "${KOURIER_NAMESPACE}" >/dev/null 2>&1; then
+      echo -e "\nNew leader Controller has been elected"
+      return 0
+    fi
+    echo -n "."
+    sleep 2
+  done
+  echo -e "\n\nERROR: timeout waiting for leader controller"
+  return 1
 }
