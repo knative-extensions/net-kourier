@@ -17,12 +17,13 @@ limitations under the License.
 package ha
 
 import (
-	"testing"
-
+	"net/http"
 	"net/url"
+	"testing"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	pkgTest "knative.dev/pkg/test"
+	"knative.dev/pkg/test/spoof"
 	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/test"
 )
@@ -60,7 +61,15 @@ func assertIngressEventuallyWorks(t *testing.T, clients *test.Clients, url *url.
 		url,
 		pkgTest.IsStatusOK,
 		"WaitForIngressToReturnSuccess",
-		test.ServingFlags.ResolvableDomain); err != nil {
+		test.ServingFlags.ResolvableDomain,
+		disableKeepAlives); err != nil {
 		t.Fatalf("The service at %s didn't return success: %v", url, err)
+	}
+}
+
+func disableKeepAlives() spoof.TransportOption {
+	return func(transport *http.Transport) *http.Transport {
+		transport.DisableKeepAlives = true
+		return transport
 	}
 }
