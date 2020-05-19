@@ -22,8 +22,8 @@ initialize "$@" --skip-istio-addon
 failed=0
 
 go_test_e2e -timeout=20m -parallel=12 \
-	    ./vendor/knative.dev/serving/test/conformance/ingress \
-	    --ingressClass=kourier.ingress.networking.knative.dev || failed=1
+	knative.dev/serving/test/conformance/ingress \
+	--ingressClass=kourier.ingress.networking.knative.dev || failed=1
 
 # Scale up components for HA tests.
 for deployment in 3scale-kourier-control 3scale-kourier-gateway; do
@@ -39,7 +39,7 @@ wait_for_leader_controller || failed=1
 sleep 30
 
 go_test_e2e -timeout=15m -failfast -parallel=1 ./test/ha -spoofinterval="10ms" \
-            --ingressClass=kourier.ingress.networking.knative.dev || failed=1
+  --ingressClass=kourier.ingress.networking.knative.dev || failed=1
 
 # Scale back HA components.
 for deployment in 3scale-kourier-control 3scale-kourier-gateway; do
