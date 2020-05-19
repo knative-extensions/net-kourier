@@ -682,6 +682,7 @@ knative.dev/pkg/metrics/metricskey
 knative.dev/pkg/metrics/testing
 knative.dev/pkg/network
 knative.dev/pkg/network/prober
+knative.dev/pkg/pool
 knative.dev/pkg/profiling
 knative.dev/pkg/ptr
 knative.dev/pkg/reconciler
@@ -745,7 +746,6 @@ knative.dev/serving/pkg/gc
 knative.dev/serving/pkg/network
 knative.dev/serving/pkg/network/ingress
 knative.dev/serving/pkg/network/status
-knative.dev/serving/pkg/pool
 knative.dev/serving/pkg/reconciler/revision/resources/names
 knative.dev/serving/pkg/reconciler/route/config
 knative.dev/serving/pkg/reconciler/route/domains
