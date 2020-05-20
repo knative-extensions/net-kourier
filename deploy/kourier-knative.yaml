@@ -284,6 +284,33 @@ data:
       cluster: kourier-knative
       id: 3scale-kourier-gateway
     static_resources:
+      listeners:
+        - name: stats_listener
+          address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 9000
+          filter_chains:
+            - filters:
+                - name: envoy.http_connection_manager
+                  config:
+                    stat_prefix: stats_server
+                    route_config:
+                      virtual_hosts:
+                        - name: admin_interface
+                          domains:
+                            - "*"
+                          routes:
+                            - match:
+                                regex: '/(certs|stats(/prometheus)?|server_info|clusters|listeners|ready)?'
+                                headers:
+                                  - name: ':method'
+                                    exact_match: GET
+                              route:
+                                cluster: service_stats
+                    http_filters:
+                      - name: envoy.router
+                        config: {}
       clusters:
         - name: service_stats
           connect_timeout: 0.250s

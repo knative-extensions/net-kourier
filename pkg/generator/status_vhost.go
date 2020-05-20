@@ -17,6 +17,8 @@ limitations under the License.
 package generator
 
 import (
+	"time"
+
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
 
@@ -29,13 +31,15 @@ func statusVHost() route.VirtualHost {
 	return envoy.NewVirtualHost(
 		config.InternalKourierDomain,
 		[]string{config.InternalKourierDomain},
-		[]*route.Route{statusRoute()},
+		[]*route.Route{readyRoute()},
 	)
 }
 
-func statusRoute() *route.Route {
-	return envoy.NewRouteStatusOK(
-		config.InternalKourierDomain,
-		config.InternalKourierPath,
-	)
+func readyRoute() *route.Route {
+	cluster := envoy.NewWeightedCluster("service_stats", 100, map[string]string{})
+	var wrs []*route.WeightedCluster_ClusterWeight
+	wrs = append(wrs, cluster)
+	route := envoy.NewRoute("gateway_ready", "/ready", wrs, 1*time.Second, 0, 5*time.Second, map[string]string{})
+
+	return route
 }
