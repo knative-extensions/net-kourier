@@ -140,8 +140,8 @@ spec:
               path: /ready
               port: 8081
               scheme: HTTP
-            initialDelaySeconds: 5
-            periodSeconds: 2
+            initialDelaySeconds: 10
+            periodSeconds: 5
       volumes:
         - name: config-volume
           configMap:
