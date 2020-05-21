@@ -55,7 +55,7 @@ retries=0
 while [[ $(kubectl get pods -n ${KOURIER_NAMESPACE} -l app=3scale-kourier-gateway -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
   echo "Waiting for kourier gateway pod to be ready "
   sleep 10
-  if [ $retries -ge 7 ]; then
+  if [ $retries -ge 10 ]; then
     echo "timedout waiting for kourier gateway pod"
     exit 1
   fi
