@@ -39,7 +39,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
 
-	caches, err := NewCaches(logger, &kubeClient, false)
+	caches, err := NewCaches(logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -103,7 +103,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
 
-	caches, err := NewCaches(logger, &kubeClient, false)
+	caches, err := NewCaches(logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -196,7 +196,7 @@ func TestValidateIngress(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
 
-	caches, err := NewCaches(logger, &kubeClient, false)
+	caches, err := NewCaches(logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}

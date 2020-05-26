@@ -45,18 +45,24 @@ type Caches struct {
 	listeners           []*v2.Listener
 	statusVirtualHost   *route.VirtualHost
 	logger              *zap.SugaredLogger
+	ingressesToSync     map[string]struct{}
 }
 
-func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
+func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool, ingressesToSync map[string]struct{}) (*Caches, error) {
 	c := &Caches{
 		ingresses:           make(map[string]*v1alpha1.Ingress),
 		translatedIngresses: make(map[string]*translatedIngress),
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
 		clustersToIngress:   make(map[string][]string),
 		logger:              logger,
+		ingressesToSync:     ingressesToSync,
 	}
 	err := c.initConfig(kubernetesClient, extAuthz)
 	return c, err
+}
+
+func (caches *Caches) HasSynced() bool {
+	return len(caches.ingressesToSync) == 0
 }
 
 func (caches *Caches) UpdateIngress(ingress *v1alpha1.Ingress, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
@@ -87,7 +93,7 @@ func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
 	caches.logger.Debugf("getting ingress: %s/%s", ingressName, ingressNamespace)
-	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
+	return caches.ingresses[MapKey(ingressName, ingressNamespace)]
 }
 
 func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
@@ -122,9 +128,12 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 		return err
 	}
 
-	key := mapKey(ingress.Name, ingress.Namespace)
+	key := MapKey(ingress.Name, ingress.Namespace)
 	caches.ingresses[key] = ingress
 	caches.translatedIngresses[key] = translatedIngress
+
+	// Remove the Ingress from the Sync list as it has been warmed.
+	delete(caches.ingressesToSync, key)
 
 	for _, cluster := range translatedIngress.clusters {
 		caches.addClusterForIngress(cluster, ingress.Name, ingress.Namespace)
@@ -212,6 +221,9 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
 
+	// Remove the Ingress from the Sync list as there's no point to wait for it to be synced.
+	delete(caches.ingressesToSync, MapKey(ingressName, ingressNamespace))
+
 	caches.deleteTranslatedIngress(ingressName, ingressNamespace)
 	return caches.setListeners(kubeclient)
 }
@@ -219,7 +231,7 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {
 	caches.logger.Debugf("deleting ingress: %s/%s", ingressName, ingressNamespace)
 
-	key := mapKey(ingressName, ingressNamespace)
+	key := MapKey(ingressName, ingressNamespace)
 
 	// Set to expire all the clusters belonging to that Ingress.
 	clusters := caches.clustersToIngress[key]
@@ -237,7 +249,7 @@ func (caches *Caches) addClusterForIngress(cluster *v2.Cluster, ingressName stri
 
 	caches.clusters.set(cluster, ingressName, ingressNamespace)
 
-	key := mapKey(ingressName, ingressNamespace)
+	key := MapKey(ingressName, ingressNamespace)
 	caches.clustersToIngress[key] = append(
 		caches.clustersToIngress[key],
 		cluster.Name,
@@ -281,6 +293,6 @@ func (caches *Caches) sniMatches() []*envoy.SNIMatch {
 	return res
 }
 
-func mapKey(ingressName string, ingressNamespace string) string {
+func MapKey(ingressName string, ingressNamespace string) string {
 	return ingressNamespace + "/" + ingressName
 }
