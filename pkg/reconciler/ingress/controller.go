@@ -192,15 +192,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 func waitForCache(caches *generator.Caches) {
 	timeout := time.After(cacheWarmUPTimeout)
-	tick := time.Tick(1 * time.Second)
-pollCacheInSync:
+	tick := time.NewTicker(1 * time.Second)
+	defer tick.Stop()
 	for {
 		select {
 		case <-timeout:
-			break pollCacheInSync
-		case <-tick:
+			return
+		case <-tick.C:
 			if caches.HasSynced() {
-				break pollCacheInSync
+				return
 			}
 		}
 	}
@@ -213,10 +213,8 @@ func getReadyIngresses(knativeClient v1alpha12.NetworkingV1alpha1Interface) (map
 	}
 	ingressesToWarm := map[string]struct{}{}
 	for _, ingress := range ingresses.Items {
-		if val, ok := ingress.Annotations[networking.IngressClassAnnotationKey]; ok {
-			if val == config.KourierIngressClassName && ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
-				ingressesToWarm[generator.MapKey(ingress.Name, ingress.Namespace)] = struct{}{}
-			}
+		if ingress.Annotations[networking.IngressClassAnnotationKey] == config.KourierIngressClassName && ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
+			ingressesToWarm[generator.MapKey(ingress.Name, ingress.Namespace)] = struct{}{}
 		}
 	}
 	return ingressesToWarm, nil

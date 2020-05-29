@@ -62,6 +62,8 @@ func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface,
 }
 
 func (caches *Caches) HasSynced() bool {
+	caches.mu.Lock()
+	defer caches.mu.Unlock()
 	return len(caches.ingressesToSync) == 0
 }
 
