@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1alpha12 "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
@@ -145,7 +147,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// to an already running gateway container. If the cache is not warmed up after "cacheWarmUPTimeout" we just
 	// start the server as somehow we couldn't sync.
 	go func() {
-		waitForCache(caches)
+		waitForCache(logger, caches)
 
 		go envoyXdsServer.RunManagementServer()
 		snapshot, err := r.caches.ToEnvoySnapshot()
@@ -190,13 +192,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	return impl
 }
 
-func waitForCache(caches *generator.Caches) {
+func waitForCache(log *zap.SugaredLogger, caches *generator.Caches) {
 	timeout := time.After(cacheWarmUPTimeout)
 	tick := time.NewTicker(1 * time.Second)
 	defer tick.Stop()
 	for {
 		select {
 		case <-timeout:
+			log.Warnf("cache warm up timeout after %s", cacheWarmUPTimeout)
 			return
 		case <-tick.C:
 			if caches.HasSynced() {
