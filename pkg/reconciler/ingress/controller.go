@@ -209,15 +209,16 @@ func waitForCache(log *zap.SugaredLogger, caches *generator.Caches) {
 	}
 }
 
-func getReadyIngresses(knativeClient v1alpha12.NetworkingV1alpha1Interface) (map[string]struct{}, error) {
+func getReadyIngresses(knativeClient v1alpha12.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
 	ingresses, err := knativeClient.Ingresses("").List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	ingressesToWarm := map[string]struct{}{}
+	var ingressesToWarm []*v1alpha1.Ingress
 	for _, ingress := range ingresses.Items {
 		if ingress.Annotations[networking.IngressClassAnnotationKey] == config.KourierIngressClassName && ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
-			ingressesToWarm[generator.MapKey(ingress.Name, ingress.Namespace)] = struct{}{}
+			validIngress := ingress
+			ingressesToWarm = append(ingressesToWarm, &validIngress)
 		}
 	}
 	return ingressesToWarm, nil
