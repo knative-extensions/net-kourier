@@ -32,3 +32,6 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.16.4
 	k8s.io/code-generator => k8s.io/code-generator v0.16.4
 )
+
+// TODO - replace
+replace knative.dev/serving => github.com/dprotaso/serving v0.1.1-0.20200601212011-8a3d9dbc39be
