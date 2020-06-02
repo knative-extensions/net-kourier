@@ -22,7 +22,7 @@ initialize "$@" --skip-istio-addon
 failed=0
 
 go_test_e2e -timeout=20m -parallel=12 \
-   ./test/conformance/ingress \
+   ./test/conformance \
 	--ingressClass=kourier.ingress.networking.knative.dev || failed=1
 
 # Scale up components for HA tests.
