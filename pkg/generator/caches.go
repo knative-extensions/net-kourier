@@ -46,7 +46,7 @@ type Caches struct {
 	statusVirtualHost   *route.VirtualHost
 	logger              *zap.SugaredLogger
 	ingressesToSync     map[string]struct{}
-	synced              chan bool
+	synced              chan struct{}
 }
 
 func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool, ingressesToSync []*v1alpha1.Ingress) (*Caches, error) {
@@ -56,16 +56,13 @@ func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface,
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
 		clustersToIngress:   make(map[string][]string),
 		logger:              logger,
-		synced:              make(chan bool),
+		synced:              make(chan struct{}),
 	}
 	err := c.initConfig(kubernetesClient, extAuthz)
 
-	// Listen for Sync events, triggered when there's a removal of an object of the "IngressesToSync" array
-	go c.syncEvents()
-
 	if ingressesToSync == nil {
-		// If ingressesToSync is empty, we send an event to the "synced" channel as we don't need to warm anything.
-		c.synced <- true
+		// If ingressesToSync is empty, we can just close the "synced" channel now as we don't need to warm anything.
+		close(c.synced)
 	} else {
 		// Create our list of IngressesToSync from the array of ingresses, using the mapKey func.
 		c.ingressesToSync = make(map[string]struct{}, len(ingressesToSync))
@@ -79,14 +76,8 @@ func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface,
 	return c, err
 }
 
-func (caches *Caches) WaitForSync() <-chan bool {
+func (caches *Caches) WaitForSync() <-chan struct{} {
 	return caches.synced
-}
-
-func (caches *Caches) syncEvents() {
-	<-caches.synced
-	close(caches.synced)
-	return
 }
 
 func (caches *Caches) hasSynced() bool {
@@ -245,10 +236,9 @@ func (caches *Caches) deleteFromSyncList(ingressName, ingressNamespace string) {
 	// If caches are not synced, we try to delete the ingress from the IngressesToSync list
 	if !caches.hasSynced() {
 		delete(caches.ingressesToSync, mapKey(ingressName, ingressNamespace))
-
-		// Now let's see if after the delete we are in Sync and send the event.
+		// Now let's see if after the delete we are in Sync and cwe can close the channel.
 		if caches.hasSynced() {
-			caches.synced <- true
+			close(caches.synced)
 		}
 	}
 }
