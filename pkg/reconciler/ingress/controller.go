@@ -149,7 +149,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	go func() {
 		waitForCache(logger, caches)
 
-		go envoyXdsServer.RunManagementServer()
 		snapshot, err := r.caches.ToEnvoySnapshot()
 		if err != nil {
 			panic(err)
@@ -158,6 +157,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		if err != nil {
 			panic(err)
 		}
+		go envoyXdsServer.RunManagementServer()
 
 		<-ctx.Done()
 	}()
@@ -194,17 +194,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 func waitForCache(log *zap.SugaredLogger, caches *generator.Caches) {
 	timeout := time.After(cacheWarmUPTimeout)
-	tick := time.NewTicker(1 * time.Second)
-	defer tick.Stop()
 	for {
 		select {
 		case <-timeout:
 			log.Warnf("cache warm up timeout after %s", cacheWarmUPTimeout)
 			return
-		case <-tick.C:
-			if caches.HasSynced() {
-				return
-			}
+		case <-caches.WaitForSync():
+			log.Info("cache is in sync.")
+			return
 		}
 	}
 }
