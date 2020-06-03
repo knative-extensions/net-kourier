@@ -60,7 +60,7 @@ func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface,
 	}
 	err := c.initConfig(kubernetesClient, extAuthz)
 
-	if ingressesToSync == nil {
+	if len(ingressesToSync) == 0 {
 		// If ingressesToSync is empty, we can just close the "synced" channel now as we don't need to warm anything.
 		close(c.synced)
 	} else {
