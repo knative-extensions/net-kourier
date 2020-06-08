@@ -28,9 +28,9 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/knative"
+	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/network"
 	"knative.dev/pkg/system"
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
 	"knative.dev/serving/pkg/network/status"
 )
 

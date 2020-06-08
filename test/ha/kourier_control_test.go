@@ -22,11 +22,11 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/ptr"
 	pkgTest "knative.dev/pkg/test"
 	pkgHa "knative.dev/pkg/test/ha"
-	"knative.dev/serving/pkg/apis/networking"
 	"knative.dev/serving/test"
 	"knative.dev/serving/test/conformance/ingress"
 	"knative.dev/serving/test/e2e"

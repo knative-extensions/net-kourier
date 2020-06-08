@@ -17,9 +17,9 @@ limitations under the License.
 package knative
 
 import (
+	networkingv1alpha1 "knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/network"
 	"knative.dev/pkg/system"
-	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
 
 	"knative.dev/net-kourier/pkg/config"
 )
