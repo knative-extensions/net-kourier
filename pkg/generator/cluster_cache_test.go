@@ -55,7 +55,7 @@ func TestSetSeveralClusters(t *testing.T) {
 	cache.set(&testCluster2, "some_ingress_name", "some_ingress_namespace")
 
 	list := cache.list()
-	var names []string
+	names := make([]string, 0, len(list))
 	for _, cluster := range list {
 		names = append(names, cluster.(*envoy_api_v2.Cluster).Name)
 	}

@@ -66,7 +66,6 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 }
 
 func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
-	var targets []status.ProbeTarget
 	localDomainName := network.GetClusterDomainName()
 	ips := sets.NewString()
 
@@ -74,6 +73,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 		ips.Insert(ip)
 	}
 
+	targets := make([]status.ProbeTarget, 0, len(ing.Spec.Rules))
 	for _, rule := range ing.Spec.Rules {
 		var target status.ProbeTarget
 
@@ -108,8 +108,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 }
 
 func domainsToURL(domains []string, scheme string) []*url.URL {
-	var urls []*url.URL
-
+	urls := make([]*url.URL, 0, len(domains))
 	for _, domain := range domains {
 		url := &url.URL{
 			Scheme: scheme,

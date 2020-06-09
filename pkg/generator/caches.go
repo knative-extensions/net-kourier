@@ -255,8 +255,7 @@ func (caches *Caches) getNewSnapshotVersion() (string, error) {
 }
 
 func (caches *Caches) externalVirtualHosts() []*route.VirtualHost {
-	var res []*route.VirtualHost
-
+	res := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
 	for _, translatedIngress := range caches.translatedIngresses {
 		res = append(res, translatedIngress.externalVirtualHosts...)
 	}
@@ -265,8 +264,7 @@ func (caches *Caches) externalVirtualHosts() []*route.VirtualHost {
 }
 
 func (caches *Caches) clusterLocalVirtualHosts() []*route.VirtualHost {
-	var res []*route.VirtualHost
-
+	res := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
 	for _, translatedIngress := range caches.translatedIngresses {
 		res = append(res, translatedIngress.internalVirtualHosts...)
 	}
@@ -275,8 +273,7 @@ func (caches *Caches) clusterLocalVirtualHosts() []*route.VirtualHost {
 }
 
 func (caches *Caches) sniMatches() []*envoy.SNIMatch {
-	var res []*envoy.SNIMatch
-
+	res := make([]*envoy.SNIMatch, 0, len(caches.translatedIngresses))
 	for _, translatedIngress := range caches.translatedIngresses {
 		res = append(res, translatedIngress.sniMatches...)
 	}
