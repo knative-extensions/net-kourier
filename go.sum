@@ -1369,11 +1369,11 @@ knative.dev/pkg v0.0.0-20200603222317-b79e4a24ca50 h1:sbJMCCtOENPgfE5dUSwBUxZtJz
 knative.dev/pkg v0.0.0-20200603222317-b79e4a24ca50/go.mod h1:8IfPj/lpuKHHg82xZCl2wuFZ3BM96To72sN1W8T9wjQ=
 knative.dev/pkg v0.0.0-20200605170718-b7125260dc6f/go.mod h1:ItJ3UvcHFt7qMoowI2uXfaGMWNGIMYAtzAbdsi+b0Cg=
 knative.dev/pkg v0.0.0-20200606224418-7ed1d4a552bc/go.mod h1:ItJ3UvcHFt7qMoowI2uXfaGMWNGIMYAtzAbdsi+b0Cg=
-knative.dev/pkg v0.0.0-20200608155520-39a1f43fc050 h1:OYxRODm43t9OXvwucCk+chJkh3CLHQOTVomRO90q7XU=
-knative.dev/pkg v0.0.0-20200608155520-39a1f43fc050/go.mod h1:Ap/HE9hVqeI+/TtEmeClB61c6SFs6923AsU/juovj3w=
+knative.dev/pkg v0.0.0-20200609135932-0c198ddb9228 h1:J4xAugpm7d1OdCPNdGC8lBM7JsOPRTooz1rhqpHAvg8=
+knative.dev/pkg v0.0.0-20200609135932-0c198ddb9228/go.mod h1:Ap/HE9hVqeI+/TtEmeClB61c6SFs6923AsU/juovj3w=
 knative.dev/sample-controller v0.0.0-20200510050845-bf7c19498b7e/go.mod h1:D2ZDLrR9Dq9LiiVN7TatzI7WMcEPgk1MHbbhgBKE6W8=
-knative.dev/serving v0.15.1-0.20200608213432-f1582404be27 h1:zUYbkmExBywYW4f189tqOBColK12neDBqWFjKMFrHnQ=
-knative.dev/serving v0.15.1-0.20200608213432-f1582404be27/go.mod h1:30lxB6UEG4w55Vs1dDrDDMkfzKDtMWX5IeoYinrEJD8=
+knative.dev/serving v0.15.1-0.20200609110132-7e0734818cee h1:NWxbkg1/1od2D/GdMS6gFXUj5uRf+fPczr993pIJySI=
+knative.dev/serving v0.15.1-0.20200609110132-7e0734818cee/go.mod h1:30lxB6UEG4w55Vs1dDrDDMkfzKDtMWX5IeoYinrEJD8=
 knative.dev/test-infra v0.0.0-20200407185800-1b88cb3b45a5/go.mod h1:xcdUkMJrLlBswIZqL5zCuBFOC22WIPMQoVX1L35i0vQ=
 knative.dev/test-infra v0.0.0-20200505052144-5ea2f705bb55/go.mod h1:WqF1Azka+FxPZ20keR2zCNtiQA1MP9ZB4BH4HuI+SIU=
 knative.dev/test-infra v0.0.0-20200508015845-8d7d46a46176/go.mod h1:aMif0KXL4g19YCYwsy4Ocjjz5xgPlseYV+B95Oo4JGE=
