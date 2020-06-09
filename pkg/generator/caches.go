@@ -30,7 +30,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/google/uuid"
 	kubeclient "k8s.io/client-go/kubernetes"
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 )
 
 var ErrDomainConflict = errors.New("ingress has a conflicting domain with another ingress")

@@ -19,7 +19,7 @@ package knative
 import (
 	"strings"
 
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 )
 
 // Somehow envoy doesn't match properly gRPC authorities with ports.

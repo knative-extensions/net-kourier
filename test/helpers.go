@@ -26,14 +26,14 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	networkingv1alpha1 "knative.dev/serving/pkg/apis/networking/v1alpha1"
+	networkingv1alpha1 "knative.dev/networking/pkg/apis/networking/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
-	networkingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
 )
 
@@ -201,14 +201,14 @@ func watchForIngressReady(networkServingClient *networkingClientSet.NetworkingV1
 			AddFunc: func(obj interface{}) {
 				ingress := obj.(*networkingv1alpha1.Ingress)
 
-				if ingress.Name == serviceName && ingress.Status.IsReady() {
+				if ingress.Name == serviceName && ingress.IsReady() {
 					events <- struct{}{}
 				}
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				updatedIngress := newObj.(*networkingv1alpha1.Ingress)
 
-				if updatedIngress.Name == serviceName && updatedIngress.Status.IsReady() {
+				if updatedIngress.Name == serviceName && updatedIngress.IsReady() {
 					events <- struct{}{}
 				}
 			},

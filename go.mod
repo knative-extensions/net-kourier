@@ -3,7 +3,6 @@ module knative.dev/net-kourier
 go 1.14
 
 require (
-	contrib.go.opencensus.io/exporter/stackdriver v0.13.0 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/golang/protobuf v1.3.5
 	github.com/google/go-cmp v0.4.0
@@ -11,15 +10,15 @@ require (
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.14.1
-	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
-	google.golang.org/grpc v1.28.0
+	google.golang.org/grpc v1.28.1
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.17.6
-	k8s.io/apimachinery v0.17.6
+	k8s.io/api v0.18.1
+	k8s.io/apimachinery v0.18.1
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
-	knative.dev/pkg v0.0.0-20200603222317-b79e4a24ca50
-	knative.dev/serving v0.15.1-0.20200604114317-8977f69c8816
-	knative.dev/test-infra v0.0.0-20200604135317-9be2b638d932
+	knative.dev/networking v0.0.0-20200607161819-2086ac6759c2
+	knative.dev/pkg v0.0.0-20200608155520-39a1f43fc050
+	knative.dev/serving v0.15.1-0.20200608213432-f1582404be27
+	knative.dev/test-infra v0.0.0-20200608183332-3442736aebd0
 )
 
 replace (

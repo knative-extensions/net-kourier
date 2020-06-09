@@ -22,7 +22,7 @@ import (
 
 	"knative.dev/net-kourier/pkg/config"
 
-	"knative.dev/serving/pkg/apis/networking/v1alpha1"
+	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 
 	"go.uber.org/zap"
 
