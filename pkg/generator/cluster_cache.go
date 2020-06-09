@@ -82,9 +82,9 @@ func (cc *ClustersCache) setExpiration(clusterName string, ingressName string, i
 }
 
 func (cc *ClustersCache) list() []envoycache.Resource {
-	var res []envoycache.Resource
 	cc.logger.Debug("listing clusters")
 
+	res := make([]envoycache.Resource, 0, cc.clusters.ItemCount())
 	for _, cluster := range cc.clusters.Items() {
 		cc.logger.Debugf("listing cluster %#v", cluster.Object.(*v2.Cluster))
 		res = append(res, cluster.Object.(envoycache.Resource))

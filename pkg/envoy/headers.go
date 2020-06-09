@@ -22,8 +22,7 @@ import (
 )
 
 func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
-	var res []*core.HeaderValueOption
-
+	res := make([]*core.HeaderValueOption, 0, len(headers))
 	for headerName, headerVal := range headers {
 		header := &core.HeaderValueOption{
 			Header: &core.HeaderValue{
