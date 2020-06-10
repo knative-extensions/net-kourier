@@ -12,7 +12,7 @@ contrib.go.opencensus.io/exporter/stackdriver
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource/aws
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource/gcp
-# github.com/aws/aws-sdk-go v1.29.34
+# github.com/aws/aws-sdk-go v1.30.5
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -696,7 +696,7 @@ knative.dev/networking/pkg/client/injection/informers/factory
 knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress
 knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress
 knative.dev/networking/pkg/client/listers/networking/v1alpha1
-# knative.dev/pkg v0.0.0-20200609135932-0c198ddb9228
+# knative.dev/pkg v0.0.0-20200609184032-fef70cc2616b
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -745,7 +745,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.15.1-0.20200609110132-7e0734818cee
+# knative.dev/serving v0.15.1-0.20200610021622-ffb936acceb5
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -793,10 +793,10 @@ knative.dev/serving/test/test_images/wsserver
 knative.dev/serving/test/types
 knative.dev/serving/test/v1
 knative.dev/serving/test/v1alpha1
-# knative.dev/test-infra v0.0.0-20200608183332-3442736aebd0
+# knative.dev/test-infra v0.0.0-20200610052322-f0f63d4ead3d
 ## explicit
 knative.dev/test-infra/scripts
-# sigs.k8s.io/yaml v1.1.0
+# sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
 # github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.1
 # github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2
