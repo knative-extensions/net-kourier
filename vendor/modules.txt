@@ -758,11 +758,9 @@ knative.dev/serving/pkg/autoscaler/config
 knative.dev/serving/pkg/client/clientset/versioned
 knative.dev/serving/pkg/client/clientset/versioned/scheme
 knative.dev/serving/pkg/client/clientset/versioned/typed/autoscaling/v1alpha1
-knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1beta1
-knative.dev/serving/pkg/client/injection/client
 knative.dev/serving/pkg/client/istio/clientset/versioned
 knative.dev/serving/pkg/client/istio/clientset/versioned/scheme
 knative.dev/serving/pkg/client/istio/clientset/versioned/typed/networking/v1alpha3
