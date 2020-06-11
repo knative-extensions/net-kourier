@@ -25,10 +25,10 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	knativeclient "knative.dev/networking/pkg/client/clientset/versioned"
 	"knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
-	knativeclient "knative.dev/serving/pkg/client/clientset/versioned"
 	"knative.dev/serving/pkg/network/status"
 
 	"knative.dev/net-kourier/pkg/envoy"

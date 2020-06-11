@@ -21,18 +21,22 @@ import (
 	"strings"
 	"time"
 
+	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
+
 	"go.uber.org/zap"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	v1alpha12 "knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/generator"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	knativeclient "knative.dev/networking/pkg/client/injection/client"
 	ingressinformer "knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress"
 	v1alpha1ingress "knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
@@ -44,12 +48,7 @@ import (
 	"knative.dev/pkg/network"
 	knativeReconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/tracker"
-	knativeclient "knative.dev/serving/pkg/client/injection/client"
 	"knative.dev/serving/pkg/network/status"
-
-	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/envoy"
-	"knative.dev/net-kourier/pkg/generator"
 )
 
 const (
@@ -206,7 +205,7 @@ func waitForCache(log *zap.SugaredLogger, caches *generator.Caches) {
 	}
 }
 
-func getReadyIngresses(knativeClient v1alpha12.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
+func getReadyIngresses(knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
 	ingresses, err := knativeClient.Ingresses("").List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
