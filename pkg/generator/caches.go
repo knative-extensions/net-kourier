@@ -45,18 +45,43 @@ type Caches struct {
 	listeners           []*v2.Listener
 	statusVirtualHost   *route.VirtualHost
 	logger              *zap.SugaredLogger
+	ingressesToSync     map[string]struct{}
+	synced              chan struct{}
 }
 
-func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
+func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool, ingressesToSync []*v1alpha1.Ingress) (*Caches, error) {
 	c := &Caches{
 		ingresses:           make(map[string]*v1alpha1.Ingress),
 		translatedIngresses: make(map[string]*translatedIngress),
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
 		clustersToIngress:   make(map[string][]string),
 		logger:              logger,
+		synced:              make(chan struct{}),
 	}
 	err := c.initConfig(kubernetesClient, extAuthz)
+
+	if len(ingressesToSync) == 0 {
+		// If ingressesToSync is empty, we can just close the "synced" channel now as we don't need to warm anything.
+		close(c.synced)
+	} else {
+		// Create our list of IngressesToSync from the array of ingresses, using the mapKey func.
+		c.ingressesToSync = make(map[string]struct{}, len(ingressesToSync))
+		for _, ingress := range ingressesToSync {
+			logger.Infof("added ingress to cache warmup %s/%s", ingress.Namespace, ingress.Name)
+			c.ingressesToSync[mapKey(ingress.Name, ingress.Namespace)] = struct{}{}
+		}
+		logger.Infof("total of %d ingresses to warm", len(c.ingressesToSync))
+	}
+
 	return c, err
+}
+
+func (caches *Caches) WaitForSync() <-chan struct{} {
+	return caches.synced
+}
+
+func (caches *Caches) hasSynced() bool {
+	return len(caches.ingressesToSync) == 0
 }
 
 func (caches *Caches) UpdateIngress(ingress *v1alpha1.Ingress, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
@@ -125,6 +150,9 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 	key := mapKey(ingress.Name, ingress.Namespace)
 	caches.ingresses[key] = ingress
 	caches.translatedIngresses[key] = translatedIngress
+
+	// Remove the Ingress from the Sync list as it has been warmed.
+	caches.deleteFromSyncList(ingress.Name, ingress.Namespace)
 
 	for _, cluster := range translatedIngress.clusters {
 		caches.addClusterForIngress(cluster, ingress.Name, ingress.Namespace)
@@ -204,6 +232,17 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 	), nil
 }
 
+func (caches *Caches) deleteFromSyncList(ingressName, ingressNamespace string) {
+	// If caches are not synced, we try to delete the ingress from the IngressesToSync list
+	if !caches.hasSynced() {
+		delete(caches.ingressesToSync, mapKey(ingressName, ingressNamespace))
+		// Now let's see if after the delete we are in Sync and cwe can close the channel.
+		if caches.hasSynced() {
+			close(caches.synced)
+		}
+	}
+}
+
 // Note: changes the snapshot version of the caches object
 // Notice that the clusters are not deleted. That's handled with the expiration
 // time set in the "ClustersCache" struct.
@@ -211,6 +250,9 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	kubeclient kubeclient.Interface) error {
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
+
+	// Remove the Ingress from the Sync list as there's no point to wait for it to be synced.
+	caches.deleteFromSyncList(ingressName, ingressNamespace)
 
 	caches.deleteTranslatedIngress(ingressName, ingressNamespace)
 	return caches.setListeners(kubeclient)

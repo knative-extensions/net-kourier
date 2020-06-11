@@ -39,7 +39,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
 
-	caches, err := NewCaches(logger, &kubeClient, false)
+	caches, err := NewCaches(logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -103,7 +103,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
 
-	caches, err := NewCaches(logger, &kubeClient, false)
+	caches, err := NewCaches(logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -196,7 +196,7 @@ func TestValidateIngress(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
 
-	caches, err := NewCaches(logger, &kubeClient, false)
+	caches, err := NewCaches(logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -236,4 +236,76 @@ func getVHostsNames(routeConfigs []v2.RouteConfiguration) ([]string, error) {
 	}
 
 	return res, nil
+}
+
+func TestCacheWithWarmingWithoutIngressesToSync(t *testing.T) {
+	logger := zap.S()
+	kubeClient := fake.Clientset{}
+
+	var ingressesToSync []*v1alpha1.Ingress
+	caches, err := NewCaches(logger, &kubeClient, false, ingressesToSync)
+	if err != nil {
+		t.Fail()
+	}
+
+	// If caches are not synced, let's fail as this should return false.
+	if !caches.hasSynced() {
+		t.Fail()
+	}
+
+	// WaitForSync channel should be closed.
+	select {
+	case <-caches.WaitForSync():
+		return
+	default:
+		t.Fail()
+	}
+}
+
+func TestCacheWithWarmingWithIngressesToSync(t *testing.T) {
+	logger := zap.S()
+	kubeClient := fake.Clientset{}
+
+	ingressesToSync := []*v1alpha1.Ingress{
+		{
+			TypeMeta:   v1.TypeMeta{},
+			ObjectMeta: v1.ObjectMeta{Name: "test1", Namespace: "namespace1"},
+			Spec:       v1alpha1.IngressSpec{},
+			Status:     v1alpha1.IngressStatus{},
+		},
+	}
+	caches, err := NewCaches(logger, &kubeClient, false, ingressesToSync)
+	if err != nil {
+		t.Fail()
+	}
+
+	// If caches are synced, let's fail, as this should return false.
+	if caches.hasSynced() {
+		t.Fail()
+	}
+
+	// WaitForSync should still be open.
+	select {
+	case <-caches.WaitForSync():
+		t.Fail()
+	default:
+		// This means the channel has no data and it's still open, this is good, let's continue.
+		break
+	}
+
+	caches.deleteFromSyncList("test1", "namespace1")
+
+	// If caches are not synced, let's fail as this should return false.
+	if !caches.hasSynced() {
+		t.Fail()
+	}
+
+	// Let's check for the sync channel to be closed.
+	select {
+	case <-caches.WaitForSync():
+		return
+	default:
+		// Let's fail as the channel has not been closed.
+		t.Fail()
+	}
 }
