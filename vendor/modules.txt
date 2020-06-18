@@ -679,7 +679,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/networking v0.0.0-20200611155523-bd13675bcf70
+# knative.dev/networking v0.0.0-20200617160325-c5b1bddf865c
 ## explicit
 knative.dev/networking/pkg/apis/config
 knative.dev/networking/pkg/apis/networking
@@ -696,7 +696,7 @@ knative.dev/networking/pkg/client/injection/informers/factory
 knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress
 knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress
 knative.dev/networking/pkg/client/listers/networking/v1alpha1
-# knative.dev/pkg v0.0.0-20200616232624-ffb929374a39
+# knative.dev/pkg v0.0.0-20200618002824-96c250871fac
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -745,7 +745,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.15.1-0.20200617132424-d07cd80074f0
+# knative.dev/serving v0.15.1-0.20200618034425-c99ed421d333
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -792,7 +792,7 @@ knative.dev/serving/test/test_images/wsserver
 knative.dev/serving/test/types
 knative.dev/serving/test/v1
 knative.dev/serving/test/v1alpha1
-# knative.dev/test-infra v0.0.0-20200617011927-7220df1de9de
+# knative.dev/test-infra v0.0.0-20200617235125-6382dba95484
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.2.0
