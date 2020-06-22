@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1
 
 // JSONSchemaProps is a JSON-Schema following Specification Draft 4 (http://json-schema.org/).
 type JSONSchemaProps struct {
@@ -55,7 +55,7 @@ type JSONSchemaProps struct {
 	Title string `json:"title,omitempty" protobuf:"bytes,7,opt,name=title"`
 	// default is a default value for undefined object fields.
 	// Defaulting is a beta feature under the CustomResourceDefaulting feature gate.
-	// CustomResourceDefinitions with defaults must be created using the v1 (or newer) CustomResourceDefinition API.
+	// Defaulting requires spec.preserveUnknownFields to be false.
 	Default              *JSON                      `json:"default,omitempty" protobuf:"bytes,8,opt,name=default"`
 	Maximum              *float64                   `json:"maximum,omitempty" protobuf:"bytes,9,opt,name=maximum"`
 	ExclusiveMaximum     bool                       `json:"exclusiveMaximum,omitempty" protobuf:"bytes,10,opt,name=exclusiveMaximum"`
