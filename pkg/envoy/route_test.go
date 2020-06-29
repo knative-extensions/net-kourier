@@ -40,7 +40,7 @@ func TestNewRouteWithRetry(t *testing.T) {
 	}
 
 	var wrs []*envoy_api_v2_route.WeightedCluster_ClusterWeight
-	r := NewRoute(name, path, wrs, routeTimeout, uint32(attempts), perTryTimeout, AppendHeaders)
+	r := NewRoute(name, nil, path, wrs, routeTimeout, uint32(attempts), perTryTimeout, AppendHeaders)
 
 	assert.Equal(t, r.Name, name)
 	assert.Equal(t, r.RequestHeadersToAdd[0].GetHeader().GetKey(), headerName)
@@ -59,8 +59,29 @@ func TestNewRouteWithoutRetry(t *testing.T) {
 	AppendHeaders := map[string]string{}
 	var wrs []*envoy_api_v2_route.WeightedCluster_ClusterWeight
 
-	r := NewRoute(name, path, wrs, 0, uint32(0), 0, AppendHeaders)
+	r := NewRoute(name, nil, path, wrs, 0, uint32(0), 0, AppendHeaders)
 	assert.Assert(t, r.GetRoute().RetryPolicy == nil)
+}
+
+func TestNewRouteHeaderMatch(t *testing.T) {
+
+	name := "testRoute_12345"
+	path := "/my_route"
+	headerMatch := []*envoy_api_v2_route.HeaderMatcher{
+		{
+			Name: "myHeader",
+			HeaderMatchSpecifier: &envoy_api_v2_route.HeaderMatcher_ExactMatch{
+				ExactMatch: "strict",
+			},
+		},
+	}
+	AppendHeaders := map[string]string{}
+	var wrs []*envoy_api_v2_route.WeightedCluster_ClusterWeight
+
+	r := NewRoute(name, headerMatch, path, wrs, 0, uint32(0), 0, AppendHeaders)
+	assert.Equal(t, r.Match.Headers[0].Name, "myHeader")
+	assert.Equal(t, r.Match.Headers[0].GetExactMatch(), "strict")
+
 }
 
 func TestNewRouteStatusOK(t *testing.T) {

@@ -27,6 +27,7 @@ import (
 )
 
 func NewRoute(name string,
+	headersMatch []*route.HeaderMatcher,
 	path string,
 	wrs []*route.WeightedCluster_ClusterWeight,
 	routeTimeout time.Duration,
@@ -40,6 +41,7 @@ func NewRoute(name string,
 			PathSpecifier: &route.RouteMatch_Prefix{
 				Prefix: path,
 			},
+			Headers: headersMatch,
 		},
 		Action: &route.Route_Route{Route: &route.RouteAction{
 			ClusterSpecifier: &route.RouteAction_WeightedClusters{

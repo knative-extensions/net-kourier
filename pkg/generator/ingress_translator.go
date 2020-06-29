@@ -255,8 +255,25 @@ func createRouteForRevision(ingressName string, ingressNamespace string, httpPat
 	}
 
 	return envoy.NewRoute(
-		routeName, path, wrs, routeTimeout, uint32(attempts), perTryTimeout, httpPath.AppendHeaders,
+		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, routeTimeout, uint32(attempts), perTryTimeout, httpPath.AppendHeaders,
 	)
+}
+
+func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.HeaderMatcher {
+	matchHeaders := make([]*route.HeaderMatcher, 0, len(httpPath.Headers))
+
+	for header, matchType := range httpPath.Headers {
+		matchHeader := route.HeaderMatcher{
+			Name: header,
+		}
+		if matchType.Exact != "" {
+			matchHeader.HeaderMatchSpecifier = &route.HeaderMatcher_ExactMatch{
+				ExactMatch: matchType.Exact,
+			}
+		}
+		matchHeaders = append(matchHeaders, &matchHeader)
+	}
+	return matchHeaders
 }
 
 func sniMatchFromIngressTLS(ingressTLS v1alpha1.IngressTLS, kubeClient kubeclient.Interface) (*envoy.SNIMatch, error) {
