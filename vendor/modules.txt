@@ -152,6 +152,8 @@ github.com/influxdata/tdigest
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.8
 github.com/json-iterator/go
+# github.com/kelseyhightower/envconfig v1.4.0
+github.com/kelseyhightower/envconfig
 # github.com/mailru/easyjson v0.7.0
 github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
@@ -200,6 +202,7 @@ go.opencensus.io/metric/metricproducer
 go.opencensus.io/plugin/ocgrpc
 go.opencensus.io/plugin/ochttp
 go.opencensus.io/plugin/ochttp/propagation/b3
+go.opencensus.io/plugin/ochttp/propagation/tracecontext
 go.opencensus.io/resource
 go.opencensus.io/resource/resourcekeys
 go.opencensus.io/stats
@@ -679,7 +682,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/networking v0.0.0-20200619041525-1faac2ec5d38
+# knative.dev/networking v0.0.0-20200625171028-5efff1e07309
 ## explicit
 knative.dev/networking/pkg/apis/config
 knative.dev/networking/pkg/apis/networking
@@ -696,7 +699,7 @@ knative.dev/networking/pkg/client/injection/informers/factory
 knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress
 knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress
 knative.dev/networking/pkg/client/listers/networking/v1alpha1
-# knative.dev/pkg v0.0.0-20200622135826-98f8a949a106
+# knative.dev/pkg v0.0.0-20200627192328-fe0740d31f07
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -741,11 +744,13 @@ knative.dev/pkg/test/logging
 knative.dev/pkg/test/monitoring
 knative.dev/pkg/test/spoof
 knative.dev/pkg/test/zipkin
+knative.dev/pkg/tracing/propagation
+knative.dev/pkg/tracing/propagation/tracecontextb3
 knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.15.1-0.20200622070826-ac2f58ac1fe6
+# knative.dev/serving v0.15.1-0.20200629124629-e0c9a20d3cb1
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -792,7 +797,7 @@ knative.dev/serving/test/test_images/wsserver
 knative.dev/serving/test/types
 knative.dev/serving/test/v1
 knative.dev/serving/test/v1alpha1
-# knative.dev/test-infra v0.0.0-20200619200026-0b0587234302
+# knative.dev/test-infra v0.0.0-20200626234928-7fb82ece3d02
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.2.0
