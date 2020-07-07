@@ -790,7 +790,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.16.1-0.20200707200544-47f8b0ede63a
+# knative.dev/serving v0.16.1-0.20200707204544-f025d519072b
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -837,7 +837,7 @@ knative.dev/serving/test/test_images/wsserver
 knative.dev/serving/test/types
 knative.dev/serving/test/v1
 knative.dev/serving/test/v1alpha1
-# knative.dev/test-infra v0.0.0-20200707183444-aed09e56ddc7
+# knative.dev/test-infra v0.0.0-20200707220947-a05ea93e9076
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.2.0
