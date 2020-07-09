@@ -31,7 +31,7 @@ docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:tes
 k3d import-images 3scale-kourier:"$tag" --name='kourier-integration'
 k3d import-images test_externalauthz:test --name='kourier-integration'
 
-KNATIVE_VERSION=v0.15.0
+KNATIVE_VERSION=v0.16.0
 # Deploys kourier and patches it.
 kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-crds.yaml
 kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_VERSION}/serving-core.yaml
