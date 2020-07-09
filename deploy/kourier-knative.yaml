@@ -341,6 +341,20 @@ data:
                 port_value: 18000
           http2_protocol_options: {}
           type: STRICT_DNS
+        - name: zipkin
+          connect_timeout: 1s
+          hosts:
+            - socket_address:
+                address: "zipkin"
+                port_value: 443
+          type: STRICT_DNS
+    tracing:
+      http:
+        name: envoy.zipkin
+        typed_config:
+          "@type": type.googleapis.com/envoy.config.trace.v2.ZipkinConfig
+          collector_cluster: zipkin
+          collector_endpoint: "/api/v1/spans"
     admin:
       access_log_path: "/dev/stdout"
       address:
