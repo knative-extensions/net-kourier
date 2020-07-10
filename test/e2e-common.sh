@@ -67,7 +67,7 @@ function add_trap() {
 function wait_for_leader_controller() {
   echo -n "Waiting for leader Controller"
   for i in {1..150}; do  # timeout after 5 minutes
-    local leader=$(kubectl get lease kourier -n "${KOURIER_NAMESPACE}" -ojsonpath='{.spec.holderIdentity}' | cut -d"_" -f1)
+    local leader=$(kubectl get lease -n "${KOURIER_NAMESPACE}" -ojsonpath='{.items[*].spec.holderIdentity}'  | cut -d"_" -f1 | grep "^3scale-kourier-control-" | head -1)
     # Make sure the leader pod exists.
     if [ -n "${leader}" ] && kubectl get pod "${leader}" -n "${KOURIER_NAMESPACE}" >/dev/null 2>&1; then
       echo -e "\nNew leader Controller has been elected"

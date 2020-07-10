@@ -16,9 +16,9 @@ require (
 	k8s.io/apimachinery v0.18.5
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	knative.dev/networking v0.0.0-20200707203944-725ec013d8a2
-	knative.dev/pkg v0.0.0-20200711004937-22502028e31a
-	knative.dev/serving v0.16.1-0.20200711032637-c7addfb4ce96
-	knative.dev/test-infra v0.0.0-20200710160019-5b9732bc24f7
+	knative.dev/pkg v0.0.0-20200713031612-b09a159e12c9
+	knative.dev/serving v0.16.1-0.20200713145818-bcfc6d4c5b51
+	knative.dev/test-infra v0.0.0-20200713045417-850e4e37918d
 )
 
 replace (
