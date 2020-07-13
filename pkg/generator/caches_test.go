@@ -20,6 +20,12 @@ import (
 	"sort"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
+
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"knative.dev/net-kourier/pkg/config"
 
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -157,8 +163,8 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	routesAfterDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts = vHostsRoutesAfter[:len(vHostsRoutesAfter)-1]
 
 	assert.DeepEqual(t, clustersBeforeDelete, clustersAfterDelete)
-	assert.DeepEqual(t, routesBeforeDelete, routesAfterDelete)
-	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete)
+	assert.DeepEqual(t, routesBeforeDelete, routesAfterDelete, cmpopts.IgnoreUnexported(wrappers.BoolValue{}))
+	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete, cmpopts.IgnoreUnexported(anypb.Any{}))
 }
 
 // Creates an ingress translation and listeners from the given names an
