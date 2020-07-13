@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/ptr"
@@ -34,7 +35,6 @@ import (
 
 const (
 	ingressNamespace         = "kourier-system"
-	kourierHPALease          = "kourier"
 	kourierControlDeployment = "3scale-kourier-control"
 )
 
@@ -45,10 +45,12 @@ func TestKourierControlHA(t *testing.T) {
 		t.Fatalf("Deployment %s not scaled to %d: %v", kourierControlDeployment, haReplicas, err)
 	}
 
-	leaderController, err := pkgHa.WaitForNewLeader(clients.KubeClient, kourierHPALease, ingressNamespace, "" /*use arbitrary name as there was no previous leader*/)
+	// TODO(mattmoor): Once we switch to the new sharded leader election, we should use more than a single bucket here, but the test is still interesting.
+	leaders, err := pkgHa.WaitForNewLeaders(t, clients.KubeClient, kourierControlDeployment, ingressNamespace, sets.NewString(), 1 /* numBuckets */)
 	if err != nil {
 		t.Fatalf("Failed to get leader: %v", err)
 	}
+	t.Logf("Got initial leader set: %v", leaders)
 
 	svcName, svcPort, svcCancel := ingress.CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 	defer svcCancel()
@@ -60,18 +62,20 @@ func TestKourierControlHA(t *testing.T) {
 	prober := test.RunRouteProber(t.Logf, clients, url.URL())
 	defer test.AssertProberDefault(t, prober)
 
-	if err := clients.KubeClient.Kube.CoreV1().Pods(ingressNamespace).Delete(leaderController, &metav1.DeleteOptions{
-		GracePeriodSeconds: ptr.Int64(0),
-	}); err != nil {
-		t.Fatalf("Failed to delete pod %s: %v", leaderController, err)
+	for _, leader := range leaders.List() {
+		if err := clients.KubeClient.Kube.CoreV1().Pods(ingressNamespace).Delete(leader, &metav1.DeleteOptions{
+			GracePeriodSeconds: ptr.Int64(0),
+		}); err != nil {
+			t.Fatalf("Failed to delete pod %s: %v", leader, err)
+		}
+
+		if err := pkgTest.WaitForPodDeleted(clients.KubeClient, leader, ingressNamespace); err != nil {
+			t.Fatalf("Did not observe %s to actually be deleted: %v", leader, err)
+		}
 	}
 
-	if err := pkgTest.WaitForPodDeleted(clients.KubeClient, leaderController, ingressNamespace); err != nil {
-		t.Fatalf("Did not observe %s to actually be deleted: %v", leaderController, err)
-	}
-
-	// Make sure a new leader has been elected.
-	if _, err = pkgHa.WaitForNewLeader(clients.KubeClient, kourierHPALease, ingressNamespace, leaderController); err != nil {
+	// Wait for all of the old leaders to go away, and then for the right number to be back.
+	if _, err := pkgHa.WaitForNewLeaders(t, clients.KubeClient, kourierControlDeployment, ingressNamespace, leaders, 1 /* numBuckets */); err != nil {
 		t.Fatalf("Failed to find new leader: %v", err)
 	}
 
