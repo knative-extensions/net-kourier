@@ -34,7 +34,7 @@ add_trap "for deployment in 3scale-kourier-control 3scale-kourier-gateway; do \
 
 # Changing the bucket count and cycling the controllers will leave around stale
 # lease resources at the old sharding factor, so clean these up.
-kubectl -n ${SYSTEM_NAMESPACE} delete leases --all
+kubectl -n ${KOURIER_NAMESPACE} delete leases --all
 
 # Wait for a new leader controller to prevent race conditions during service reconciliation.
 wait_for_leader_controller || failed=1
