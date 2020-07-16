@@ -1,17 +1,22 @@
-# cloud.google.com/go v0.60.0
+# cloud.google.com/go v0.61.0
 cloud.google.com/go/compute/metadata
 cloud.google.com/go/container/apiv1
 cloud.google.com/go/monitoring/apiv3
 cloud.google.com/go/trace/apiv2
-# contrib.go.opencensus.io/exporter/ocagent v0.6.0
+# contrib.go.opencensus.io/exporter/ocagent v0.6.1-0.20200121232419-b3d61dbd6252
 contrib.go.opencensus.io/exporter/ocagent
-# contrib.go.opencensus.io/exporter/prometheus v0.1.0
+# contrib.go.opencensus.io/exporter/prometheus v0.2.1-0.20200609204449-6bcf6f8577f0
 contrib.go.opencensus.io/exporter/prometheus
-# contrib.go.opencensus.io/exporter/stackdriver v0.13.1
+# contrib.go.opencensus.io/exporter/stackdriver v0.13.2
 contrib.go.opencensus.io/exporter/stackdriver
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource/aws
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource/gcp
+# github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
+github.com/alecthomas/template
+github.com/alecthomas/template/parse
+# github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
+github.com/alecthomas/units
 # github.com/aws/aws-sdk-go v1.31.12
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -153,6 +158,8 @@ github.com/jmespath/go-jmespath
 github.com/json-iterator/go
 # github.com/kelseyhightower/envconfig v1.4.0
 github.com/kelseyhightower/envconfig
+# github.com/konsorten/go-windows-terminal-sequences v1.0.3
+github.com/konsorten/go-windows-terminal-sequences
 # github.com/mailru/easyjson v0.7.0
 github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
@@ -182,11 +189,17 @@ github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.9.1
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+github.com/prometheus/common/log
 github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.11
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/prometheus/statsd_exporter v0.15.0
+github.com/prometheus/statsd_exporter/pkg/mapper
+github.com/prometheus/statsd_exporter/pkg/mapper/fsm
+# github.com/sirupsen/logrus v1.6.0
+github.com/sirupsen/logrus
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
 # github.com/tsenart/vegeta v12.7.1-0.20190725001342-b5f4fca92137+incompatible => github.com/tsenart/vegeta v1.2.1-0.20190917092155-ab06ddb56e2f
@@ -251,6 +264,8 @@ golang.org/x/sync/semaphore
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+golang.org/x/sys/windows/registry
+golang.org/x/sys/windows/svc/eventlog
 # golang.org/x/text v0.3.3
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
@@ -282,7 +297,7 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20200710124503-20a17af7bd0e
+# google.golang.org/genproto v0.0.0-20200715011427-11fb19a81f2c
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/distribution
@@ -388,6 +403,8 @@ google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/structpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
+# gopkg.in/alecthomas/kingpin.v2 v2.2.6
+gopkg.in/alecthomas/kingpin.v2
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.3.0
@@ -723,7 +740,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/networking v0.0.0-20200713162319-e2731eead7e8
+# knative.dev/networking v0.0.0-20200715190634-e189256cc68f
 ## explicit
 knative.dev/networking/pkg/apis/networking
 knative.dev/networking/pkg/apis/networking/v1alpha1
@@ -739,7 +756,7 @@ knative.dev/networking/pkg/client/injection/informers/factory
 knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress
 knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress
 knative.dev/networking/pkg/client/listers/networking/v1alpha1
-# knative.dev/pkg v0.0.0-20200714070918-ac02cac99b88
+# knative.dev/pkg v0.0.0-20200716125933-cb729b8ae661
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -755,6 +772,7 @@ knative.dev/pkg/client/injection/kube/informers/core/v1/pod
 knative.dev/pkg/client/injection/kube/informers/factory
 knative.dev/pkg/configmap
 knative.dev/pkg/controller
+knative.dev/pkg/hash
 knative.dev/pkg/injection
 knative.dev/pkg/injection/clients/namespacedkube/informers/factory
 knative.dev/pkg/injection/sharedmain
@@ -792,7 +810,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.16.1-0.20200714111218-995c90029adb
+# knative.dev/serving v0.16.1-0.20200716135633-2433fd2709b8
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -839,7 +857,7 @@ knative.dev/serving/test/test_images/wsserver
 knative.dev/serving/test/types
 knative.dev/serving/test/v1
 knative.dev/serving/test/v1alpha1
-# knative.dev/test-infra v0.0.0-20200713220518-5a4c4cad5372
+# knative.dev/test-infra v0.0.0-20200715185233-6964ba126fee
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.2.0
