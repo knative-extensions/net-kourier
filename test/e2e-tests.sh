@@ -25,30 +25,11 @@ go_test_e2e -timeout=20m -parallel=12 \
   ./test/conformance \
   --ingressClass=kourier.ingress.networking.knative.dev || failed=1
 
-# Scale up components for HA tests.
-for deployment in 3scale-kourier-control 3scale-kourier-gateway; do
-  kubectl -n "${KOURIER_NAMESPACE}" scale deployment "$deployment" --replicas=2
-done
-add_trap "for deployment in 3scale-kourier-control 3scale-kourier-gateway; do \
-  kubectl -n ${KOURIER_NAMESPACE} scale deployment $deployment --replicas=1; done" SIGKILL SIGTERM SIGQUIT
-
-# Changing the bucket count and cycling the controllers will leave around stale
-# lease resources at the old sharding factor, so clean these up.
-kubectl -n ${KOURIER_NAMESPACE} delete leases --all
-
-# Wait for a new leader controller to prevent race conditions during service reconciliation.
-wait_for_leader_controller || failed=1
-
 # Give the controller time to sync with the rest of the system components.
 sleep 30
 
 go_test_e2e -timeout=15m -failfast -parallel=1 ./test/ha -spoofinterval="10ms" \
   --ingressClass=kourier.ingress.networking.knative.dev || failed=1
-
-# Scale back HA components.
-for deployment in 3scale-kourier-control 3scale-kourier-gateway; do
-  kubectl -n "${KOURIER_NAMESPACE}" scale deployment "$deployment" --replicas=1
-done
 
 (( failed )) && dump_cluster_state
 (( failed )) && fail_test

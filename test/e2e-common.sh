@@ -1,4 +1,4 @@
-#!/bin/bash
+
 
 # Copyright 2020 The Knative Authors
 #
@@ -44,10 +44,26 @@ function test_setup() {
   echo ">> Bringing up Kourier"
   ko apply -f deploy/ || return 1
 
+  scale_controlplane 3scale-kourier-control 3scale-kourier-gateway
+
   # Wait for pods to be running.
   echo ">> Waiting for Kourier components to be running..."
   wait_until_pods_running "${KOURIER_NAMESPACE}" || return 1
   wait_until_service_has_external_http_address "${KOURIER_NAMESPACE}" kourier || return 1
+
+  # Wait for a new leader controller to prevent race conditions during service reconciliation.
+  wait_for_leader_controller || failed=1
+}
+
+function scale_controlplane() {
+  for deployment in "$@"; do
+    # Make sure all pods run in leader-elected mode.
+    kubectl -n "${KOURIER_NAMESPACE}" scale deployment "$deployment" --replicas=0 || failed=1
+    # Give it time to kill the pods.
+    sleep 5
+    # Scale up components for HA tests
+    kubectl -n "${KOURIER_NAMESPACE}" scale deployment "$deployment" --replicas=2 || failed=1
+  done
 }
 
 # Add function call to trap

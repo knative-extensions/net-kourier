@@ -21,6 +21,7 @@ package ha
 import (
 	"testing"
 
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/networking/pkg/apis/networking"
@@ -64,7 +65,7 @@ func TestKourierControlHA(t *testing.T) {
 	for _, leader := range leaders.List() {
 		if err := clients.KubeClient.Kube.CoreV1().Pods(ingressNamespace).Delete(leader, &metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
-		}); err != nil {
+		}); err != nil && !apierrs.IsNotFound(err) {
 			t.Fatalf("Failed to delete pod %s: %v", leader, err)
 		}
 
