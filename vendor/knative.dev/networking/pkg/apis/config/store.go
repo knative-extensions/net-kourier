@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Knative Authors.
+Copyright 2020 The Knative Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"knative.dev/pkg/configmap"
-	autoscalerconfig "knative.dev/serving/pkg/autoscaler/config"
 )
 
 type cfgKey struct{}
@@ -28,9 +27,7 @@ type cfgKey struct{}
 // Config holds the collection of configurations that we attach to contexts.
 // +k8s:deepcopy-gen=false
 type Config struct {
-	Defaults   *Defaults
-	Features   *Features
-	Autoscaler *autoscalerconfig.Config
+	Defaults *Defaults
 }
 
 // FromContext extracts a Config from the provided context.
@@ -45,23 +42,13 @@ func FromContext(ctx context.Context) *Config {
 // FromContextOrDefaults is like FromContext, but when no Config is attached it
 // returns a Config populated with the defaults for each of the Config fields.
 func FromContextOrDefaults(ctx context.Context) *Config {
-	cfg := FromContext(ctx)
-	if cfg == nil {
-		cfg = &Config{}
+	if cfg := FromContext(ctx); cfg != nil {
+		return cfg
 	}
-
-	if cfg.Defaults == nil {
-		cfg.Defaults, _ = NewDefaultsConfigFromMap(map[string]string{})
+	defaults, _ := NewDefaultsConfigFromMap(map[string]string{})
+	return &Config{
+		Defaults: defaults,
 	}
-
-	if cfg.Features == nil {
-		cfg.Features, _ = NewFeaturesConfigFromMap(map[string]string{})
-	}
-
-	if cfg.Autoscaler == nil {
-		cfg.Autoscaler, _ = autoscalerconfig.NewConfigFromMap(map[string]string{})
-	}
-	return cfg
 }
 
 // ToContext attaches the provided Config to the provided context, returning the
@@ -80,12 +67,10 @@ type Store struct {
 func NewStore(logger configmap.Logger, onAfterStore ...func(name string, value interface{})) *Store {
 	store := &Store{
 		UntypedStore: configmap.NewUntypedStore(
-			"apis",
+			"defaults",
 			logger,
 			configmap.Constructors{
-				DefaultsConfigName:          NewDefaultsConfigFromConfigMap,
-				FeaturesConfigName:          NewFeaturesConfigFromConfigMap,
-				autoscalerconfig.ConfigName: autoscalerconfig.NewConfigFromConfigMap,
+				DefaultsConfigName: NewDefaultsConfigFromConfigMap,
 			},
 			onAfterStore...,
 		),
@@ -102,8 +87,6 @@ func (s *Store) ToContext(ctx context.Context) context.Context {
 // Load creates a Config from the current config state of the Store.
 func (s *Store) Load() *Config {
 	return &Config{
-		Defaults:   s.UntypedLoad(DefaultsConfigName).(*Defaults).DeepCopy(),
-		Features:   s.UntypedLoad(FeaturesConfigName).(*Features).DeepCopy(),
-		Autoscaler: s.UntypedLoad(autoscalerconfig.ConfigName).(*autoscalerconfig.Config).DeepCopy(),
+		Defaults: s.UntypedLoad(DefaultsConfigName).(*Defaults).DeepCopy(),
 	}
 }

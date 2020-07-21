@@ -90,7 +90,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		extAuthz:      extAuthZConfig.Enabled,
 	}
 
-	impl := v1alpha1ingress.NewImpl(ctx, r)
+	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName)
 
 	classFilter := knativeReconciler.AnnotationFilterFunc(
 		networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
