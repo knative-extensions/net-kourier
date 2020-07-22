@@ -60,7 +60,6 @@ func TestKourierControlHA(t *testing.T) {
 
 	url := apis.HTTP(svcName + domain)
 	prober := test.RunRouteProber(t.Logf, clients, url.URL())
-	defer test.AssertProberDefault(t, prober)
 
 	for _, leader := range leaders.List() {
 		if err := clients.KubeClient.Kube.CoreV1().Pods(ingressNamespace).Delete(leader, &metav1.DeleteOptions{
@@ -85,6 +84,8 @@ func TestKourierControlHA(t *testing.T) {
 
 	_, _, newIngressCancel := ingress.CreateIngressReady(t, clients, createIngressSpec(newSvcName, newSvcPort))
 	defer newIngressCancel()
+
+	defer test.AssertProberDefault(t, prober)
 
 	// Verify the new service is accessible via the ingress.
 	assertIngressEventuallyWorks(t, clients, apis.HTTP(newSvcName+domain).URL())
