@@ -335,7 +335,6 @@ data:
                       path: /tmp/envoy.admin
         - name: xds_cluster
           connect_timeout: 30s
-          dns_lookup_family: V4_ONLY,
           hosts:
             - socket_address:
                 address: "kourier-control"
