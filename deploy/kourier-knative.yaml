@@ -334,16 +334,16 @@ data:
                     pipe:
                       path: /tmp/envoy.admin
         - name: xds_cluster
-          connect_timeout: 1s
+          connect_timeout: 15s
           hosts:
             - socket_address:
                 address: "kourier-control"
                 port_value: 18000
           http2_protocol_options: {}
           health_checks:
-            healthy_threshold: 2
-            interval: { seconds: 5 }
-            timeout: { seconds: 5 }
+            healthy_threshold: 1
+            interval: { seconds: 10 }
+            timeout: { seconds: 2 }
             tcp_health_check: {}
             unhealthy_threshold: 1
           type: STRICT_DNS
