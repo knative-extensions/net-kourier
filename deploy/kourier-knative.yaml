@@ -136,7 +136,7 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: ["curl","-X","POST","--unix","/tmp/envoy.admin","http://localhost/healthcheck/fail"]
+                command: ["/bin/sh","-c","curl -X POST --unix /tmp/envoy.admin http://localhost/healthcheck/fail; sleep 15"]
           readinessProbe:
             httpGet:
               httpHeaders:
