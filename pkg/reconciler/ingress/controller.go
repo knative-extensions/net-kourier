@@ -72,7 +72,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	// Get the current list of ingresses that are ready, and pass it to the cache so we can
 	// know when it has been synced.
-	ingressesToSync, err := getReadyIngresses(knativeClient.NetworkingV1alpha1())
+	ingressesToSync, err := getReadyIngresses(logger, knativeClient.NetworkingV1alpha1())
 	if err != nil {
 		panic(err)
 	}
@@ -205,14 +205,18 @@ func waitForCache(log *zap.SugaredLogger, caches *generator.Caches) {
 	}
 }
 
-func getReadyIngresses(knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
+func getReadyIngresses(log *zap.SugaredLogger, knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
 	ingresses, err := knativeClient.Ingresses("").List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	ingressesToWarm := make([]*v1alpha1.Ingress, 0, len(ingresses.Items))
 	for _, ingress := range ingresses.Items {
-		if ingress.Annotations[networking.IngressClassAnnotationKey] == config.KourierIngressClassName && ingress.GetStatus().GetCondition(v1alpha1.IngressConditionReady).IsTrue() {
+		log.Infof("FOUND INGRESS: %s", ingress.Name)
+		log.Infof("FOUND INGRESS: %#v", ingress)
+
+		if ingress.Annotations[networking.IngressClassAnnotationKey] == config.KourierIngressClassName {
+			log.Infof("INGRESS MATCHED: %s", ingress.Name)
 			validIngress := ingress
 			ingressesToWarm = append(ingressesToWarm, &validIngress)
 		}
