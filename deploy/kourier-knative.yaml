@@ -340,12 +340,6 @@ data:
                 address: "kourier-control"
                 port_value: 18000
           http2_protocol_options: {}
-          health_checks:
-            healthy_threshold: 1
-            interval: { seconds: 5 }
-            timeout: { seconds: 1 }
-            tcp_health_check: {}
-            unhealthy_threshold: 1
           type: STRICT_DNS
     admin:
       access_log_path: "/dev/stdout"

@@ -212,7 +212,7 @@ func getReadyIngresses(knativeClient networkingClientSet.NetworkingV1alpha1Inter
 	}
 	ingressesToWarm := make([]*v1alpha1.Ingress, 0, len(ingresses.Items))
 	for _, ingress := range ingresses.Items {
-		if ingress.Annotations[networking.IngressClassAnnotationKey] == config.KourierIngressClassName && ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
+		if ingress.Annotations[networking.IngressClassAnnotationKey] == config.KourierIngressClassName && ingress.GetStatus().GetCondition(v1alpha1.IngressConditionReady).IsTrue() {
 			validIngress := ingress
 			ingressesToWarm = append(ingressesToWarm, &validIngress)
 		}
