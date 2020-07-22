@@ -334,12 +334,15 @@ data:
                     pipe:
                       path: /tmp/envoy.admin
         - name: xds_cluster
-          connect_timeout: 1s
+          connect_timeout: 30s
+          dns_lookup_family: V4_ONLY,
           hosts:
             - socket_address:
                 address: "kourier-control"
                 port_value: 18000
           http2_protocol_options: {}
+          upstream_connection_options:
+            tcp_keepalive: {}
           type: STRICT_DNS
     admin:
       access_log_path: "/dev/stdout"
