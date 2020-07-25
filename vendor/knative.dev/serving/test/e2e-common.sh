@@ -50,6 +50,13 @@ readonly KNATIVE_DEFAULT_NAMESPACE="knative-serving"
 export SYSTEM_NAMESPACE
 SYSTEM_NAMESPACE=$(uuidgen | tr 'A-Z' 'a-z')
 
+
+# Keep this in sync with test/ha/ha.go
+readonly REPLICAS=3
+readonly BUCKETS=10
+HA_COMPONENTS=()
+
+
 # Parse our custom flags.
 function parse_flags() {
   case "$1" in
@@ -271,6 +278,7 @@ function install_contour() {
   kubectl apply -f ${INSTALL_CONTOUR_YAML} || return 1
 
   UNINSTALL_LIST+=( "${INSTALL_CONTOUR_YAML}" )
+  HA_COMPONENTS+=( "contour-ingress-controller" )
 
   local NET_CONTOUR_YAML_NAME=${TMP_DIR}/${INSTALL_NET_CONTOUR_YAML##*/}
   sed "s/namespace: ${KNATIVE_DEFAULT_NAMESPACE}/namespace: ${SYSTEM_NAMESPACE}/g" ${INSTALL_NET_CONTOUR_YAML} > ${NET_CONTOUR_YAML_NAME}
@@ -364,6 +372,7 @@ function install_knative_serving_standard() {
   UNINSTALL_LIST+=( "${CERT_YAML_NAME}" )
 
   echo ">> Installing Knative serving"
+  HA_COMPONENTS+=( "controller" "webhook" "autoscaler-hpa" )
   if [[ "$1" == "HEAD" ]]; then
     local CORE_YAML_NAME=${TMP_DIR}/${SERVING_CORE_YAML##*/}
     sed "s/namespace: ${KNATIVE_DEFAULT_NAMESPACE}/namespace: ${SYSTEM_NAMESPACE}/g" ${SERVING_CORE_YAML} > ${CORE_YAML_NAME}
@@ -476,6 +485,8 @@ function knative_teardown() {
     done
   fi
 }
+
+
 
 # Add function call to trap
 # Parameters: $1 - Function to call
@@ -610,7 +621,7 @@ function dump_extra_cluster_state() {
 function wait_for_leader_controller() {
   echo -n "Waiting for a leader Controller"
   for i in {1..150}; do  # timeout after 5 minutes
-    local leader=$(kubectl get lease -n "${SYSTEM_NAMESPACE}" -ojsonpath='{.items[*].spec.holderIdentity}'  | cut -d"_" -f1 | grep "^controller-" | head -1)
+    local leader=$(kubectl get lease -n "${SYSTEM_NAMESPACE}" -ojsonpath='{range .items[*].spec}{"\n"}{.holderIdentity}' | cut -d"_" -f1 | grep "^controller-" | head -1)
     # Make sure the leader pod exists.
     if [ -n "${leader}" ] && kubectl get pod "${leader}" -n "${SYSTEM_NAMESPACE}"  >/dev/null 2>&1; then
       echo -e "\nNew leader Controller has been elected"
@@ -630,6 +641,25 @@ function toggle_feature() {
   echo -n "Setting feature ${FEATURE} to ${STATE}"
   kubectl patch cm "${CONFIG}" -n "${SYSTEM_NAMESPACE}" -p '{"data":{"'${FEATURE}'":"'${STATE}'"}}'
   # We don't have a good mechanism for positive handoff so sleep :(
-  echo "Waiting 20s for change to get picked up."
-  sleep 20
+  echo "Waiting 30s for change to get picked up."
+  sleep 30
+}
+
+function scale_controlplane() {
+  for deployment in "$@"; do
+    # Make sure all pods run in leader-elected mode.
+    kubectl -n "${SYSTEM_NAMESPACE}" scale deployment "$deployment" --replicas=0 || fail_test
+    # Give it time to kill the pods.
+    sleep 5
+    # Scale up components for HA tests
+    kubectl -n "${SYSTEM_NAMESPACE}" scale deployment "$deployment" --replicas="${REPLICAS}" || fail_test
+  done
+}
+
+function disable_chaosduck() {
+  kubectl -n "${SYSTEM_NAMESPACE}" scale deployment "chaosduck" --replicas=0 || fail_test
+}
+
+function enable_chaosduck() {
+  kubectl -n "${SYSTEM_NAMESPACE}" scale deployment "chaosduck" --replicas=1 || fail_test
 }

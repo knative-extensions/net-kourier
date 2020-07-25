@@ -145,7 +145,17 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 
 				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
 
+				//totalWeight := uint32(0)
+				//for _, wc := range wrs {
+				//	totalWeight = totalWeight + wc.Weight.Value
+				//}
+
+				//if totalWeight+weightedCluster.Weight.Value <= 100 {
 				wrs = append(wrs, weightedCluster)
+				//} else {
+				//	translator.logger.Errorf("WeightedCluster %s total weight is bigger than 100", split.ServiceName+path)
+				//	return nil, err
+				//}
 			}
 
 			if len(wrs) != 0 {

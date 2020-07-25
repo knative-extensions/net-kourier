@@ -43,13 +43,16 @@ import (
 const (
 	defaultControllerAgentName = "ingress-controller"
 	defaultFinalizerName       = "ingresses.networking.internal.knative.dev"
+
+	// ClassAnnotationKey points to the annotation for the class of this resource.
+	ClassAnnotationKey = "networking.knative.dev/ingress.class"
 )
 
 // NewImpl returns a controller.Impl that handles queuing and feeding work from
 // the queue through an implementation of controller.Reconciler, delegating to
 // the provided Interface and optional Finalizer methods. OptionsFn is used to return
 // controller.Options to be used but the internal reconciler.
-func NewImpl(ctx context.Context, r Interface, optionsFns ...controller.OptionsFn) *controller.Impl {
+func NewImpl(ctx context.Context, r Interface, classValue string, optionsFns ...controller.OptionsFn) *controller.Impl {
 	logger := logging.FromContext(ctx)
 
 	// Check the options function input. It should be 0 or 1.
@@ -82,6 +85,7 @@ func NewImpl(ctx context.Context, r Interface, optionsFns ...controller.OptionsF
 		Lister:        lister,
 		reconciler:    r,
 		finalizerName: defaultFinalizerName,
+		classValue:    classValue,
 	}
 
 	t := reflect.TypeOf(r).Elem()

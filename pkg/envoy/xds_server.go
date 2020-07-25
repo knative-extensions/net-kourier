@@ -89,11 +89,9 @@ func (envoyXdsServer *XdsServer) RunManagementServer() {
 	envoyv2.RegisterRouteDiscoveryServiceServer(grpcServer, server)
 
 	envoyXdsServer.logger.Infof("Starting Management Server on Port %d", port)
-	go func() {
-		if err = grpcServer.Serve(lis); err != nil {
-			envoyXdsServer.logger.Fatalw("Failed to serve", zap.Error(err))
-		}
-	}()
+	if err = grpcServer.Serve(lis); err != nil {
+		envoyXdsServer.logger.Fatalw("Failed to serve", zap.Error(err))
+	}
 	<-envoyXdsServer.ctx.Done()
 	grpcServer.GracefulStop()
 }

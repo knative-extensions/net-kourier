@@ -18,6 +18,7 @@ package ingress
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -70,14 +71,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	podInformer := podinformer.Get(ctx)
 	extAuthZConfig := envoy.GetExternalAuthzConfig()
 
-	// Get the current list of ingresses that are ready, and pass it to the cache so we can
-	// know when it has been synced.
+	//Get the current list of ingresses that are ready, and pass it to the cache so we can
+	//know when it has been synced.
 	ingressesToSync, err := getReadyIngresses(knativeClient.NetworkingV1alpha1())
 	if err != nil {
 		panic(err)
 	}
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
+	fmt.Print("NEW CACHE")
 	caches, err := generator.NewCaches(logger.Named("caches"), kubernetesClient, extAuthZConfig.Enabled, ingressesToSync)
 	if err != nil {
 		panic(err)
@@ -90,7 +92,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		extAuthz:      extAuthZConfig.Enabled,
 	}
 
-	impl := v1alpha1ingress.NewImpl(ctx, r)
+	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName)
 
 	classFilter := knativeReconciler.AnnotationFilterFunc(
 		networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
@@ -121,8 +123,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
 			impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
 		})
+
 	r.statusManager = statusProber
-	statusProber.Start(ctx.Done())
+	r.statusManager.Start(ctx.Done())
 
 	r.caches.SetOnEvicted(func(key string, value interface{}) {
 		// The format of the key received is "clusterName:ingressName:ingressNamespace"
@@ -146,7 +149,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// to an already running gateway container. If the cache is not warmed up after "cacheWarmUPTimeout" we just
 	// start the server as somehow we couldn't sync.
 	go func() {
-		waitForCache(logger, caches)
 
 		snapshot, err := r.caches.ToEnvoySnapshot()
 		if err != nil {
@@ -156,8 +158,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		if err != nil {
 			logger.Fatalw("Failed to set snapshot", zap.Error(err))
 		}
-		go envoyXdsServer.RunManagementServer()
 
+		fmt.Print("Waiting for cache")
+		waitForCache(logger, caches)
+
+		r.xdsServer.RunManagementServer()
 		<-ctx.Done()
 	}()
 

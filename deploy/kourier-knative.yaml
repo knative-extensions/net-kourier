@@ -117,7 +117,7 @@ spec:
             - /tmp/config/envoy-bootstrap.yaml
           command:
             - /usr/local/bin/envoy
-          image: docker.io/maistra/proxyv2-ubi8:1.1.3
+          image: docker.io/maistra/proxyv2-ubi8:1.1.5
           imagePullPolicy: Always
           name: kourier-gateway
           ports:
@@ -340,7 +340,7 @@ data:
                 address: "kourier-control"
                 port_value: 18000
           http2_protocol_options: {}
-          type: STRICT_DNS
+          type: LOGICAL_DNS
     admin:
       access_log_path: "/dev/stdout"
       address:

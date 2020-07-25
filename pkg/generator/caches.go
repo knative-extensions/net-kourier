@@ -126,10 +126,24 @@ func (caches *Caches) validateIngress(translatedIngress *translatedIngress) erro
 	}
 
 	for _, vhost := range translatedIngress.internalVirtualHosts {
+		//totalWeight := uint32(0)
+		//
+		//for _, r := range vhost.Routes {
+		//	for _, cluster := range r.GetRoute().GetWeightedClusters().Clusters {
+		//		totalWeight = totalWeight + cluster.Weight.Value
+		//	}
+		//}
+		//if totalWeight != 100 {
+		//	caches.deleteFromSyncList(translatedIngress.ingressName, translatedIngress.ingressNamespace)
+		//	return ErrInvalidWeightSum
+		//}
+
+		// Check for duplicated domains
 		for _, domain := range vhost.Domains {
 			for _, cacheVhost := range localVhosts {
 				for _, cachedDomain := range cacheVhost.Domains {
 					if domain == cachedDomain {
+						//caches.deleteFromSyncList(translatedIngress.ingressName, translatedIngress.ingressNamespace)
 						return ErrDomainConflict
 					}
 				}
@@ -233,6 +247,7 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 }
 
 func (caches *Caches) deleteFromSyncList(ingressName, ingressNamespace string) {
+	caches.logger.Infof("Deleted %s/%s from syncList", ingressNamespace, ingressName)
 	// If caches are not synced, we try to delete the ingress from the IngressesToSync list
 	if !caches.hasSynced() {
 		delete(caches.ingressesToSync, mapKey(ingressName, ingressNamespace))
