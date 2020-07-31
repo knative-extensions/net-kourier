@@ -26,9 +26,9 @@ import (
 
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
+	"knative.dev/networking/pkg/status"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
-	"knative.dev/serving/pkg/network/status"
 
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/generator"

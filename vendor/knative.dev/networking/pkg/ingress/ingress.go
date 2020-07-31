@@ -23,9 +23,9 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	net "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/network"
-	net "knative.dev/serving/pkg/network"
 )
 
 // ComputeHash computes a hash of the Ingress Spec, Namespace and Name

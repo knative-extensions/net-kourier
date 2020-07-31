@@ -62,15 +62,15 @@ if (( HTTPS )); then
 fi
 
 # Enable allow-zero-initial-scale before running e2e tests (for test/e2e/initial_scale_test.go)
-kubectl -n ${SYSTEM_NAMESPACE} patch configmap/config-autoscaler --type=merge --patch='{"data":{"allow-zero-initial-scale":"true"}}' || failed=1
+kubectl -n ${SYSTEM_NAMESPACE} patch configmap/config-autoscaler --type=merge --patch='{"data":{"allow-zero-initial-scale":"true"}}' || fail_test
 
 # Keep the bucket count in sync with test/ha/ha.go
 kubectl -n "${SYSTEM_NAMESPACE}" patch configmap/config-leader-election --type=merge \
-  --patch='{"data":{"buckets": "'${BUCKETS}'"}}' || failed=1
+  --patch='{"data":{"buckets": "'${BUCKETS}'"}}' || fail_test
 
 kubectl patch hpa activator -n "${SYSTEM_NAMESPACE}" \
   --type "merge" \
-  --patch '{"spec": {"minReplicas": '${REPLICAS}', "maxReplicas": '${REPLICAS}'}}' || failed=1
+  --patch '{"spec": {"minReplicas": '${REPLICAS}', "maxReplicas": '${REPLICAS}'}}' || fail_test
 
 # Scale up all of the HA components in knative-serving.
 scale_controlplane "${HA_COMPONENTS[@]}"
@@ -80,7 +80,7 @@ scale_controlplane "${HA_COMPONENTS[@]}"
 kubectl -n ${SYSTEM_NAMESPACE} delete leases --all
 
 # Wait for a new leader Controller to prevent race conditions during service reconciliation
-wait_for_leader_controller || failed=1
+wait_for_leader_controller || fail_test
 
 # Dump the leases post-setup.
 header "Leaders"
@@ -90,14 +90,6 @@ kubectl get lease -n "${SYSTEM_NAMESPACE}"
 sleep 30
 
 # Run conformance and e2e tests.
-
-go_test_e2e -timeout=30m \
-  ./test/conformance/api/... ./test/conformance/runtime/... \
-  ./test/e2e \
-  `# Run TestServiceWithTrafficSplit separately due to 503 flaking` \
-  -run="Test[^ServiceWithTrafficSplit]" \
-  ${parallelism} \
-  "--resolvabledomain=$(use_resolvable_domain)" "${use_https}" "$(ingress_class)" || failed=1
 
 go_test_e2e -timeout=30m \
   ./test/conformance/api/... ./test/conformance/runtime/... \
@@ -124,6 +116,10 @@ toggle_feature tagHeaderBasedRouting Disabled config-network
 toggle_feature multi-container Enabled
 go_test_e2e -timeout=2m ./test/e2e/multicontainer || failed=1
 toggle_feature multi-container Disabled
+
+toggle_feature responsive-revision-gc Enabled
+go_test_e2e -timeout=2m ./test/e2e/gc || failed=1
+toggle_feature responsive-revision-gc Disabled
 
 # Certificate conformance tests must be run separately
 # because they need cert-manager specific configurations.

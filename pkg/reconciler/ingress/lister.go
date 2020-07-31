@@ -29,9 +29,9 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	"knative.dev/networking/pkg/status"
 	"knative.dev/pkg/network"
 	"knative.dev/pkg/system"
-	"knative.dev/serving/pkg/network/status"
 )
 
 func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
