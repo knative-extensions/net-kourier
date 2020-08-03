@@ -50,9 +50,11 @@ var _ ingress.Finalizer = (*Reconciler)(nil)
 var _ ingress.ReadOnlyFinalizer = (*Reconciler)(nil)
 
 func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
+	before := ingress.DeepCopy()
+
 	r.ObserveKind(ctx, ingress)
 
-	if ready, err := r.statusManager.IsReady(context.TODO(), ingress); err != nil {
+	if ready, err := r.statusManager.IsReady(context.TODO(), before); err != nil {
 		return err
 	} else if ready {
 		knative.MarkIngressReady(ingress)
