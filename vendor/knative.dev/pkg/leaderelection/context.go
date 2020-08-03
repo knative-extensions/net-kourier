@@ -117,6 +117,9 @@ func (b *standardBuilder) buildElector(ctx context.Context, la reconciler.Leader
 	bkts := newStandardBuckets(queueName, b.lec)
 	electors := make([]Elector, 0, b.lec.Buckets)
 	for _, bkt := range bkts {
+		// Use a local var which won't change across the for loop since it is
+		// used in a callback asynchronously.
+		bkt := bkt
 		rl, err := resourcelock.New(KnativeResourceLock,
 			system.Namespace(), // use namespace we are running in
 			bkt.Name(),
@@ -170,13 +173,8 @@ func newStandardBuckets(queueName string, cc ComponentConfig) []reconciler.Bucke
 	for i := uint32(0); i < cc.Buckets; i++ {
 		names.Insert(standardBucketName(i, queueName, cc))
 	}
-	bs := hash.NewBucketSet(names)
 
-	bkts := make([]reconciler.Bucket, 0, cc.Buckets)
-	for name := range names {
-		bkts = append(bkts, hash.NewBucket(name, bs))
-	}
-	return bkts
+	return hash.NewBucketSet(names).Buckets()
 }
 
 func standardBucketName(ordinal uint32, queueName string, cc ComponentConfig) string {
@@ -220,7 +218,9 @@ func NewStatefulSetBucketAndSet(buckets int) (reconciler.Bucket, *hash.BucketSet
 	}
 
 	bs := hash.NewBucketSet(names)
-	return hash.NewBucket(statefulSetPodDNS(ssc.StatefulSetID.ordinal, ssc), bs), bs, nil
+	// Buckets is sorted in order of names so we can use ordinal to
+	// get the correct Bucket for this binary.
+	return bs.Buckets()[ssc.StatefulSetID.ordinal], bs, nil
 }
 
 func statefulSetPodDNS(ordinal int, ssc *statefulSetConfig) string {
