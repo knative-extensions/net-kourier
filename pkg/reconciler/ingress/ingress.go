@@ -47,12 +47,32 @@ type Reconciler struct {
 }
 
 var _ ingress.Interface = (*Reconciler)(nil)
+var _ ingress.ReadOnlyInterface = (*Reconciler)(nil)
 var _ ingress.Finalizer = (*Reconciler)(nil)
+var _ ingress.ReadOnlyFinalizer = (*Reconciler)(nil)
 
 func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
 	ingress.SetDefaults(ctx)
 	ingress.Status.InitializeConditions()
 	ingress.Status.ObservedGeneration = ingress.Generation
+	before := ingress.DeepCopy()
+
+	r.ObserveKind(ctx, ingress)
+
+	ready, err := r.statusManager.IsReady(context.TODO(), before)
+	if err != nil {
+		return err
+	}
+
+	if ready {
+		knative.MarkIngressReady(ingress)
+	}
+
+	return nil
+}
+
+func (r *Reconciler) ObserveKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
+	ingress.SetDefaults(ctx)
 
 	err := r.updateIngress(ctx, ingress)
 	if err == generator.ErrDomainConflict {
@@ -63,6 +83,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingres
 	} else if err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
 	}
+
 	return nil
 }
 
@@ -95,6 +116,9 @@ func (r *Reconciler) updateEnvoyConfig() error {
 }
 
 func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+	return r.ObserveFinalizeKind(ctx, ing)
+}
+func (r *Reconciler) ObserveFinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
 	logger := logging.FromContext(ctx)
 	logger.Infof("Deleting Ingress %s namespace: %s", ing.Name, ing.Namespace)
 	ingress := r.caches.GetIngress(ing.Name, ing.Namespace)
@@ -116,8 +140,6 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 	logger := logging.FromContext(ctx)
 	logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
-	before := ingress.DeepCopy()
-
 	if err := generator.UpdateInfoForIngress(
 		r.caches, ingress, r.kubeClient, r.ingressTranslator, logger, r.extAuthz,
 	); err != nil {
@@ -129,13 +151,5 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 		return err
 	}
 
-	ready, err := r.statusManager.IsReady(context.TODO(), before)
-	if err != nil {
-		return err
-	}
-
-	if ready {
-		knative.MarkIngressReady(ingress)
-	}
 	return nil
 }
