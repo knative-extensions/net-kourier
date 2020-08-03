@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"knative.dev/net-kourier/pkg/envoy"
-	"knative.dev/serving/pkg/network"
-	"knative.dev/serving/pkg/network/ingress"
+	network "knative.dev/networking/pkg"
+	"knative.dev/networking/pkg/ingress"
 
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"go.uber.org/zap"

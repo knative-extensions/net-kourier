@@ -39,6 +39,7 @@ import (
 	knativeclient "knative.dev/networking/pkg/client/injection/client"
 	ingressinformer "knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress"
 	v1alpha1ingress "knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
+	"knative.dev/networking/pkg/status"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
@@ -48,7 +49,6 @@ import (
 	"knative.dev/pkg/network"
 	knativeReconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/tracker"
-	"knative.dev/serving/pkg/network/status"
 )
 
 const (
