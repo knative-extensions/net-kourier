@@ -25,7 +25,6 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
-	knativeclient "knative.dev/networking/pkg/client/clientset/versioned"
 	"knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
@@ -39,7 +38,6 @@ import (
 type Reconciler struct {
 	xdsServer         *envoy.XdsServer
 	kubeClient        kubeclient.Interface
-	knativeClient     knativeclient.Interface
 	caches            *generator.Caches
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
@@ -52,19 +50,13 @@ var _ ingress.Finalizer = (*Reconciler)(nil)
 var _ ingress.ReadOnlyFinalizer = (*Reconciler)(nil)
 
 func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
-	ingress.SetDefaults(ctx)
-	ingress.Status.InitializeConditions()
-	ingress.Status.ObservedGeneration = ingress.Generation
 	before := ingress.DeepCopy()
 
 	r.ObserveKind(ctx, ingress)
 
-	ready, err := r.statusManager.IsReady(context.TODO(), before)
-	if err != nil {
+	if ready, err := r.statusManager.IsReady(context.TODO(), before); err != nil {
 		return err
-	}
-
-	if ready {
+	} else if ready {
 		knative.MarkIngressReady(ingress)
 	}
 
@@ -74,8 +66,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingres
 func (r *Reconciler) ObserveKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
 	ingress.SetDefaults(ctx)
 
-	err := r.updateIngress(ctx, ingress)
-	if err == generator.ErrDomainConflict {
+	if err := r.updateIngress(ctx, ingress); err == generator.ErrDomainConflict {
 		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
 		// custom status. We don't want to return an error in this case as we want to update its status.
 		logging.FromContext(ctx).Errorw(err.Error(), ingress.Name, ingress.Namespace)
@@ -85,34 +76,6 @@ func (r *Reconciler) ObserveKind(ctx context.Context, ingress *v1alpha1.Ingress)
 	}
 
 	return nil
-}
-
-func (r *Reconciler) updateEnvoyConfig() error {
-
-	currentSnapshot, err := r.xdsServer.GetSnapshot(config.EnvoyNodeID)
-	if err != nil {
-		return err
-	}
-	newSnapshot, err := r.caches.ToEnvoySnapshot()
-	if err != nil {
-		return err
-	}
-
-	// Let's warm the Clusters first, by sending the previous snapshot with the new cluster list, that includes
-	// both new and old clusters.
-	currentSnapshot.Clusters = newSnapshot.Clusters
-
-	//Validate that the snapshot is consistent.
-	if err := currentSnapshot.Consistent(); err != nil {
-		return err
-	}
-
-	if err := r.xdsServer.SetSnapshot(&currentSnapshot, nodeID); err != nil {
-		return err
-	}
-
-	// Now, send the full new snapshot.
-	return r.xdsServer.SetSnapshot(&newSnapshot, nodeID)
 }
 
 func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
@@ -146,10 +109,36 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 		return err
 	}
 
-	err := r.updateEnvoyConfig()
-	if err != nil {
+	if err := r.updateEnvoyConfig(); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (r *Reconciler) updateEnvoyConfig() error {
+	currentSnapshot, err := r.xdsServer.GetSnapshot(config.EnvoyNodeID)
+	if err != nil {
+		return err
+	}
+	newSnapshot, err := r.caches.ToEnvoySnapshot()
+	if err != nil {
+		return err
+	}
+
+	// Let's warm the Clusters first, by sending the previous snapshot with the new cluster list, that includes
+	// both new and old clusters.
+	currentSnapshot.Clusters = newSnapshot.Clusters
+
+	//Validate that the snapshot is consistent.
+	if err := currentSnapshot.Consistent(); err != nil {
+		return err
+	}
+
+	if err := r.xdsServer.SetSnapshot(&currentSnapshot, nodeID); err != nil {
+		return err
+	}
+
+	// Now, send the full new snapshot.
+	return r.xdsServer.SetSnapshot(&newSnapshot, nodeID)
 }
