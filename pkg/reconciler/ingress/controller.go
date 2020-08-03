@@ -141,22 +141,22 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		r.kubeClient, endpointsInformer.Lister(), network.GetClusterDomainName(), endpointsTracker, logger)
 	r.ingressTranslator = &ingressTranslator
 
+	// Initialize the Envoy snapshot.
+	snapshot, err := r.caches.ToEnvoySnapshot()
+	if err != nil {
+		logger.Fatalw("Failed to create snapshot", zap.Error(err))
+	}
+	err = r.xdsServer.SetSnapshot(&snapshot, nodeID)
+	if err != nil {
+		logger.Fatalw("Failed to set snapshot", zap.Error(err))
+	}
+
 	// Let's start the management server when our cache is in sync, to avoid sending an incomplete configuration
 	// to an already running gateway container. If the cache is not warmed up after "cacheWarmUPTimeout" we just
 	// start the server as somehow we couldn't sync.
 	go func() {
 		waitForCache(logger, caches)
-
-		snapshot, err := r.caches.ToEnvoySnapshot()
-		if err != nil {
-			logger.Fatalw("Failed to create snapshot", zap.Error(err))
-		}
-		err = r.xdsServer.SetSnapshot(&snapshot, nodeID)
-		if err != nil {
-			logger.Fatalw("Failed to set snapshot", zap.Error(err))
-		}
 		go envoyXdsServer.RunManagementServer()
-
 		<-ctx.Done()
 	}()
 
