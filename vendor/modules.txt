@@ -758,7 +758,7 @@ knative.dev/networking/test
 knative.dev/networking/test/conformance/ingress
 knative.dev/networking/test/test_images/grpc-ping/proto
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20200803213128-7be5c0a87b00
+# knative.dev/pkg v0.0.0-20200804051227-c3c869a34475
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -813,7 +813,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.16.1-0.20200804014127-fd858cbd7930
+# knative.dev/serving v0.16.1-0.20200804124127-08d681889306
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
