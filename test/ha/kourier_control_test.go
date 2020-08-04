@@ -24,13 +24,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/networking/pkg/apis/networking"
+	"knative.dev/networking/test"
+	"knative.dev/networking/test/conformance/ingress"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/ptr"
 	pkgTest "knative.dev/pkg/test"
 	pkgHa "knative.dev/pkg/test/ha"
-	"knative.dev/serving/test"
-	"knative.dev/serving/test/conformance/ingress"
-	"knative.dev/serving/test/e2e"
 )
 
 const (
@@ -39,7 +38,7 @@ const (
 )
 
 func TestKourierControlHA(t *testing.T) {
-	clients := e2e.Setup(t)
+	clients := test.Setup(t)
 
 	if err := pkgTest.WaitForDeploymentScale(clients.KubeClient, kourierControlDeployment, ingressNamespace, haReplicas); err != nil {
 		t.Fatalf("Deployment %s not scaled to %d: %v", kourierControlDeployment, haReplicas, err)

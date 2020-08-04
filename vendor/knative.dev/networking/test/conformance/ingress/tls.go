@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Knative Authors
+Copyright 2019 The Knative Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,28 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ha
+package ingress
 
 import (
 	"testing"
 
-	"net/url"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	pkgTest "knative.dev/pkg/test"
+	"knative.dev/pkg/test/logstream"
 )
 
-const (
-	haReplicas = 2
-	domain     = ".example.com"
-)
+// TestIngressTLS verifies that the Ingress properly handles the TLS field.
+func TestIngressTLS(t *testing.T) {
+	t.Parallel()
+	defer logstream.Start(t)()
+	clients := test.Setup(t)
 
-func createIngressSpec(name string, port int) v1alpha1.IngressSpec {
-	return v1alpha1.IngressSpec{
+	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	defer cancel()
+
+	hosts := []string{name + ".example.com"}
+
+	secretName, cancel := CreateTLSSecret(t, clients, hosts)
+	defer cancel()
+
+	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + domain},
+			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -49,18 +56,21 @@ func createIngressSpec(name string, port int) v1alpha1.IngressSpec {
 				}},
 			},
 		}},
-	}
+		TLS: []v1alpha1.IngressTLS{{
+			Hosts:           hosts,
+			SecretName:      secretName,
+			SecretNamespace: test.ServingNamespace,
+		}},
+	})
+	defer cancel()
+
+	t.Run("verify HTTP", func(t *testing.T) {
+		RuntimeRequest(t, client, "http://"+name+".example.com")
+	})
+
+	t.Run("verify HTTPS", func(t *testing.T) {
+		RuntimeRequest(t, client, "https://"+name+".example.com")
+	})
 }
 
-func assertIngressEventuallyWorks(t *testing.T, clients *test.Clients, url *url.URL) {
-	t.Helper()
-	if _, err := pkgTest.WaitForEndpointState(
-		clients.KubeClient,
-		t.Logf,
-		url,
-		pkgTest.IsStatusOK,
-		"WaitForIngressToReturnSuccess",
-		test.ServingFlags.ResolvableDomain); err != nil {
-		t.Fatalf("The service at %s didn't return success: %v", url, err)
-	}
-}
+// TODO(mattmoor): Consider adding variants where we have multiple hosts with distinct certificates.

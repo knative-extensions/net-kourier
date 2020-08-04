@@ -24,11 +24,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/networking/pkg/apis/networking"
+	"knative.dev/networking/test"
+	"knative.dev/networking/test/conformance/ingress"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/ptr"
 	pkgTest "knative.dev/pkg/test"
-	"knative.dev/serving/test/conformance/ingress"
-	"knative.dev/serving/test/e2e"
 )
 
 const (
@@ -40,7 +40,7 @@ const (
 // The Kourier Gateway does not have leader election enabled.
 // The test ensures that stopping one of the gateway pods doesn't affect user applications.
 func TestKourierGatewayHA(t *testing.T) {
-	clients := e2e.Setup(t)
+	clients := test.Setup(t)
 
 	if err := pkgTest.WaitForDeploymentScale(clients.KubeClient, kourierGatewayDeployment, ingressNamespace, haReplicas); err != nil {
 		t.Fatalf("Deployment %s not scaled to %d: %v", kourierGatewayDeployment, haReplicas, err)
