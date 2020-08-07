@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	"knative.dev/pkg/test/logstream"
 )
 
 // TestRetry verifies that an Ingress configured to retry N times properly masks transient failures.
@@ -33,7 +32,6 @@ func TestRetry(t *testing.T) {
 		i := i
 		t.Run(fmt.Sprintf("period=%d,attempts=%d", i, i), func(t *testing.T) {
 			t.Parallel()
-			defer logstream.Start(t)()
 			clients := test.Setup(t)
 			// When the period matches, then it shouldn't fail.
 			name, port, cancel := CreateFlakyService(t, clients, i)
@@ -78,7 +76,6 @@ func TestRetry(t *testing.T) {
 
 		t.Run(fmt.Sprintf("period=%d,attempts=%d", i, i-1), func(t *testing.T) {
 			t.Parallel()
-			defer logstream.Start(t)()
 			clients := test.Setup(t)
 			// When the period matches, then it shouldn't fail.
 			name, port, cancel := CreateFlakyService(t, clients, i)

@@ -26,13 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	"knative.dev/pkg/test/logstream"
 )
 
 // TestTimeout verifies that an Ingress configured with a timeout respects that.
 func TestTimeout(t *testing.T) {
 	t.Parallel()
-	defer logstream.Start(t)()
 	clients := test.Setup(t)
 
 	name, port, cancel := CreateTimeoutService(t, clients)

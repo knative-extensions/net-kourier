@@ -23,13 +23,11 @@ import (
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	"knative.dev/pkg/test/logstream"
 )
 
 // TestMultipleHosts verifies that an Ingress can respond to multiple hosts.
 func TestMultipleHosts(t *testing.T) {
 	t.Parallel()
-	defer logstream.Start(t)()
 	clients := test.Setup(t)
 
 	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)

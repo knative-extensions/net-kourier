@@ -26,14 +26,12 @@ import (
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
 	"knative.dev/pkg/pool"
-	"knative.dev/pkg/test/logstream"
 )
 
 // TestPercentage verifies that an Ingress splitting over multiple backends respects
 // the given percentage distribution.
 func TestPercentage(t *testing.T) {
 	t.Parallel()
-	defer logstream.Start(t)()
 	clients := test.Setup(t)
 
 	// Use a post-split injected header to establish which split we are sending traffic to.
