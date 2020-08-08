@@ -32,13 +32,11 @@ import (
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
 	ping "knative.dev/networking/test/test_images/grpc-ping/proto"
-	"knative.dev/pkg/test/logstream"
 )
 
 // TestGRPC verifies that GRPC may be used via a simple Ingress.
 func TestGRPC(t *testing.T) {
 	t.Parallel()
-	defer logstream.Start(t)()
 	clients := test.Setup(t)
 
 	const suffix = "- pong"
@@ -96,7 +94,6 @@ func TestGRPC(t *testing.T) {
 // TestGRPCSplit verifies that websockets may be used across a traffic split.
 func TestGRPCSplit(t *testing.T) {
 	t.Parallel()
-	defer logstream.Start(t)()
 	clients := test.Setup(t)
 
 	const suffixBlue = "- blue"

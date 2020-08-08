@@ -31,13 +31,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	"knative.dev/pkg/test/logstream"
 )
 
 // TestWebsocket verifies that websockets may be used via a simple Ingress.
 func TestWebsocket(t *testing.T) {
 	t.Parallel()
-	defer logstream.Start(t)()
 	clients := test.Setup(t)
 
 	const suffix = "- pong"
@@ -87,7 +85,6 @@ func TestWebsocket(t *testing.T) {
 // TestWebsocketSplit verifies that websockets may be used across a traffic split.
 func TestWebsocketSplit(t *testing.T) {
 	t.Parallel()
-	defer logstream.Start(t)()
 	clients := test.Setup(t)
 
 	const suffixBlue = "- blue"

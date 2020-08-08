@@ -26,7 +26,6 @@ import (
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	"knative.dev/pkg/test/logstream"
 )
 
 // Header to disambiguate what version we're talking to.
@@ -35,7 +34,6 @@ const updateHeaderName = "Who-Are-You"
 // TestUpdate verifies that when the network programming changes that traffic isn't dropped.
 func TestUpdate(t *testing.T) {
 	t.Parallel()
-	defer logstream.Start(t)()
 	clients := test.Setup(t)
 
 	firstName, firstPort, firstCancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
