@@ -21,7 +21,7 @@ function upload_test_images() {
   (
     # Script needs to be executed from repo root
     cd "$( dirname "$0")/.."
-    local image_dir="vendor/knative.dev/serving/test/test_images"
+    local image_dir="vendor/knative.dev/networking/test/test_images"
     local docker_tag=$1
     local tag_option=""
     if [ -n "${docker_tag}" ]; then
@@ -30,7 +30,7 @@ function upload_test_images() {
 
     for yaml in $(find ${image_dir} -name '*.yaml'); do
       # Rewrite image reference to use vendor.
-      sed "s@knative.dev/serving@knative.dev/net-kourier/vendor/knative.dev/serving@g" $yaml \
+      sed "s@knative.dev/networking@knative.dev/net-kourier/vendor/knative.dev/networking@g" $yaml \
         `# ko resolve is being used for the side-effect of publishing images,` \
         `# so the resulting yaml produced is ignored.` \
         | ko resolve ${tag_option} -RBf- > /dev/null

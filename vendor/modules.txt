@@ -12,6 +12,8 @@ contrib.go.opencensus.io/exporter/stackdriver
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource/aws
 contrib.go.opencensus.io/exporter/stackdriver/monitoredresource/gcp
+# github.com/BurntSushi/toml v0.3.1
+github.com/BurntSushi/toml
 # github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 github.com/alecthomas/template
 github.com/alecthomas/template/parse
@@ -92,17 +94,11 @@ github.com/envoyproxy/go-control-plane/pkg/wellknown
 github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/evanphx/json-patch v4.5.0+incompatible
 github.com/evanphx/json-patch
-# github.com/ghodss/yaml v1.0.0
-github.com/ghodss/yaml
 # github.com/go-logr/logr v0.1.0
 github.com/go-logr/logr
 # github.com/gogo/protobuf v1.3.1
-github.com/gogo/protobuf/gogoproto
-github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
-github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
-github.com/gogo/protobuf/types
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.4.2
@@ -158,8 +154,6 @@ github.com/json-iterator/go
 github.com/kelseyhightower/envconfig
 # github.com/konsorten/go-windows-terminal-sequences v1.0.3
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
-github.com/mattbaird/jsonpatch
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
@@ -218,6 +212,11 @@ go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
 # go.uber.org/atomic v1.6.0
 go.uber.org/atomic
+# go.uber.org/automaxprocs v1.3.0
+go.uber.org/automaxprocs
+go.uber.org/automaxprocs/internal/cgroups
+go.uber.org/automaxprocs/internal/runtime
+go.uber.org/automaxprocs/maxprocs
 # go.uber.org/multierr v1.5.0
 go.uber.org/multierr
 # go.uber.org/zap v1.15.0
@@ -232,6 +231,11 @@ go.uber.org/zap/zapcore
 go.uber.org/zap/zaptest
 # golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 golang.org/x/crypto/ssh/terminal
+# golang.org/x/lint v0.0.0-20200302205851-738671d3881b
+golang.org/x/lint
+golang.org/x/lint/golint
+# golang.org/x/mod v0.3.0
+golang.org/x/mod/semver
 # golang.org/x/net v0.0.0-20200707034311-ab3426394381
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -264,6 +268,28 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 golang.org/x/time/rate
+# golang.org/x/tools v0.0.0-20200731060945-b5fad4ed8dd6
+golang.org/x/tools/go/analysis
+golang.org/x/tools/go/analysis/passes/inspect
+golang.org/x/tools/go/ast/astutil
+golang.org/x/tools/go/ast/inspector
+golang.org/x/tools/go/buildutil
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/cgo
+golang.org/x/tools/go/internal/gcimporter
+golang.org/x/tools/go/internal/packagesdriver
+golang.org/x/tools/go/loader
+golang.org/x/tools/go/packages
+golang.org/x/tools/go/types/objectpath
+golang.org/x/tools/go/types/typeutil
+golang.org/x/tools/internal/analysisinternal
+golang.org/x/tools/internal/event
+golang.org/x/tools/internal/event/core
+golang.org/x/tools/internal/event/keys
+golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/packagesinternal
+golang.org/x/tools/internal/typesinternal
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
@@ -408,12 +434,36 @@ gotest.tools/assert/cmp
 gotest.tools/internal/difflib
 gotest.tools/internal/format
 gotest.tools/internal/source
-# istio.io/api v0.0.0-20200512234804-e5412c253ffe
-istio.io/api/networking/v1alpha3
-# istio.io/client-go v0.0.0-20200513000250-b1d6e9886b7b
-istio.io/client-go/pkg/apis/networking/v1alpha3
-# istio.io/gogo-genproto v0.0.0-20191029161641-f7d19ec0141d
-istio.io/gogo-genproto/googleapis/google/api
+# honnef.co/go/tools v0.0.1-2020.1.4
+honnef.co/go/tools/arg
+honnef.co/go/tools/cmd/staticcheck
+honnef.co/go/tools/code
+honnef.co/go/tools/config
+honnef.co/go/tools/deprecated
+honnef.co/go/tools/edit
+honnef.co/go/tools/facts
+honnef.co/go/tools/functions
+honnef.co/go/tools/go/types/typeutil
+honnef.co/go/tools/internal/cache
+honnef.co/go/tools/internal/passes/buildir
+honnef.co/go/tools/internal/renameio
+honnef.co/go/tools/internal/robustio
+honnef.co/go/tools/internal/sharedcheck
+honnef.co/go/tools/ir
+honnef.co/go/tools/ir/irutil
+honnef.co/go/tools/lint
+honnef.co/go/tools/lint/lintdsl
+honnef.co/go/tools/lint/lintutil
+honnef.co/go/tools/lint/lintutil/format
+honnef.co/go/tools/loader
+honnef.co/go/tools/pattern
+honnef.co/go/tools/printf
+honnef.co/go/tools/report
+honnef.co/go/tools/simple
+honnef.co/go/tools/staticcheck
+honnef.co/go/tools/stylecheck
+honnef.co/go/tools/unused
+honnef.co/go/tools/version
 # k8s.io/api v0.18.7-rc.0 => k8s.io/api v0.17.6
 ## explicit
 k8s.io/api/admission/v1
@@ -734,7 +784,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/networking v0.0.0-20200806231028-6309580426f4
+# knative.dev/networking v0.0.0-20200811162006-f747207c3aca
 ## explicit
 knative.dev/networking/pkg
 knative.dev/networking/pkg/apis/networking
@@ -756,9 +806,17 @@ knative.dev/networking/pkg/status
 knative.dev/networking/test
 knative.dev/networking/test/conformance/ingress
 knative.dev/networking/test/defaultsystem
+knative.dev/networking/test/test_images/flaky
+knative.dev/networking/test/test_images/grpc-ping
 knative.dev/networking/test/test_images/grpc-ping/proto
+knative.dev/networking/test/test_images/helloworld
+knative.dev/networking/test/test_images/httpproxy
+knative.dev/networking/test/test_images/runtime
+knative.dev/networking/test/test_images/runtime/handlers
+knative.dev/networking/test/test_images/timeout
+knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20200806230728-62f2560aa795
+# knative.dev/pkg v0.0.0-20200811162906-2f0503919872
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -815,7 +873,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.16.1-0.20200807092329-52896e71891e
+# knative.dev/serving v0.16.1-0.20200811163906-b710f591a309
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -825,37 +883,9 @@ knative.dev/serving/pkg/apis/serving/v1
 knative.dev/serving/pkg/apis/serving/v1alpha1
 knative.dev/serving/pkg/apis/serving/v1beta1
 knative.dev/serving/pkg/autoscaler/config
-knative.dev/serving/pkg/client/clientset/versioned
 knative.dev/serving/pkg/client/clientset/versioned/scheme
-knative.dev/serving/pkg/client/clientset/versioned/typed/autoscaling/v1alpha1
-knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1
-knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1beta1
-knative.dev/serving/pkg/client/istio/clientset/versioned
-knative.dev/serving/pkg/client/istio/clientset/versioned/scheme
-knative.dev/serving/pkg/client/istio/clientset/versioned/typed/networking/v1alpha3
-knative.dev/serving/pkg/gc
-knative.dev/serving/pkg/reconciler/route/config
-knative.dev/serving/pkg/reconciler/route/domains
-knative.dev/serving/pkg/reconciler/route/resources/labels
-knative.dev/serving/pkg/reconciler/route/resources/names
-knative.dev/serving/pkg/reconciler/service/resources/names
-knative.dev/serving/pkg/testing/v1alpha1
-knative.dev/serving/test
-knative.dev/serving/test/conformance/ingress
-knative.dev/serving/test/defaultsystem
-knative.dev/serving/test/test_images/flaky
-knative.dev/serving/test/test_images/grpc-ping
-knative.dev/serving/test/test_images/grpc-ping/proto
-knative.dev/serving/test/test_images/helloworld
-knative.dev/serving/test/test_images/httpproxy
-knative.dev/serving/test/test_images/runtime
-knative.dev/serving/test/test_images/runtime/handlers
-knative.dev/serving/test/test_images/timeout
-knative.dev/serving/test/test_images/wsserver
-knative.dev/serving/test/types
-knative.dev/serving/test/v1alpha1
-# knative.dev/test-infra v0.0.0-20200806191129-68b7defbd189
+# knative.dev/test-infra v0.0.0-20200811030605-72f8c9f3e933
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.2.0
