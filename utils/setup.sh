@@ -19,17 +19,14 @@ tag="test_$(git rev-parse --abbrev-ref HEAD)"
 # it.
 tag=$(echo "$tag" | tr / -)
 
-k3d d --name=kourier-integration || true
-
-k3d c --name kourier-integration --server-arg "--no-deploy=traefik"
-sleep 60
-export KUBECONFIG="$(k3d get-kubeconfig --name='kourier-integration')"
+k3d cluster delete kourier-integration || true
+k3d cluster create --wait --no-lb --k3s-server-arg '--no-deploy=traefik' kourier-integration
 
 # Builds and imports the kourier and gateway images from docker into the k8s cluster
 docker build -t 3scale-kourier:"$tag" ./
 docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:test ./utils/extauthz_test_image/
-k3d import-images 3scale-kourier:"$tag" --name='kourier-integration'
-k3d import-images test_externalauthz:test --name='kourier-integration'
+k3d image import 3scale-kourier:"$tag" -c 'kourier-integration'
+k3d image import test_externalauthz:test -c 'kourier-integration'
 
 KNATIVE_VERSION=v0.16.0
 # Deploys kourier and patches it.
