@@ -35,18 +35,19 @@ import (
 
 const (
 	ingressNamespace         = "kourier-system"
+	kourierControlNamespace  = "knative-serving"
 	kourierControlDeployment = "3scale-kourier-control"
 )
 
 func TestKourierControlHA(t *testing.T) {
 	clients := test.Setup(t)
 
-	if err := pkgTest.WaitForDeploymentScale(clients.KubeClient, kourierControlDeployment, ingressNamespace, haReplicas); err != nil {
+	if err := pkgTest.WaitForDeploymentScale(clients.KubeClient, kourierControlDeployment, kourierControlNamespace, haReplicas); err != nil {
 		t.Fatalf("Deployment %s not scaled to %d: %v", kourierControlDeployment, haReplicas, err)
 	}
 
 	// TODO(mattmoor): Once we switch to the new sharded leader election, we should use more than a single bucket here, but the test is still interesting.
-	leaders, err := pkgHa.WaitForNewLeaders(t, clients.KubeClient, kourierControlDeployment, ingressNamespace, sets.NewString(), 1 /* numBuckets */)
+	leaders, err := pkgHa.WaitForNewLeaders(t, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, sets.NewString(), 1 /* numBuckets */)
 	if err != nil {
 		t.Fatalf("Failed to get leader: %v", err)
 	}
@@ -63,19 +64,19 @@ func TestKourierControlHA(t *testing.T) {
 	defer test.AssertProberDefault(t, prober)
 
 	for _, leader := range leaders.List() {
-		if err := clients.KubeClient.Kube.CoreV1().Pods(ingressNamespace).Delete(leader, &metav1.DeleteOptions{
+		if err := clients.KubeClient.Kube.CoreV1().Pods(kourierControlNamespace).Delete(leader, &metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
 		}); err != nil && !apierrs.IsNotFound(err) {
 			t.Fatalf("Failed to delete pod %s: %v", leader, err)
 		}
 
-		if err := pkgTest.WaitForPodDeleted(clients.KubeClient, leader, ingressNamespace); err != nil {
+		if err := pkgTest.WaitForPodDeleted(clients.KubeClient, leader, kourierControlNamespace); err != nil {
 			t.Fatalf("Did not observe %s to actually be deleted: %v", leader, err)
 		}
 	}
 
 	// Wait for all of the old leaders to go away, and then for the right number to be back.
-	if _, err := pkgHa.WaitForNewLeaders(t, clients.KubeClient, kourierControlDeployment, ingressNamespace, leaders, 1 /* numBuckets */); err != nil {
+	if _, err := pkgHa.WaitForNewLeaders(t, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, leaders, 1 /* numBuckets */); err != nil {
 		t.Fatalf("Failed to find new leader: %v", err)
 	}
 

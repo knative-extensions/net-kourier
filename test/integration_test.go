@@ -42,7 +42,7 @@ import (
 const namespace string = "default"
 const clusterURL string = "http://localhost:8080"
 const domain string = "127.0.0.1.nip.io"
-const kourierNamespace string = "kourier-system"
+const kourierNamespace string = "knative-serving"
 
 func TestKourierIntegration(t *testing.T) {
 	t.Skip("Skip for now until we figure out how to run these in the Knative infra")
