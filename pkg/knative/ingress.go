@@ -17,11 +17,12 @@ limitations under the License.
 package knative
 
 import (
+	"os"
+
+	"knative.dev/net-kourier/pkg/config"
 	networkingv1alpha1 "knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/network"
 	"knative.dev/pkg/system"
-
-	"knative.dev/net-kourier/pkg/config"
 )
 
 func MarkIngressReady(ingress *networkingv1alpha1.Ingress) {
@@ -51,5 +52,13 @@ func MarkIngressReady(ingress *networkingv1alpha1.Ingress) {
 }
 
 func domainForServiceName(serviceName string) string {
-	return serviceName + "." + system.Namespace() + ".svc." + network.GetClusterDomainName()
+	return serviceName + "." + GetGatewayNamespace() + ".svc." + network.GetClusterDomainName()
+}
+
+func GetGatewayNamespace() string {
+	namespace := os.Getenv(config.GatewayNamespaceEnv)
+	if namespace == "" {
+		return system.Namespace()
+	}
+	return namespace
 }

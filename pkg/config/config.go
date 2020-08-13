@@ -28,7 +28,10 @@ const (
 	HTTPPortInternal  = uint32(8081)
 	HTTPSPortExternal = uint32(8443)
 
-	InternalKourierDomain    = "internalkourier"
+	InternalKourierDomain = "internalkourier"
+
+	GatewayNamespaceEnv = "KOURIER_GATEWAY_NAMESPACE"
+
 	ExtAuthzHostEnv          = "KOURIER_EXTAUTHZ_HOST"
 	ExtAuthzFailureModeEnv   = "KOURIER_EXTAUTHZ_FAILUREMODEALLOW"
 	ExtAuthzMaxRequestsBytes = "KOURIER_EXTAUTHZ_MAXREQUESTBYTES"
