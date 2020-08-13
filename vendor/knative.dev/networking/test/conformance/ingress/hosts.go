@@ -42,6 +42,12 @@ func TestMultipleHosts(t *testing.T) {
 		"add.your.interesting.domain.here.io",
 	}
 
+	// Using fixed hostnames can lead to conflicts when -count=N>1
+	// so pseudo-randomize the hostnames to avoid conflicts.
+	for i, host := range hosts {
+		hosts[i] = name + "." + host
+	}
+
 	// Create a simple Ingress over the Service.
 	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
