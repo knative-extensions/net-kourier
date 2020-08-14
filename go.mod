@@ -17,8 +17,8 @@ require (
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	knative.dev/networking v0.0.0-20200812200006-4d518e76538a
 	knative.dev/pkg v0.0.0-20200812224206-44c860147a87
-	knative.dev/serving v0.16.1-0.20200813060006-923d75ddaf50
-	knative.dev/test-infra v0.0.0-20200811195106-afcd1747545f
+	knative.dev/serving v0.16.1-0.20200814033406-3209e287ea2e
+	knative.dev/test-infra v0.0.0-20200813220834-388e55a496cf
 )
 
 replace (
