@@ -52,6 +52,7 @@ import (
 	"knative.dev/networking/test"
 	"knative.dev/networking/test/types"
 	"knative.dev/pkg/network"
+	"knative.dev/pkg/reconciler"
 	pkgTest "knative.dev/pkg/test"
 	"knative.dev/pkg/test/logging"
 )
@@ -535,8 +536,10 @@ func createService(t *testing.T, clients *test.Clients, svc *corev1.Service) con
 	test.CleanupOnInterrupt(func() {
 		clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Delete(svc.Name, &metav1.DeleteOptions{})
 	})
-	svc, err := clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Create(svc)
-	if err != nil {
+	if err := reconciler.RetryUpdateConflicts(func(attempts int) error {
+		_, err := clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Create(svc)
+		return err
+	}); err != nil {
 		t.Fatal("Error creating Service:", err)
 	}
 
@@ -554,8 +557,10 @@ func createPodAndService(t *testing.T, clients *test.Clients, pod *corev1.Pod, s
 	t.Helper()
 
 	test.CleanupOnInterrupt(func() { clients.KubeClient.Kube.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{}) })
-	pod, err := clients.KubeClient.Kube.CoreV1().Pods(pod.Namespace).Create(pod)
-	if err != nil {
+	if err := reconciler.RetryUpdateConflicts(func(attempts int) error {
+		_, err := clients.KubeClient.Kube.CoreV1().Pods(pod.Namespace).Create(pod)
+		return err
+	}); err != nil {
 		t.Fatal("Error creating Pod:", err)
 	}
 	cancel := func() {
@@ -568,8 +573,10 @@ func createPodAndService(t *testing.T, clients *test.Clients, pod *corev1.Pod, s
 	test.CleanupOnInterrupt(func() {
 		clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Delete(svc.Name, &metav1.DeleteOptions{})
 	})
-	svc, err = clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Create(svc)
-	if err != nil {
+	if err := reconciler.RetryUpdateConflicts(func(attempts int) error {
+		_, err := clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Create(svc)
+		return err
+	}); err != nil {
 		cancel()
 		t.Fatal("Error creating Service:", err)
 	}
@@ -621,8 +628,10 @@ func CreateIngress(t *testing.T, clients *test.Clients, spec v1alpha1.IngressSpe
 		Spec: spec,
 	}
 	test.CleanupOnInterrupt(func() { clients.NetworkingClient.Ingresses.Delete(ing.Name, &metav1.DeleteOptions{}) })
-	ing, err := clients.NetworkingClient.Ingresses.Create(ing)
-	if err != nil {
+	if err := reconciler.RetryUpdateConflicts(func(attempts int) (err error) {
+		ing, err = clients.NetworkingClient.Ingresses.Create(ing)
+		return err
+	}); err != nil {
 		t.Fatal("Error creating Ingress:", err)
 	}
 
@@ -682,14 +691,17 @@ func CreateIngressReady(t *testing.T, clients *test.Clients, spec v1alpha1.Ingre
 func UpdateIngress(t *testing.T, clients *test.Clients, name string, spec v1alpha1.IngressSpec) {
 	t.Helper()
 
-	ing, err := clients.NetworkingClient.Ingresses.Get(name, metav1.GetOptions{})
-	if err != nil {
-		t.Fatal("Error getting Ingress:", err)
-	}
+	if err := reconciler.RetryUpdateConflicts(func(attempts int) error {
+		ing, err := clients.NetworkingClient.Ingresses.Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
 
-	ing.Spec = spec
-	if _, err := clients.NetworkingClient.Ingresses.Update(ing); err != nil {
-		t.Fatal("Error updating Ingress:", err)
+		ing.Spec = spec
+		_, err = clients.NetworkingClient.Ingresses.Update(ing)
+		return err
+	}); err != nil {
+		t.Fatal("Error fetching and updating Ingress:", err)
 	}
 }
 

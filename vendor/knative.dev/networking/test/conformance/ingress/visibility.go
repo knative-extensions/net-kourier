@@ -67,7 +67,9 @@ func TestVisibility(t *testing.T) {
 	proxyName, proxyPort, cancel := CreateProxyService(t, clients, privateHostName, loadbalancerAddress)
 	defer cancel()
 
-	publicHostName := "publicproxy.example.com"
+	// Using fixed hostnames can lead to conflicts when -count=N>1
+	// so pseudo-randomize the hostnames to avoid conflicts.
+	publicHostName := name + ".publicproxy.example.com"
 	_, client, cancel = CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{publicHostName},
