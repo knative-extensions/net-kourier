@@ -124,7 +124,7 @@ func getInternalDomains(rule v1alpha1.IngressRule, localDomainName string) []str
 	var res []string
 
 	for _, host := range rule.Hosts {
-		if strings.Contains(host, localDomainName) {
+		if strings.HasSuffix(host, localDomainName) {
 			res = append(res, host)
 		}
 	}
@@ -135,7 +135,7 @@ func getInternalDomains(rule v1alpha1.IngressRule, localDomainName string) []str
 func getExternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
 	var res []string
 	for _, host := range rule.Hosts {
-		if !strings.Contains(host, localDomainName) {
+		if !strings.HasSuffix(host, localDomainName) {
 			res = append(res, host)
 		}
 	}
