@@ -9,6 +9,7 @@ Kourier is passing the knative serving e2e and conformance tests:
 
 - [**Getting started**](#getting-started)
 - [**Features**](#features)
+- [**Deployment**](#deployment)
 - [**Development**](#development)
 - [**License**](#license)
 
@@ -60,6 +61,18 @@ kubectl port-forward --namespace kourier-system $(kubectl get pod -n kourier-sys
 
 curl -v -H "Host: helloworld-go.default.127.0.0.1.nip.io" http://localhost:8080
 ```
+
+## Deployment
+
+By default, the deployment of the Kourier components is split between two different namespaces:
+
+- Kourier control is deployed in the `knative-serving` namespace
+- The kourier gateways are deployed in the `kourier-system` namespace
+
+To change the Kourier gateway namespace, you will need to: 
+
+- Modify the `deploy/kourier-knative.yaml` file, and replace all the namespaces fields that have `kourier-system` with the desired namespace.
+- Set the `KOURIER_GATEWAY_NAMESPACE` env var in the kourier-control deployment to the new namespace.
 
 ## Features
 

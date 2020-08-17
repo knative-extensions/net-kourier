@@ -31,7 +31,6 @@ import (
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
 	"knative.dev/pkg/network"
-	"knative.dev/pkg/system"
 )
 
 func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
@@ -48,7 +47,7 @@ type gatewayPodTargetLister struct {
 
 func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
 
-	eps, err := l.endpointsLister.Endpoints(system.Namespace()).Get(config.InternalServiceName)
+	eps, err := l.endpointsLister.Endpoints(knative.GetGatewayNamespace()).Get(config.InternalServiceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get internal service: %w", err)
 	}
