@@ -199,8 +199,14 @@ metadata:
     networking.knative.dev/ingress-provider: kourier
 rules:
   - apiGroups: [""]
-    resources: ["pods", "endpoints", "namespaces", "services", "secrets", "configmaps"]
+    resources: ["events"]
+    verbs: ["create","update","patch"]
+  - apiGroups: [""]
+    resources: ["pods", "endpoints", "namespaces", "services", "secrets"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch","update","create"]
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
     verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
