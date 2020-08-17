@@ -784,7 +784,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/networking v0.0.0-20200812200006-4d518e76538a
+# knative.dev/networking v0.0.0-20200817055406-2b6d120d60b8
 ## explicit
 knative.dev/networking/pkg
 knative.dev/networking/pkg/apis/networking
@@ -873,7 +873,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.16.1-0.20200814033406-3209e287ea2e
+# knative.dev/serving v0.16.1-0.20200815004606-4dd0ff22aa63
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1

@@ -53,10 +53,21 @@ func TestRewriteHost(t *testing.T) {
 	})
 	defer cancel()
 
+	hosts := []string{
+		"vanity.ismy.name",
+		"vanity.isalsomy.number",
+	}
+
+	// Using fixed hostnames can lead to conflicts when -count=N>1
+	// so pseudo-randomize the hostnames to avoid conflicts.
+	for i, host := range hosts {
+		hosts[i] = name + "." + host
+	}
+
 	// Now create a RewriteHost ingress to point a custom Host at the Service
 	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{"vanity.ismy.name", "vanity.isalsomy.number"},
+			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -67,6 +78,7 @@ func TestRewriteHost(t *testing.T) {
 	})
 	defer cancel()
 
-	RuntimeRequest(t, client, "http://vanity.ismy.name")
-	RuntimeRequest(t, client, "http://vanity.isalsomy.number")
+	for _, host := range hosts {
+		RuntimeRequest(t, client, "http://"+host)
+	}
 }

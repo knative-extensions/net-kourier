@@ -1826,6 +1826,8 @@ knative.dev/eventing-contrib v0.6.1-0.20190723221543-5ce18048c08b/go.mod h1:SnXZ
 knative.dev/eventing-contrib v0.11.2/go.mod h1:SnXZgSGgMSMLNFTwTnpaOH7hXDzTFtw0J8OmHflNx3g=
 knative.dev/networking v0.0.0-20200812200006-4d518e76538a h1:E1rnQR9IZvDcEAgoOXMW9LWqevaYFVTlMS2ndgoAO6Y=
 knative.dev/networking v0.0.0-20200812200006-4d518e76538a/go.mod h1:ZewGJAElO4qPOeZTKuLIO3NQNGAkqcQVu64gHOSiPPg=
+knative.dev/networking v0.0.0-20200817055406-2b6d120d60b8 h1:Js1L84C4Q0Xw0oWHLE9iVW3rWq5VCcsr3dJ/6Zco1tI=
+knative.dev/networking v0.0.0-20200817055406-2b6d120d60b8/go.mod h1:ZewGJAElO4qPOeZTKuLIO3NQNGAkqcQVu64gHOSiPPg=
 knative.dev/pkg v0.0.0-20191101194912-56c2594e4f11/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
 knative.dev/pkg v0.0.0-20191111150521-6d806b998379/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
 knative.dev/pkg v0.0.0-20200207155214-fef852970f43/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
@@ -1837,8 +1839,8 @@ knative.dev/pkg v0.0.0-20200711004937-22502028e31a/go.mod h1:AqAJV6rYi8IGikDjJ/9
 knative.dev/pkg v0.0.0-20200811165506-f6ed1766e8ee/go.mod h1:udIbxBS/SJCL4sqnCG8HZArez9HjWmeqJCaVJP/h32I=
 knative.dev/pkg v0.0.0-20200812224206-44c860147a87 h1:argvd9DHJr2YeeV2pl1ogXPB3raIWnOqJivfBK/qsiM=
 knative.dev/pkg v0.0.0-20200812224206-44c860147a87/go.mod h1:udIbxBS/SJCL4sqnCG8HZArez9HjWmeqJCaVJP/h32I=
-knative.dev/serving v0.16.1-0.20200814033406-3209e287ea2e h1:nwwNLNgfxsfhq0JfviY1cYPukADvO7i53616Qj929dY=
-knative.dev/serving v0.16.1-0.20200814033406-3209e287ea2e/go.mod h1:OSO+sfM0xgIhQ+aG6pmMY9SjYDOdghCkoJiAXDheun8=
+knative.dev/serving v0.16.1-0.20200815004606-4dd0ff22aa63 h1:BDrWzMp7gus/R8YU8N1OZ4lmEl5p8bBtzw8n/wMZZqU=
+knative.dev/serving v0.16.1-0.20200815004606-4dd0ff22aa63/go.mod h1:OSO+sfM0xgIhQ+aG6pmMY9SjYDOdghCkoJiAXDheun8=
 knative.dev/test-infra v0.0.0-20200407185800-1b88cb3b45a5/go.mod h1:xcdUkMJrLlBswIZqL5zCuBFOC22WIPMQoVX1L35i0vQ=
 knative.dev/test-infra v0.0.0-20200505052144-5ea2f705bb55/go.mod h1:WqF1Azka+FxPZ20keR2zCNtiQA1MP9ZB4BH4HuI+SIU=
 knative.dev/test-infra v0.0.0-20200513011557-d03429a76034/go.mod h1:aMif0KXL4g19YCYwsy4Ocjjz5xgPlseYV+B95Oo4JGE=
