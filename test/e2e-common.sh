@@ -41,7 +41,7 @@ function test_setup() {
 
   # Bringing up controllers.
   echo ">> Bringing up Kourier"
-  ko apply -f deploy/ || return 1
+  sed 's/--log-level info/--log-level debug/g' deploy/kourier-knative.yaml | ko apply -f - || return 1
 
   scale_deployment 3scale-kourier-control "${KOURIER_CONTROL_NAMESPACE}"
   scale_deployment 3scale-kourier-gateway "${GATEWAY_NAMESPACE_OVERRIDE}"
