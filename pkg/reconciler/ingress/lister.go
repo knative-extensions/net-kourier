@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"strings"
 
+	"knative.dev/net-kourier/pkg/generator"
+
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -46,6 +48,12 @@ type gatewayPodTargetLister struct {
 }
 
 func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
+
+	// If the Ingress is a Rewrite let's avoid probing it for now
+	// TODO: Investigate if probing the rewrite destination ingress will work
+	if generator.ContainsHostRewrite(ing) {
+		return nil, nil
+	}
 
 	eps, err := l.endpointsLister.Endpoints(knative.GetGatewayNamespace()).Get(config.InternalServiceName)
 	if err != nil {

@@ -322,3 +322,18 @@ func InsertKourierHeaders(ing *v1alpha1.Ingress) error {
 	}
 	return nil
 }
+
+func ContainsHostRewrite(ing *v1alpha1.Ingress) bool {
+	for _, rule := range ing.Spec.Rules {
+		if rule.HTTP == nil {
+			continue
+		}
+
+		for _, path := range rule.HTTP.Paths {
+			if path.RewriteHost != "" {
+				return true
+			}
+		}
+	}
+	return false
+}

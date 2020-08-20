@@ -54,6 +54,31 @@ func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient 
 		return fmt.Errorf("failed to add knative probe header in ingress: %s", ingress.GetName())
 	}
 
+	// HACK DON'T MERGE... Trying to get this to pass the tests.
+	if ContainsHostRewrite(ingress) {
+		fmt.Printf("REWRITE FOUND: %s", ingress.Name)
+		found := false
+		for _, ing := range caches.ingresses {
+			for i, rules := range ing.Spec.Rules {
+				for _, host := range rules.Hosts {
+					if host != "" && host == ingress.Spec.Rules[0].HTTP.Paths[0].RewriteHost {
+						for _, host := range ingress.Spec.Rules[0].Hosts {
+							ing.Spec.Rules[i].Hosts = appendIfMissing(ing.Spec.Rules[i].Hosts, host)
+						}
+						found = true
+						ingress = ing
+						break
+					}
+				}
+			}
+		}
+
+		if !found {
+			return fmt.Errorf("Rewrite for non existant host, yet.")
+		}
+	}
+	// HACK DON'T MERGE... Trying to get this to pass the tests.
+
 	ingressTranslation, err := translator.translateIngress(ingress, extAuthzEnabled)
 	if err != nil {
 		return err
@@ -64,6 +89,15 @@ func UpdateInfoForIngress(caches *Caches, ingress *v1alpha1.Ingress, kubeclient 
 	}
 
 	return caches.UpdateIngress(ingress, ingressTranslation, kubeclient)
+}
+
+func appendIfMissing(slice []string, s string) []string {
+	for _, ele := range slice {
+		if ele == s {
+			return slice
+		}
+	}
+	return append(slice, s)
 }
 
 func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
