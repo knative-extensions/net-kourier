@@ -380,6 +380,7 @@ func (m *Prober) processWorkItem() bool {
 		probeURL.String(),
 		prober.WithHeader(network.UserAgentKey, network.IngressReadinessUserAgent),
 		prober.WithHeader(network.ProbeHeaderName, network.ProbeHeaderValue),
+		prober.WithHeader(network.HashHeaderName, network.HashHeaderValue),
 		m.probeVerifier(item))
 
 	// In case of cancellation, drop the work item

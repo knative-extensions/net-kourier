@@ -16,9 +16,9 @@ require (
 	k8s.io/apimachinery v0.18.7-rc.0
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	knative.dev/networking v0.0.0-20200817055406-2b6d120d60b8
-	knative.dev/pkg v0.0.0-20200812224206-44c860147a87
+	knative.dev/pkg v0.0.0-20200818021113-c451e3c37f5f
 	knative.dev/serving v0.16.1-0.20200818160413-427b2bf86de3
-	knative.dev/test-infra v0.0.0-20200813220834-388e55a496cf
+	knative.dev/test-infra v0.0.0-20200817225313-c0ea00ce480c
 )
 
 replace (
@@ -30,4 +30,6 @@ replace (
 	k8s.io/apimachinery => k8s.io/apimachinery v0.17.6
 	k8s.io/client-go => k8s.io/client-go v0.17.6
 	k8s.io/code-generator => k8s.io/code-generator v0.17.6
+
+	knative.dev/networking => github.com/mattmoor/networking v0.0.0-20200820040706-b82ebdcdc4c9
 )

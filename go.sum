@@ -802,6 +802,8 @@ github.com/marstr/guid v1.1.0/go.mod h1:74gB1z2wpxxInTG6yaqA7KrtM0NZ+RbrcqDvYHef
 github.com/matoous/godox v0.0.0-20190911065817-5d6d842e92eb/go.mod h1:1BELzlh859Sh1c6+90blK8lbYy0kwQf1bYlBhBysy1s=
 github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a h1:+J2gw7Bw77w/fbK7wnNJJDKmw1IbWft2Ul5BzrG1Qm8=
 github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a/go.mod h1:M1qoD/MqPgTZIk0EWKB38wE28ACRfVcn+cU08jyArI0=
+github.com/mattmoor/networking v0.0.0-20200820040706-b82ebdcdc4c9 h1:J3qdu3C6THomzXp5aQCNZOTUeSzXngqCX9DdZPbK2Gc=
+github.com/mattmoor/networking v0.0.0-20200820040706-b82ebdcdc4c9/go.mod h1:l7xzgkls1BZd/06IlWopqGdUqh76ytc/wLlfm/HF+b4=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.1/go.mod h1:FuOcm+DKB9mbwrcAfNl7/TZVBZ6rcnceauSikq3lYCQ=
 github.com/mattn/go-colorable v0.1.2/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=
@@ -1824,10 +1826,6 @@ knative.dev/caching v0.0.0-20200116200605-67bca2c83dfa/go.mod h1:dHXFU6CGlLlbzaW
 knative.dev/caching v0.0.0-20200811171106-48c335fed9c8/go.mod h1:XonDcFC2DLSWP71f2y7oYnXUko5d5HsJRnZtkp0wY7g=
 knative.dev/eventing-contrib v0.6.1-0.20190723221543-5ce18048c08b/go.mod h1:SnXZgSGgMSMLNFTwTnpaOH7hXDzTFtw0J8OmHflNx3g=
 knative.dev/eventing-contrib v0.11.2/go.mod h1:SnXZgSGgMSMLNFTwTnpaOH7hXDzTFtw0J8OmHflNx3g=
-knative.dev/networking v0.0.0-20200812200006-4d518e76538a h1:E1rnQR9IZvDcEAgoOXMW9LWqevaYFVTlMS2ndgoAO6Y=
-knative.dev/networking v0.0.0-20200812200006-4d518e76538a/go.mod h1:ZewGJAElO4qPOeZTKuLIO3NQNGAkqcQVu64gHOSiPPg=
-knative.dev/networking v0.0.0-20200817055406-2b6d120d60b8 h1:Js1L84C4Q0Xw0oWHLE9iVW3rWq5VCcsr3dJ/6Zco1tI=
-knative.dev/networking v0.0.0-20200817055406-2b6d120d60b8/go.mod h1:ZewGJAElO4qPOeZTKuLIO3NQNGAkqcQVu64gHOSiPPg=
 knative.dev/pkg v0.0.0-20191101194912-56c2594e4f11/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
 knative.dev/pkg v0.0.0-20191111150521-6d806b998379/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
 knative.dev/pkg v0.0.0-20200207155214-fef852970f43/go.mod h1:pgODObA1dTyhNoFxPZTTjNWfx6F0aKsKzn+vaT9XO/Q=
@@ -1839,6 +1837,8 @@ knative.dev/pkg v0.0.0-20200711004937-22502028e31a/go.mod h1:AqAJV6rYi8IGikDjJ/9
 knative.dev/pkg v0.0.0-20200811165506-f6ed1766e8ee/go.mod h1:udIbxBS/SJCL4sqnCG8HZArez9HjWmeqJCaVJP/h32I=
 knative.dev/pkg v0.0.0-20200812224206-44c860147a87 h1:argvd9DHJr2YeeV2pl1ogXPB3raIWnOqJivfBK/qsiM=
 knative.dev/pkg v0.0.0-20200812224206-44c860147a87/go.mod h1:udIbxBS/SJCL4sqnCG8HZArez9HjWmeqJCaVJP/h32I=
+knative.dev/pkg v0.0.0-20200818021113-c451e3c37f5f h1:20+d8Jhl4n8PEgXJjBjviv3XL+ddjtk9Arxp0CRBDAc=
+knative.dev/pkg v0.0.0-20200818021113-c451e3c37f5f/go.mod h1:jDDuXO7eEDWooxPadJRyt6dhO0Vi4B2B1l+Ju9VtnZ4=
 knative.dev/serving v0.16.1-0.20200818160413-427b2bf86de3 h1:NqQ8Nmb87Xv8Mc/jet/mRQryZKCm0hdY4dilsK2lhGw=
 knative.dev/serving v0.16.1-0.20200818160413-427b2bf86de3/go.mod h1:OSO+sfM0xgIhQ+aG6pmMY9SjYDOdghCkoJiAXDheun8=
 knative.dev/test-infra v0.0.0-20200407185800-1b88cb3b45a5/go.mod h1:xcdUkMJrLlBswIZqL5zCuBFOC22WIPMQoVX1L35i0vQ=
@@ -1848,8 +1848,11 @@ knative.dev/test-infra v0.0.0-20200519015156-82551620b0a9/go.mod h1:A5b2OAXTOeHT
 knative.dev/test-infra v0.0.0-20200707183444-aed09e56ddc7/go.mod h1:RjYAhXnZqeHw9+B0zsbqSPlae0lCvjekO/nw5ZMpLCs=
 knative.dev/test-infra v0.0.0-20200811030605-72f8c9f3e933 h1:1nfmLI9iQ87ygMeKGLREhH+2KYa6XX/e6enu0PsasHY=
 knative.dev/test-infra v0.0.0-20200811030605-72f8c9f3e933/go.mod h1:Pmg2c7Z7q7BGFUV/GOpU5BlrD3ePJft4MPqx8AYBplc=
+knative.dev/test-infra v0.0.0-20200813220306-af5517f4f576/go.mod h1:Pmg2c7Z7q7BGFUV/GOpU5BlrD3ePJft4MPqx8AYBplc=
 knative.dev/test-infra v0.0.0-20200813220834-388e55a496cf h1:GrIpJgHa/iWE1Gk2WKGXSEv1Uw7qPepjCELY+Jjzewo=
 knative.dev/test-infra v0.0.0-20200813220834-388e55a496cf/go.mod h1:Pmg2c7Z7q7BGFUV/GOpU5BlrD3ePJft4MPqx8AYBplc=
+knative.dev/test-infra v0.0.0-20200817225313-c0ea00ce480c h1:AT7+D1fWJlqcCpMDgYYLNPa0//gBTRtX8bnCz4Ar4Jg=
+knative.dev/test-infra v0.0.0-20200817225313-c0ea00ce480c/go.mod h1:Pmg2c7Z7q7BGFUV/GOpU5BlrD3ePJft4MPqx8AYBplc=
 modernc.org/cc v1.0.0/go.mod h1:1Sk4//wdnYJiUIxnW8ddKpaOJCF37yAdqYnkxUpaYxw=
 modernc.org/golex v1.0.0/go.mod h1:b/QX9oBD/LhixY6NDh+IdGv17hgB+51fET1i2kPSmvk=
 modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03k=

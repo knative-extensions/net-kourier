@@ -30,11 +30,10 @@ func TestBasics(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	// Create a simple Ingress over the Service.
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -51,7 +50,6 @@ func TestBasics(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	RuntimeRequest(t, client, "http://"+name+".example.com")
 }
@@ -62,11 +60,10 @@ func TestBasicsHTTP2(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameH2C)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameH2C)
 
 	// Create a simple Ingress over the Service.
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -83,7 +80,6 @@ func TestBasicsHTTP2(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	ri := RuntimeRequest(t, client, "http://"+name+".example.com")
 	if ri == nil {

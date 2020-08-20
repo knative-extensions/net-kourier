@@ -30,11 +30,10 @@ func TestRewriteHost(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	// Create a simple Ingress over the Service.
-	_, _, cancel = CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, _, _ = CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Visibility: v1alpha1.IngressVisibilityClusterLocal,
 			Hosts:      []string{name + ".example.com"},
@@ -51,7 +50,6 @@ func TestRewriteHost(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	hosts := []string{
 		"vanity.ismy.name",
@@ -65,7 +63,7 @@ func TestRewriteHost(t *testing.T) {
 	}
 
 	// Now create a RewriteHost ingress to point a custom Host at the Service
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -76,7 +74,6 @@ func TestRewriteHost(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	for _, host := range hosts {
 		RuntimeRequest(t, client, "http://"+host)

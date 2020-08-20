@@ -30,8 +30,7 @@ func TestMultipleHosts(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	// TODO(mattmoor): Once .svc.cluster.local stops being a special case
 	// for Visibility, add it here.
@@ -49,7 +48,7 @@ func TestMultipleHosts(t *testing.T) {
 	}
 
 	// Create a simple Ingress over the Service.
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -66,7 +65,6 @@ func TestMultipleHosts(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	for _, host := range hosts {
 		RuntimeRequest(t, client, "http://"+host)

@@ -39,13 +39,12 @@ func TestWebsocket(t *testing.T) {
 	clients := test.Setup(t)
 
 	const suffix = "- pong"
-	name, port, cancel := CreateWebsocketService(t, clients, suffix)
-	defer cancel()
+	name, port, _ := CreateWebsocketService(t, clients, suffix)
 
 	domain := name + ".example.com"
 
 	// Create a simple Ingress over the Service.
-	_, dialCtx, cancel := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -62,7 +61,6 @@ func TestWebsocket(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	dialer := websocket.Dialer{
 		NetDialContext:   dialCtx,
@@ -88,12 +86,10 @@ func TestWebsocketSplit(t *testing.T) {
 	clients := test.Setup(t)
 
 	const suffixBlue = "- blue"
-	blueName, bluePort, cancel := CreateWebsocketService(t, clients, suffixBlue)
-	defer cancel()
+	blueName, bluePort, _ := CreateWebsocketService(t, clients, suffixBlue)
 
 	const suffixGreen = "- green"
-	greenName, greenPort, cancel := CreateWebsocketService(t, clients, suffixGreen)
-	defer cancel()
+	greenName, greenPort, _ := CreateWebsocketService(t, clients, suffixGreen)
 
 	// The suffixes we expect to see.
 	want := sets.NewString(suffixBlue, suffixGreen)
@@ -101,7 +97,7 @@ func TestWebsocketSplit(t *testing.T) {
 	// Create a simple Ingress over the Service.
 	name := test.ObjectNameForTest(t)
 	domain := name + ".example.com"
-	_, dialCtx, cancel := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -126,7 +122,6 @@ func TestWebsocketSplit(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	dialer := websocket.Dialer{
 		NetDialContext:   dialCtx,

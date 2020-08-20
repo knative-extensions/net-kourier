@@ -34,13 +34,12 @@ func TestRetry(t *testing.T) {
 			t.Parallel()
 			clients := test.Setup(t)
 			// When the period matches, then it shouldn't fail.
-			name, port, cancel := CreateFlakyService(t, clients, i)
-			defer cancel()
+			name, port, _ := CreateFlakyService(t, clients, i)
 
 			domain := name + ".example.com"
 
 			// Create a simple Ingress over the Service.
-			_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+			_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 				Rules: []v1alpha1.IngressRule{{
 					Hosts:      []string{domain},
 					Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -58,7 +57,6 @@ func TestRetry(t *testing.T) {
 					},
 				}},
 			})
-			defer cancel()
 
 			for j := 0; j < 5; j++ {
 				resp, err := client.Get("http://" + domain)
@@ -78,13 +76,12 @@ func TestRetry(t *testing.T) {
 			t.Parallel()
 			clients := test.Setup(t)
 			// When the period matches, then it shouldn't fail.
-			name, port, cancel := CreateFlakyService(t, clients, i)
-			defer cancel()
+			name, port, _ := CreateFlakyService(t, clients, i)
 
 			domain := name + ".example.com"
 
 			// Create a simple Ingress over the Service.
-			_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+			_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 				Rules: []v1alpha1.IngressRule{{
 					Hosts:      []string{domain},
 					Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -102,7 +99,6 @@ func TestRetry(t *testing.T) {
 					},
 				}},
 			})
-			defer cancel()
 
 			// When the period is one more than the number of attempts (retries+1), then what we should see is:
 			//   500 {count=4}

@@ -38,8 +38,7 @@ func TestTagHeaders(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	t.Cleanup(cancel)
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	const (
 		tagName           = "the-tag"
@@ -48,7 +47,7 @@ func TestTagHeaders(t *testing.T) {
 		backendWithoutTag = "no-tag"
 	)
 
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -84,7 +83,6 @@ func TestTagHeaders(t *testing.T) {
 			},
 		}},
 	})
-	t.Cleanup(cancel)
 
 	tests := []struct {
 		Name        string
@@ -138,13 +136,12 @@ func TestPreSplitSetHeaders(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	const headerName = "Foo-Bar-Baz"
 
 	// Create a simple Ingress over the 10 Services.
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -164,7 +161,6 @@ func TestPreSplitSetHeaders(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	t.Run("Check without passing header", func(t *testing.T) {
 		ri := RuntimeRequest(t, client, "http://"+name+".example.com")
@@ -207,8 +203,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 	backends := make([]v1alpha1.IngressBackendSplit, 0, splits)
 	names := make(sets.String, splits)
 	for i := 0; i < splits; i++ {
-		name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-		defer cancel()
+		name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 		backends = append(backends, v1alpha1.IngressBackendSplit{
 			IngressBackend: v1alpha1.IngressBackend{
 				ServiceName:      name,
@@ -227,7 +222,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 
 	// Create a simple Ingress over the 10 Services.
 	name := test.ObjectNameForTest(t)
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -238,7 +233,6 @@ func TestPostSplitSetHeaders(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	t.Run("Check without passing header", func(t *testing.T) {
 		// Make enough requests that the likelihood of us seeing each variation is high,

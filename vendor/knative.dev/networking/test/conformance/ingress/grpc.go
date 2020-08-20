@@ -40,13 +40,12 @@ func TestGRPC(t *testing.T) {
 	clients := test.Setup(t)
 
 	const suffix = "- pong"
-	name, port, cancel := CreateGRPCService(t, clients, suffix)
-	defer cancel()
+	name, port, _ := CreateGRPCService(t, clients, suffix)
 
 	domain := name + ".example.com"
 
 	// Create a simple Ingress over the Service.
-	_, dialCtx, cancel := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -63,7 +62,6 @@ func TestGRPC(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	conn, err := grpc.Dial(
 		domain+":80",
@@ -97,12 +95,10 @@ func TestGRPCSplit(t *testing.T) {
 	clients := test.Setup(t)
 
 	const suffixBlue = "- blue"
-	blueName, bluePort, cancel := CreateGRPCService(t, clients, suffixBlue)
-	defer cancel()
+	blueName, bluePort, _ := CreateGRPCService(t, clients, suffixBlue)
 
 	const suffixGreen = "- green"
-	greenName, greenPort, cancel := CreateGRPCService(t, clients, suffixGreen)
-	defer cancel()
+	greenName, greenPort, _ := CreateGRPCService(t, clients, suffixGreen)
 
 	// The suffixes we expect to see.
 	want := sets.NewString(suffixBlue, suffixGreen)
@@ -110,7 +106,7 @@ func TestGRPCSplit(t *testing.T) {
 	// Create a simple Ingress over the Service.
 	name := test.ObjectNameForTest(t)
 	domain := name + ".example.com"
-	_, dialCtx, cancel := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -135,7 +131,6 @@ func TestGRPCSplit(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	conn, err := grpc.Dial(
 		domain+":80",

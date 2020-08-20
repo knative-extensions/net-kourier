@@ -20,13 +20,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	network "knative.dev/networking/pkg"
 	"knative.dev/networking/test"
+	pkgnet "knative.dev/pkg/network"
 )
 
 const (
@@ -95,6 +98,31 @@ func main() {
 	targetURL := fmt.Sprint("http://", targetHost)
 	log.Print("target is " + targetURL)
 	httpProxy = initialHTTPProxy(targetURL)
+
+	httpProxy.Transport = pkgnet.AutoTransport
+
+	// Warm up the connection to the backing service by probing it.
+	// This is in part to seed the DNS cache before the test and avoid
+	// flakes due to DNS resolution.
+	// See: https://github.com/knative-sandbox/net-contour/issues/189
+	client := &http.Client{Transport: httpProxy.Transport}
+	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
+	if err != nil {
+		log.Fatalf("Error creating request: %v", err)
+	}
+	req.Host = getTargetHostEnv()
+	req.Header.Set(network.ProbeHeaderName, network.ProbeHeaderValue)
+	if err := wait.PollImmediate(10*time.Millisecond, 10*time.Second, func() (bool, error) {
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("Got error, continuing: %v", err)
+			return false, nil
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode == http.StatusOK, nil
+	}); err != nil {
+		log.Fatalf("Error establishing connection: %v", err)
+	}
 
 	address := fmt.Sprint(":", port)
 	log.Print("Listening on address: ", address)

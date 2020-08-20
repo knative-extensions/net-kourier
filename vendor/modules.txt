@@ -784,7 +784,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/networking v0.0.0-20200817055406-2b6d120d60b8
+# knative.dev/networking v0.0.0-20200817055406-2b6d120d60b8 => github.com/mattmoor/networking v0.0.0-20200820040706-b82ebdcdc4c9
 ## explicit
 knative.dev/networking/pkg
 knative.dev/networking/pkg/apis/networking
@@ -816,7 +816,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20200812224206-44c860147a87
+# knative.dev/pkg v0.0.0-20200818021113-c451e3c37f5f
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -885,7 +885,7 @@ knative.dev/serving/pkg/apis/serving/v1beta1
 knative.dev/serving/pkg/autoscaler/config
 knative.dev/serving/pkg/client/clientset/versioned/scheme
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1
-# knative.dev/test-infra v0.0.0-20200813220834-388e55a496cf
+# knative.dev/test-infra v0.0.0-20200817225313-c0ea00ce480c
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/yaml v1.2.0
@@ -898,3 +898,4 @@ sigs.k8s.io/yaml
 # k8s.io/apimachinery => k8s.io/apimachinery v0.17.6
 # k8s.io/client-go => k8s.io/client-go v0.17.6
 # k8s.io/code-generator => k8s.io/code-generator v0.17.6
+# knative.dev/networking => github.com/mattmoor/networking v0.0.0-20200820040706-b82ebdcdc4c9
