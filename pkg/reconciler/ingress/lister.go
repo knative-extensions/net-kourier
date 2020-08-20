@@ -65,7 +65,6 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 }
 
 func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
-	localDomainName := network.GetClusterDomainName()
 	ips := sets.NewString()
 
 	for _, ip := range gatewayIps {
@@ -76,8 +75,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 	for _, rule := range ing.Spec.Rules {
 		var target status.ProbeTarget
 
-		externalDomains := getExternalDomains(rule, localDomainName)
-		internalDomains := getInternalDomains(rule, localDomainName)
+		internalDomains, externalDomains := getDomains(rule)
 		scheme := "http"
 
 		if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
@@ -119,24 +117,16 @@ func domainsToURL(domains []string, scheme string) []*url.URL {
 	return urls
 }
 
-func getInternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
-	var res []string
+func getDomains(rule v1alpha1.IngressRule) ([]string, []string) {
+	var internals, externals []string
 
 	for _, host := range rule.Hosts {
-		if strings.HasSuffix(host, localDomainName) {
-			res = append(res, host)
+		if strings.HasSuffix(host, network.GetClusterDomainName()) {
+			internals = append(internals, host)
+		} else {
+			externals = append(externals, host)
+
 		}
 	}
-
-	return res
-}
-
-func getExternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
-	var res []string
-	for _, host := range rule.Hosts {
-		if !strings.HasSuffix(host, localDomainName) {
-			res = append(res, host)
-		}
-	}
-	return res
+	return internals, externals
 }

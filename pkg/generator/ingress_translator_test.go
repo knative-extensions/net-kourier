@@ -121,7 +121,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), "cluster.local", &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 	ingressTranslation, err := ingressTranslator.translateIngress(&ingress, false)
 	if err != nil {
@@ -192,7 +192,7 @@ func TestIngressWithTLS(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), "cluster.local", &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 	translatedIngress, err := ingressTranslator.translateIngress(ingress, false)
 	if err != nil {
@@ -225,7 +225,7 @@ func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), "cluster.local", &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 	_, err := ingressTranslator.translateIngress(ingress, false)
 

@@ -43,7 +43,6 @@ import (
 type IngressTranslator struct {
 	kubeclient      kubeclient.Interface
 	endpointsLister corev1listers.EndpointsLister
-	localDomainName string
 	tracker         tracker.Interface
 	logger          *zap.SugaredLogger
 }
@@ -58,12 +57,11 @@ type translatedIngress struct {
 	internalVirtualHosts []*route.VirtualHost
 }
 
-func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string, tracker tracker.Interface,
+func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, tracker tracker.Interface,
 	logger *zap.SugaredLogger) IngressTranslator {
 	return IngressTranslator{
 		kubeclient:      kubeclient,
 		endpointsLister: endpointsLister,
-		localDomainName: localDomainName,
 		tracker:         tracker,
 		logger:          logger,
 	}
@@ -161,10 +159,10 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			return nil, nil
 		}
 
-		externalDomains := knative.ExternalDomains(rule, translator.localDomainName)
+		internalDomains, externalDomains := knative.Domains(rule)
 
 		// External should also be accessible internally
-		internalDomains := append(knative.InternalDomains(rule, translator.localDomainName), externalDomains...)
+		internalDomains = append(internalDomains, externalDomains...)
 
 		var virtualHost, internalVirtualHost route.VirtualHost
 		if extAuthzEnabled {
