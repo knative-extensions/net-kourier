@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -30,7 +29,6 @@ import (
 	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
-	"knative.dev/pkg/network"
 )
 
 func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
@@ -75,7 +73,12 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 	for _, rule := range ing.Spec.Rules {
 		var target status.ProbeTarget
 
-		internalDomains, externalDomains := getDomains(rule)
+		var internalDomains, externalDomains []string
+		if rule.Visibility == v1alpha1.IngressVisibilityClusterLocal {
+			internalDomains = getDomains(rule)
+		} else {
+			externalDomains = getDomains(rule)
+		}
 		scheme := "http"
 
 		if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
@@ -117,16 +120,10 @@ func domainsToURL(domains []string, scheme string) []*url.URL {
 	return urls
 }
 
-func getDomains(rule v1alpha1.IngressRule) ([]string, []string) {
-	var internals, externals []string
-
+func getDomains(rule v1alpha1.IngressRule) []string {
+	var domains []string
 	for _, host := range rule.Hosts {
-		if strings.HasSuffix(host, network.GetClusterDomainName()) {
-			internals = append(internals, host)
-		} else {
-			externals = append(externals, host)
-
-		}
+		domains = append(domains, host)
 	}
-	return internals, externals
+	return domains
 }

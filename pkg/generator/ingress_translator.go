@@ -159,7 +159,12 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			return nil, nil
 		}
 
-		internalDomains, externalDomains := knative.Domains(rule)
+		var internalDomains, externalDomains []string
+		if rule.Visibility == v1alpha1.IngressVisibilityClusterLocal {
+			internalDomains = knative.Domains(rule)
+		} else {
+			externalDomains = knative.Domains(rule)
+		}
 
 		// External should also be accessible internally
 		internalDomains = append(internalDomains, externalDomains...)

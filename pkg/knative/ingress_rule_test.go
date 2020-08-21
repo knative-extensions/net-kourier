@@ -27,18 +27,15 @@ import (
 var testRule = v1alpha1.IngressRule{
 	Hosts: []string{
 		"helloworld-go.default.svc.cluster.local",
-		"helloworld-go.default.example.com",
+		"helloworld-go.default.svc",
+		"helloworld-go.default",
 	},
 }
 
 func TestDomains(t *testing.T) {
-	internalDomains, externalDomains := Domains(testRule)
+	domains := Domains(testRule)
 
-	extExpected := []string{
-		"helloworld-go.default.example.com",
-		"helloworld-go.default.example.com:*",
-	}
-	intExpected := []string{
+	expected := []string{
 		"helloworld-go.default",
 		"helloworld-go.default:*",
 		"helloworld-go.default.svc",
@@ -46,12 +43,9 @@ func TestDomains(t *testing.T) {
 		"helloworld-go.default.svc.cluster.local",
 		"helloworld-go.default.svc.cluster.local:*",
 	}
-	sort.Strings(intExpected)
-	sort.Strings(externalDomains)
-	sort.Strings(internalDomains)
-	sort.Strings(extExpected)
-	assert.DeepEqual(t, externalDomains, extExpected)
-	assert.DeepEqual(t, internalDomains, intExpected)
+	sort.Strings(domains)
+	sort.Strings(expected)
+	assert.DeepEqual(t, domains, expected)
 }
 
 func TestRuleIsExternalWithVisibility(t *testing.T) {
