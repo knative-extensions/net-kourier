@@ -73,12 +73,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 	for _, rule := range ing.Spec.Rules {
 		var target status.ProbeTarget
 
-		var internalDomains, externalDomains []string
-		if rule.Visibility == v1alpha1.IngressVisibilityClusterLocal {
-			internalDomains = getDomains(rule)
-		} else {
-			externalDomains = getDomains(rule)
-		}
+		domains := getDomains(rule)
 		scheme := "http"
 
 		if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
@@ -87,18 +82,18 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 			}
 			if len(ing.Spec.TLS) != 0 {
 				target.PodPort = strconv.Itoa(int(config.HTTPSPortExternal))
-				target.URLs = domainsToURL(externalDomains, "https")
+				target.URLs = domainsToURL(domains, "https")
 			} else {
 				target.PodPort = strconv.Itoa(int(config.HTTPPortExternal))
-				target.URLs = domainsToURL(externalDomains, scheme)
+				target.URLs = domainsToURL(domains, scheme)
 			}
 			targets = append(targets, target)
-		}
-
-		target = status.ProbeTarget{
-			PodIPs:  ips,
-			PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
-			URLs:    domainsToURL(internalDomains, scheme),
+		} else {
+			target = status.ProbeTarget{
+				PodIPs:  ips,
+				PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
+				URLs:    domainsToURL(domains, scheme),
+			}
 		}
 
 		targets = append(targets, target)
