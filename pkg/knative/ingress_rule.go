@@ -19,10 +19,7 @@ package knative
 import (
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
-	ingress "knative.dev/networking/pkg/ingress"
 	"knative.dev/pkg/network"
 )
 
@@ -47,10 +44,7 @@ func Domains(rule v1alpha1.IngressRule) ([]string, []string) {
 	var internal, external []string
 	for _, host := range rule.Hosts {
 		if strings.HasSuffix(host, network.GetClusterDomainName()) {
-			expandedHosts := ingress.ExpandedHosts(sets.NewString(host)).List()
-			for _, h := range expandedHosts {
-				internal = append(internal, h, h+":*")
-			}
+			external = append(external, host, host+":*")
 		} else {
 			external = append(external, host, host+":*")
 		}
