@@ -159,17 +159,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			return nil, nil
 		}
 
-		var internalDomains, externalDomains []string
-		if rule.Visibility == v1alpha1.IngressVisibilityClusterLocal {
-			internalDomains = knative.Domains(rule)
-		} else {
-			externalDomains = knative.Domains(rule)
-		}
-
-		// External should also be accessible internally
-		internalDomains = append(internalDomains, externalDomains...)
-
-		var virtualHost, internalVirtualHost route.VirtualHost
+		domains := knative.Domains(rule)
+		var virtualHost route.VirtualHost
 		if extAuthzEnabled {
 
 			visibility := ingress.Spec.Visibility
@@ -183,20 +174,17 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			}
 
 			ContextExtensions = mergeMapString(ContextExtensions, ingress.GetLabels())
-
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, externalDomains, ruleRoute)
-			internalVirtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, internalDomains,
-				ruleRoute)
+			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, domains, ruleRoute)
 		} else {
-			virtualHost = envoy.NewVirtualHost(ingress.GetName(), externalDomains, ruleRoute)
-			internalVirtualHost = envoy.NewVirtualHost(ingress.GetName(), internalDomains, ruleRoute)
+			virtualHost = envoy.NewVirtualHost(ingress.GetName(), domains, ruleRoute)
 		}
 
 		if knative.RuleIsExternal(rule, ingress.Spec.Visibility) {
 			res.externalVirtualHosts = append(res.externalVirtualHosts, &virtualHost)
-		}
+		} else {
+			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
 
-		res.internalVirtualHosts = append(res.internalVirtualHosts, &internalVirtualHost)
+		}
 	}
 
 	return res, nil
