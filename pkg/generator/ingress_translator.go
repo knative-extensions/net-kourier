@@ -181,6 +181,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 
 		if knative.RuleIsExternal(rule, ingress.Spec.Visibility) {
 			res.externalVirtualHosts = append(res.externalVirtualHosts, &virtualHost)
+			// External should also be accessible internally
+			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
 		} else {
 			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
 		}

@@ -172,17 +172,20 @@ func TestIngressVisibility(t *testing.T) {
 	tests := []struct {
 		name       string
 		hosts      []string
-		expDomains []string
+		extDomains []string
+		intDomains []string
 		visibility v1alpha1.IngressVisibility
 	}{{
 		name:       "exteranl visibility",
 		hosts:      []string{"hello.default.example.com"},
-		expDomains: []string{"hello.default.example.com", "hello.default.example.com:*"},
+		extDomains: []string{"hello.default.example.com", "hello.default.example.com:*"},
+		// External should also be accessible internally
+		intDomains: []string{"hello.default.example.com", "hello.default.example.com:*"},
 		visibility: v1alpha1.IngressVisibilityExternalIP,
 	}, {
 		name:       "cluster local visibility",
 		hosts:      []string{"hello.default", "hello.default.svc", "hello.default.svc.cluster.local"},
-		expDomains: []string{"hello.default", "hello.default:*", "hello.default.svc", "hello.default.svc:*", "hello.default.svc.cluster.local", "hello.default.svc.cluster.local:*"},
+		intDomains: []string{"hello.default", "hello.default:*", "hello.default.svc", "hello.default.svc:*", "hello.default.svc.cluster.local", "hello.default.svc.cluster.local:*"},
 		visibility: v1alpha1.IngressVisibilityClusterLocal,
 	}}
 
@@ -203,23 +206,23 @@ func TestIngressVisibility(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			actualHosts := []string{}
-			var virtualHosts, emptyHosts []*route.VirtualHost
-			if test.visibility == v1alpha1.IngressVisibilityClusterLocal {
-				virtualHosts = translatedIngress.internalVirtualHosts
-				emptyHosts = translatedIngress.externalVirtualHosts
-			} else {
-				virtualHosts = translatedIngress.externalVirtualHosts
-				emptyHosts = translatedIngress.internalVirtualHosts
-			}
-			assert.Equal(t, 0, len(emptyHosts))
+			var extDomains, intDomains []string
+			var extHosts, intHosts []*route.VirtualHost
+			extHosts = translatedIngress.externalVirtualHosts
+			intHosts = translatedIngress.internalVirtualHosts
 
-			for _, v := range virtualHosts {
-				actualHosts = append(actualHosts, v.Domains...)
+			for _, v := range extHosts {
+				extDomains = append(extDomains, v.Domains...)
 			}
-			sort.Strings(actualHosts)
-			sort.Strings(test.expDomains)
-			assert.DeepEqual(t, actualHosts, test.expDomains)
+			for _, v := range intHosts {
+				intDomains = append(intDomains, v.Domains...)
+			}
+			sort.Strings(extDomains)
+			sort.Strings(intDomains)
+			sort.Strings(test.extDomains)
+			sort.Strings(test.intDomains)
+			assert.DeepEqual(t, extDomains, test.extDomains)
+			assert.DeepEqual(t, intDomains, test.intDomains)
 		})
 	}
 }
