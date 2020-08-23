@@ -183,7 +183,6 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			res.externalVirtualHosts = append(res.externalVirtualHosts, &virtualHost)
 		} else {
 			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
-
 		}
 	}
 
