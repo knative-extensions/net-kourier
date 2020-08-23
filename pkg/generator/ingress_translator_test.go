@@ -18,6 +18,7 @@ package generator
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"knative.dev/net-kourier/pkg/envoy"
@@ -166,6 +167,63 @@ func TestTrafficSplits(t *testing.T) {
 	)
 }
 
+func TestIngressVisibility(t *testing.T) {
+	kubeClient := fake.NewSimpleClientset()
+	tests := []struct {
+		name       string
+		hosts      []string
+		expDomains []string
+		visibility v1alpha1.IngressVisibility
+	}{{
+		name:       "exteranl visibility",
+		hosts:      []string{"hello.default.example.com"},
+		expDomains: []string{"hello.default.example.com", "hello.default.example.com:*"},
+		visibility: v1alpha1.IngressVisibilityExternalIP,
+	}, {
+		name:       "cluster local visibility",
+		hosts:      []string{"hello.default", "hello.default.svc", "hello.default.svc.cluster.local"},
+		expDomains: []string{"hello.default", "hello.default:*", "hello.default.svc", "hello.default.svc:*", "hello.default.svc.cluster.local", "hello.default.svc.cluster.local:*"},
+		visibility: v1alpha1.IngressVisibilityClusterLocal,
+	}}
+
+	for num, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ingress := createIngress(fmt.Sprintf("hello-%d", num), test.hosts, test.visibility)
+
+			// Create the Kubernetes services associated to the Knative service that
+			// appears in the ingress above
+			if err := createServicesWithNames(kubeClient, []string{ingress.ObjectMeta.Name}, ingress.ObjectMeta.Namespace); err != nil {
+				t.Error(err)
+			}
+
+			ingressTranslator := NewIngressTranslator(
+				kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+
+			translatedIngress, err := ingressTranslator.translateIngress(ingress, false)
+			if err != nil {
+				t.Error(err)
+			}
+			actualHosts := []string{}
+			var virtualHosts, emptyHosts []*route.VirtualHost
+			if test.visibility == v1alpha1.IngressVisibilityClusterLocal {
+				virtualHosts = translatedIngress.internalVirtualHosts
+				emptyHosts = translatedIngress.externalVirtualHosts
+			} else {
+				virtualHosts = translatedIngress.externalVirtualHosts
+				emptyHosts = translatedIngress.internalVirtualHosts
+			}
+			assert.Equal(t, 0, len(emptyHosts))
+
+			for _, v := range virtualHosts {
+				actualHosts = append(actualHosts, v.Domains...)
+			}
+			sort.Strings(actualHosts)
+			sort.Strings(test.expDomains)
+			assert.DeepEqual(t, actualHosts, test.expDomains)
+		})
+	}
+}
+
 func TestIngressWithTLS(t *testing.T) {
 	// TLS data for the test
 	tlsSecretName := "tls-secret"
@@ -254,6 +312,35 @@ func (endpoints *endpoints) List(selector labels.Selector) ([]*kubev1.Endpoints,
 
 func (endpoints *endpoints) Get(name string) (*kubev1.Endpoints, error) {
 	return &kubev1.Endpoints{}, nil
+}
+
+func createIngress(name string, hosts []string, visibility v1alpha1.IngressVisibility) *v1alpha1.Ingress {
+	return &v1alpha1.Ingress{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "Ingress",
+			APIVersion: "networking.internal.knative.dev/v1alpha1",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: name,
+		},
+		Spec: v1alpha1.IngressSpec{
+			Rules: []v1alpha1.IngressRule{{
+				Hosts:      hosts,
+				Visibility: visibility,
+				HTTP: &v1alpha1.HTTPIngressRuleValue{
+					Paths: []v1alpha1.HTTPIngressPath{{
+						Splits: []v1alpha1.IngressBackendSplit{{
+							IngressBackend: v1alpha1.IngressBackend{
+								ServiceName: name,
+								ServicePort: intstr.FromInt(80),
+							},
+						}},
+					}},
+				},
+			}},
+		},
+		Status: v1alpha1.IngressStatus{},
+	}
 }
 
 func createIngressWithTLS(hosts []string, secretName string, secretNamespace string, svcNamespace string) *v1alpha1.Ingress {
