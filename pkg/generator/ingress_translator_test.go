@@ -176,7 +176,7 @@ func TestIngressVisibility(t *testing.T) {
 		intDomains []string
 		visibility v1alpha1.IngressVisibility
 	}{{
-		name:       "exteranl visibility",
+		name:       "external visibility",
 		hosts:      []string{"hello.default.example.com"},
 		extDomains: []string{"hello.default.example.com", "hello.default.example.com:*"},
 		// External should also be accessible internally
