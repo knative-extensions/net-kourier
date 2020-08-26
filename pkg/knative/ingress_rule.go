@@ -17,51 +17,26 @@ limitations under the License.
 package knative
 
 import (
-	"strings"
-
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 )
 
+// Domains returns domains.
+//
+// For example, external domains returns domains with the following formats:
+// 	- sub-route_host.namespace.example.com
+// 	- sub-route_host.namespace.example.com:*
+//
 // Somehow envoy doesn't match properly gRPC authorities with ports.
 // The fix is to include ":*" in the domains.
 // This applies both for internal and external domains.
 // More info https://github.com/envoyproxy/envoy/issues/886
-
-func ExternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
-	var res []string
-
+//
+func Domains(rule v1alpha1.IngressRule) []string {
+	var domains []string
 	for _, host := range rule.Hosts {
-		if !strings.Contains(host, localDomainName) {
-			res = append(res, host, host+":*")
-		}
+		domains = append(domains, host, host+":*")
 	}
-
-	return res
-}
-
-// InternalDomains returns domains with the following formats:
-// 	- sub-route_host
-// 	- sub-route_host.namespace
-// 	- sub-route_host.namespace.svc
-// 	- Each of the previous ones with ":*" appended
-func InternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
-	var res []string
-
-	for _, host := range rule.Hosts {
-		if strings.Contains(host, localDomainName) {
-			res = append(res, host, host+":*")
-
-			splits := strings.Split(host, ".")
-			domain := splits[0] + "." + splits[1]
-			res = append(res, domain, domain+":*")
-
-			domain = splits[0] + "." + splits[1] + ".svc"
-			res = append(res, domain, domain+":*")
-
-		}
-	}
-
-	return res
+	return domains
 }
 
 func RuleIsExternal(rule v1alpha1.IngressRule, ingressVisibility v1alpha1.IngressVisibility) bool {

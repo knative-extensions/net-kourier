@@ -46,7 +46,6 @@ import (
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/network"
 	knativeReconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/tracker"
 )
@@ -138,7 +137,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	endpointsTracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		r.kubeClient, endpointsInformer.Lister(), network.GetClusterDomainName(), endpointsTracker, logger)
+		r.kubeClient, endpointsInformer.Lister(), endpointsTracker, logger)
 	r.ingressTranslator = &ingressTranslator
 
 	// Initialize the Envoy snapshot.

@@ -43,7 +43,6 @@ import (
 type IngressTranslator struct {
 	kubeclient      kubeclient.Interface
 	endpointsLister corev1listers.EndpointsLister
-	localDomainName string
 	tracker         tracker.Interface
 	logger          *zap.SugaredLogger
 }
@@ -58,12 +57,11 @@ type translatedIngress struct {
 	internalVirtualHosts []*route.VirtualHost
 }
 
-func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, localDomainName string, tracker tracker.Interface,
+func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev1listers.EndpointsLister, tracker tracker.Interface,
 	logger *zap.SugaredLogger) IngressTranslator {
 	return IngressTranslator{
 		kubeclient:      kubeclient,
 		endpointsLister: endpointsLister,
-		localDomainName: localDomainName,
 		tracker:         tracker,
 		logger:          logger,
 	}
@@ -161,12 +159,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			return nil, nil
 		}
 
-		externalDomains := knative.ExternalDomains(rule, translator.localDomainName)
-
-		// External should also be accessible internally
-		internalDomains := append(knative.InternalDomains(rule, translator.localDomainName), externalDomains...)
-
-		var virtualHost, internalVirtualHost route.VirtualHost
+		domains := knative.Domains(rule)
+		var virtualHost route.VirtualHost
 		if extAuthzEnabled {
 
 			visibility := ingress.Spec.Visibility
@@ -180,20 +174,18 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			}
 
 			ContextExtensions = mergeMapString(ContextExtensions, ingress.GetLabels())
-
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, externalDomains, ruleRoute)
-			internalVirtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, internalDomains,
-				ruleRoute)
+			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, domains, ruleRoute)
 		} else {
-			virtualHost = envoy.NewVirtualHost(ingress.GetName(), externalDomains, ruleRoute)
-			internalVirtualHost = envoy.NewVirtualHost(ingress.GetName(), internalDomains, ruleRoute)
+			virtualHost = envoy.NewVirtualHost(ingress.GetName(), domains, ruleRoute)
 		}
 
 		if knative.RuleIsExternal(rule, ingress.Spec.Visibility) {
 			res.externalVirtualHosts = append(res.externalVirtualHosts, &virtualHost)
+			// External should also be accessible internally
+			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
+		} else {
+			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
 		}
-
-		res.internalVirtualHosts = append(res.internalVirtualHosts, &internalVirtualHost)
 	}
 
 	return res, nil

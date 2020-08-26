@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -30,7 +29,6 @@ import (
 	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
-	"knative.dev/pkg/network"
 )
 
 func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
@@ -65,7 +63,6 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 }
 
 func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
-	localDomainName := network.GetClusterDomainName()
 	ips := sets.NewString()
 
 	for _, ip := range gatewayIps {
@@ -76,8 +73,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 	for _, rule := range ing.Spec.Rules {
 		var target status.ProbeTarget
 
-		externalDomains := getExternalDomains(rule, localDomainName)
-		internalDomains := getInternalDomains(rule, localDomainName)
+		domains := getDomains(rule)
 		scheme := "http"
 
 		if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
@@ -86,18 +82,18 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 			}
 			if len(ing.Spec.TLS) != 0 {
 				target.PodPort = strconv.Itoa(int(config.HTTPSPortExternal))
-				target.URLs = domainsToURL(externalDomains, "https")
+				target.URLs = domainsToURL(domains, "https")
 			} else {
 				target.PodPort = strconv.Itoa(int(config.HTTPPortExternal))
-				target.URLs = domainsToURL(externalDomains, scheme)
+				target.URLs = domainsToURL(domains, scheme)
 			}
 			targets = append(targets, target)
-		}
-
-		target = status.ProbeTarget{
-			PodIPs:  ips,
-			PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
-			URLs:    domainsToURL(internalDomains, scheme),
+		} else {
+			target = status.ProbeTarget{
+				PodIPs:  ips,
+				PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
+				URLs:    domainsToURL(domains, scheme),
+			}
 		}
 
 		targets = append(targets, target)
@@ -119,24 +115,10 @@ func domainsToURL(domains []string, scheme string) []*url.URL {
 	return urls
 }
 
-func getInternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
-	var res []string
-
+func getDomains(rule v1alpha1.IngressRule) []string {
+	var domains []string
 	for _, host := range rule.Hosts {
-		if strings.HasSuffix(host, localDomainName) {
-			res = append(res, host)
-		}
+		domains = append(domains, host)
 	}
-
-	return res
-}
-
-func getExternalDomains(rule v1alpha1.IngressRule, localDomainName string) []string {
-	var res []string
-	for _, host := range rule.Hosts {
-		if !strings.HasSuffix(host, localDomainName) {
-			res = append(res, host)
-		}
-	}
-	return res
+	return domains
 }
