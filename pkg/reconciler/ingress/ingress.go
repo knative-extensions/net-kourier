@@ -54,10 +54,13 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingres
 
 	r.ObserveKind(ctx, ingress)
 
-	if ready, err := r.statusManager.IsReady(context.TODO(), before); err != nil {
-		return err
-	} else if ready {
+	if ready, err := r.statusManager.IsReady(context.TODO(), before); err == nil && ready {
 		knative.MarkIngressReady(ingress)
+	} else {
+		ingress.Status.MarkLoadBalancerNotReady()
+		if err != nil {
+			return fmt.Errorf("failed to probe Ingress %s/%s: %w", ingress.GetNamespace(), ingress.GetName(), err)
+		}
 	}
 
 	return nil
