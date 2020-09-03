@@ -116,9 +116,5 @@ func domainsToURL(domains []string, scheme string) []*url.URL {
 }
 
 func getDomains(rule v1alpha1.IngressRule) []string {
-	var domains []string
-	for _, host := range rule.Hosts {
-		domains = append(domains, host)
-	}
-	return domains
+	return rule.Hosts
 }

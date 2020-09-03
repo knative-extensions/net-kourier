@@ -30,9 +30,8 @@ import (
 // The fix is to include ":*" in the domains.
 // This applies both for internal and external domains.
 // More info https://github.com/envoyproxy/envoy/issues/886
-//
 func Domains(rule v1alpha1.IngressRule) []string {
-	var domains []string
+	domains := make([]string, 0, len(rule.Hosts))
 	for _, host := range rule.Hosts {
 		domains = append(domains, host, host+":*")
 	}
