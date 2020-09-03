@@ -56,24 +56,6 @@ func TestRuleIsExternalWithVisibility(t *testing.T) {
 		Visibility: v1alpha1.IngressVisibilityClusterLocal,
 	}
 
-	assert.Equal(t, RuleIsExternal(externalRule, ""), true)
-	assert.Equal(t, RuleIsExternal(internalRule, ""), false)
-}
-
-func TestRuleIsExternalWithIngressVisibility(t *testing.T) {
-	ruleWithoutVisibility := v1alpha1.IngressRule{Visibility: ""}
-
-	assert.Equal(
-		t, RuleIsExternal(ruleWithoutVisibility, v1alpha1.IngressVisibilityClusterLocal), false,
-	)
-	assert.Equal(
-		t, RuleIsExternal(ruleWithoutVisibility, v1alpha1.IngressVisibilityExternalIP), true,
-	)
-}
-
-func TestRuleIsExternalWithoutVisibility(t *testing.T) {
-	ruleWithoutVisibility := v1alpha1.IngressRule{Visibility: ""}
-
-	// Knative defaults to external, so it should return true
-	assert.Equal(t, RuleIsExternal(ruleWithoutVisibility, ""), true)
+	assert.Equal(t, RuleIsExternal(externalRule), true)
+	assert.Equal(t, RuleIsExternal(internalRule), false)
 }

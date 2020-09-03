@@ -163,14 +163,9 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		var virtualHost route.VirtualHost
 		if extAuthzEnabled {
 
-			visibility := ingress.Spec.Visibility
-			if visibility == "" { // Needed because visibility is optional
-				visibility = v1alpha1.IngressVisibilityClusterLocal
-			}
-
 			ContextExtensions := map[string]string{
 				"client":     "kourier",
-				"visibility": string(visibility),
+				"visibility": string(rule.Visibility),
 			}
 
 			ContextExtensions = mergeMapString(ContextExtensions, ingress.GetLabels())
@@ -179,7 +174,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			virtualHost = envoy.NewVirtualHost(ingress.GetName(), domains, ruleRoute)
 		}
 
-		if knative.RuleIsExternal(rule, ingress.Spec.Visibility) {
+		if knative.RuleIsExternal(rule) {
 			res.externalVirtualHosts = append(res.externalVirtualHosts, &virtualHost)
 			// External should also be accessible internally
 			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)

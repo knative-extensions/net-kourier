@@ -39,15 +39,9 @@ func Domains(rule v1alpha1.IngressRule) []string {
 	return domains
 }
 
-func RuleIsExternal(rule v1alpha1.IngressRule, ingressVisibility v1alpha1.IngressVisibility) bool {
-	switch rule.Visibility {
-	case v1alpha1.IngressVisibilityExternalIP:
-		return true
-	case v1alpha1.IngressVisibilityClusterLocal:
+func RuleIsExternal(rule v1alpha1.IngressRule) bool {
+	if rule.Visibility == v1alpha1.IngressVisibilityClusterLocal {
 		return false
-	default:
-		// If the rule does not have a visibility set, use the one at the ingress level
-		// If there is not anything set, Knative defaults to "external"
-		return ingressVisibility != v1alpha1.IngressVisibilityClusterLocal
 	}
+	return true
 }

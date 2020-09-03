@@ -76,7 +76,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 		domains := getDomains(rule)
 		scheme := "http"
 
-		if knative.RuleIsExternal(rule, ing.Spec.Visibility) {
+		if knative.RuleIsExternal(rule) {
 			target = status.ProbeTarget{
 				PodIPs: ips,
 			}
