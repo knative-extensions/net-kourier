@@ -22,17 +22,15 @@ import (
 	"strconv"
 	"time"
 
-	"knative.dev/net-kourier/pkg/config"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/conversion"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes"
+	"knative.dev/net-kourier/pkg/config"
 )
 
 const maxRequestBytesDefault = 8192
@@ -43,7 +41,7 @@ type ExternalAuthzConfig struct {
 	Port             int
 	FailureModeAllow bool
 	MaxRequestBytes  int
-	Timeout          duration.Duration
+	Timeout          time.Duration
 	Cluster          *v2.Cluster
 	HTTPFilter       *httpconnectionmanagerv2.HttpFilter
 }
@@ -82,23 +80,14 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 	}
 
 	if strTimeout, ok := os.LookupEnv(config.ExtAuthzTimeout); ok {
-		intTimeout, err := strconv.Atoi(strTimeout)
+		millis, err := strconv.Atoi(strTimeout)
 		if err != nil {
 			panic(err)
 		}
 
-		nsTimeout := int32(intTimeout * 1000000)
-		seconds := int64(nsTimeout / 1000000000)
-		nanos := nsTimeout % 1000000000
-
-		res.Timeout = duration.Duration{
-			Seconds: seconds,
-			Nanos:   nanos,
-		}
+		res.Timeout = time.Duration(millis) * time.Millisecond
 	} else {
-		res.Timeout = duration.Duration{
-			Seconds: 2,
-		}
+		res.Timeout = 2 * time.Second
 	}
 
 	res.Cluster = res.extAuthzCluster()
@@ -123,7 +112,7 @@ func (e *ExternalAuthzConfig) externalAuthZFilter(clusterName string) *httpconne
 						ClusterName: clusterName,
 					},
 				},
-				Timeout: &e.Timeout,
+				Timeout: ptypes.DurationProto(e.Timeout),
 				InitialMetadata: []*envoy_api_v2_core.HeaderValue{{
 					Key:   "client",
 					Value: "kourier",
