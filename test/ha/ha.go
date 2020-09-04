@@ -47,6 +47,7 @@ func createIngressSpec(name string, port int) v1alpha1.IngressSpec {
 					}},
 				}},
 			},
+			Visibility: v1alpha1.IngressVisibilityExternalIP,
 		}},
 	}
 }
