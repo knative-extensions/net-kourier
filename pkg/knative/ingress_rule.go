@@ -31,7 +31,7 @@ import (
 // This applies both for internal and external domains.
 // More info https://github.com/envoyproxy/envoy/issues/886
 func Domains(rule v1alpha1.IngressRule) []string {
-	domains := make([]string, 0, len(rule.Hosts))
+	domains := make([]string, 0, 2*len(rule.Hosts))
 	for _, host := range rule.Hosts {
 		domains = append(domains, host, host+":*")
 	}
