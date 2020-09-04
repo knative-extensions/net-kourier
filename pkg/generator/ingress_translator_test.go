@@ -363,6 +363,7 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 			}},
 			Rules: []v1alpha1.IngressRule{
 				{
+					Visibility: v1alpha1.IngressVisibilityExternalIP,
 					HTTP: &v1alpha1.HTTPIngressRuleValue{
 						Paths: []v1alpha1.HTTPIngressPath{
 							{
@@ -387,7 +388,6 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 					},
 				},
 			},
-			Visibility: "",
 		},
 		Status: v1alpha1.IngressStatus{},
 	}
