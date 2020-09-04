@@ -40,5 +40,8 @@ func Domains(rule v1alpha1.IngressRule) []string {
 }
 
 func RuleIsExternal(rule v1alpha1.IngressRule) bool {
-	return rule.Visibility == v1alpha1.IngressVisibilityExternalIP
+	if rule.Visibility == v1alpha1.IngressVisibilityClusterLocal {
+		return false
+	}
+	return true
 }
