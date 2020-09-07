@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/networking/pkg/apis/networking"
+	"knative.dev/networking/test"
 	"knative.dev/networking/test/conformance/ingress"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/ptr"
@@ -33,8 +34,8 @@ import (
 )
 
 const (
-	test                     = "aaa"
-	ingressNamespace         = "kourier-system"
+	aaaaaaa                  = "aaa"
+	ingressNamespace         = "w00tw00tw00t"
 	kourierControlNamespace  = "knative-serving"
 	kourierControlDeployment = "3scale-kourier-control"
 )
