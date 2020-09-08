@@ -21,23 +21,19 @@ import (
 	"time"
 
 	"knative.dev/net-kourier/pkg/envoy"
-	network "knative.dev/networking/pkg"
-	"knative.dev/networking/pkg/ingress"
+	"knative.dev/net-kourier/pkg/knative"
 
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"go.uber.org/zap"
 	kubev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"knative.dev/net-kourier/pkg/knative"
-
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/tracker"
-
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 )
 
 type IngressTranslator struct {
@@ -275,27 +271,4 @@ func mergeMapString(a, b map[string]string) map[string]string {
 		merged[k] = v
 	}
 	return merged
-}
-
-// InsertKourierHeaders adds an AppendHeader rule so that any request going through a Gateway is tagged with
-// the version of the Ingress currently deployed on the Gateway and also a Random header to force envoy to reload
-// the new config part. This is a hack, this should be removed once we can move to the latest version of envoy.
-func InsertKourierHeaders(ing *v1alpha1.Ingress) error {
-	bytes, err := ingress.ComputeHash(ing)
-	if err != nil {
-		return fmt.Errorf("failed to compute the hash of the Ingress: %w", err)
-	}
-	hash := fmt.Sprintf("%x", bytes)
-	for _, rule := range ing.Spec.Rules {
-		if rule.HTTP == nil {
-			return fmt.Errorf("rule is missing HTTP block: %+v", rule)
-		}
-		for i := range rule.HTTP.Paths {
-			if rule.HTTP.Paths[i].AppendHeaders == nil {
-				rule.HTTP.Paths[i].AppendHeaders = make(map[string]string, 2)
-			}
-			rule.HTTP.Paths[i].AppendHeaders[network.HashHeaderName] = hash
-		}
-	}
-	return nil
 }
