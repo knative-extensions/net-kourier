@@ -31,8 +31,6 @@ func NewRoute(name string,
 	path string,
 	wrs []*route.WeightedCluster_ClusterWeight,
 	routeTimeout time.Duration,
-	retryAttempts uint32,
-	perTryTimeout time.Duration,
 	headers map[string]string) *route.Route {
 
 	return &route.Route{
@@ -54,7 +52,6 @@ func NewRoute(name string,
 				UpgradeType: "websocket",
 				Enabled:     &wrappers.BoolValue{Value: true},
 			}},
-			RetryPolicy: retryPolicy(retryAttempts, perTryTimeout),
 		}},
 		RequestHeadersToAdd: headersToAdd(headers),
 	}
@@ -72,19 +69,5 @@ func NewRouteStatusOK(name string, path string) *route.Route {
 		Action: &route.Route_DirectResponse{
 			DirectResponse: &route.DirectResponseAction{Status: http.StatusOK},
 		},
-	}
-}
-
-func retryPolicy(retryAttempts uint32, perTryTimeout time.Duration) *route.RetryPolicy {
-	if retryAttempts == 0 {
-		return nil
-	}
-
-	return &route.RetryPolicy{
-		RetryOn: "5xx",
-		NumRetries: &wrappers.UInt32Value{
-			Value: retryAttempts,
-		},
-		PerTryTimeout: ptypes.DurationProto(perTryTimeout),
 	}
 }
