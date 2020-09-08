@@ -30,7 +30,6 @@ func MarkIngressReady(ingress *networkingv1alpha1.Ingress) {
 	externalDomain := domainForServiceName(config.ExternalServiceName)
 
 	ingress.Status.MarkLoadBalancerReady(
-		nil,
 		[]networkingv1alpha1.LoadBalancerIngressStatus{{
 			DomainInternal: externalDomain,
 		}},

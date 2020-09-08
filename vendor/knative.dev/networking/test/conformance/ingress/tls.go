@@ -30,15 +30,13 @@ func TestIngressTLS(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	hosts := []string{name + ".example.com"}
 
-	secretName, cancel := CreateTLSSecret(t, clients, hosts)
-	defer cancel()
+	secretName, _ := CreateTLSSecret(t, clients, hosts)
 
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -60,7 +58,6 @@ func TestIngressTLS(t *testing.T) {
 			SecretNamespace: test.ServingNamespace,
 		}},
 	})
-	defer cancel()
 
 	t.Run("verify HTTP", func(t *testing.T) {
 		RuntimeRequest(t, client, "http://"+name+".example.com")

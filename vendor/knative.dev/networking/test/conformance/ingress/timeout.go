@@ -33,18 +33,17 @@ func TestTimeout(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateTimeoutService(t, clients)
-	defer cancel()
+	name, port, _ := CreateTimeoutService(t, clients)
 
 	// The timeout, and an epsilon value to use as jitter for testing requests
 	// either hit or miss the timeout (without getting so close that we flake).
 	const (
-		timeout = 1 * time.Second
-		epsilon = 100 * time.Millisecond
+		timeout = 5 * time.Second
+		epsilon = 200 * time.Millisecond
 	)
 
 	// Create a simple Ingress over the Service.
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -62,7 +61,6 @@ func TestTimeout(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	tests := []struct {
 		name         string

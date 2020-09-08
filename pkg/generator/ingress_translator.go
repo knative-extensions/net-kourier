@@ -231,18 +231,8 @@ func createRouteForRevision(ingressName string, ingressNamespace string, httpPat
 		routeTimeout = httpPath.Timeout.Duration
 	}
 
-	attempts := 0
-	var perTryTimeout time.Duration
-	if httpPath.Retries != nil {
-		attempts = httpPath.Retries.Attempts
-
-		if httpPath.Retries.PerTryTimeout != nil {
-			perTryTimeout = httpPath.Retries.PerTryTimeout.Duration
-		}
-	}
-
 	return envoy.NewRoute(
-		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, routeTimeout, uint32(attempts), perTryTimeout, httpPath.AppendHeaders,
+		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, routeTimeout, httpPath.AppendHeaders,
 	)
 }
 

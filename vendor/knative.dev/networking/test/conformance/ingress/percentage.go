@@ -44,8 +44,7 @@ func TestPercentage(t *testing.T) {
 	// give the last route the remainder.
 	percent, total := 1, 0
 	for i := 0; i < 10; i++ {
-		name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-		defer cancel()
+		name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 		backends = append(backends, v1alpha1.IngressBackendSplit{
 			IngressBackend: v1alpha1.IngressBackend{
 				ServiceName:      name,
@@ -72,7 +71,7 @@ func TestPercentage(t *testing.T) {
 
 	// Create a simple Ingress over the 10 Services.
 	name := test.ObjectNameForTest(t)
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -83,7 +82,6 @@ func TestPercentage(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	// Create a large enough population of requests that we can reasonably assess how
 	// well the Ingress respected the percentage split.

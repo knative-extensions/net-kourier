@@ -106,8 +106,9 @@ func CreateRuntimeService(t *testing.T, clients *test.Clients, portName string) 
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{
-				Name:  "foo",
-				Image: pkgTest.ImagePath("runtime"),
+				Name:            "foo",
+				Image:           pkgTest.ImagePath("runtime"),
+				ImagePullPolicy: corev1.PullIfNotPresent,
 				Ports: []corev1.ContainerPort{{
 					Name:          portName,
 					ContainerPort: int32(containerPort),
@@ -178,8 +179,9 @@ func CreateProxyService(t *testing.T, clients *test.Clients, target string, gate
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{
-				Name:  "foo",
-				Image: pkgTest.ImagePath("httpproxy"),
+				Name:            "foo",
+				Image:           pkgTest.ImagePath("httpproxy"),
+				ImagePullPolicy: corev1.PullIfNotPresent,
 				Ports: []corev1.ContainerPort{{
 					ContainerPort: int32(containerPort),
 				}},
@@ -215,20 +217,7 @@ func CreateProxyService(t *testing.T, clients *test.Clients, target string, gate
 	}
 	proxyServiceCancel := createPodAndService(t, clients, pod, svc)
 
-	targetName := strings.Split(target, ".")
-	externalNameSvc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      targetName[0],
-			Namespace: targetName[1],
-		},
-		Spec: corev1.ServiceSpec{
-			Type:            corev1.ServiceTypeExternalName,
-			ExternalName:    gatewayDomain,
-			SessionAffinity: corev1.ServiceAffinityNone,
-		},
-	}
-
-	externalNameServiceCancel := createService(t, clients, externalNameSvc)
+	externalNameServiceCancel := createExternalNameService(t, clients, target, gatewayDomain)
 
 	return name, port, func() {
 		externalNameServiceCancel()
@@ -262,8 +251,9 @@ func CreateTimeoutService(t *testing.T, clients *test.Clients) (string, int, con
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{
-				Name:  "foo",
-				Image: pkgTest.ImagePath("timeout"),
+				Name:            "foo",
+				Image:           pkgTest.ImagePath("timeout"),
+				ImagePullPolicy: corev1.PullIfNotPresent,
 				Ports: []corev1.ContainerPort{{
 					Name:          networking.ServicePortNameHTTP1,
 					ContainerPort: int32(containerPort),
@@ -332,8 +322,9 @@ func CreateFlakyService(t *testing.T, clients *test.Clients, period int) (string
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{
-				Name:  "foo",
-				Image: pkgTest.ImagePath("flaky"),
+				Name:            "foo",
+				Image:           pkgTest.ImagePath("flaky"),
+				ImagePullPolicy: corev1.PullIfNotPresent,
 				Ports: []corev1.ContainerPort{{
 					Name:          networking.ServicePortNameHTTP1,
 					ContainerPort: int32(containerPort),
@@ -406,8 +397,9 @@ func CreateWebsocketService(t *testing.T, clients *test.Clients, suffix string) 
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{
-				Name:  "foo",
-				Image: pkgTest.ImagePath("wsserver"),
+				Name:            "foo",
+				Image:           pkgTest.ImagePath("wsserver"),
+				ImagePullPolicy: corev1.PullIfNotPresent,
 				Ports: []corev1.ContainerPort{{
 					Name:          networking.ServicePortNameHTTP1,
 					ContainerPort: int32(containerPort),
@@ -480,8 +472,9 @@ func CreateGRPCService(t *testing.T, clients *test.Clients, suffix string) (stri
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{
-				Name:  "foo",
-				Image: pkgTest.ImagePath("grpc-ping"),
+				Name:            "foo",
+				Image:           pkgTest.ImagePath("grpc-ping"),
+				ImagePullPolicy: corev1.PullIfNotPresent,
 				Ports: []corev1.ContainerPort{{
 					Name:          networking.ServicePortNameH2C,
 					ContainerPort: int32(containerPort),
@@ -533,7 +526,7 @@ func CreateGRPCService(t *testing.T, clients *test.Clients, suffix string) (stri
 func createService(t *testing.T, clients *test.Clients, svc *corev1.Service) context.CancelFunc {
 	t.Helper()
 
-	test.CleanupOnInterrupt(func() {
+	t.Cleanup(func() {
 		clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Delete(svc.Name, &metav1.DeleteOptions{})
 	})
 	if err := reconciler.RetryUpdateConflicts(func(attempts int) error {
@@ -551,33 +544,48 @@ func createService(t *testing.T, clients *test.Clients, svc *corev1.Service) con
 	}
 }
 
+func createExternalNameService(t *testing.T, clients *test.Clients, target, gatewayDomain string) context.CancelFunc {
+	targetName := strings.SplitN(target, ".", 3)
+	externalNameSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName[0],
+			Namespace: targetName[1],
+		},
+		Spec: corev1.ServiceSpec{
+			Type:            corev1.ServiceTypeExternalName,
+			ExternalName:    gatewayDomain,
+			SessionAffinity: corev1.ServiceAffinityNone,
+			Ports: []corev1.ServicePort{{
+				Name:       networking.ServicePortNameH2C,
+				Port:       int32(80),
+				TargetPort: intstr.FromInt(80),
+			}},
+		},
+	}
+
+	return createService(t, clients, externalNameSvc)
+}
+
 // createPodAndService is a helper for creating the pod and service resources, setting
 // up their context.CancelFunc, and waiting for it to become ready.
 func createPodAndService(t *testing.T, clients *test.Clients, pod *corev1.Pod, svc *corev1.Service) context.CancelFunc {
 	t.Helper()
 
-	test.CleanupOnInterrupt(func() { clients.KubeClient.Kube.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{}) })
+	t.Cleanup(func() { clients.KubeClient.Kube.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{}) })
 	if err := reconciler.RetryUpdateConflicts(func(attempts int) error {
 		_, err := clients.KubeClient.Kube.CoreV1().Pods(pod.Namespace).Create(pod)
 		return err
 	}); err != nil {
 		t.Fatal("Error creating Pod:", err)
 	}
-	cancel := func() {
-		err := clients.KubeClient.Kube.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{})
-		if err != nil {
-			t.Errorf("Error cleaning up Pod %s", pod.Name)
-		}
-	}
 
-	test.CleanupOnInterrupt(func() {
+	t.Cleanup(func() {
 		clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Delete(svc.Name, &metav1.DeleteOptions{})
 	})
 	if err := reconciler.RetryUpdateConflicts(func(attempts int) error {
 		_, err := clients.KubeClient.Kube.CoreV1().Services(svc.Namespace).Create(svc)
 		return err
 	}); err != nil {
-		cancel()
 		t.Fatal("Error creating Service:", err)
 	}
 
@@ -589,6 +597,7 @@ func createPodAndService(t *testing.T, clients *test.Clients, pod *corev1.Pod, s
 		} else if err != nil {
 			return true, err
 		}
+
 		for _, subset := range ep.Subsets {
 			if len(subset.Addresses) == 0 {
 				return false, nil
@@ -597,7 +606,6 @@ func createPodAndService(t *testing.T, clients *test.Clients, pod *corev1.Pod, s
 		return len(ep.Subsets) > 0, nil
 	})
 	if waitErr != nil {
-		cancel()
 		t.Fatal("Error waiting for Endpoints to contain a Pod IP:", waitErr)
 	}
 
@@ -606,7 +614,10 @@ func createPodAndService(t *testing.T, clients *test.Clients, pod *corev1.Pod, s
 		if err != nil {
 			t.Errorf("Error cleaning up Service %s: %v", svc.Name, err)
 		}
-		cancel()
+		err = clients.KubeClient.Kube.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			t.Errorf("Error cleaning up Pod %s", pod.Name)
+		}
 	}
 }
 
@@ -627,7 +638,12 @@ func CreateIngress(t *testing.T, clients *test.Clients, spec v1alpha1.IngressSpe
 		},
 		Spec: spec,
 	}
-	test.CleanupOnInterrupt(func() { clients.NetworkingClient.Ingresses.Delete(ing.Name, &metav1.DeleteOptions{}) })
+
+	if err := ing.Validate(context.Background()); err != nil {
+		t.Fatal("Invalid ingress:", err)
+	}
+
+	t.Cleanup(func() { clients.NetworkingClient.Ingresses.Delete(ing.Name, &metav1.DeleteOptions{}) })
 	if err := reconciler.RetryUpdateConflicts(func(attempts int) (err error) {
 		ing, err = clients.NetworkingClient.Ingresses.Create(ing)
 		return err
@@ -698,6 +714,11 @@ func UpdateIngress(t *testing.T, clients *test.Clients, name string, spec v1alph
 		}
 
 		ing.Spec = spec
+
+		if err := ing.Validate(context.Background()); err != nil {
+			return err
+		}
+
 		_, err = clients.NetworkingClient.Ingresses.Update(ing)
 		return err
 	}); err != nil {
@@ -794,7 +815,7 @@ func CreateTLSSecretWithCertPool(t *testing.T, clients *test.Clients, hosts []st
 			corev1.TLSPrivateKeyKey: privPEM.String(),
 		},
 	}
-	test.CleanupOnInterrupt(func() {
+	t.Cleanup(func() {
 		clients.KubeClient.Kube.CoreV1().Secrets(secret.Namespace).Delete(secret.Name, &metav1.DeleteOptions{})
 	})
 	if _, err := clients.KubeClient.Kube.CoreV1().Secrets(secret.Namespace).Create(secret); err != nil {
@@ -840,28 +861,43 @@ func CreateDialContext(t *testing.T, ing *v1alpha1.Ingress, clients *test.Client
 	if err != nil {
 		t.Fatalf("Unable to retrieve Kubernetes service %s/%s: %v", namespace, name, err)
 	}
-	if len(svc.Status.LoadBalancer.Ingress) < 1 {
-		t.Fatal("Service does not have any ingresses (not type LoadBalancer?).")
-	}
-	ingress := svc.Status.LoadBalancer.Ingress[0]
+
 	dial := network.NewBackoffDialer(dialBackoff)
-	return func(ctx context.Context, _ string, address string) (net.Conn, error) {
-		_, port, err := net.SplitHostPort(address)
-		if err != nil {
-			return nil, err
+	if pkgTest.Flags.IngressEndpoint != "" {
+		t.Logf("ingressendpoint: %q", pkgTest.Flags.IngressEndpoint)
+
+		// If we're using a manual --ingressendpoint then don't require
+		// "type: LoadBalancer", which may not play nice with KinD
+		return func(ctx context.Context, _ string, address string) (net.Conn, error) {
+			_, port, err := net.SplitHostPort(address)
+			if err != nil {
+				return nil, err
+			}
+			for _, sp := range svc.Spec.Ports {
+				if fmt.Sprint(sp.Port) == port {
+					return dial(ctx, "tcp", fmt.Sprintf("%s:%d", pkgTest.Flags.IngressEndpoint, sp.NodePort))
+				}
+			}
+			return nil, fmt.Errorf("service doesn't contain a matching port: %s", port)
 		}
-		// Allow "ingressendpoint" flag to override the discovered ingress IP/hostname,
-		// this is required in minikube-like environments.
-		if pkgTest.Flags.IngressEndpoint != "" {
-			return dial(ctx, "tcp", pkgTest.Flags.IngressEndpoint)
+	} else if len(svc.Status.LoadBalancer.Ingress) >= 1 {
+		ingress := svc.Status.LoadBalancer.Ingress[0]
+		return func(ctx context.Context, _ string, address string) (net.Conn, error) {
+			_, port, err := net.SplitHostPort(address)
+			if err != nil {
+				return nil, err
+			}
+			if ingress.IP != "" {
+				return dial(ctx, "tcp", ingress.IP+":"+port)
+			}
+			if ingress.Hostname != "" {
+				return dial(ctx, "tcp", ingress.Hostname+":"+port)
+			}
+			return nil, errors.New("service ingress does not contain dialing information")
 		}
-		if ingress.IP != "" {
-			return dial(ctx, "tcp", ingress.IP+":"+port)
-		}
-		if ingress.Hostname != "" {
-			return dial(ctx, "tcp", ingress.Hostname+":"+port)
-		}
-		return nil, errors.New("service ingress does not contain dialing information")
+	} else {
+		t.Fatal("Service does not have a supported shape (not type LoadBalancer? missing --ingressendpoint?).")
+		return nil // Unreachable
 	}
 }
 
