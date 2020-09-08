@@ -30,14 +30,16 @@ func TestRewriteHost(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+
+	privateServiceName := test.ObjectNameForTest(t)
+	privateHostName := privateServiceName + "." + test.ServingNamespace + ".svc.cluster.local"
 
 	// Create a simple Ingress over the Service.
-	_, _, cancel = CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	ing, _, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Visibility: v1alpha1.IngressVisibilityClusterLocal,
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{privateHostName},
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
 					Splits: []v1alpha1.IngressBackendSplit{{
@@ -51,7 +53,10 @@ func TestRewriteHost(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
+
+	// Slap an ExternalName service in front of the kingress
+	loadbalancerAddress := ing.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
+	createExternalNameService(t, clients, privateHostName, loadbalancerAddress)
 
 	hosts := []string{
 		"vanity.ismy.name",
@@ -65,18 +70,24 @@ func TestRewriteHost(t *testing.T) {
 	}
 
 	// Now create a RewriteHost ingress to point a custom Host at the Service
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
-					RewriteHost: name + ".example.com",
+					RewriteHost: privateHostName,
+					Splits: []v1alpha1.IngressBackendSplit{{
+						IngressBackend: v1alpha1.IngressBackend{
+							ServiceName:      privateServiceName,
+							ServiceNamespace: test.ServingNamespace,
+							ServicePort:      intstr.FromInt(80),
+						},
+					}},
 				}},
 			},
 		}},
 	})
-	defer cancel()
 
 	for _, host := range hosts {
 		RuntimeRequest(t, client, "http://"+host)

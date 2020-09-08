@@ -126,6 +126,39 @@ func GetLeaderElectionConfig(ctx context.Context) (*leaderelection.Config, error
 	return leaderelection.NewConfigFromConfigMap(leaderElectionConfigMap)
 }
 
+// EnableInjectionOrDie enables Knative Injection and starts the informers.
+// Both Context and Config are optional.
+func EnableInjectionOrDie(ctx context.Context, cfg *rest.Config) context.Context {
+	if ctx == nil {
+		ctx = signals.NewContext()
+	}
+	if cfg == nil {
+		cfg = ParseAndGetConfigOrDie()
+	}
+
+	// Respect user provided settings, but if omitted customize the default behavior.
+	if cfg.QPS == 0 {
+		cfg.QPS = rest.DefaultQPS
+	}
+	if cfg.Burst == 0 {
+		cfg.Burst = rest.DefaultBurst
+	}
+	ctx = injection.WithConfig(ctx, cfg)
+
+	ctx, informers := injection.Default.SetupInformers(ctx, cfg)
+
+	// Start the injection clients and informers.
+	logging.FromContext(ctx).Info("Starting informers...")
+	go func(ctx context.Context) {
+		if err := controller.StartInformers(ctx.Done(), informers...); err != nil {
+			logging.FromContext(ctx).Fatalw("Failed to start informers", zap.Error(err))
+		}
+		<-ctx.Done()
+	}(ctx)
+
+	return ctx
+}
+
 // Main runs the generic main flow with a new context.
 // If any of the contructed controllers are AdmissionControllers or Conversion webhooks,
 // then a webhook is started to serve them.
@@ -190,9 +223,8 @@ func MainWithConfig(ctx context.Context, component string, cfg *rest.Config, cto
 	if cfg.Burst == 0 {
 		cfg.Burst = len(ctors) * rest.DefaultBurst
 	}
-	ctx = injection.WithConfig(ctx, cfg)
 
-	ctx, informers := injection.Default.SetupInformers(ctx, cfg)
+	ctx = EnableInjectionOrDie(ctx, cfg)
 
 	logger, atomicLevel := SetupLoggerOrDie(ctx, component)
 	defer flush(logger)
@@ -246,10 +278,7 @@ func MainWithConfig(ctx context.Context, component string, cfg *rest.Config, cto
 		})
 	}
 
-	logger.Info("Starting informers...")
-	if err := controller.StartInformers(ctx.Done(), informers...); err != nil {
-		logger.Fatalw("Failed to start informers", zap.Error(err))
-	}
+	// Wait for webhook informers to sync.
 	if wh != nil {
 		wh.InformersHaveSynced()
 	}
@@ -314,7 +343,7 @@ func SetupLoggerOrDie(ctx context.Context, component string) (*zap.SugaredLogger
 }
 
 // CheckK8sClientMinimumVersionOrDie checks that the hosting Kubernetes cluster
-// is at least the minimum allowable version or dies by calling log.Fatalf.
+// is at least the minimum allowable version or dies by calling log.Fatalw.
 func CheckK8sClientMinimumVersionOrDie(ctx context.Context, logger *zap.SugaredLogger) {
 	kc := kubeclient.Get(ctx)
 	if err := version.CheckMinimumVersion(kc.Discovery()); err != nil {
@@ -323,7 +352,7 @@ func CheckK8sClientMinimumVersionOrDie(ctx context.Context, logger *zap.SugaredL
 }
 
 // SetupConfigMapWatchOrDie establishes a watch of the configmaps in the system
-// namespace that are labeled to be watched or dies by calling log.Fatalf.
+// namespace that are labeled to be watched or dies by calling log.Fatalw.
 func SetupConfigMapWatchOrDie(ctx context.Context, logger *zap.SugaredLogger) *configmap.InformedWatcher {
 	kc := kubeclient.Get(ctx)
 	// Create ConfigMaps watcher with optional label-based filter.
@@ -341,7 +370,7 @@ func SetupConfigMapWatchOrDie(ctx context.Context, logger *zap.SugaredLogger) *c
 }
 
 // WatchLoggingConfigOrDie establishes a watch of the logging config or dies by
-// calling log.Fatalf. Note, if the config does not exist, it will be defaulted
+// calling log.Fatalw. Note, if the config does not exist, it will be defaulted
 // and this method will not die.
 func WatchLoggingConfigOrDie(ctx context.Context, cmw *configmap.InformedWatcher, logger *zap.SugaredLogger, atomicLevel zap.AtomicLevel, component string) {
 	if _, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(logging.ConfigMapName(),
@@ -352,8 +381,8 @@ func WatchLoggingConfigOrDie(ctx context.Context, cmw *configmap.InformedWatcher
 	}
 }
 
-// WatchObservabilityConfigOrDie establishes a watch of the logging config or
-// dies by calling log.Fatalf. Note, if the config does not exist, it will be
+// WatchObservabilityConfigOrDie establishes a watch of the observability config
+// or dies by calling log.Fatalw. Note, if the config does not exist, it will be
 // defaulted and this method will not die.
 func WatchObservabilityConfigOrDie(ctx context.Context, cmw *configmap.InformedWatcher, profilingHandler *profiling.Handler, logger *zap.SugaredLogger, component string) {
 	if _, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(metrics.ConfigMapName(),

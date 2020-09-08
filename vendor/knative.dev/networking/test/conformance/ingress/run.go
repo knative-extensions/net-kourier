@@ -41,7 +41,6 @@ func RunConformance(t *testing.T) {
 	t.Run("dispatch/percentage", TestPercentage)
 	t.Run("dispatch/path_and_percentage", TestPathAndPercentageSplit)
 
-	t.Run("retry", TestRetry)
 	t.Run("timeout", TestTimeout)
 
 	t.Run("tls", TestIngressTLS)

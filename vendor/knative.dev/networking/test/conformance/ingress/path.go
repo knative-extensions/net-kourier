@@ -35,24 +35,20 @@ func TestPath(t *testing.T) {
 	clients := test.Setup(t)
 
 	// For /foo
-	fooName, fooPort, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	fooName, fooPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	// For /bar
-	barName, barPort, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	barName, barPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	// For /baz
-	bazName, bazPort, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	bazName, bazPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	// Use a post-split injected header to establish which split we are sending traffic to.
 	const headerName = "Which-Backend"
 
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -120,7 +116,6 @@ func TestPath(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	tests := map[string]string{
 		"/foo":  fooName,
@@ -149,19 +144,16 @@ func TestPathAndPercentageSplit(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	fooName, fooPort, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	fooName, fooPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
-	barName, barPort, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	barName, barPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
-	name, port, cancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
-	defer cancel()
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
 
 	// Use a post-split injected header to establish which split we are sending traffic to.
 	const headerName = "Which-Backend"
 
-	_, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -207,7 +199,6 @@ func TestPathAndPercentageSplit(t *testing.T) {
 			},
 		}},
 	})
-	defer cancel()
 
 	const (
 		total     = 1000
