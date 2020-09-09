@@ -1,3 +1,5 @@
+// +build e2e
+
 /*
 Copyright 2020 The Knative Authors
 
@@ -14,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package integration
+package extauthz
 
 import (
 	"flag"
@@ -45,7 +47,6 @@ const domain string = "127.0.0.1.nip.io"
 const kourierNamespace string = "knative-serving"
 
 func TestKourierIntegration(t *testing.T) {
-	t.Skip("Skip for now until we figure out how to run these in the Knative infra")
 	t.Run("ExternalAuthz", ExtAuthzScenario)
 }
 

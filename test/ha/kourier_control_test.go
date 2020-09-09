@@ -34,7 +34,6 @@ import (
 )
 
 const (
-	ingressNamespace         = "kourier-system"
 	kourierControlNamespace  = "knative-serving"
 	kourierControlDeployment = "3scale-kourier-control"
 )
