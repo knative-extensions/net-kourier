@@ -73,7 +73,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 	for _, rule := range ing.Spec.Rules {
 		var target status.ProbeTarget
 
-		domains := getDomains(rule)
+		domains := rule.Hosts
 		scheme := "http"
 
 		if knative.RuleIsExternal(rule) {
@@ -113,12 +113,4 @@ func domainsToURL(domains []string, scheme string) []*url.URL {
 		urls = append(urls, url)
 	}
 	return urls
-}
-
-func getDomains(rule v1alpha1.IngressRule) []string {
-	var domains []string
-	for _, host := range rule.Hosts {
-		domains = append(domains, host)
-	}
-	return domains
 }

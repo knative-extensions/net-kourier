@@ -32,7 +32,7 @@ import (
 // More info https://github.com/envoyproxy/envoy/issues/886
 //
 func Domains(rule v1alpha1.IngressRule) []string {
-	var domains []string
+	domains := make([]string, 0, 2*len(rule.Hosts))
 	for _, host := range rule.Hosts {
 		domains = append(domains, host, host+":*")
 	}
