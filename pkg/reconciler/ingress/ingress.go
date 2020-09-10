@@ -107,7 +107,7 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 	logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
 	if err := generator.UpdateInfoForIngress(
-		r.caches, ingress, r.kubeClient, r.ingressTranslator, logger, r.extAuthz,
+		r.caches, ingress, r.kubeClient, r.ingressTranslator, r.extAuthz,
 	); err != nil {
 		return err
 	}
