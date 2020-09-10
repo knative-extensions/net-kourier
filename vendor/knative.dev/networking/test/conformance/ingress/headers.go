@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -26,9 +27,79 @@ import (
 	network "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	"knative.dev/networking/pkg/ingress"
 	"knative.dev/networking/test"
 	"knative.dev/pkg/ptr"
 )
+
+// TestProbeHeaders verifies that an KIngress implemented the dataplane contract for probe request.
+func TestProbeHeaders(t *testing.T) {
+	t.Parallel()
+	clients := test.Setup(t)
+
+	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+
+	// Create a simple Ingress over the Service.
+	ing, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+		Rules: []v1alpha1.IngressRule{{
+			Hosts:      []string{name + ".example.com"},
+			Visibility: v1alpha1.IngressVisibilityExternalIP,
+			HTTP: &v1alpha1.HTTPIngressRuleValue{
+				Paths: []v1alpha1.HTTPIngressPath{{
+					Splits: []v1alpha1.IngressBackendSplit{{
+						IngressBackend: v1alpha1.IngressBackend{
+							ServiceName:      name,
+							ServiceNamespace: test.ServingNamespace,
+							ServicePort:      intstr.FromInt(port),
+						},
+					}},
+				}},
+			},
+		}},
+	})
+
+	bytes, err := ingress.ComputeHash(ing)
+	if err != nil {
+		t.Errorf("Failed to compute hash: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		req  string
+		want string
+	}{{
+		name: "kingress generates hash",
+		req:  network.HashHeaderValue,
+		want: fmt.Sprintf("%x", bytes),
+	}, {
+		name: "request overrides hash",
+		req:  "2701a1b241db6af811992c57a5e11171847148ac3d2e1a8cc992a62f9e4fa111", // random hash to override.
+		want: "2701a1b241db6af811992c57a5e11171847148ac3d2e1a8cc992a62f9e4fa111",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ros := []RequestOption{}
+
+			ros = append(ros, func(r *http.Request) {
+				// Add the header to indicate this is a probe request.
+				r.Header.Set(network.ProbeHeaderName, network.ProbeHeaderValue)
+				r.Header.Set(network.HashHeaderName, tt.req)
+			})
+
+			ri := RuntimeRequest(t, client, "http://"+name+".example.com", ros...)
+			if ri == nil {
+				t.Error("Couldn't make request")
+				return
+			}
+
+			if got, want := ri.Request.Headers.Get(network.HashHeaderName), tt.want; got != want {
+				t.Errorf("Header[%q] = %q, wanted %q", network.HashHeaderName, got, want)
+			}
+		})
+	}
+
+}
 
 // TestTagHeaders verifies that an Ingress properly dispaches to backends based on the tag header
 //
