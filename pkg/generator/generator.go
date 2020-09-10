@@ -20,17 +20,14 @@ import (
 	"fmt"
 	"os"
 
-	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/envoy"
-
-	"go.uber.org/zap"
-
-	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
+
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/ingress"
 )
@@ -46,9 +43,7 @@ const (
 
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
-func UpdateInfoForIngress(caches *Caches, ing *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, logger *zap.SugaredLogger, extAuthzEnabled bool) error {
-	logger.Infof("Updating Knative Ingress %s/%s", ing.Name, ing.Namespace)
-
+func UpdateInfoForIngress(caches *Caches, ing *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, extAuthzEnabled bool) error {
 	// Adds a header with the ingress Hash and a random value header to force the config reload.
 	_, err := ingress.InsertProbe(ing)
 	if err != nil {
