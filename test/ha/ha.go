@@ -44,6 +44,7 @@ func createIngressSpec(name string, port int) v1alpha1.IngressSpec {
 							ServiceNamespace: test.ServingNamespace,
 							ServicePort:      intstr.FromInt(port),
 						},
+						Percent: 100,
 					}},
 				}},
 			},
