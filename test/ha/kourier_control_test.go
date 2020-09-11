@@ -40,22 +40,23 @@ const (
 
 func TestKourierControlHA(t *testing.T) {
 	clients := test.Setup(t)
+	ctx := context.Background()
 
-	if err := pkgTest.WaitForDeploymentScale(clients.KubeClient, kourierControlDeployment, kourierControlNamespace, haReplicas); err != nil {
+	if err := pkgTest.WaitForDeploymentScale(ctx, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, haReplicas); err != nil {
 		t.Fatalf("Deployment %s not scaled to %d: %v", kourierControlDeployment, haReplicas, err)
 	}
 
 	// TODO(mattmoor): Once we switch to the new sharded leader election, we should use more than a single bucket here, but the test is still interesting.
-	leaders, err := pkgHa.WaitForNewLeaders(t, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, sets.NewString(), 1 /* numBuckets */)
+	leaders, err := pkgHa.WaitForNewLeaders(ctx, t, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, sets.NewString(), 1 /* numBuckets */)
 	if err != nil {
 		t.Fatalf("Failed to get leader: %v", err)
 	}
 	t.Logf("Got initial leader set: %v", leaders)
 
-	svcName, svcPort, svcCancel := ingress.CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	svcName, svcPort, svcCancel := ingress.CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 	defer svcCancel()
 
-	_, _, ingressCancel := ingress.CreateIngressReady(t, clients, createIngressSpec(svcName, svcPort))
+	_, _, ingressCancel := ingress.CreateIngressReady(ctx, t, clients, createIngressSpec(svcName, svcPort))
 	defer ingressCancel()
 
 	url := apis.HTTP(svcName + domain)
@@ -63,29 +64,29 @@ func TestKourierControlHA(t *testing.T) {
 	defer test.AssertProberDefault(t, prober)
 
 	for _, leader := range leaders.List() {
-		if err := clients.KubeClient.Kube.CoreV1().Pods(kourierControlNamespace).Delete(leader, &metav1.DeleteOptions{
+		if err := clients.KubeClient.Kube.CoreV1().Pods(kourierControlNamespace).Delete(ctx, leader, metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
 		}); err != nil && !apierrs.IsNotFound(err) {
 			t.Fatalf("Failed to delete pod %s: %v", leader, err)
 		}
 
-		if err := pkgTest.WaitForPodDeleted(clients.KubeClient, leader, kourierControlNamespace); err != nil {
+		if err := pkgTest.WaitForPodDeleted(ctx, clients.KubeClient, leader, kourierControlNamespace); err != nil {
 			t.Fatalf("Did not observe %s to actually be deleted: %v", leader, err)
 		}
 	}
 
 	// Wait for all of the old leaders to go away, and then for the right number to be back.
-	if _, err := pkgHa.WaitForNewLeaders(t, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, leaders, 1 /* numBuckets */); err != nil {
+	if _, err := pkgHa.WaitForNewLeaders(ctx, t, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, leaders, 1 /* numBuckets */); err != nil {
 		t.Fatalf("Failed to find new leader: %v", err)
 	}
 
 	// Create a new service after electing the new leader to together with a new ingress.
-	newSvcName, newSvcPort, newSvcCancel := ingress.CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	newSvcName, newSvcPort, newSvcCancel := ingress.CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 	defer newSvcCancel()
 
-	_, _, newIngressCancel := ingress.CreateIngressReady(t, clients, createIngressSpec(newSvcName, newSvcPort))
+	_, _, newIngressCancel := ingress.CreateIngressReady(ctx, t, clients, createIngressSpec(newSvcName, newSvcPort))
 	defer newIngressCancel()
 
 	// Verify the new service is accessible via the ingress.
-	assertIngressEventuallyWorks(t, clients, apis.HTTP(newSvcName+domain).URL())
+	assertIngressEventuallyWorks(ctx, t, clients, apis.HTTP(newSvcName+domain).URL())
 }
