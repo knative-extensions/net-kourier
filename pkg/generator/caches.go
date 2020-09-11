@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -49,7 +50,7 @@ type Caches struct {
 	synced              chan struct{}
 }
 
-func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool, ingressesToSync []*v1alpha1.Ingress) (*Caches, error) {
+func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool, ingressesToSync []*v1alpha1.Ingress) (*Caches, error) {
 	c := &Caches{
 		ingresses:           make(map[string]*v1alpha1.Ingress),
 		translatedIngresses: make(map[string]*translatedIngress),
@@ -58,7 +59,7 @@ func NewCaches(logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface,
 		logger:              logger,
 		synced:              make(chan struct{}),
 	}
-	err := c.initConfig(kubernetesClient, extAuthz)
+	err := c.initConfig(ctx, kubernetesClient, extAuthz)
 
 	if len(ingressesToSync) == 0 {
 		// If ingressesToSync is empty, we can just close the "synced" channel now as we don't need to warm anything.
@@ -84,7 +85,7 @@ func (caches *Caches) hasSynced() bool {
 	return len(caches.ingressesToSync) == 0
 }
 
-func (caches *Caches) UpdateIngress(ingress *v1alpha1.Ingress, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
+func (caches *Caches) UpdateIngress(ctx context.Context, ingress *v1alpha1.Ingress, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
 	// we hold a lock for Updating the ingress, to avoid another worker to generate an snapshot just when we have
 	// deleted the ingress before adding it.
 	caches.mu.Lock()
@@ -96,16 +97,16 @@ func (caches *Caches) UpdateIngress(ingress *v1alpha1.Ingress, ingressTranslatio
 		return err
 	}
 
-	return caches.setListeners(kubeclient)
+	return caches.setListeners(ctx, kubeclient)
 }
 
-func (caches *Caches) initConfig(kubernetesClient kubeclient.Interface, extAuthz bool) error {
+func (caches *Caches) initConfig(ctx context.Context, kubernetesClient kubeclient.Interface, extAuthz bool) error {
 	if extAuthz {
 		extAuthZConfig := envoy.GetExternalAuthzConfig()
 		caches.addClusterForIngress(extAuthZConfig.Cluster, "__extAuthZCluster", "_internal")
 	}
 	caches.addStatusVirtualHost()
-	return caches.setListeners(kubernetesClient)
+	return caches.setListeners(ctx, kubernetesClient)
 }
 
 func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {
@@ -171,10 +172,11 @@ func (caches *Caches) addStatusVirtualHost() {
 	caches.statusVirtualHost = &statusVirtualHost
 }
 
-func (caches *Caches) setListeners(kubeclient kubeclient.Interface) error {
+func (caches *Caches) setListeners(ctx context.Context, kubeclient kubeclient.Interface) error {
 	localVHosts := append(caches.clusterLocalVirtualHosts(), caches.statusVirtualHost)
 
 	listeners, err := listenersFromVirtualHosts(
+		ctx,
 		caches.externalVirtualHosts(),
 		localVHosts,
 		caches.sniMatches(),
@@ -246,7 +248,7 @@ func (caches *Caches) deleteFromSyncList(ingressName, ingressNamespace string) {
 // Note: changes the snapshot version of the caches object
 // Notice that the clusters are not deleted. That's handled with the expiration
 // time set in the "ClustersCache" struct.
-func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string,
+func (caches *Caches) DeleteIngressInfo(ctx context.Context, ingressName string, ingressNamespace string,
 	kubeclient kubeclient.Interface) error {
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
@@ -255,7 +257,7 @@ func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace str
 	caches.deleteFromSyncList(ingressName, ingressNamespace)
 
 	caches.deleteTranslatedIngress(ingressName, ingressNamespace)
-	return caches.setListeners(kubeclient)
+	return caches.setListeners(ctx, kubeclient)
 }
 
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {

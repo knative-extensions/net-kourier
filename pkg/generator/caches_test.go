@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"context"
 	"sort"
 	"testing"
 
@@ -44,8 +45,9 @@ import (
 func TestDeleteIngressInfo(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
+	ctx := context.Background()
 
-	caches, err := NewCaches(logger, &kubeClient, false, nil)
+	caches, err := NewCaches(ctx, logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -54,6 +56,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
+		ctx,
 		caches,
 		firstIngressName,
 		firstIngressNamespace,
@@ -68,6 +71,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	secondIngressName := "ingress_2"
 	secondIngressNamespace := "ingress_2_namespace"
 	createTestDataForIngress(
+		ctx,
 		caches,
 		secondIngressName,
 		secondIngressNamespace,
@@ -79,7 +83,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	)
 
 	// Delete the first ingress
-	_ = caches.DeleteIngressInfo(firstIngressName, firstIngressNamespace, &kubeClient)
+	_ = caches.DeleteIngressInfo(ctx, firstIngressName, firstIngressNamespace, &kubeClient)
 
 	// Check that the listeners only have the virtual hosts of the second
 	// ingress.
@@ -108,8 +112,9 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	// instance.
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
+	ctx := context.Background()
 
-	caches, err := NewCaches(logger, &kubeClient, false, nil)
+	caches, err := NewCaches(ctx, logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -118,6 +123,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
+		ctx,
 		caches,
 		firstIngressName,
 		firstIngressNamespace,
@@ -137,7 +143,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	routesBeforeDelete := snapshotBeforeDelete.Routes.Items
 	listenersBeforeDelete := snapshotBeforeDelete.Listeners.Items
 
-	err = caches.DeleteIngressInfo("non_existing_name", "non_existing_namespace", &kubeClient)
+	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace", &kubeClient)
 	if err != nil {
 		t.FailNow()
 	}
@@ -169,7 +175,9 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 
 // Creates an ingress translation and listeners from the given names an
 // associates them with the ingress name/namespace received.
-func createTestDataForIngress(caches *Caches,
+func createTestDataForIngress(
+	ctx context.Context,
+	caches *Caches,
 	ingressName string,
 	ingressNamespace string,
 	clusterName string,
@@ -195,19 +203,21 @@ func createTestDataForIngress(caches *Caches,
 	}, &translatedIngress)
 
 	caches.addStatusVirtualHost()
-	_ = caches.setListeners(kubeClient)
+	_ = caches.setListeners(ctx, kubeClient)
 }
 
 func TestValidateIngress(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
+	ctx := context.Background()
 
-	caches, err := NewCaches(logger, &kubeClient, false, nil)
+	caches, err := NewCaches(ctx, logger, &kubeClient, false, nil)
 	if err != nil {
 		t.Fail()
 	}
 
 	createTestDataForIngress(
+		ctx,
 		caches,
 		"ingress_1",
 		"ingress_1_namespace",
@@ -247,9 +257,10 @@ func getVHostsNames(routeConfigs []v2.RouteConfiguration) ([]string, error) {
 func TestCacheWithWarmingWithoutIngressesToSync(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
+	ctx := context.Background()
 
 	var ingressesToSync []*v1alpha1.Ingress
-	caches, err := NewCaches(logger, &kubeClient, false, ingressesToSync)
+	caches, err := NewCaches(ctx, logger, &kubeClient, false, ingressesToSync)
 	if err != nil {
 		t.Fail()
 	}
@@ -271,6 +282,7 @@ func TestCacheWithWarmingWithoutIngressesToSync(t *testing.T) {
 func TestCacheWithWarmingWithIngressesToSync(t *testing.T) {
 	logger := zap.S()
 	kubeClient := fake.Clientset{}
+	ctx := context.Background()
 
 	ingressesToSync := []*v1alpha1.Ingress{
 		{
@@ -280,7 +292,7 @@ func TestCacheWithWarmingWithIngressesToSync(t *testing.T) {
 			Status:     v1alpha1.IngressStatus{},
 		},
 	}
-	caches, err := NewCaches(logger, &kubeClient, false, ingressesToSync)
+	caches, err := NewCaches(ctx, logger, &kubeClient, false, ingressesToSync)
 	if err != nil {
 		t.Fail()
 	}

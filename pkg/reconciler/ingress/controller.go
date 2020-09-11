@@ -71,13 +71,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	// Get the current list of ingresses that are ready, and pass it to the cache so we can
 	// know when it has been synced.
-	ingressesToSync, err := getReadyIngresses(knativeClient.NetworkingV1alpha1())
+	ingressesToSync, err := getReadyIngresses(ctx, knativeClient.NetworkingV1alpha1())
 	if err != nil {
 		panic(err)
 	}
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
-	caches, err := generator.NewCaches(logger.Named("caches"), kubernetesClient, extAuthZConfig.Enabled, ingressesToSync)
+	caches, err := generator.NewCaches(ctx, logger.Named("caches"), kubernetesClient, extAuthZConfig.Enabled, ingressesToSync)
 	if err != nil {
 		panic(err)
 	}
@@ -203,8 +203,8 @@ func waitForCache(log *zap.SugaredLogger, caches *generator.Caches) {
 	}
 }
 
-func getReadyIngresses(knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
-	ingresses, err := knativeClient.Ingresses("").List(metav1.ListOptions{})
+func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
+	ingresses, err := knativeClient.Ingresses("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

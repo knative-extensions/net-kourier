@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -43,14 +44,14 @@ const (
 
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
-func UpdateInfoForIngress(caches *Caches, ing *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, extAuthzEnabled bool) error {
+func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, extAuthzEnabled bool) error {
 	// Adds a header with the ingress Hash and a random value header to force the config reload.
 	_, err := ingress.InsertProbe(ing)
 	if err != nil {
 		return fmt.Errorf("failed to add knative probe header in ingress: %s", ing.GetName())
 	}
 
-	ingressTranslation, err := translator.translateIngress(ing, extAuthzEnabled)
+	ingressTranslation, err := translator.translateIngress(ctx, ing, extAuthzEnabled)
 	if err != nil {
 		return err
 	}
@@ -59,10 +60,10 @@ func UpdateInfoForIngress(caches *Caches, ing *v1alpha1.Ingress, kubeclient kube
 		return nil
 	}
 
-	return caches.UpdateIngress(ing, ingressTranslation, kubeclient)
+	return caches.UpdateIngress(ctx, ing, ingressTranslation, kubeclient)
 }
 
-func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
+func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	sniMatches []*envoy.SNIMatch,
 	kubeclient kubeclient.Interface, caches *Caches) ([]*v2.Listener, error) {
@@ -128,7 +129,7 @@ func listenersFromVirtualHosts(externalVirtualHosts []*route.VirtualHost,
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 	} else if useHTTPSListenerWithOneCert() {
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
-			&externalManager, kubeclient,
+			ctx, &externalManager, kubeclient,
 		)
 		if err != nil {
 			return nil, err
@@ -146,8 +147,8 @@ func useHTTPSListenerWithOneCert() bool {
 		os.Getenv(envCertsSecretName) != ""
 }
 
-func sslCreds(kubeClient kubeclient.Interface, secretNamespace string, secretName string) (certificateChain string, privateKey string, err error) {
-	secret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
+func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamespace string, secretName string) (certificateChain string, privateKey string, err error) {
+	secret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
 
 	if err != nil {
 		return "", "", err
@@ -159,9 +160,9 @@ func sslCreds(kubeClient kubeclient.Interface, secretNamespace string, secretNam
 	return certificateChain, privateKey, nil
 }
 
-func newExternalEnvoyListenerWithOneCert(manager *httpconnmanagerv2.HttpConnectionManager, kubeClient kubeclient.Interface) (*v2.Listener, error) {
+func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv2.HttpConnectionManager, kubeClient kubeclient.Interface) (*v2.Listener, error) {
 	certificateChain, privateKey, err := sslCreds(
-		kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
+		ctx, kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
 	)
 
 	if err != nil {
