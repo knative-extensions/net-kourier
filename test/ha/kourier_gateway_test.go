@@ -82,7 +82,7 @@ func TestKourierGatewayHA(t *testing.T) {
 		t.Fatal("Failed to wait for the service to update its endpoints:", err)
 	}
 
-	assertIngressEventuallyWorks(t, clients, url.URL())
+	assertIngressEventuallyWorks(ctx, t, clients, url.URL())
 
 	// Wait for the deployment to scale up again.
 	if err := pkgTest.WaitForDeploymentScale(ctx, clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
@@ -123,5 +123,5 @@ func TestKourierGatewayHA(t *testing.T) {
 		t.Fatal("Failed to wait for the service to update its endpoints:", err)
 	}
 
-	assertIngressEventuallyWorks(t, clients, url.URL())
+	assertIngressEventuallyWorks(ctx, t, clients, url.URL())
 }

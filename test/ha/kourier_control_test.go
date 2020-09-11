@@ -19,6 +19,7 @@ limitations under the License.
 package ha
 
 import (
+	"context"
 	"testing"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
