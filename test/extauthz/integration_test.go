@@ -19,6 +19,7 @@ limitations under the License.
 package extauthz
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -33,6 +34,7 @@ import (
 	v12 "k8s.io/api/core/v1"
 
 	"gotest.tools/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -52,6 +54,7 @@ func TestKourierIntegration(t *testing.T) {
 
 func ExtAuthzScenario(t *testing.T) {
 	kubeconfig := flag.Lookup("kubeconfig").Value.String()
+	ctx := context.Background()
 
 	servingClient, err := KnativeServingClient(kubeconfig)
 	if err != nil {
@@ -73,7 +76,7 @@ func ExtAuthzScenario(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	service, err := setupExtAuthzScenario(kubeClient, servingClient, servingNetworkClient)
+	service, err := setupExtAuthzScenario(ctx, kubeClient, servingClient, servingNetworkClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,14 +119,14 @@ func ExtAuthzScenario(t *testing.T) {
 	// The "hello world" service just returns "Hello World!"
 	assert.Equal(t, string(respBody), "Hello World!\n")
 
-	err = cleanExtAuthzScenario(kubeClient, servingClient, service.Name, "externalauthz", "externalauthz")
+	err = cleanExtAuthzScenario(ctx, kubeClient, servingClient, service.Name, "externalauthz", "externalauthz")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 }
 
-func setupExtAuthzScenario(k8sClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1alpha1Client,
+func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1alpha1Client,
 	networkServingClient *networkingClientSet.NetworkingV1alpha1Client) (*v1alpha1.Service, error) {
 
 	kubeClient := test.KubeClient{
@@ -131,21 +134,21 @@ func setupExtAuthzScenario(k8sClient *kubernetes.Clientset, servingClient *servi
 	}
 
 	service := ExampleHelloWorldServing()
-	createdService, err := servingClient.Services(namespace).Create(&service)
+	createdService, err := servingClient.Services(namespace).Create(ctx, &service, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	err = DeployExtAuthzService(k8sClient, kourierNamespace)
+	err = DeployExtAuthzService(ctx, k8sClient, kourierNamespace)
 	if err != nil {
 		return nil, err
 	}
 	// Wait for deployments to be ready
-	test.WaitForDeploymentState(&kubeClient, "externalauthz", isDeploymentScaledUp,
+	test.WaitForDeploymentState(ctx, &kubeClient, "externalauthz", isDeploymentScaledUp,
 		"DeploymentIsScaledUp", kourierNamespace, 120*time.Second)
 
 	// Patch kourier control to add required ENV vars to enable External Authz.
-	kourierControlDeployment, err := k8sClient.AppsV1().Deployments(kourierNamespace).Get("3scale-kourier-control",
+	kourierControlDeployment, err := k8sClient.AppsV1().Deployments(kourierNamespace).Get(ctx, "3scale-kourier-control",
 		v1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -170,13 +173,13 @@ func setupExtAuthzScenario(k8sClient *kubernetes.Clientset, servingClient *servi
 		Spec.Containers[0].Env, ExtAuthzFailureEnv)
 
 	// Update the object.
-	_, err = k8sClient.AppsV1().Deployments(kourierNamespace).Update(kourierControlDeployment)
+	_, err = k8sClient.AppsV1().Deployments(kourierNamespace).Update(ctx, kourierControlDeployment, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// Wait for deployments to be ready
-	test.WaitForDeploymentState(&kubeClient, kourierControlDeployment.GetName(), isDeploymentScaledUp,
+	test.WaitForDeploymentState(ctx, &kubeClient, kourierControlDeployment.GetName(), isDeploymentScaledUp,
 		"DeploymentIsScaledUp", kourierNamespace, 120*time.Second)
 
 	time.Sleep(10 * time.Second)
@@ -192,11 +195,11 @@ func setupExtAuthzScenario(k8sClient *kubernetes.Clientset, servingClient *servi
 	return createdService, nil
 }
 
-func cleanExtAuthzScenario(kubeClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1alpha1Client,
+func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1alpha1Client,
 	serviceName string, extAuthzServiceName string, extAuthDeploymentName string) error {
 
 	// Restore env vars
-	kourierControlDeployment, err := kubeClient.AppsV1().Deployments(kourierNamespace).Get("3scale-kourier-control",
+	kourierControlDeployment, err := kubeClient.AppsV1().Deployments(kourierNamespace).Get(ctx, "3scale-kourier-control",
 		v1.GetOptions{})
 
 	if err != nil {
@@ -211,21 +214,21 @@ func cleanExtAuthzScenario(kubeClient *kubernetes.Clientset, servingClient *serv
 	}
 
 	kourierControlDeployment.Spec.Template.Spec.Containers[0].Env = finalEnvs
-	_, err = kubeClient.AppsV1().Deployments(kourierNamespace).Update(kourierControlDeployment)
+	_, err = kubeClient.AppsV1().Deployments(kourierNamespace).Update(ctx, kourierControlDeployment, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
 
 	// Delete deployments
-	err = kubeClient.CoreV1().Services(kourierNamespace).Delete(extAuthzServiceName, &v1.DeleteOptions{})
+	err = kubeClient.CoreV1().Services(kourierNamespace).Delete(ctx, extAuthzServiceName, v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-	err = kubeClient.AppsV1().Deployments(kourierNamespace).Delete(extAuthDeploymentName, &v1.DeleteOptions{})
+	err = kubeClient.AppsV1().Deployments(kourierNamespace).Delete(ctx, extAuthDeploymentName, v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-	err = servingClient.Services(namespace).Delete(serviceName, &v1.DeleteOptions{})
+	err = servingClient.Services(namespace).Delete(ctx, serviceName, v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -233,7 +236,7 @@ func cleanExtAuthzScenario(kubeClient *kubernetes.Clientset, servingClient *serv
 	return nil
 }
 
-func DeployExtAuthzService(kubeClient *kubernetes.Clientset, namespace string) error {
+func DeployExtAuthzService(ctx context.Context, kubeClient *kubernetes.Clientset, namespace string) error {
 
 	extAuthzService := GetExtAuthzService(namespace)
 	extAuthzDeployment := GetExtAuthzDeployment(namespace)
@@ -243,7 +246,7 @@ func DeployExtAuthzService(kubeClient *kubernetes.Clientset, namespace string) e
 		return err
 	}
 
-	_, err = kubeClient.CoreV1().Services(namespace).Create(&extAuthzService)
+	_, err = kubeClient.CoreV1().Services(namespace).Create(ctx, &extAuthzService, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
