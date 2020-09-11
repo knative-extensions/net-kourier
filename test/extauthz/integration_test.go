@@ -241,7 +241,7 @@ func DeployExtAuthzService(ctx context.Context, kubeClient *kubernetes.Clientset
 	extAuthzService := GetExtAuthzService(namespace)
 	extAuthzDeployment := GetExtAuthzDeployment(namespace)
 
-	_, err := kubeClient.AppsV1().Deployments(namespace).Create(&extAuthzDeployment)
+	_, err := kubeClient.AppsV1().Deployments(namespace).Create(ctx, &extAuthzDeployment, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
