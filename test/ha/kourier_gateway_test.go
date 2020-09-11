@@ -19,6 +19,7 @@ limitations under the License.
 package ha
 
 import (
+	"context"
 	"sort"
 	"testing"
 
@@ -41,22 +42,22 @@ const (
 // The Kourier Gateway does not have leader election enabled.
 // The test ensures that stopping one of the gateway pods doesn't affect user applications.
 func TestKourierGatewayHA(t *testing.T) {
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
-	if err := pkgTest.WaitForDeploymentScale(clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
+	if err := pkgTest.WaitForDeploymentScale(ctx, clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
 		t.Fatalf("Deployment %s not scaled to %d: %v", kourierGatewayDeployment, haReplicas, err)
 	}
 
-	svcName, svcPort, svcCancel := ingress.CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	svcName, svcPort, svcCancel := ingress.CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 	defer svcCancel()
 
 	// Create an Ingress that we will test while restarting Kourier gateway.
-	_, _, ingressCancel := ingress.CreateIngressReady(t, clients, createIngressSpec(svcName, svcPort))
+	_, _, ingressCancel := ingress.CreateIngressReady(ctx, t, clients, createIngressSpec(svcName, svcPort))
 	defer ingressCancel()
 
 	url := apis.HTTP(svcName + domain)
 
-	pods, err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).List(metav1.ListOptions{
+	pods, err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: kourierGatewayLabel,
 	})
 	if err != nil {
@@ -64,35 +65,35 @@ func TestKourierGatewayHA(t *testing.T) {
 	}
 	gatewayPod := pods.Items[0].Name
 
-	origEndpoints, err := pkgTest.GetEndpointAddresses(clients.KubeClient, kourierService, kourierGatewayNamespace)
+	origEndpoints, err := pkgTest.GetEndpointAddresses(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace)
 	if err != nil {
 		t.Fatalf("Unable to get public endpoints for service %s: %v", kourierService, err)
 	}
 
-	if err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).Delete(gatewayPod,
-		&metav1.DeleteOptions{
+	if err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
+		metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
 		}); err != nil {
 		t.Fatalf("Failed to delete pod %s: %v", gatewayPod, err)
 	}
 
 	// Wait for the killed gateway to disappear from Kourier endpoints.
-	if err := pkgTest.WaitForChangedEndpoints(clients.KubeClient, kourierService, kourierGatewayNamespace, origEndpoints); err != nil {
+	if err := pkgTest.WaitForChangedEndpoints(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace, origEndpoints); err != nil {
 		t.Fatal("Failed to wait for the service to update its endpoints:", err)
 	}
 
 	assertIngressEventuallyWorks(t, clients, url.URL())
 
 	// Wait for the deployment to scale up again.
-	if err := pkgTest.WaitForDeploymentScale(clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
+	if err := pkgTest.WaitForDeploymentScale(ctx, clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
 		t.Fatalf("Deployment %s failed to scale up: %v", kourierGatewayDeployment, err)
 	}
 
-	if err := pkgTest.WaitForServiceEndpoints(clients.KubeClient, kourierService, kourierGatewayNamespace, haReplicas); err != nil {
+	if err := pkgTest.WaitForServiceEndpoints(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace, haReplicas); err != nil {
 		t.Fatalf("Failed to wait for %d endpoints for service %s: %v", haReplicas, kourierService, err)
 	}
 
-	pods, err = clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).List(metav1.ListOptions{
+	pods, err = clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: kourierGatewayLabel,
 	})
 	if err != nil {
@@ -105,20 +106,20 @@ func TestKourierGatewayHA(t *testing.T) {
 
 	gatewayPod = pods.Items[0].Name // Stop the oldest gateway pod remaining.
 
-	origEndpoints, err = pkgTest.GetEndpointAddresses(clients.KubeClient, kourierService, kourierGatewayNamespace)
+	origEndpoints, err = pkgTest.GetEndpointAddresses(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace)
 	if err != nil {
 		t.Fatalf("Unable to get public endpoints for service %s: %v", kourierService, err)
 	}
 
-	if err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).Delete(gatewayPod,
-		&metav1.DeleteOptions{
+	if err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
+		metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
 		}); err != nil {
 		t.Fatalf("Failed to delete pod %s: %v", gatewayPod, err)
 	}
 
 	// Wait for the killed pod to disappear from Kourier endpoints.
-	if err := pkgTest.WaitForChangedEndpoints(clients.KubeClient, kourierService, kourierGatewayNamespace, origEndpoints); err != nil {
+	if err := pkgTest.WaitForChangedEndpoints(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace, origEndpoints); err != nil {
 		t.Fatal("Failed to wait for the service to update its endpoints:", err)
 	}
 
