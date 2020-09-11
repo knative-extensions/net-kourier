@@ -43,4 +43,5 @@ replace (
 replace (
 	knative.dev/networking => github.com/mattmoor/networking v0.0.0-20200910232405-9c597b4a07b6
 	knative.dev/pkg => github.com/zroubalik/pkg v0.0.0-20200910185112-efc05700095b
+	knative.dev/serving => github.com/mattmoor/serving v0.0.0-20200911024220-578f7ac3a84f
 )
