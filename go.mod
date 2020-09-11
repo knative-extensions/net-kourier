@@ -19,10 +19,10 @@ require (
 	k8s.io/api v0.18.8
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
-	knative.dev/networking v0.0.0-20200910092251-e0e6565f9803
-	knative.dev/pkg v0.0.0-20200910010051-a79a813ce123
-	knative.dev/serving v0.17.1-0.20200910122651-69a1e7b7d8d7
-	knative.dev/test-infra v0.0.0-20200909211651-72eb6ae3c773
+	knative.dev/networking v0.0.0-20200911160100-731bfc03416d
+	knative.dev/pkg v0.0.0-20200911145400-2d4efecc6bc1
+	knative.dev/serving v0.0.0-20200911183800-3e7b71d67f00
+	knative.dev/test-infra v0.0.0-20200910231400-cfba2288403d
 )
 
 replace (
@@ -35,11 +35,4 @@ replace (
 	k8s.io/apimachinery => k8s.io/apimachinery v0.18.8
 	k8s.io/client-go => k8s.io/client-go v0.18.8
 	k8s.io/code-generator => k8s.io/code-generator v0.18.8
-)
-
-// TODO(nak3): DO NOT SUBMIT
-replace (
-	knative.dev/networking => github.com/mattmoor/networking v0.0.0-20200910232405-9c597b4a07b6
-	knative.dev/pkg => github.com/zroubalik/pkg v0.0.0-20200910185112-efc05700095b
-	knative.dev/serving => github.com/mattmoor/serving v0.0.0-20200911024220-578f7ac3a84f
 )

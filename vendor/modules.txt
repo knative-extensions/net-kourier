@@ -132,7 +132,7 @@ github.com/google/gofuzz
 github.com/google/uuid
 # github.com/googleapis/gax-go/v2 v2.0.5
 github.com/googleapis/gax-go/v2
-# github.com/googleapis/gnostic v0.3.1
+# github.com/googleapis/gnostic v0.4.0
 github.com/googleapis/gnostic/OpenAPIv2
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
@@ -792,7 +792,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/networking v0.0.0-20200910092251-e0e6565f9803 => github.com/mattmoor/networking v0.0.0-20200910232405-9c597b4a07b6
+# knative.dev/networking v0.0.0-20200911160100-731bfc03416d
 ## explicit
 knative.dev/networking/pkg
 knative.dev/networking/pkg/apis/networking
@@ -824,7 +824,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20200910010051-a79a813ce123 => github.com/zroubalik/pkg v0.0.0-20200910185112-efc05700095b
+# knative.dev/pkg v0.0.0-20200911145400-2d4efecc6bc1
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -881,7 +881,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.17.1-0.20200910122651-69a1e7b7d8d7 => github.com/mattmoor/serving v0.0.0-20200911024220-578f7ac3a84f
+# knative.dev/serving v0.0.0-20200911183800-3e7b71d67f00
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -893,7 +893,7 @@ knative.dev/serving/pkg/apis/serving/v1beta1
 knative.dev/serving/pkg/autoscaler/config
 knative.dev/serving/pkg/client/clientset/versioned/scheme
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1
-# knative.dev/test-infra v0.0.0-20200909211651-72eb6ae3c773
+# knative.dev/test-infra v0.0.0-20200910231400-cfba2288403d
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/structured-merge-diff/v3 v3.0.1-0.20200706213357-43c19bbb7fba
@@ -908,6 +908,3 @@ sigs.k8s.io/yaml
 # k8s.io/apimachinery => k8s.io/apimachinery v0.18.8
 # k8s.io/client-go => k8s.io/client-go v0.18.8
 # k8s.io/code-generator => k8s.io/code-generator v0.18.8
-# knative.dev/networking => github.com/mattmoor/networking v0.0.0-20200910232405-9c597b4a07b6
-# knative.dev/pkg => github.com/zroubalik/pkg v0.0.0-20200910185112-efc05700095b
-# knative.dev/serving => github.com/mattmoor/serving v0.0.0-20200911024220-578f7ac3a84f
