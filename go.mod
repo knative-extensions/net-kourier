@@ -18,8 +18,8 @@ require (
 	google.golang.org/grpc v1.31.1
 	google.golang.org/protobuf v1.25.0
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.18.7-rc.0
-	k8s.io/apimachinery v0.19.0
+	k8s.io/api v0.18.8
+	k8s.io/apimachinery v0.18.8
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	knative.dev/networking v0.0.0-20200910092251-e0e6565f9803
 	knative.dev/pkg v0.0.0-20200910010051-a79a813ce123
@@ -31,9 +31,16 @@ replace (
 	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.1
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2
 	github.com/tsenart/vegeta => github.com/tsenart/vegeta v1.2.1-0.20190917092155-ab06ddb56e2f
-	k8s.io/api => k8s.io/api v0.17.6
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.6
-	k8s.io/apimachinery => k8s.io/apimachinery v0.17.6
-	k8s.io/client-go => k8s.io/client-go v0.17.6
-	k8s.io/code-generator => k8s.io/code-generator v0.17.6
+
+	k8s.io/api => k8s.io/api v0.18.8
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.18.8
+	k8s.io/apimachinery => k8s.io/apimachinery v0.18.8
+	k8s.io/client-go => k8s.io/client-go v0.18.8
+	k8s.io/code-generator => k8s.io/code-generator v0.18.8
+)
+
+// TODO(nak3): DO NOT SUBMIT
+replace (
+	knative.dev/networking => github.com/mattmoor/networking v0.0.0-20200910232405-9c597b4a07b6
+	knative.dev/pkg => github.com/zroubalik/pkg v0.0.0-20200910185112-efc05700095b
 )
