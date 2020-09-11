@@ -7,13 +7,11 @@ require (
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.2
-	github.com/google/go-containerregistry v0.1.2 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
 	golang.org/x/sys v0.0.0-20200828081204-131dc92a58d5 // indirect
-	golang.org/x/tools v0.0.0-20200828013309-97019fc2e64b // indirect
 	google.golang.org/genproto v0.0.0-20200828030656-73b5761be4c5 // indirect
 	google.golang.org/grpc v1.31.1
 	google.golang.org/protobuf v1.25.0
