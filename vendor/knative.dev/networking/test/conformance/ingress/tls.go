@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"context"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -28,15 +29,15 @@ import (
 // TestIngressTLS verifies that the Ingress properly handles the TLS field.
 func TestIngressTLS(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
-	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	hosts := []string{name + ".example.com"}
 
-	secretName, _ := CreateTLSSecret(t, clients, hosts)
+	secretName, _ := CreateTLSSecret(ctx, t, clients, hosts)
 
-	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -60,11 +61,11 @@ func TestIngressTLS(t *testing.T) {
 	})
 
 	t.Run("verify HTTP", func(t *testing.T) {
-		RuntimeRequest(t, client, "http://"+name+".example.com")
+		RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
 	})
 
 	t.Run("verify HTTPS", func(t *testing.T) {
-		RuntimeRequest(t, client, "https://"+name+".example.com")
+		RuntimeRequest(ctx, t, client, "https://"+name+".example.com")
 	})
 }
 

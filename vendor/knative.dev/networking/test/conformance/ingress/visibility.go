@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -33,10 +34,10 @@ import (
 
 func TestVisibility(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
 	// Create the private backend
-	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	privateServiceName := test.ObjectNameForTest(t)
 	shortName := privateServiceName + "." + test.ServingNamespace
@@ -46,7 +47,7 @@ func TestVisibility(t *testing.T) {
 		"short":    shortName + ".svc",
 		"shortest": shortName,
 	}
-	ingress, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	ingress, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{privateHostNames["fqdn"], privateHostNames["short"], privateHostNames["shortest"]},
 			Visibility: v1alpha1.IngressVisibilityClusterLocal,
@@ -66,26 +67,26 @@ func TestVisibility(t *testing.T) {
 
 	// Ensure the service is not publicly accessible
 	for _, privateHostName := range privateHostNames {
-		RuntimeRequestWithExpectations(t, client, "http://"+privateHostName, []ResponseExpectation{StatusCodeExpectation(sets.NewInt(http.StatusNotFound))}, true)
+		RuntimeRequestWithExpectations(ctx, t, client, "http://"+privateHostName, []ResponseExpectation{StatusCodeExpectation(sets.NewInt(http.StatusNotFound))}, true)
 	}
 
 	for name, privateHostName := range privateHostNames {
 		t.Run(name, func(t *testing.T) {
-			testProxyToHelloworld(t, ingress, clients, privateHostName)
+			testProxyToHelloworld(ctx, t, ingress, clients, privateHostName)
 		})
 	}
 }
 
-func testProxyToHelloworld(t *testing.T, ingress *v1alpha1.Ingress, clients *test.Clients, privateHostName string) {
+func testProxyToHelloworld(ctx context.Context, t *testing.T, ingress *v1alpha1.Ingress, clients *test.Clients, privateHostName string) {
 
 	loadbalancerAddress := ingress.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
-	proxyName, proxyPort, _ := CreateProxyService(t, clients, privateHostName, loadbalancerAddress)
+	proxyName, proxyPort, _ := CreateProxyService(ctx, t, clients, privateHostName, loadbalancerAddress)
 
 	// Using fixed hostnames can lead to conflicts when -count=N>1
 	// so pseudo-randomize the hostnames to avoid conflicts.
 	publicHostName := test.ObjectNameForTest(t) + ".publicproxy.example.com"
 
-	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{publicHostName},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -104,12 +105,12 @@ func testProxyToHelloworld(t *testing.T, ingress *v1alpha1.Ingress, clients *tes
 	})
 
 	// Ensure the service is accessible from within the cluster.
-	RuntimeRequest(t, client, "http://"+publicHostName)
+	RuntimeRequest(ctx, t, client, "http://"+publicHostName)
 }
 
 func TestVisibilitySplit(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
 	// Use a post-split injected header to establish which split we are sending traffic to.
 	const headerName = "Foo-Bar-Baz"
@@ -121,7 +122,7 @@ func TestVisibilitySplit(t *testing.T) {
 	// give the last route the remainder.
 	percent, total := 1, 0
 	for i := 0; i < 10; i++ {
-		name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+		name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 		backends = append(backends, v1alpha1.IngressBackendSplit{
 			IngressBackend: v1alpha1.IngressBackend{
 				ServiceName:      name,
@@ -150,7 +151,7 @@ func TestVisibilitySplit(t *testing.T) {
 
 	// Create a simple Ingress over the 10 Services.
 	privateHostName := fmt.Sprintf("%s.%s.%s", name, test.ServingNamespace, "svc.cluster.local")
-	localIngress, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	localIngress, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{privateHostName},
 			Visibility: v1alpha1.IngressVisibilityClusterLocal,
@@ -163,13 +164,13 @@ func TestVisibilitySplit(t *testing.T) {
 	})
 
 	// Ensure we can't connect to the private resources
-	RuntimeRequestWithExpectations(t, client, "http://"+privateHostName, []ResponseExpectation{StatusCodeExpectation(sets.NewInt(http.StatusNotFound))}, true)
+	RuntimeRequestWithExpectations(ctx, t, client, "http://"+privateHostName, []ResponseExpectation{StatusCodeExpectation(sets.NewInt(http.StatusNotFound))}, true)
 
 	loadbalancerAddress := localIngress.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
-	proxyName, proxyPort, _ := CreateProxyService(t, clients, privateHostName, loadbalancerAddress)
+	proxyName, proxyPort, _ := CreateProxyService(ctx, t, clients, privateHostName, loadbalancerAddress)
 
 	publicHostName := fmt.Sprintf("%s.%s", name, "example.com")
-	_, client, _ = CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ = CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{publicHostName},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -205,7 +206,7 @@ func TestVisibilitySplit(t *testing.T) {
 
 	for i := 0.0; i < totalRequests; i++ {
 		wg.Go(func() error {
-			ri := RuntimeRequest(t, client, "http://"+publicHostName)
+			ri := RuntimeRequest(ctx, t, client, "http://"+publicHostName)
 			if ri == nil {
 				return errors.New("failed to request")
 			}
@@ -236,25 +237,25 @@ func TestVisibilitySplit(t *testing.T) {
 
 func TestVisibilityPath(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
 	// For /foo
-	fooName, fooPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	fooName, fooPort, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// For /bar
-	barName, barPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	barName, barPort, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// For /baz
-	bazName, bazPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	bazName, bazPort, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
-	mainName, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	mainName, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// Use a post-split injected header to establish which split we are sending traffic to.
 	const headerName = "Which-Backend"
 
 	name := test.ObjectNameForTest(t)
 	privateHostName := fmt.Sprintf("%s.%s.%s", name, test.ServingNamespace, "svc.cluster.local")
-	localIngress, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	localIngress, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{privateHostName},
 			Visibility: v1alpha1.IngressVisibilityClusterLocal,
@@ -325,14 +326,14 @@ func TestVisibilityPath(t *testing.T) {
 
 	// Ensure we can't connect to the private resources
 	for _, path := range []string{"", "/foo", "/bar", "/baz"} {
-		RuntimeRequestWithExpectations(t, client, "http://"+privateHostName+path, []ResponseExpectation{StatusCodeExpectation(sets.NewInt(http.StatusNotFound))}, true)
+		RuntimeRequestWithExpectations(ctx, t, client, "http://"+privateHostName+path, []ResponseExpectation{StatusCodeExpectation(sets.NewInt(http.StatusNotFound))}, true)
 	}
 
 	loadbalancerAddress := localIngress.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
-	proxyName, proxyPort, _ := CreateProxyService(t, clients, privateHostName, loadbalancerAddress)
+	proxyName, proxyPort, _ := CreateProxyService(ctx, t, clients, privateHostName, loadbalancerAddress)
 
 	publicHostName := fmt.Sprintf("%s.%s", name, "example.com")
-	_, client, _ = CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ = CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{publicHostName},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -360,7 +361,7 @@ func TestVisibilityPath(t *testing.T) {
 
 	for path, want := range tests {
 		t.Run(path, func(t *testing.T) {
-			ri := RuntimeRequest(t, client, "http://"+publicHostName+path)
+			ri := RuntimeRequest(ctx, t, client, "http://"+publicHostName+path)
 			if ri == nil {
 				return
 			}

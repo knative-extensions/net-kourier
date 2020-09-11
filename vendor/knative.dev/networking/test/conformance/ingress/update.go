@@ -34,13 +34,13 @@ const updateHeaderName = "Who-Are-You"
 // TestUpdate verifies that when the network programming changes that traffic isn't dropped.
 func TestUpdate(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
-	firstName, firstPort, firstCancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	firstName, firstPort, firstCancel := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// Create a simple Ingress over the Service.
 	hostname := test.ObjectNameForTest(t)
-	ing, client, cancel := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	ing, client, cancel := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{hostname + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -68,7 +68,7 @@ func TestUpdate(t *testing.T) {
 		firstCancel()
 	}
 
-	proberCancel := checkOK(t, "http://"+hostname+".example.com", client)
+	proberCancel := checkOK(ctx, t, "http://"+hostname+".example.com", client)
 	defer func() {
 		proberCancel()
 		previousVersionCancel()
@@ -85,7 +85,7 @@ func TestUpdate(t *testing.T) {
 		t.Logf("Rolling out %q w/ %q", firstName, sentinel)
 
 		// Update the Ingress, and wait for it to report ready.
-		UpdateIngressReady(t, clients, ing.Name, v1alpha1.IngressSpec{
+		UpdateIngressReady(ctx, t, clients, ing.Name, v1alpha1.IngressSpec{
 			Rules: []v1alpha1.IngressRule{{
 				Hosts:      []string{hostname + ".example.com"},
 				Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -108,7 +108,7 @@ func TestUpdate(t *testing.T) {
 
 		// Check that it serves the right message as soon as we get "Ready",
 		// but before we stop probing.
-		ri := RuntimeRequest(t, client, "http://"+hostname+".example.com")
+		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+".example.com")
 		if ri != nil {
 			if got := ri.Request.Headers.Get(updateHeaderName); got != sentinel {
 				t.Errorf("Header[%q] = %q, wanted %q", updateHeaderName, got, sentinel)
@@ -123,12 +123,12 @@ func TestUpdate(t *testing.T) {
 	}
 	for i := 0; i < 10; i++ {
 		sentinel := test.ObjectNameForTest(t)
-		nextName, nextPort, nextCancel := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+		nextName, nextPort, nextCancel := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 		t.Logf("Rolling out %q w/ %q", nextName, sentinel)
 
 		// Update the Ingress, and wait for it to report ready.
-		UpdateIngressReady(t, clients, ing.Name, v1alpha1.IngressSpec{
+		UpdateIngressReady(ctx, t, clients, ing.Name, v1alpha1.IngressSpec{
 			Rules: []v1alpha1.IngressRule{{
 				Hosts:      []string{hostname + ".example.com"},
 				Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -151,7 +151,7 @@ func TestUpdate(t *testing.T) {
 
 		// Check that it serves the right message as soon as we get "Ready",
 		// but before we stop probing.
-		ri := RuntimeRequest(t, client, "http://"+hostname+".example.com")
+		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+".example.com")
 		if ri != nil {
 			if got := ri.Request.Headers.Get(updateHeaderName); got != sentinel {
 				t.Errorf("Header[%q] = %q, wanted %q", updateHeaderName, got, sentinel)
@@ -168,7 +168,7 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
-func checkOK(t *testing.T, url string, client *http.Client) context.CancelFunc {
+func checkOK(ctx context.Context, t *testing.T, url string, client *http.Client) context.CancelFunc {
 	stopCh := make(chan struct{})
 	doneCh := make(chan struct{})
 
@@ -184,7 +184,7 @@ func checkOK(t *testing.T, url string, client *http.Client) context.CancelFunc {
 			}
 			// Scope the defer below to avoid leaking until the test completes.
 			func() {
-				ri := RuntimeRequest(t, client, url)
+				ri := RuntimeRequest(ctx, t, client, url)
 				if ri != nil {
 					// Use the updateHeaderName as a debug marker to identify which version
 					// (of programming) is responding.

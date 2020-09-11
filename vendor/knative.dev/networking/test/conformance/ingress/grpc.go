@@ -37,15 +37,15 @@ import (
 // TestGRPC verifies that GRPC may be used via a simple Ingress.
 func TestGRPC(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
 	const suffix = "- pong"
-	name, port, _ := CreateGRPCService(t, clients, suffix)
+	name, port, _ := CreateGRPCService(ctx, t, clients, suffix)
 
 	domain := name + ".example.com"
 
 	// Create a simple Ingress over the Service.
-	_, dialCtx, _ := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := CreateIngressReadyDialContext(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -76,7 +76,7 @@ func TestGRPC(t *testing.T) {
 	defer conn.Close()
 	pc := ping.NewPingServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	stream, err := pc.PingStream(ctx)
@@ -92,13 +92,13 @@ func TestGRPC(t *testing.T) {
 // TestGRPCSplit verifies that websockets may be used across a traffic split.
 func TestGRPCSplit(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
 	const suffixBlue = "- blue"
-	blueName, bluePort, _ := CreateGRPCService(t, clients, suffixBlue)
+	blueName, bluePort, _ := CreateGRPCService(ctx, t, clients, suffixBlue)
 
 	const suffixGreen = "- green"
-	greenName, greenPort, _ := CreateGRPCService(t, clients, suffixGreen)
+	greenName, greenPort, _ := CreateGRPCService(ctx, t, clients, suffixGreen)
 
 	// The suffixes we expect to see.
 	want := sets.NewString(suffixBlue, suffixGreen)
@@ -106,7 +106,7 @@ func TestGRPCSplit(t *testing.T) {
 	// Create a simple Ingress over the Service.
 	name := test.ObjectNameForTest(t)
 	domain := name + ".example.com"
-	_, dialCtx, _ := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := CreateIngressReadyDialContext(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -145,7 +145,7 @@ func TestGRPCSplit(t *testing.T) {
 	defer conn.Close()
 	pc := ping.NewPingServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	const maxRequests = 100

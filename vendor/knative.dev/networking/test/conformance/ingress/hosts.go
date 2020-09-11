@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"context"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -28,9 +29,9 @@ import (
 // TestMultipleHosts verifies that an Ingress can respond to multiple hosts.
 func TestMultipleHosts(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
-	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// TODO(mattmoor): Once .svc.cluster.local stops being a special case
 	// for Visibility, add it here.
@@ -48,7 +49,7 @@ func TestMultipleHosts(t *testing.T) {
 	}
 
 	// Create a simple Ingress over the Service.
-	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -67,6 +68,6 @@ func TestMultipleHosts(t *testing.T) {
 	})
 
 	for _, host := range hosts {
-		RuntimeRequest(t, client, "http://"+host)
+		RuntimeRequest(ctx, t, client, "http://"+host)
 	}
 }
