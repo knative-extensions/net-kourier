@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"context"
 	"errors"
 	"math"
 	"testing"
@@ -32,23 +33,23 @@ import (
 // TestPath verifies that an Ingress properly dispatches to backends based on the path of the URL.
 func TestPath(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
 	// For /foo
-	fooName, fooPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	fooName, fooPort, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// For /bar
-	barName, barPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	barName, barPort, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// For /baz
-	bazName, bazPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	bazName, bazPort, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
-	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// Use a post-split injected header to establish which split we are sending traffic to.
 	const headerName = "Which-Backend"
 
-	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -127,7 +128,7 @@ func TestPath(t *testing.T) {
 
 	for path, want := range tests {
 		t.Run(path, func(t *testing.T) {
-			ri := RuntimeRequest(t, client, "http://"+name+".example.com"+path)
+			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com"+path)
 			if ri == nil {
 				return
 			}
@@ -142,18 +143,18 @@ func TestPath(t *testing.T) {
 
 func TestPathAndPercentageSplit(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
-	fooName, fooPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	fooName, fooPort, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
-	barName, barPort, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	barName, barPort, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
-	name, port, _ := CreateRuntimeService(t, clients, networking.ServicePortNameHTTP1)
+	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// Use a post-split injected header to establish which split we are sending traffic to.
 	const headerName = "Which-Backend"
 
-	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -212,7 +213,7 @@ func TestPathAndPercentageSplit(t *testing.T) {
 
 	for i := 0; i < total; i++ {
 		wg.Go(func() error {
-			ri := RuntimeRequest(t, client, "http://"+name+".example.com/foo")
+			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com/foo")
 			if ri == nil {
 				return errors.New("failed to request")
 			}

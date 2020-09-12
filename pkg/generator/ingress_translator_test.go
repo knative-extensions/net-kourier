@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"testing"
@@ -36,6 +37,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"gotest.tools/assert"
 	kubev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -111,9 +113,11 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	kubeClient := fake.NewSimpleClientset()
+	ctx := context.Background()
 	// Create the Kubernetes services associated to the Knative services that
 	// appear in the ingress above
 	if err := createServicesWithNames(
+		ctx,
 		kubeClient,
 		[]string{"hello-world-rev1", "hello-world-rev2"},
 		"default",
@@ -124,7 +128,7 @@ func TestTrafficSplits(t *testing.T) {
 	ingressTranslator := NewIngressTranslator(
 		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
-	ingressTranslation, err := ingressTranslator.translateIngress(&ingress, false)
+	ingressTranslation, err := ingressTranslator.translateIngress(ctx, &ingress, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -168,6 +172,7 @@ func TestTrafficSplits(t *testing.T) {
 }
 
 func TestIngressVisibility(t *testing.T) {
+	ctx := context.Background()
 	kubeClient := fake.NewSimpleClientset()
 	tests := []struct {
 		name       string
@@ -195,14 +200,14 @@ func TestIngressVisibility(t *testing.T) {
 
 			// Create the Kubernetes services associated to the Knative service that
 			// appears in the ingress above
-			if err := createServicesWithNames(kubeClient, []string{ingress.ObjectMeta.Name}, ingress.ObjectMeta.Namespace); err != nil {
+			if err := createServicesWithNames(ctx, kubeClient, []string{ingress.ObjectMeta.Name}, ingress.ObjectMeta.Namespace); err != nil {
 				t.Error(err)
 			}
 
 			ingressTranslator := NewIngressTranslator(
 				kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
-			translatedIngress, err := ingressTranslator.translateIngress(ingress, false)
+			translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 			if err != nil {
 				t.Error(err)
 			}
@@ -235,6 +240,7 @@ func TestIngressWithTLS(t *testing.T) {
 	tlsCert := "some-cert"
 	tlsKey := "tls-key"
 	svcNamespace := "default"
+	ctx := context.Background()
 
 	ingress := createIngressWithTLS(tlsHosts, tlsSecretName, tlsSecretNamespace, svcNamespace)
 
@@ -242,12 +248,12 @@ func TestIngressWithTLS(t *testing.T) {
 
 	// Create the Kubernetes services associated to the Knative service that
 	// appears in the ingress above
-	if err := createServicesWithNames(kubeClient, []string{ingress.ObjectMeta.Name}, svcNamespace); err != nil {
+	if err := createServicesWithNames(ctx, kubeClient, []string{ingress.ObjectMeta.Name}, svcNamespace); err != nil {
 		t.Error(err)
 	}
 
 	// Create secret with TLS data
-	err := createSecret(kubeClient, tlsSecretNamespace, tlsSecretName, tlsCert, tlsKey)
+	err := createSecret(ctx, kubeClient, tlsSecretNamespace, tlsSecretName, tlsCert, tlsKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -255,7 +261,7 @@ func TestIngressWithTLS(t *testing.T) {
 	ingressTranslator := NewIngressTranslator(
 		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
-	translatedIngress, err := ingressTranslator.translateIngress(ingress, false)
+	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -278,17 +284,18 @@ func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
 	ingress := createIngressWithTLS(tlsHosts, tlsSecretName, tlsSecretNamespace, svcNamespace)
 
 	kubeClient := fake.NewSimpleClientset()
+	ctx := context.Background()
 
 	// Create the Kubernetes services associated to the Knative service that
 	// appears in the ingress above
-	if err := createServicesWithNames(kubeClient, []string{ingress.ObjectMeta.Name}, "default"); err != nil {
+	if err := createServicesWithNames(ctx, kubeClient, []string{ingress.ObjectMeta.Name}, "default"); err != nil {
 		t.Error(err)
 	}
 
 	ingressTranslator := NewIngressTranslator(
 		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
-	_, err := ingressTranslator.translateIngress(ingress, false)
+	_, err := ingressTranslator.translateIngress(ctx, ingress, false)
 
 	assert.Error(t, err, fmt.Sprintf("secrets \"%s\" not found", tlsSecretName))
 }
@@ -394,7 +401,7 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 
 }
 
-func createSecret(kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert string, key string) error {
+func createSecret(ctx context.Context, kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert string, key string) error {
 	tlsSecret := kubev1.Secret{
 		ObjectMeta: v1.ObjectMeta{
 			Name: secretName,
@@ -405,11 +412,11 @@ func createSecret(kubeClient kubernetes.Interface, secretNamespace string, secre
 		},
 	}
 
-	_, err := kubeClient.CoreV1().Secrets(secretNamespace).Create(&tlsSecret)
+	_, err := kubeClient.CoreV1().Secrets(secretNamespace).Create(ctx, &tlsSecret, metav1.CreateOptions{})
 	return err
 }
 
-func createServicesWithNames(kubeclient kubernetes.Interface, names []string, namespace string) error {
+func createServicesWithNames(ctx context.Context, kubeclient kubernetes.Interface, names []string, namespace string) error {
 	for _, serviceName := range names {
 		service := kubev1.Service{
 			ObjectMeta: v1.ObjectMeta{
@@ -417,7 +424,7 @@ func createServicesWithNames(kubeclient kubernetes.Interface, names []string, na
 			},
 		}
 
-		_, err := kubeclient.CoreV1().Services(namespace).Create(&service)
+		_, err := kubeclient.CoreV1().Services(namespace).Create(ctx, &service, metav1.CreateOptions{})
 
 		if err != nil {
 			return err

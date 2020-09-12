@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -63,14 +64,14 @@ func NewIngressTranslator(kubeclient kubeclient.Interface, endpointsLister corev
 	}
 }
 
-func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress, extAuthzEnabled bool) (*translatedIngress, error) {
+func (translator *IngressTranslator) translateIngress(ctx context.Context, ingress *v1alpha1.Ingress, extAuthzEnabled bool) (*translatedIngress, error) {
 	res := &translatedIngress{
 		ingressName:      ingress.Name,
 		ingressNamespace: ingress.Namespace,
 	}
 
 	for _, ingressTLS := range ingress.Spec.TLS {
-		sniMatch, err := sniMatchFromIngressTLS(ingressTLS, translator.kubeclient)
+		sniMatch, err := sniMatchFromIngressTLS(ctx, ingressTLS, translator.kubeclient)
 
 		if err != nil {
 			translator.logger.Errorf("%s", err)
@@ -113,7 +114,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
-				service, err := translator.kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
+				service, err := translator.kubeclient.CoreV1().Services(split.ServiceNamespace).Get(ctx, split.ServiceName, metav1.GetOptions{})
 				if apierrors.IsNotFound(err) {
 					translator.logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					break
@@ -249,9 +250,9 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 	return matchHeaders
 }
 
-func sniMatchFromIngressTLS(ingressTLS v1alpha1.IngressTLS, kubeClient kubeclient.Interface) (*envoy.SNIMatch, error) {
+func sniMatchFromIngressTLS(ctx context.Context, ingressTLS v1alpha1.IngressTLS, kubeClient kubeclient.Interface) (*envoy.SNIMatch, error) {
 	certChain, privateKey, err := sslCreds(
-		kubeClient, ingressTLS.SecretNamespace, ingressTLS.SecretName,
+		ctx, kubeClient, ingressTLS.SecretNamespace, ingressTLS.SecretName,
 	)
 
 	if err != nil {

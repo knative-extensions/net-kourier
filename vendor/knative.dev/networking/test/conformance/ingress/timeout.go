@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -31,9 +32,9 @@ import (
 // TestTimeout verifies that an Ingress configured with a timeout respects that.
 func TestTimeout(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
-	name, port, _ := CreateTimeoutService(t, clients)
+	name, port, _ := CreateTimeoutService(ctx, t, clients)
 
 	// The timeout, and an epsilon value to use as jitter for testing requests
 	// either hit or miss the timeout (without getting so close that we flake).
@@ -43,7 +44,7 @@ func TestTimeout(t *testing.T) {
 	)
 
 	// Create a simple Ingress over the Service.
-	_, client, _ := CreateIngressReady(t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -86,12 +87,12 @@ func TestTimeout(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			checkTimeout(t, client, name, test.code, test.initialDelay, test.delay)
+			checkTimeout(ctx, t, client, name, test.code, test.initialDelay, test.delay)
 		})
 	}
 }
 
-func checkTimeout(t *testing.T, client *http.Client, name string, code int, initial time.Duration, timeout time.Duration) {
+func checkTimeout(ctx context.Context, t *testing.T, client *http.Client, name string, code int, initial time.Duration, timeout time.Duration) {
 	t.Helper()
 
 	resp, err := client.Get(fmt.Sprintf("http://%s.example.com?initialTimeout=%d&timeout=%d",
@@ -102,6 +103,6 @@ func checkTimeout(t *testing.T, client *http.Client, name string, code int, init
 	defer resp.Body.Close()
 	if resp.StatusCode != code {
 		t.Errorf("Unexpected status code: %d, wanted %d", resp.StatusCode, code)
-		DumpResponse(t, resp)
+		DumpResponse(ctx, t, resp)
 	}
 }

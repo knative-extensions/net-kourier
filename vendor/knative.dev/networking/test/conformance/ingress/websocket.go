@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -36,15 +37,15 @@ import (
 // TestWebsocket verifies that websockets may be used via a simple Ingress.
 func TestWebsocket(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
 	const suffix = "- pong"
-	name, port, _ := CreateWebsocketService(t, clients, suffix)
+	name, port, _ := CreateWebsocketService(ctx, t, clients, suffix)
 
 	domain := name + ".example.com"
 
 	// Create a simple Ingress over the Service.
-	_, dialCtx, _ := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := CreateIngressReadyDialContext(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -76,20 +77,20 @@ func TestWebsocket(t *testing.T) {
 	defer conn.Close()
 
 	for i := 0; i < 100; i++ {
-		checkWebsocketRoundTrip(t, conn, suffix)
+		checkWebsocketRoundTrip(ctx, t, conn, suffix)
 	}
 }
 
 // TestWebsocketSplit verifies that websockets may be used across a traffic split.
 func TestWebsocketSplit(t *testing.T) {
 	t.Parallel()
-	clients := test.Setup(t)
+	ctx, clients := context.Background(), test.Setup(t)
 
 	const suffixBlue = "- blue"
-	blueName, bluePort, _ := CreateWebsocketService(t, clients, suffixBlue)
+	blueName, bluePort, _ := CreateWebsocketService(ctx, t, clients, suffixBlue)
 
 	const suffixGreen = "- green"
-	greenName, greenPort, _ := CreateWebsocketService(t, clients, suffixGreen)
+	greenName, greenPort, _ := CreateWebsocketService(ctx, t, clients, suffixGreen)
 
 	// The suffixes we expect to see.
 	want := sets.NewString(suffixBlue, suffixGreen)
@@ -97,7 +98,7 @@ func TestWebsocketSplit(t *testing.T) {
 	// Create a simple Ingress over the Service.
 	name := test.ObjectNameForTest(t)
 	domain := name + ".example.com"
-	_, dialCtx, _ := CreateIngressReadyDialContext(t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := CreateIngressReadyDialContext(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -139,14 +140,14 @@ func TestWebsocketSplit(t *testing.T) {
 		}
 		defer conn.Close()
 
-		suffix := findWebsocketSuffix(t, conn)
+		suffix := findWebsocketSuffix(ctx, t, conn)
 		if suffix == "" {
 			continue
 		}
 		got.Insert(suffix)
 
 		for j := 0; j < 10; j++ {
-			checkWebsocketRoundTrip(t, conn, suffix)
+			checkWebsocketRoundTrip(ctx, t, conn, suffix)
 		}
 
 		if want.Equal(got) {
@@ -159,7 +160,7 @@ func TestWebsocketSplit(t *testing.T) {
 	t.Errorf("(over %d requests) (-want, +got) = %s", maxRequests, cmp.Diff(want, got))
 }
 
-func findWebsocketSuffix(t *testing.T, conn *websocket.Conn) string {
+func findWebsocketSuffix(ctx context.Context, t *testing.T, conn *websocket.Conn) string {
 	// Establish the suffix that corresponds to this socket.
 	message := fmt.Sprintf("ping - %d", rand.Intn(1000))
 	if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
@@ -180,7 +181,7 @@ func findWebsocketSuffix(t *testing.T, conn *websocket.Conn) string {
 	return strings.TrimSpace(strings.TrimPrefix(gotMsg, message))
 }
 
-func checkWebsocketRoundTrip(t *testing.T, conn *websocket.Conn, suffix string) {
+func checkWebsocketRoundTrip(ctx context.Context, t *testing.T, conn *websocket.Conn, suffix string) {
 	message := fmt.Sprintf("ping - %d", rand.Intn(1000))
 	if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
 		t.Errorf("WriteMessage() = %v", err)

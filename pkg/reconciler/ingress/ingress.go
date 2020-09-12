@@ -95,7 +95,7 @@ func (r *Reconciler) ObserveFinalizeKind(ctx context.Context, ing *v1alpha1.Ingr
 		r.statusManager.CancelIngressProbing(ingress)
 	}
 
-	if err := r.caches.DeleteIngressInfo(ing.Name, ing.Namespace, r.kubeClient); err != nil {
+	if err := r.caches.DeleteIngressInfo(ctx, ing.Name, ing.Namespace, r.kubeClient); err != nil {
 		return err
 	}
 
@@ -107,7 +107,7 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 	logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
 	if err := generator.UpdateInfoForIngress(
-		r.caches, ingress, r.kubeClient, r.ingressTranslator, r.extAuthz,
+		ctx, r.caches, ingress, r.kubeClient, r.ingressTranslator, r.extAuthz,
 	); err != nil {
 		return err
 	}

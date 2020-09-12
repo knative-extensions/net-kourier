@@ -30,14 +30,14 @@ import (
 // PollInterval until inState returns `true` indicating it is done, returns an
 // error or PollTimeout. desc will be used to name the metric that is emitted to
 // track how long it took for name to get into the state checked by inState.
-func WaitForIngressState(client *NetworkingClients, name string, inState func(r *v1alpha1.Ingress) (bool, error), desc string) error {
+func WaitForIngressState(ctx context.Context, client *NetworkingClients, name string, inState func(r *v1alpha1.Ingress) (bool, error), desc string) error {
 	span := logging.GetEmitableSpan(context.Background(), fmt.Sprintf("WaitForIngressState/%s/%s", name, desc))
 	defer span.End()
 
 	var lastState *v1alpha1.Ingress
 	waitErr := wait.PollImmediate(PollInterval, PollTimeout, func() (bool, error) {
 		var err error
-		lastState, err = client.Ingresses.Get(name, metav1.GetOptions{})
+		lastState, err = client.Ingresses.Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			return true, err
 		}

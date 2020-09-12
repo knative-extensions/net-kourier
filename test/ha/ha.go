@@ -17,9 +17,9 @@ limitations under the License.
 package ha
 
 import (
-	"testing"
-
+	"context"
 	"net/url"
+	"testing"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -52,9 +52,10 @@ func createIngressSpec(name string, port int) v1alpha1.IngressSpec {
 	}
 }
 
-func assertIngressEventuallyWorks(t *testing.T, clients *test.Clients, url *url.URL) {
+func assertIngressEventuallyWorks(ctx context.Context, t *testing.T, clients *test.Clients, url *url.URL) {
 	t.Helper()
 	if _, err := pkgTest.WaitForEndpointState(
+		ctx,
 		clients.KubeClient,
 		t.Logf,
 		url,
