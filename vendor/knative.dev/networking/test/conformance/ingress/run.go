@@ -50,6 +50,8 @@ func RunConformance(t *testing.T) {
 	t.Run("visibility/split", TestVisibilitySplit)
 	t.Run("visibility/path", TestVisibilityPath)
 
+	t.Run("ingressclass", TestIngressClass)
+
 	t.Run("websocket", TestWebsocket)
 	t.Run("websocket/split", TestWebsocketSplit)
 

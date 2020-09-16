@@ -97,7 +97,7 @@ func TestPercentage(t *testing.T) {
 		// Allow the Ingress to be within 10% of the configured value.
 		margin = 10.0
 	)
-	wg := pool.New(8)
+	wg := pool.NewWithCapacity(8, totalRequests)
 	resultCh := make(chan string, totalRequests)
 
 	for i := 0.0; i < totalRequests; i++ {

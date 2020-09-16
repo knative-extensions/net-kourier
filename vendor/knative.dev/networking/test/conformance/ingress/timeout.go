@@ -23,25 +23,17 @@ import (
 	"testing"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
 )
 
-// TestTimeout verifies that an Ingress configured with a timeout respects that.
+// TestTimeout verifies that an Ingress implements "no timeout".
 func TestTimeout(t *testing.T) {
 	t.Parallel()
 	ctx, clients := context.Background(), test.Setup(t)
 
 	name, port, _ := CreateTimeoutService(ctx, t, clients)
-
-	// The timeout, and an epsilon value to use as jitter for testing requests
-	// either hit or miss the timeout (without getting so close that we flake).
-	const (
-		timeout = 5 * time.Second
-		epsilon = 200 * time.Millisecond
-	)
 
 	// Create a simple Ingress over the Service.
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
@@ -50,7 +42,6 @@ func TestTimeout(t *testing.T) {
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
-					Timeout: &metav1.Duration{Duration: timeout},
 					Splits: []v1alpha1.IngressBackendSplit{{
 						IngressBackend: v1alpha1.IngressBackend{
 							ServiceName:      name,
@@ -63,6 +54,8 @@ func TestTimeout(t *testing.T) {
 		}},
 	})
 
+	const timeout = 10 * time.Second
+
 	tests := []struct {
 		name         string
 		code         int
@@ -72,17 +65,13 @@ func TestTimeout(t *testing.T) {
 		name: "no delays is OK",
 		code: http.StatusOK,
 	}, {
+		name:         "large delay before headers is ok",
+		code:         http.StatusOK,
+		initialDelay: timeout,
+	}, {
 		name:  "large delay after headers is ok",
 		code:  http.StatusOK,
-		delay: timeout + timeout,
-	}, {
-		name:         "initial delay less than timeout is ok",
-		code:         http.StatusOK,
-		initialDelay: timeout - epsilon,
-	}, {
-		name:         "initial delay over timeout is NOT ok",
-		code:         http.StatusGatewayTimeout,
-		initialDelay: timeout + epsilon,
+		delay: timeout,
 	}}
 
 	for _, test := range tests {
