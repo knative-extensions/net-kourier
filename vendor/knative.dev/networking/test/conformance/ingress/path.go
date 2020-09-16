@@ -209,7 +209,7 @@ func TestPathAndPercentageSplit(t *testing.T) {
 	wantKeys := sets.NewString(fooName, barName)
 	resultCh := make(chan string, total)
 
-	wg := pool.New(8)
+	wg := pool.NewWithCapacity(8, total)
 
 	for i := 0; i < total; i++ {
 		wg.Go(func() error {

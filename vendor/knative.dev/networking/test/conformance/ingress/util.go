@@ -627,8 +627,18 @@ func createPodAndService(ctx context.Context, t *testing.T, clients *test.Client
 	}
 }
 
+// IngressOption enables further configuration of a Ingress.
+type IngressOption func(*v1alpha1.Ingress)
+
+// OverrideIngressAnnotation overrides the Ingress annotation.
+func OverrideIngressAnnotation(annotations map[string]string) IngressOption {
+	return func(ing *v1alpha1.Ingress) {
+		ing.Annotations = annotations
+	}
+}
+
 // CreateIngress creates a Knative Ingress resource
-func CreateIngress(ctx context.Context, t *testing.T, clients *test.Clients, spec v1alpha1.IngressSpec) (*v1alpha1.Ingress, context.CancelFunc) {
+func CreateIngress(ctx context.Context, t *testing.T, clients *test.Clients, spec v1alpha1.IngressSpec, io ...IngressOption) (*v1alpha1.Ingress, context.CancelFunc) {
 	t.Helper()
 
 	name := test.ObjectNameForTest(t)
@@ -643,6 +653,10 @@ func CreateIngress(ctx context.Context, t *testing.T, clients *test.Clients, spe
 			},
 		},
 		Spec: spec,
+	}
+
+	for _, opt := range io {
+		opt(ing)
 	}
 
 	ing.SetDefaults(context.Background())
