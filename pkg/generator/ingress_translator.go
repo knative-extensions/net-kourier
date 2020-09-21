@@ -137,7 +137,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2, v2.Cluster_STATIC)
 
 				res.clusters = append(res.clusters, cluster)
-
+				translator.logger.Infof("DEBUGDEBUG SPLIT PERCENT ing: %s percent: %d", ingress.Name, split.Percent)
 				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
 
 				wrs = append(wrs, weightedCluster)
