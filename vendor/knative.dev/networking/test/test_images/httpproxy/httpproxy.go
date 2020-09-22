@@ -18,11 +18,9 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"net/http"
 	"net/http/httputil"
@@ -105,17 +103,12 @@ func newDNSCachingDialer() func(context.Context, string, string) (net.Conn, erro
 }
 
 func newDNSCachingTransport() http.RoundTripper {
-	return &http.Transport{
-		// These match net/http/transport.go
-		Proxy:                 http.ProxyFromEnvironment,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		DisableKeepAlives:     false,
-		DialContext:           newDNSCachingDialer(),
-		MaxIdleConns:          1000,
-		MaxIdleConnsPerHost:   100,
-	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DisableKeepAlives = false
+	transport.DialContext = newDNSCachingDialer()
+	transport.MaxIdleConns = 1000
+	transport.MaxIdleConnsPerHost = 100
+	return transport
 }
 
 func main() {
@@ -132,11 +125,11 @@ func main() {
 	if gateway != "" {
 		targetHost = gateway
 	}
-	targetURL := fmt.Sprint("http://", targetHost)
+	targetURL := "http://" + targetHost
 	log.Print("target is " + targetURL)
 	httpProxy = initialHTTPProxy(targetURL)
 	httpProxy.Transport = newDNSCachingTransport()
-	address := fmt.Sprint(":", port)
+	address := ":" + port
 	log.Print("Listening on address: ", address)
 	// Handle forwarding requests which uses "K-Network-Hash" header.
 	probeHandler := network.NewProbeHandler(http.HandlerFunc(handler)).ServeHTTP

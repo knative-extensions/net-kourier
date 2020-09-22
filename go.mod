@@ -3,7 +3,6 @@ module knative.dev/net-kourier
 go 1.14
 
 require (
-	cloud.google.com/go v0.65.0 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.2
@@ -11,18 +10,16 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
-	golang.org/x/sys v0.0.0-20200828081204-131dc92a58d5 // indirect
-	google.golang.org/genproto v0.0.0-20200828030656-73b5761be4c5 // indirect
 	google.golang.org/grpc v1.31.1
 	google.golang.org/protobuf v1.25.0
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.18.8
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
-	knative.dev/networking v0.0.0-20200917035342-994d214cdf82
-	knative.dev/pkg v0.0.0-20200916171541-6e0430fd94db
-	knative.dev/serving v0.17.1-0.20200917135042-2c1d48648da8
-	knative.dev/test-infra v0.0.0-20200916223841-d362984af929
+	knative.dev/networking v0.0.0-20200922180040-a71b40c69b15
+	knative.dev/pkg v0.0.0-20200922164940-4bf40ad82aab
+	knative.dev/serving v0.17.1-0.20200922203139-4a2ff6d2e8b8
+	knative.dev/test-infra v0.0.0-20200921012245-37f1a12adbd3
 )
 
 replace (
