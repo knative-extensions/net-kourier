@@ -49,17 +49,20 @@ var _ ingress.ReadOnlyInterface = (*Reconciler)(nil)
 var _ ingress.Finalizer = (*Reconciler)(nil)
 var _ ingress.ReadOnlyFinalizer = (*Reconciler)(nil)
 
-func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
-	before := ingress.DeepCopy()
+func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+	before := ing.DeepCopy()
 
-	r.ObserveKind(ctx, ingress)
+	r.ObserveKind(ctx, ing)
 
-	if ready, err := r.statusManager.IsReady(context.TODO(), before); err == nil && ready {
-		knative.MarkIngressReady(ingress)
-	} else {
-		ingress.Status.MarkLoadBalancerNotReady()
+	if !ing.IsReady() {
+		ready, err := r.statusManager.IsReady(context.TODO(), before)
 		if err != nil {
-			return fmt.Errorf("failed to probe Ingress %s/%s: %w", ingress.GetNamespace(), ingress.GetName(), err)
+			return fmt.Errorf("failed to probe Ingress %s/%s: %w", ing.GetNamespace(), ing.GetName(), err)
+		}
+		if ready {
+			knative.MarkIngressReady(ing)
+		} else {
+			ing.Status.MarkLoadBalancerNotReady()
 		}
 	}
 
