@@ -109,7 +109,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
 				if apierrors.IsNotFound(err) {
 					translator.logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-					break
+					return nil, nil
 				} else if err != nil {
 					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
@@ -117,7 +117,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				service, err := translator.kubeclient.CoreV1().Services(split.ServiceNamespace).Get(ctx, split.ServiceName, metav1.GetOptions{})
 				if apierrors.IsNotFound(err) {
 					translator.logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-					break
+					return nil, nil
 				} else if err != nil {
 					return nil, fmt.Errorf("failed to fetch service '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
