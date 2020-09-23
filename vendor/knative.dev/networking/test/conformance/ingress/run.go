@@ -17,43 +17,59 @@ limitations under the License.
 package ingress
 
 import (
+	"strings"
 	"testing"
 
 	"knative.dev/networking/test"
 )
 
+var stableTests = map[string]func(t *testing.T){
+	"basics":                       TestBasics,
+	"basics/http2":                 TestBasicsHTTP2,
+	"grpc":                         TestGRPC,
+	"grpc/split":                   TestGRPCSplit,
+	"headers/pre-split":            TestPreSplitSetHeaders,
+	"headers/post-split":           TestPostSplitSetHeaders,
+	"hosts/multiple":               TestMultipleHosts,
+	"dispatch/path":                TestPath,
+	"dispatch/percentage":          TestPercentage,
+	"dispatch/path_and_percentage": TestPathAndPercentageSplit,
+	"timeout":                      TestTimeout,
+	"tls":                          TestIngressTLS,
+	"update":                       TestUpdate,
+	"visibility":                   TestVisibility,
+	"visibility/split":             TestVisibilitySplit,
+	"visibility/path":              TestVisibilityPath,
+	"ingressclass":                 TestIngressClass,
+	"websocket":                    TestWebsocket,
+	"websocket/split":              TestWebsocketSplit,
+}
+
+var betaTests = map[string]func(t *testing.T){
+	// Add your conformance test for beta features
+	"headers/probe": TestProbeHeaders,
+}
+
+var alphaTests = map[string]func(t *testing.T){
+	// Add your conformance test for alpha features
+	"headers/tags": TestTagHeaders,
+	"host-rewrite": TestRewriteHost,
+}
+
 // RunConformance will run ingress conformance tests
 //
 // Depending on the options it may test alpha and beta features
 func RunConformance(t *testing.T) {
-	t.Run("basics", TestBasics)
-	t.Run("basics/http2", TestBasicsHTTP2)
 
-	t.Run("grpc", TestGRPC)
-	t.Run("grpc/split", TestGRPCSplit)
+	for name, test := range stableTests {
+		t.Run(name, test)
+	}
 
-	t.Run("headers/pre-split", TestPreSplitSetHeaders)
-	t.Run("headers/post-split", TestPostSplitSetHeaders)
-
-	t.Run("hosts/multiple", TestMultipleHosts)
-
-	t.Run("dispatch/path", TestPath)
-	t.Run("dispatch/percentage", TestPercentage)
-	t.Run("dispatch/path_and_percentage", TestPathAndPercentageSplit)
-
-	t.Run("timeout", TestTimeout)
-
-	t.Run("tls", TestIngressTLS)
-	t.Run("update", TestUpdate)
-
-	t.Run("visibility", TestVisibility)
-	t.Run("visibility/split", TestVisibilitySplit)
-	t.Run("visibility/path", TestVisibilityPath)
-
-	t.Run("ingressclass", TestIngressClass)
-
-	t.Run("websocket", TestWebsocket)
-	t.Run("websocket/split", TestWebsocketSplit)
+	skipTests := strings.Split(test.ServingFlags.SkipTests, ",")
+	for _, name := range skipTests {
+		delete(alphaTests, name)
+		delete(betaTests, name)
+	}
 
 	// TODO(dprotaso) we'll need something more robust
 	// in the long term that lets downstream
@@ -62,15 +78,16 @@ func RunConformance(t *testing.T) {
 	// dimensions
 	// ie. state - alpha, beta, ga
 	// ie. requirement - must, should, may
-
 	if test.ServingFlags.EnableBetaFeatures {
-		// Add your conformance test for beta features
-		t.Run("headers/probe", TestProbeHeaders)
+		for name, test := range betaTests {
+			t.Run(name, test)
+		}
 	}
 
 	if test.ServingFlags.EnableAlphaFeatures {
-		// Add your conformance test for alpha features
-		t.Run("headers/tags", TestTagHeaders)
-		t.Run("host-rewrite", TestRewriteHost)
+		for name, test := range alphaTests {
+			t.Run(name, test)
+		}
 	}
+
 }

@@ -39,6 +39,7 @@ type ServingEnvironmentFlags struct {
 	Replicas            int    // The number of controlplane replicas being run.
 	EnableAlphaFeatures bool   // Indicates whether we run tests for alpha features
 	EnableBetaFeatures  bool   // Indicates whether we run tests for beta features
+	SkipTests           string // Indicates the test names we want to skip in alpha or beta features.
 }
 
 func initializeServingFlags() *ServingEnvironmentFlags {
@@ -78,12 +79,17 @@ func initializeServingFlags() *ServingEnvironmentFlags {
 	flag.BoolVar(&f.EnableAlphaFeatures,
 		"enable-alpha",
 		false,
-		"Set this flag to run tests against alpha features")
+		"Set this flag to run tests against alpha features.")
 
 	flag.BoolVar(&f.EnableBetaFeatures,
 		"enable-beta",
 		false,
-		"Set this flag to run tests against beta features")
+		"Set this flag to run tests against beta features.")
+
+	flag.StringVar(&f.SkipTests,
+		"skip-tests",
+		"",
+		"Set this flag to the tests you want to skip in alpha or beta features. Accepts a comma separated list.")
 
 	return &f
 }
