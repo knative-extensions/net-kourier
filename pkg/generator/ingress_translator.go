@@ -29,7 +29,6 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"go.uber.org/zap"
 	kubev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -107,18 +106,12 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				}
 
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
-				if apierrors.IsNotFound(err) {
-					translator.logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-					return nil, nil
-				} else if err != nil {
+				if err != nil {
 					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
 				service, err := translator.kubeclient.CoreV1().Services(split.ServiceNamespace).Get(ctx, split.ServiceName, metav1.GetOptions{})
-				if apierrors.IsNotFound(err) {
-					translator.logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-					return nil, nil
-				} else if err != nil {
+				if err != nil {
 					return nil, fmt.Errorf("failed to fetch service '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
