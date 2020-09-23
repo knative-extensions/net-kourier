@@ -33,3 +33,6 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.18.8
 	k8s.io/code-generator => k8s.io/code-generator v0.18.8
 )
+
+// TODO(nak3): DO NOT SUBMIT
+replace knative.dev/networking => github.com/nak3/networking v0.0.0-20200923141347-aca1b6a6097f
