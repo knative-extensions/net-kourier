@@ -37,7 +37,7 @@ kubectl patch configmap/config-network \
   -p '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
 ```
 
-- (OPTIONAL) Set your desired domain (replace 127.0.0.1.nip.io to your prefered
+- (OPTIONAL) Set your desired domain (replace 127.0.0.1.nip.io to your preferred
   domain):
 
 ```bash
