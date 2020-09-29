@@ -27,14 +27,14 @@ cd ${ROOT_DIR}
 export GO111MODULE=on
 
 # This controls the release branch we track.
-VERSION="master"
+VERSION="release-0.18"
 
 # The list of dependencies that we track at HEAD and periodically
 # float forward in this repository.
 FLOATING_DEPS=(
-  "knative.dev/networking@release-0.18"
-  "knative.dev/test-infra@release-0.18"
-  "knative.dev/pkg@release-0.18"
+  "knative.dev/networking@${VERSION}"
+  "knative.dev/test-infra@${VERSION}"
+  "knative.dev/pkg@${VERSION}"
   "knative.dev/serving@${VERSION}"
 )
 
