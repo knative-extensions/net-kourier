@@ -38,7 +38,6 @@ import (
 	"gotest.tools/assert"
 	kubev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -58,11 +57,11 @@ import (
 // path. That might change in the future.
 func TestTrafficSplits(t *testing.T) {
 	ingress := v1alpha1.Ingress{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
 			APIVersion: "networking.internal.knative.dev/v1alpha1",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "hello-world",
 		},
 		Spec: v1alpha1.IngressSpec{
@@ -326,11 +325,11 @@ func (endpoints *endpoints) Get(name string) (*kubev1.Endpoints, error) {
 
 func createIngress(name string, hosts []string, visibility v1alpha1.IngressVisibility) *v1alpha1.Ingress {
 	return &v1alpha1.Ingress{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
 			APIVersion: "networking.internal.knative.dev/v1alpha1",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: v1alpha1.IngressSpec{
@@ -355,11 +354,11 @@ func createIngress(name string, hosts []string, visibility v1alpha1.IngressVisib
 
 func createIngressWithTLS(hosts []string, secretName string, secretNamespace string, svcNamespace string) *v1alpha1.Ingress {
 	return &v1alpha1.Ingress{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
 			APIVersion: "networking.internal.knative.dev/v1alpha1",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "hello-world",
 		},
 		Spec: v1alpha1.IngressSpec{
@@ -403,7 +402,7 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 
 func createSecret(ctx context.Context, kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert string, key string) error {
 	tlsSecret := kubev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: secretName,
 		},
 		Data: map[string][]byte{
@@ -419,7 +418,7 @@ func createSecret(ctx context.Context, kubeClient kubernetes.Interface, secretNa
 func createServicesWithNames(ctx context.Context, kubeclient kubernetes.Interface, names []string, namespace string) error {
 	for _, serviceName := range names {
 		service := kubev1.Service{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: serviceName,
 			},
 		}

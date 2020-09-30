@@ -89,11 +89,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	// ingress.
 	// Note: Apart from the vHosts that were added explicitly, there's also
 	// the one used to verify the snapshot version.
-	vHostsNames, err := getVHostsNames(caches.routeConfig)
-
-	if err != nil {
-		t.Fail()
-	}
+	vHostsNames := getVHostsNames(caches.routeConfig)
 
 	sort.Strings(vHostsNames)
 
@@ -242,7 +238,7 @@ func TestValidateIngress(t *testing.T) {
 	assert.Error(t, err, ErrDomainConflict.Error())
 }
 
-func getVHostsNames(routeConfigs []v2.RouteConfiguration) ([]string, error) {
+func getVHostsNames(routeConfigs []v2.RouteConfiguration) []string {
 	var res []string
 
 	for _, routeConfig := range routeConfigs {
@@ -251,7 +247,7 @@ func getVHostsNames(routeConfigs []v2.RouteConfiguration) ([]string, error) {
 		}
 	}
 
-	return res, nil
+	return res
 }
 
 func TestCacheWithWarmingWithoutIngressesToSync(t *testing.T) {

@@ -30,7 +30,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	"knative.dev/serving/pkg/apis/serving/v1alpha1"
@@ -72,11 +71,11 @@ func ExampleHelloWorldServing() v1alpha1.Service {
 func GetExtAuthzDeployment(namespace string) appsv1.Deployment {
 	replicas := int32(1)
 	return appsv1.Deployment{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "apps/v1",
 			APIVersion: "Deployment",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "externalauthz",
 			Namespace: namespace,
 			Labels: map[string]string{
@@ -85,13 +84,13 @@ func GetExtAuthzDeployment(namespace string) appsv1.Deployment {
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
-			Selector: &v1.LabelSelector{
+			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "externalauthz",
 				},
 			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app": "externalauthz",
 					},
@@ -134,11 +133,11 @@ func GetExtAuthzDeployment(namespace string) appsv1.Deployment {
 
 func GetExtAuthzService(namespace string) corev1.Service {
 	extAuthzService := corev1.Service{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
 			APIVersion: "Service",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "externalauthz",
 			Namespace: namespace,
 		},
