@@ -215,12 +215,12 @@ jobs:
           # as versatile.
           # Also ignore `%T` — to print the type and `%q` to quote the final string.
           fn=$(find . -path './vendor' -prune -o -path './third_party' -prune -o -name '*.pb.go' -prune -o -type f -name '*.go' -print)
-          grep -nE '[^.]+\.(Fatalf|Errorf|Warnf|Infof|Debugf)[^\%]+%[^Tq]",[^,]+' $fn | grep -v "fmt.Errorf" |
+          grep -nE '[^.]+\.(Fatalf|Errorf|Warnf|Infof|Debugf|Logf|Sprintf|Fprintf|Printf)[^\%]+%[^Tqx]",[^,]+' $fn | grep -v "fmt.Errorf" |
             while read -r ent ; do
               file=$(echo $ent | cut -d':' -f 1);
               line=$(echo $ent | cut -d':' -f 2);
               ch=$(echo $ent | cut -d':' -f3-);
-              err=$(echo $ch | sed -E 's/([^.]+\.)(Fatal|Error|Warn|Info|Debug)f([^\%]+)(%[^wq]",)([^,]+)/\1\2\3",\5/');
+              err=$(echo $ch | sed -E 's/([^.]+\.)(Fatal|Error|Warn|Info|Debug|Log|Sprint|Print|Fprint)f([^\%]+)(%[^wq]",)([^,]+)/\1\2\3",\5/');
               echo "$file:$line: Please consider avoiding tail format like this:%0A$err"
           done |
           reviewdog -efm="%f:%l: %m" \
