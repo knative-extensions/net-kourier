@@ -35,7 +35,6 @@ import (
 
 	"gotest.tools/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
@@ -149,7 +148,7 @@ func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset,
 
 	// Patch kourier control to add required ENV vars to enable External Authz.
 	kourierControlDeployment, err := k8sClient.AppsV1().Deployments(kourierNamespace).Get(ctx, "3scale-kourier-control",
-		v1.GetOptions{})
+		metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +199,7 @@ func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset
 
 	// Restore env vars
 	kourierControlDeployment, err := kubeClient.AppsV1().Deployments(kourierNamespace).Get(ctx, "3scale-kourier-control",
-		v1.GetOptions{})
+		metav1.GetOptions{})
 
 	if err != nil {
 		return err
@@ -220,15 +219,15 @@ func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset
 	}
 
 	// Delete deployments
-	err = kubeClient.CoreV1().Services(kourierNamespace).Delete(ctx, extAuthzServiceName, v1.DeleteOptions{})
+	err = kubeClient.CoreV1().Services(kourierNamespace).Delete(ctx, extAuthzServiceName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-	err = kubeClient.AppsV1().Deployments(kourierNamespace).Delete(ctx, extAuthDeploymentName, v1.DeleteOptions{})
+	err = kubeClient.AppsV1().Deployments(kourierNamespace).Delete(ctx, extAuthDeploymentName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-	err = servingClient.Services(namespace).Delete(ctx, serviceName, v1.DeleteOptions{})
+	err = servingClient.Services(namespace).Delete(ctx, serviceName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
