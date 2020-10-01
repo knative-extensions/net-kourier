@@ -46,7 +46,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if val%period > 0 {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	w.Write([]byte(fmt.Sprintf("count = %d", val)))
+	w.Write([]byte(fmt.Sprint("count =", val)))
 }
 
 func main() {
