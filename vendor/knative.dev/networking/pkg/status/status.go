@@ -151,7 +151,8 @@ func NewProber(
 	}
 }
 
-func ingressKey(ing *v1alpha1.Ingress) string {
+// IngressKey returns a key that uniquely identifies an Ingress object
+func IngressKey(ing *v1alpha1.Ingress) string {
 	return fmt.Sprintf("%s/%s", ing.GetNamespace(), ing.GetName())
 }
 
@@ -161,7 +162,7 @@ func ingressKey(ing *v1alpha1.Ingress) string {
 // this Ingress is the latest known version and therefore anything related to older versions can be ignored.
 // Also, it means that IsReady is not called concurrently.
 func (m *Prober) IsReady(ctx context.Context, ing *v1alpha1.Ingress) (bool, error) {
-	ingressKey := ingressKey(ing)
+	ingressKey := IngressKey(ing)
 	logger := m.logger.With(zap.String(logkey.Key, ingressKey))
 
 	bytes, err := ingress.ComputeHash(ing)
@@ -309,7 +310,7 @@ func (m *Prober) Start(done <-chan struct{}) chan struct{} {
 // TODO(#6270): Use cache.DeletedFinalStateUnknown.
 func (m *Prober) CancelIngressProbing(obj interface{}) {
 	if ing, ok := obj.(*v1alpha1.Ingress); ok {
-		key := ingressKey(ing)
+		key := IngressKey(ing)
 
 		m.mu.Lock()
 		defer m.mu.Unlock()
@@ -351,12 +352,13 @@ func (m *Prober) processWorkItem() bool {
 		m.logger.Fatalf("Unexpected work item type: want: %s, got: %s\n",
 			reflect.TypeOf(&workItem{}).Name(), reflect.TypeOf(obj).Name())
 	}
-	logger := m.logger.With(zap.String(logkey.Key, ingressKey(item.ingressState.ing)))
+	logger := m.logger.With(zap.String(logkey.Key, IngressKey(item.ingressState.ing)))
 	logger.Infof("Processing probe for %s, IP: %s:%s (depth: %d)",
 		item.url, item.podIP, item.podPort, m.workQueue.Len())
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{
+		// nolint:gosec
 		// We only want to know that the Gateway is configured, not that the configuration is valid.
 		// Therefore, we can safely ignore any TLS certificate validation.
 		InsecureSkipVerify: true,
@@ -435,7 +437,7 @@ func (m *Prober) onProbingCancellation(ingressState *ingressState, podState *pod
 }
 
 func (m *Prober) probeVerifier(item *workItem) prober.Verifier {
-	logger := m.logger.With(zap.String(logkey.Key, ingressKey(item.ingressState.ing)))
+	logger := m.logger.With(zap.String(logkey.Key, IngressKey(item.ingressState.ing)))
 
 	return func(r *http.Response, _ []byte) (bool, error) {
 		// In the happy path, the probe request is forwarded to Activator or Queue-Proxy and the response (HTTP 200)
