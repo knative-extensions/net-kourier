@@ -32,31 +32,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
-	"knative.dev/serving/pkg/apis/serving/v1alpha1"
-	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
+	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1"
 )
 
 // Returns a simple "Hello World" Knative Service. It returns "Hello World!"
 // for every request.
-func ExampleHelloWorldServing() v1alpha1.Service {
-	return v1alpha1.Service{
+func ExampleHelloWorldServing() servingv1.Service {
+	return servingv1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
-			APIVersion: "v1alpha1",
+			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "helloworld-go",
 		},
-		Spec: v1alpha1.ServiceSpec{
-			ConfigurationSpec: v1alpha1.ConfigurationSpec{
-				Template: &v1alpha1.RevisionTemplateSpec{
-					Spec: v1alpha1.RevisionSpec{
-						RevisionSpec: servingv1.RevisionSpec{
-							PodSpec: corev1.PodSpec{
-								Containers: []corev1.Container{
-									{
-										Image: "gcr.io/knative-samples/helloworld-go",
-									},
+		Spec: servingv1.ServiceSpec{
+			ConfigurationSpec: servingv1.ConfigurationSpec{
+				Template: servingv1.RevisionTemplateSpec{
+					Spec: servingv1.RevisionSpec{
+						PodSpec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Image: "gcr.io/knative-samples/helloworld-go",
 								},
 							},
 						},
@@ -64,7 +61,7 @@ func ExampleHelloWorldServing() v1alpha1.Service {
 				},
 			},
 		},
-		Status: v1alpha1.ServiceStatus{},
+		Status: servingv1.ServiceStatus{},
 	}
 }
 
@@ -157,7 +154,7 @@ func GetExtAuthzService(namespace string) corev1.Service {
 	return extAuthzService
 }
 
-func KnativeServingClient(kubeConfigPath string) (*servingClientSet.ServingV1alpha1Client, error) {
+func KnativeServingClient(kubeConfigPath string) (*servingClientSet.ServingV1Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 
 	if err != nil {

@@ -38,8 +38,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
-	"knative.dev/serving/pkg/apis/serving/v1alpha1"
-	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1"
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
+	servingClientSet "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1"
 )
 
 const namespace string = "default"
@@ -125,8 +125,8 @@ func ExtAuthzScenario(t *testing.T) {
 
 }
 
-func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1alpha1Client,
-	networkServingClient *networkingClientSet.NetworkingV1alpha1Client) (*v1alpha1.Service, error) {
+func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1Client,
+	networkServingClient *networkingClientSet.NetworkingV1alpha1Client) (*servingv1.Service, error) {
 
 	kubeClient := test.KubeClient{
 		Kube: k8sClient,
@@ -194,7 +194,7 @@ func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset,
 	return createdService, nil
 }
 
-func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1alpha1Client,
+func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1Client,
 	serviceName string, extAuthzServiceName string, extAuthDeploymentName string) error {
 
 	// Restore env vars

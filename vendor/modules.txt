@@ -890,7 +890,7 @@ knative.dev/serving/pkg/apis/serving/v1beta1
 knative.dev/serving/pkg/autoscaler/config
 knative.dev/serving/pkg/autoscaler/config/autoscalerconfig
 knative.dev/serving/pkg/client/clientset/versioned/scheme
-knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1
+knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1
 # knative.dev/test-infra v0.0.0-20200921012245-37f1a12adbd3
 ## explicit
 knative.dev/test-infra/scripts
