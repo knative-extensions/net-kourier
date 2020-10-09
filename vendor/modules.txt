@@ -876,7 +876,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.18.1-0.20201008053821-c84d9170598b
+# knative.dev/serving v0.18.1-0.20201009012321-f8ec0ad2f814
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -889,7 +889,7 @@ knative.dev/serving/pkg/autoscaler/config/autoscalerconfig
 knative.dev/serving/pkg/client/clientset/versioned/scheme
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1
 knative.dev/serving/pkg/networking
-# knative.dev/test-infra v0.0.0-20201008043522-20ae6ee1a359
+# knative.dev/test-infra v0.0.0-20201008221921-aeca2ff2371a
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/structured-merge-diff/v3 v3.0.1-0.20200706213357-43c19bbb7fba
