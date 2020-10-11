@@ -26,9 +26,9 @@ import (
 	"path"
 	"reflect"
 	"sync"
-	"sync/atomic"
 	"time"
 
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
@@ -61,7 +61,7 @@ type ingressState struct {
 	ing  *v1alpha1.Ingress
 
 	// pendingCount is the number of pods that haven't been successfully probed yet
-	pendingCount int32
+	pendingCount atomic.Int32
 	lastAccessed time.Time
 
 	cancel func()
@@ -70,7 +70,7 @@ type ingressState struct {
 // podState represents the probing state of a Pod (for a specific Ingress)
 type podState struct {
 	// pendindCount is the number of probes for the Pod
-	pendingCount int32
+	pendingCount atomic.Int32
 
 	cancel func()
 }
@@ -177,7 +177,7 @@ func (m *Prober) IsReady(ctx context.Context, ing *v1alpha1.Ingress) (bool, erro
 		if state, ok := m.ingressStates[ingressKey]; ok {
 			if state.hash == hash {
 				state.lastAccessed = time.Now()
-				return atomic.LoadInt32(&state.pendingCount) == 0, true
+				return state.pendingCount.Load() == 0, true
 			}
 
 			// Cancel the polling for the outdated version
@@ -216,7 +216,7 @@ func (m *Prober) IsReady(ctx context.Context, ing *v1alpha1.Ingress) (bool, erro
 		}
 	}
 
-	ingressState.pendingCount = int32(len(workItems))
+	ingressState.pendingCount.Store(int32(len(workItems)))
 
 	for ip, ipWorkItems := range workItems {
 		// Get or create the context for that IP
@@ -237,7 +237,7 @@ func (m *Prober) IsReady(ctx context.Context, ing *v1alpha1.Ingress) (bool, erro
 
 		podCtx, cancel := context.WithCancel(ingCtx)
 		podState := &podState{
-			pendingCount: int32(len(ipWorkItems)),
+			pendingCount: *atomic.NewInt32(int32(len(ipWorkItems))),
 			cancel:       cancel,
 		}
 
@@ -406,12 +406,12 @@ func (m *Prober) processWorkItem() bool {
 
 func (m *Prober) onProbingSuccess(ingressState *ingressState, podState *podState) {
 	// The last probe call for the Pod succeeded, the Pod is ready
-	if atomic.AddInt32(&podState.pendingCount, -1) == 0 {
+	if podState.pendingCount.Dec() == 0 {
 		// Unlock the goroutine blocked on <-podCtx.Done()
 		podState.cancel()
 
 		// This is the last pod being successfully probed, the Ingress is ready
-		if atomic.AddInt32(&ingressState.pendingCount, -1) == 0 {
+		if ingressState.pendingCount.Dec() == 0 {
 			m.readyCallback(ingressState.ing)
 		}
 	}
@@ -419,16 +419,16 @@ func (m *Prober) onProbingSuccess(ingressState *ingressState, podState *podState
 
 func (m *Prober) onProbingCancellation(ingressState *ingressState, podState *podState) {
 	for {
-		pendingCount := atomic.LoadInt32(&podState.pendingCount)
+		pendingCount := podState.pendingCount.Load()
 		if pendingCount <= 0 {
 			// Probing succeeded, nothing to do
 			return
 		}
 
-		// Attempt to set pendingCount to 0
-		if atomic.CompareAndSwapInt32(&podState.pendingCount, pendingCount, 0) {
+		// Attempt to set pendingCount to 0.
+		if podState.pendingCount.CAS(pendingCount, 0) {
 			// This is the last pod being successfully probed, the Ingress is ready
-			if atomic.AddInt32(&ingressState.pendingCount, -1) == 0 {
+			if ingressState.pendingCount.Dec() == 0 {
 				m.readyCallback(ingressState.ing)
 			}
 			return
