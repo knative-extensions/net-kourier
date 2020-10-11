@@ -61,7 +61,7 @@ func assertIngressEventuallyWorks(ctx context.Context, t *testing.T, clients *te
 		url,
 		pkgTest.IsStatusOK,
 		"WaitForIngressToReturnSuccess",
-		test.ServingFlags.ResolvableDomain); err != nil {
+		test.NetworkingFlags.ResolvableDomain); err != nil {
 		t.Fatalf("The service at %s didn't return success: %v", url, err)
 	}
 }
