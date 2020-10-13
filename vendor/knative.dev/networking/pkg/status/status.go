@@ -358,7 +358,7 @@ func (m *Prober) processWorkItem() bool {
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{
-		// nolint:gosec
+		//nolint:gosec
 		// We only want to know that the Gateway is configured, not that the configuration is valid.
 		// Therefore, we can safely ignore any TLS certificate validation.
 		InsecureSkipVerify: true,
