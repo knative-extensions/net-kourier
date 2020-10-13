@@ -20,6 +20,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/duration"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -52,6 +54,20 @@ func NewRoute(name string,
 				UpgradeType: "websocket",
 				Enabled:     &wrappers.BoolValue{Value: true},
 			}},
+			RetryPolicy: &route.RetryPolicy{
+				RetryOn: "5xx",
+				NumRetries: &wrappers.UInt32Value{
+					Value: 3,
+				},
+				RetryBackOff: &route.RetryPolicy_RetryBackOff{
+					BaseInterval: &duration.Duration{
+						Seconds: 1,
+					},
+					MaxInterval: &duration.Duration{
+						Seconds: 3,
+					},
+				},
+			},
 		}},
 		RequestHeadersToAdd: headersToAdd(headers),
 	}
