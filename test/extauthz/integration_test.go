@@ -125,7 +125,7 @@ func ExtAuthzScenario(t *testing.T) {
 
 }
 
-func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1Client,
+func setupExtAuthzScenario(ctx context.Context, k8sClient kubernetes.Interface, servingClient *servingClientSet.ServingV1Client,
 	networkServingClient *networkingClientSet.NetworkingV1alpha1Client) (*servingv1.Service, error) {
 
 	kubeClient := test.KubeClient{
@@ -194,7 +194,7 @@ func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset,
 	return createdService, nil
 }
 
-func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1Client,
+func cleanExtAuthzScenario(ctx context.Context, kubeClient kubernetes.Interface, servingClient *servingClientSet.ServingV1Client,
 	serviceName string, extAuthzServiceName string, extAuthDeploymentName string) error {
 
 	// Restore env vars
@@ -235,7 +235,7 @@ func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset
 	return nil
 }
 
-func DeployExtAuthzService(ctx context.Context, kubeClient *kubernetes.Clientset, namespace string) error {
+func DeployExtAuthzService(ctx context.Context, kubeClient kubernetes.Interface, namespace string) error {
 
 	extAuthzService := GetExtAuthzService(namespace)
 	extAuthzDeployment := GetExtAuthzDeployment(namespace)
