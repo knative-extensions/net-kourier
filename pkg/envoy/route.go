@@ -18,19 +18,15 @@ package envoy
 
 import (
 	"net/http"
-	"time"
-
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/wrappers"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 func NewRoute(name string,
 	headersMatch []*route.HeaderMatcher,
 	path string,
 	wrs []*route.WeightedCluster_ClusterWeight,
-	routeTimeout time.Duration,
 	headers map[string]string) *route.Route {
 
 	return &route.Route{
@@ -47,7 +43,6 @@ func NewRoute(name string,
 					Clusters: wrs,
 				},
 			},
-			Timeout: ptypes.DurationProto(routeTimeout),
 			UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
 				UpgradeType: "websocket",
 				Enabled:     &wrappers.BoolValue{Value: true},
