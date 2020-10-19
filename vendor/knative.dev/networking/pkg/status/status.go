@@ -69,7 +69,7 @@ type ingressState struct {
 
 // podState represents the probing state of a Pod (for a specific Ingress)
 type podState struct {
-	// pendindCount is the number of probes for the Pod
+	// pendingCount is the number of probes for the Pod
 	pendingCount atomic.Int32
 
 	cancel func()

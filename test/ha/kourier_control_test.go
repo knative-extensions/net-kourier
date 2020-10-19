@@ -65,7 +65,7 @@ func TestKourierControlHA(t *testing.T) {
 	defer test.AssertProberDefault(t, prober)
 
 	for _, leader := range leaders.List() {
-		if err := clients.KubeClient.Kube.CoreV1().Pods(kourierControlNamespace).Delete(ctx, leader, metav1.DeleteOptions{
+		if err := clients.KubeClient.CoreV1().Pods(kourierControlNamespace).Delete(ctx, leader, metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
 		}); err != nil && !apierrs.IsNotFound(err) {
 			t.Fatalf("Failed to delete pod %s: %v", leader, err)
