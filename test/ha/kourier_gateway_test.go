@@ -57,7 +57,7 @@ func TestKourierGatewayHA(t *testing.T) {
 
 	url := apis.HTTP(svcName + domain)
 
-	pods, err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).List(ctx, metav1.ListOptions{
+	pods, err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: kourierGatewayLabel,
 	})
 	if err != nil {
@@ -70,7 +70,7 @@ func TestKourierGatewayHA(t *testing.T) {
 		t.Fatalf("Unable to get public endpoints for service %s: %v", kourierService, err)
 	}
 
-	if err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
+	if err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
 		metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
 		}); err != nil {
@@ -93,7 +93,7 @@ func TestKourierGatewayHA(t *testing.T) {
 		t.Fatalf("Failed to wait for %d endpoints for service %s: %v", haReplicas, kourierService, err)
 	}
 
-	pods, err = clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).List(ctx, metav1.ListOptions{
+	pods, err = clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: kourierGatewayLabel,
 	})
 	if err != nil {
@@ -111,7 +111,7 @@ func TestKourierGatewayHA(t *testing.T) {
 		t.Fatalf("Unable to get public endpoints for service %s: %v", kourierService, err)
 	}
 
-	if err := clients.KubeClient.Kube.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
+	if err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
 		metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
 		}); err != nil {
