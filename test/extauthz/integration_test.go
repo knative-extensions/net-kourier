@@ -128,9 +128,7 @@ func ExtAuthzScenario(t *testing.T) {
 func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset, servingClient *servingClientSet.ServingV1Client,
 	networkServingClient *networkingClientSet.NetworkingV1alpha1Client) (*servingv1.Service, error) {
 
-	kubeClient := test.KubeClient{
-		Kube: k8sClient,
-	}
+	kubeClient := test.KubeClient{Interface: k8sClient}
 
 	service := ExampleHelloWorldServing()
 	createdService, err := servingClient.Services(namespace).Create(ctx, &service, metav1.CreateOptions{})
