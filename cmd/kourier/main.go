@@ -17,8 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"os"
-
 	"knative.dev/net-kourier/pkg/config"
 	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
 
@@ -27,8 +25,5 @@ import (
 )
 
 func main() {
-	// TODO: make this configurable
-	_ = os.Setenv("METRICS_DOMAIN", "knative.dev/samples")
-
 	sharedmain.Main(config.ControllerName, kourierIngressController.NewController)
 }
