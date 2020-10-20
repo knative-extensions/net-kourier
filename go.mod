@@ -9,17 +9,16 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.15.0
-	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
 	google.golang.org/grpc v1.31.1
 	google.golang.org/protobuf v1.25.0
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.18.8
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
-	knative.dev/networking v0.0.0-20201019071058-ecd132c7658c
-	knative.dev/pkg v0.0.0-20201019114258-95e9532f0457
-	knative.dev/serving v0.18.1-0.20201019030158-39974804647d
-	knative.dev/test-infra v0.0.0-20201015231956-d236fb0ea9ff
+	knative.dev/networking v0.0.0-20201020102659-b36aadbe71df
+	knative.dev/pkg v0.0.0-20201020145658-bf971ee9f625
+	knative.dev/serving v0.18.1-0.20201020142158-3e2cc396a034
+	knative.dev/test-infra v0.0.0-20201020062259-cd8625126729
 )
 
 replace (
