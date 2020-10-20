@@ -40,7 +40,7 @@ func TestNewRouteHeaderMatch(t *testing.T) {
 	AppendHeaders := map[string]string{}
 	var wrs []*envoy_api_v2_route.WeightedCluster_ClusterWeight
 
-	r := NewRoute(name, headerMatch, path, wrs, 0, AppendHeaders)
+	r := NewRoute(name, headerMatch, path, wrs, AppendHeaders)
 	assert.Equal(t, r.Match.Headers[0].Name, "myHeader")
 	assert.Equal(t, r.Match.Headers[0].GetExactMatch(), "strict")
 
