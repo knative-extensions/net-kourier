@@ -120,7 +120,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.1.3
+# github.com/google/go-containerregistry v0.1.4-0.20201020135303-da2eb53b5bd1
 github.com/google/go-containerregistry/pkg/name
 # github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
@@ -228,8 +228,7 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zaptest
-# golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
-## explicit
+# golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20200904194848-62affa334b73
 golang.org/x/net/context
@@ -728,7 +727,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/networking v0.0.0-20201019071058-ecd132c7658c
+# knative.dev/networking v0.0.0-20201020102659-b36aadbe71df
 ## explicit
 knative.dev/networking/pkg
 knative.dev/networking/pkg/apis/networking
@@ -760,7 +759,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20201019114258-95e9532f0457
+# knative.dev/pkg v0.0.0-20201020145658-bf971ee9f625
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -800,6 +799,7 @@ knative.dev/pkg/signals
 knative.dev/pkg/system
 knative.dev/pkg/system/testing
 knative.dev/pkg/test
+knative.dev/pkg/test/flags
 knative.dev/pkg/test/ha
 knative.dev/pkg/test/helpers
 knative.dev/pkg/test/ingress
@@ -816,7 +816,7 @@ knative.dev/pkg/tracker
 knative.dev/pkg/version
 knative.dev/pkg/webhook
 knative.dev/pkg/webhook/certificates/resources
-# knative.dev/serving v0.18.1-0.20201019030158-39974804647d
+# knative.dev/serving v0.18.1-0.20201020142158-3e2cc396a034
 ## explicit
 knative.dev/serving/pkg/apis/autoscaling
 knative.dev/serving/pkg/apis/autoscaling/v1alpha1
@@ -829,7 +829,7 @@ knative.dev/serving/pkg/autoscaler/config/autoscalerconfig
 knative.dev/serving/pkg/client/clientset/versioned/scheme
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1
 knative.dev/serving/pkg/networking
-# knative.dev/test-infra v0.0.0-20201015231956-d236fb0ea9ff
+# knative.dev/test-infra v0.0.0-20201020062259-cd8625126729
 ## explicit
 knative.dev/test-infra/scripts
 # sigs.k8s.io/structured-merge-diff/v3 v3.0.1-0.20200706213357-43c19bbb7fba
