@@ -223,8 +223,13 @@ func createRouteForRevision(ingressName string, ingressNamespace string, httpPat
 		path = httpPath.Path
 	}
 
+	var routeTimeout time.Duration
+	if httpPath.Timeout != nil {
+		routeTimeout = httpPath.Timeout.Duration
+	}
+
 	return envoy.NewRoute(
-		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, httpPath.AppendHeaders,
+		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, routeTimeout, httpPath.AppendHeaders,
 	)
 }
 

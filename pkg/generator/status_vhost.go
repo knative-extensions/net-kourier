@@ -17,6 +17,8 @@ limitations under the License.
 package generator
 
 import (
+	"time"
+
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
 
@@ -37,7 +39,7 @@ func readyRoute() *route.Route {
 	cluster := envoy.NewWeightedCluster("service_stats", 100, map[string]string{})
 	var wrs []*route.WeightedCluster_ClusterWeight
 	wrs = append(wrs, cluster)
-	route := envoy.NewRoute("gateway_ready", nil, "/ready", wrs, map[string]string{})
+	route := envoy.NewRoute("gateway_ready", nil, "/ready", wrs, 1*time.Second, map[string]string{})
 
 	return route
 }
