@@ -224,7 +224,7 @@ func createRouteForRevision(ingressName string, ingressNamespace string, httpPat
 	}
 
 	return envoy.NewRoute(
-		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, httpPath.AppendHeaders,
+		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders,
 	)
 }
 
