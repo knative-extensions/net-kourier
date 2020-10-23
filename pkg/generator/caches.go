@@ -152,9 +152,6 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 	caches.ingresses[key] = ingress
 	caches.translatedIngresses[key] = translatedIngress
 
-	// Remove the Ingress from the Sync list as it has been warmed.
-	caches.deleteFromSyncList(ingress.Name, ingress.Namespace)
-
 	for _, cluster := range translatedIngress.clusters {
 		caches.addClusterForIngress(cluster, ingress.Name, ingress.Namespace)
 	}
@@ -253,15 +250,15 @@ func (caches *Caches) DeleteIngressInfo(ctx context.Context, ingressName string,
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
 
-	// Remove the Ingress from the Sync list as there's no point to wait for it to be synced.
-	caches.deleteFromSyncList(ingressName, ingressNamespace)
-
 	caches.deleteTranslatedIngress(ingressName, ingressNamespace)
 	return caches.setListeners(ctx, kubeclient)
 }
 
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {
 	caches.logger.Debugf("deleting ingress: %s/%s", ingressName, ingressNamespace)
+
+	// Remove the Ingress from the Sync list as there's no point to wait for it to be synced.
+	caches.deleteFromSyncList(ingressName, ingressNamespace)
 
 	key := mapKey(ingressName, ingressNamespace)
 
@@ -278,6 +275,9 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 
 func (caches *Caches) addClusterForIngress(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
 	caches.logger.Debugf("adding cluster %s for ingress %s/%s", cluster.Name, ingressName, ingressNamespace)
+
+	// Remove the Ingress from the Sync list as it has been warmed.
+	caches.deleteFromSyncList(ingressName, ingressNamespace)
 
 	caches.clusters.set(cluster, ingressName, ingressNamespace)
 
