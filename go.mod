@@ -4,21 +4,21 @@ go 1.14
 
 require (
 	github.com/envoyproxy/go-control-plane v0.9.4
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.2
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.1.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	go.uber.org/zap v1.15.0
-	google.golang.org/grpc v1.31.1
+	go.uber.org/zap v1.16.0
+	google.golang.org/grpc v1.33.1
 	google.golang.org/protobuf v1.25.0
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.18.8
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
+	knative.dev/hack v0.0.0-20201027221733-0d7f2f064b7b
 	knative.dev/networking v0.0.0-20201028132534-429a6210295c
-	knative.dev/pkg v0.0.0-20201028133634-8ae84fe12a61
-	knative.dev/serving v0.18.1-0.20201028102234-1539dd966964
-	knative.dev/test-infra v0.0.0-20201028004634-fe8002e29c05
+	knative.dev/pkg v0.0.0-20201028171634-6a24d54694a8
+	knative.dev/serving v0.18.1-0.20201028173042-952a8e3fa12e
 )
 
 replace (
