@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # This script includes common functions for testing setup and teardown.
-source $(dirname $0)/../vendor/knative.dev/test-infra/scripts/e2e-tests.sh
+source $(dirname $0)/../vendor/knative.dev/hack/e2e-tests.sh
 
 export KOURIER_CONTROL_NAMESPACE=knative-serving
 export KOURIER_GATEWAY_NAMESPACE=kourier-system
