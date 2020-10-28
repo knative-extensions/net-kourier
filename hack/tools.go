@@ -3,7 +3,7 @@
 package tools
 
 import (
-	_ "knative.dev/test-infra/scripts"
+	_ "knative.dev/hack"
 
 	// For chaos testing the leaderelection stuff.
 	_ "knative.dev/pkg/leaderelection/chaosduck"

@@ -726,6 +726,9 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
+# knative.dev/hack v0.0.0-20201027221733-0d7f2f064b7b
+## explicit
+knative.dev/hack
 # knative.dev/networking v0.0.0-20201027230234-f0e013a2a1e2
 ## explicit
 knative.dev/networking/pkg
@@ -758,7 +761,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20201027233834-b8a7aae9285f
+# knative.dev/pkg v0.0.0-20201028000034-e39bfc4544a8
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -827,9 +830,6 @@ knative.dev/serving/pkg/autoscaler/config/autoscalerconfig
 knative.dev/serving/pkg/client/clientset/versioned/scheme
 knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1
 knative.dev/serving/pkg/networking
-# knative.dev/test-infra v0.0.0-20201027215034-496d965ed4b0
-## explicit
-knative.dev/test-infra/scripts
 # sigs.k8s.io/structured-merge-diff/v3 v3.0.1-0.20200706213357-43c19bbb7fba
 sigs.k8s.io/structured-merge-diff/v3/value
 # sigs.k8s.io/yaml v1.2.0
