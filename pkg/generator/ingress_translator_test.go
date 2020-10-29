@@ -22,26 +22,21 @@ import (
 	"sort"
 	"testing"
 
-	"knative.dev/net-kourier/pkg/envoy"
-
-	"github.com/google/go-cmp/cmp"
-
-	logtest "knative.dev/pkg/logging/testing"
-	pkgtest "knative.dev/pkg/reconciler/testing"
-
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/client-go/kubernetes/fake"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/google/go-cmp/cmp"
 	"gotest.tools/assert"
 	kubev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	logtest "knative.dev/pkg/logging/testing"
+	pkgtest "knative.dev/pkg/reconciler/testing"
 )
 
 // Tests that when there is a traffic split defined in the ingress:

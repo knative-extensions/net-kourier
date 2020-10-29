@@ -20,19 +20,16 @@ import (
 	"context"
 	"fmt"
 
-	"knative.dev/net-kourier/pkg/config"
-
 	kubeclient "k8s.io/client-go/kubernetes"
-
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/generator"
+	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	"knative.dev/networking/pkg/status"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
-
-	"knative.dev/net-kourier/pkg/envoy"
-	"knative.dev/net-kourier/pkg/generator"
-	"knative.dev/net-kourier/pkg/knative"
 )
 
 type Reconciler struct {

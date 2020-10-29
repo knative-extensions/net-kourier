@@ -21,9 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"go.uber.org/zap"
-
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"go.uber.org/zap"
 	"gotest.tools/assert"
 )
 

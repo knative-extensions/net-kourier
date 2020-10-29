@@ -20,9 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"go.uber.org/zap"
 )
 
 // Returning an error will end processing and close the stream. OnStreamClosed will still be called.

@@ -21,16 +21,14 @@ import (
 	"errors"
 	"sync"
 
-	"go.uber.org/zap"
-	"knative.dev/net-kourier/pkg/envoy"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	kubeclient "k8s.io/client-go/kubernetes"
+	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 )
 

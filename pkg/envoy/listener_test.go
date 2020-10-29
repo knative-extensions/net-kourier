@@ -21,19 +21,14 @@ import (
 	"reflect"
 	"testing"
 
-	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-
-	"github.com/golang/protobuf/ptypes"
-
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
 )
