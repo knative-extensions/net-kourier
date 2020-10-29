@@ -21,9 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"knative.dev/net-kourier/pkg/envoy"
-	"knative.dev/net-kourier/pkg/knative"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -32,6 +29,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"knative.dev/net-kourier/pkg/envoy"
+	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/tracker"
 )

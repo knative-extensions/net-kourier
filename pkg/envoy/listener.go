@@ -19,15 +19,13 @@ package envoy
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/ptypes"
-
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
 )
 
 type SNIMatch struct {

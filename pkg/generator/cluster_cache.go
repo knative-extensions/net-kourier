@@ -40,11 +40,10 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache"
 	gocache "github.com/patrickmn/go-cache"
+	"go.uber.org/zap"
 )
 
 const (

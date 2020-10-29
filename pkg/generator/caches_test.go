@@ -21,25 +21,18 @@ import (
 	"sort"
 	"testing"
 
-	"google.golang.org/protobuf/types/known/anypb"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
-
-	"github.com/google/go-cmp/cmp/cmpopts"
-
-	"knative.dev/net-kourier/pkg/config"
-
-	"knative.dev/networking/pkg/apis/networking/v1alpha1"
-
-	"go.uber.org/zap"
-
-	"gotest.tools/assert"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/anypb"
+	"gotest.tools/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 )
 
 func TestDeleteIngressInfo(t *testing.T) {

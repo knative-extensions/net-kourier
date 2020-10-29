@@ -19,13 +19,11 @@ package envoy
 import (
 	"testing"
 
-	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	"github.com/golang/protobuf/ptypes"
-
-	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
+	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	"github.com/golang/protobuf/ptypes"
 	"gotest.tools/assert"
 )
 

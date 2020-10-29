@@ -20,9 +20,8 @@ import (
 	"net/http"
 	"testing"
 
-	"gotest.tools/assert"
-
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"gotest.tools/assert"
 )
 
 func TestNewRouteHeaderMatch(t *testing.T) {
