@@ -125,7 +125,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 	ingressTranslation, err := ingressTranslator.translateIngress(ctx, &ingress, false)
 	if err != nil {
@@ -204,7 +204,7 @@ func TestIngressVisibility(t *testing.T) {
 			}
 
 			ingressTranslator := NewIngressTranslator(
-				kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+				kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 			translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 			if err != nil {
@@ -258,7 +258,7 @@ func TestIngressWithTLS(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 	if err != nil {
@@ -292,7 +292,7 @@ func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
 
 	_, err := ingressTranslator.translateIngress(ctx, ingress, false)
 
@@ -321,6 +321,30 @@ func (endpoints *endpoints) List(selector labels.Selector) ([]*kubev1.Endpoints,
 
 func (endpoints *endpoints) Get(name string) (*kubev1.Endpoints, error) {
 	return &kubev1.Endpoints{}, nil
+}
+
+func newMockedServiceLister() corev1listers.ServiceLister {
+	return new(serviceLister)
+}
+
+type serviceLister struct{}
+
+func (endpointsLister *serviceLister) List(selector labels.Selector) ([]*kubev1.Service, error) {
+	return []*kubev1.Service{{}}, nil
+}
+
+func (endpointsLister *serviceLister) Services(namespace string) corev1listers.ServiceNamespaceLister {
+	return new(service)
+}
+
+type service struct{}
+
+func (endpoints *service) List(selector labels.Selector) ([]*kubev1.Service, error) {
+	return []*kubev1.Service{{}}, nil
+}
+
+func (endpoints *service) Get(name string) (*kubev1.Service, error) {
+	return &kubev1.Service{}, nil
 }
 
 func createIngress(name string, hosts []string, visibility v1alpha1.IngressVisibility) *v1alpha1.Ingress {

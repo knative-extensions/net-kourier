@@ -43,6 +43,7 @@ import (
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
+	serviceinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/service"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
@@ -66,6 +67,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	logger := logging.FromContext(ctx)
 	ingressInformer := ingressinformer.Get(ctx)
 	endpointsInformer := endpointsinformer.Get(ctx)
+	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 	extAuthZConfig := envoy.GetExternalAuthzConfig()
 
@@ -134,10 +136,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		})
 	})
 
-	endpointsTracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
+	tracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		r.kubeClient, endpointsInformer.Lister(), endpointsTracker, logger)
+		r.kubeClient, endpointsInformer.Lister(), serviceInformer.Lister(),
+		tracker, logger)
 	r.ingressTranslator = &ingressTranslator
 
 	// Initialize the Envoy snapshot.
@@ -166,9 +169,16 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		Handler:    controller.HandleAll(impl.Enqueue),
 	})
 
+	serviceInformer.Informer().AddEventHandler(controller.HandleAll(
+		controller.EnsureTypeMeta(
+			tracker.OnChanged,
+			v1.SchemeGroupVersion.WithKind("Services"),
+		),
+	))
+
 	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
-			endpointsTracker.OnChanged,
+			tracker.OnChanged,
 			v1.SchemeGroupVersion.WithKind("Endpoints"),
 		),
 	))
