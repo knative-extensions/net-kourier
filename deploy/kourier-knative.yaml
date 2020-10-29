@@ -50,7 +50,6 @@ spec:
           command:
             - /usr/local/bin/envoy
           image: docker.io/maistra/proxyv2-ubi8:1.1.5
-          imagePullPolicy: Always
           name: kourier-gateway
           ports:
             - name: http2-external
@@ -111,7 +110,6 @@ spec:
     spec:
       containers:
         - image: ko://knative.dev/net-kourier/cmd/kourier
-          imagePullPolicy: Always
           name: kourier-control
           env:
             - name: CERTS_SECRET_NAMESPACE
