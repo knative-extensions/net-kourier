@@ -19,7 +19,6 @@ package ingress
 import (
 	"context"
 	"strings"
-	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"go.uber.org/zap"
@@ -52,9 +51,12 @@ const (
 	gatewayLabelKey   = "app"
 	gatewayLabelValue = "3scale-kourier-gateway"
 
-	nodeID             = "3scale-kourier-gateway"
-	managementPort     = 18000
-	cacheWarmUPTimeout = 720 * time.Second
+	nodeID         = "3scale-kourier-gateway"
+	managementPort = 18000
+)
+
+var isKourierIngress = knativeReconciler.AnnotationFilterFunc(
+	networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
@@ -67,15 +69,8 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 
-	// Get the current list of ingresses that are ready, and pass it to the cache so we can
-	// know when it has been synced.
-	ingressesToSync, err := getReadyIngresses(ctx, knativeClient.NetworkingV1alpha1())
-	if err != nil {
-		logger.Fatalw("Failed to get initial set of ready ingresses", zap.Error(err))
-	}
-
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
-	caches, err := generator.NewCaches(ctx, logger.Named("caches"), kubernetesClient, config.ExternalAuthz.Enabled, ingressesToSync)
+	caches, err := generator.NewCaches(ctx, logger.Named("caches"), kubernetesClient, config.ExternalAuthz.Enabled)
 	if err != nil {
 		logger.Fatalw("Failed create new caches", zap.Error(err))
 	}
@@ -88,18 +83,17 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName)
 
-	classFilter := knativeReconciler.AnnotationFilterFunc(
-		networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
-	)
-
-	envoyXdsServer := envoy.NewXdsServer(managementPort, &envoy.Callbacks{
-		OnError: func(req *v2.DiscoveryRequest) {
-			logger.Infof("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
-			impl.FilteredGlobalResync(func(obj interface{}) bool {
-				return classFilter(obj) && !obj.(*v1alpha1.Ingress).IsReady()
-			}, ingressInformer.Informer())
+	envoyXdsServer := envoy.NewXdsServer(
+		managementPort,
+		&envoy.Callbacks{
+			OnError: func(req *v2.DiscoveryRequest) {
+				logger.Infof("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
+				impl.FilteredGlobalResync(func(obj interface{}) bool {
+					return isKourierIngress(obj) && !obj.(*v1alpha1.Ingress).IsReady()
+				}, ingressInformer.Informer())
+			},
 		},
-	})
+	)
 	r.xdsServer = envoyXdsServer
 
 	statusProber := status.NewProber(
@@ -127,7 +121,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	tracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		r.kubeClient, endpointsInformer.Lister(), serviceInformer.Lister(), tracker)
+		r.kubeClient,
+		func(ns, name string) (*corev1.Endpoints, error) {
+			return endpointsInformer.Lister().Endpoints(ns).Get(name)
+		},
+		func(ns, name string) (*corev1.Service, error) {
+			return serviceInformer.Lister().Services(ns).Get(name)
+		},
+		tracker)
 	r.ingressTranslator = &ingressTranslator
 
 	// Initialize the Envoy snapshot.
@@ -140,11 +141,39 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		logger.Fatalw("Failed to set snapshot", zap.Error(err))
 	}
 
-	// Let's start the management server when our cache is in sync, to avoid sending an incomplete configuration
-	// to an already running gateway container. If the cache is not warmed up after "cacheWarmUPTimeout" we just
-	// start the server as somehow we couldn't sync.
+	// Get the current list of ingresses that are ready and seed the Envoy config with them.
+	ingressesToSync, err := getReadyIngresses(ctx, knativeClient.NetworkingV1alpha1())
+	if err != nil {
+		logger.Fatalw("Failed to fetch ready ingresses", zap.Error(err))
+	}
+	logger.Infof("Priming the config with %d ingresses", len(ingressesToSync))
+
+	// The startup translator uses clients instead of listeners to correctly list all
+	// resources at startup.
+	startupTranslator := generator.NewIngressTranslator(
+		r.kubeClient,
+		func(ns, name string) (*corev1.Endpoints, error) {
+			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(ns, name string) (*corev1.Service, error) {
+			return kubernetesClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		tracker)
+
+	for _, ingress := range ingressesToSync {
+		if err := generator.UpdateInfoForIngress(
+			ctx, caches, ingress, kubernetesClient,
+			&startupTranslator, config.ExternalAuthz.Enabled); err != nil {
+			logger.Fatalw("Failed prewarm ingress", zap.Error(err))
+		}
+	}
+	// Update the entire batch of ready ingresses at once.
+	if err := r.updateEnvoyConfig(); err != nil {
+		logger.Fatalw("Failed to set initial envoy config", zap.Error(err))
+	}
+
+	// Let's start the management server **after** the configuration has been seeded.
 	go func() {
-		waitForCache(logger, caches)
 		logger.Info("Starting Management Server on Port ", managementPort)
 		if err := envoyXdsServer.RunManagementServer(); err != nil {
 			logger.Fatalw("Failed to serve XDS Server", zap.Error(err))
@@ -154,7 +183,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
 	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: classFilter,
+		FilterFunc: isKourierIngress,
 		Handler:    controller.HandleAll(impl.Enqueue),
 	})
 
@@ -188,30 +217,18 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	return impl
 }
 
-func waitForCache(log *zap.SugaredLogger, caches *generator.Caches) {
-	timeout := time.After(cacheWarmUPTimeout)
-	for {
-		select {
-		case <-timeout:
-			log.Warnf("cache warm up timeout after %s", cacheWarmUPTimeout)
-			return
-		case <-caches.WaitForSync():
-			log.Info("cache is in sync.")
-			return
-		}
-	}
-}
-
 func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
 	ingresses, err := knativeClient.Ingresses("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	ingressesToWarm := make([]*v1alpha1.Ingress, 0, len(ingresses.Items))
-	for _, ingress := range ingresses.Items {
-		if ingress.Annotations[networking.IngressClassAnnotationKey] == config.KourierIngressClassName && ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
-			validIngress := ingress
-			ingressesToWarm = append(ingressesToWarm, &validIngress)
+	for i := range ingresses.Items {
+		ingress := &ingresses.Items[i]
+		if isKourierIngress(ingress) &&
+			ingress.GetDeletionTimestamp() == nil && // Ignore ingresses that are already marked for deletion.
+			ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
+			ingressesToWarm = append(ingressesToWarm, ingress)
 		}
 	}
 	return ingressesToWarm, nil
