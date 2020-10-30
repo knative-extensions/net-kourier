@@ -23,6 +23,7 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.uber.org/zap"
@@ -128,9 +129,9 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 		t.FailNow()
 	}
 
-	clustersBeforeDelete := snapshotBeforeDelete.Clusters.Items
-	routesBeforeDelete := snapshotBeforeDelete.Routes.Items
-	listenersBeforeDelete := snapshotBeforeDelete.Listeners.Items
+	clustersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ClusterType)
+	routesBeforeDelete := snapshotBeforeDelete.GetResources(cache.RouteType)
+	listenersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ListenerType)
 
 	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace", &kubeClient)
 	if err != nil {
@@ -142,9 +143,9 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 		t.FailNow()
 	}
 
-	clustersAfterDelete := snapshotAfterDelete.Clusters.Items
-	routesAfterDelete := snapshotAfterDelete.Routes.Items
-	listenersAfterDelete := snapshotAfterDelete.Listeners.Items
+	clustersAfterDelete := snapshotAfterDelete.GetResources(cache.ClusterType)
+	routesAfterDelete := snapshotAfterDelete.GetResources(cache.RouteType)
+	listenersAfterDelete := snapshotAfterDelete.GetResources(cache.ListenerType)
 
 	// This is a temporary workaround. Remove when we delete the route with a
 	// randomly generated name in status_vhost.go

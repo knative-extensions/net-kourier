@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
@@ -131,7 +132,7 @@ func (r *Reconciler) updateEnvoyConfig() error {
 
 	// Let's warm the Clusters first, by sending the previous snapshot with the new cluster list, that includes
 	// both new and old clusters.
-	currentSnapshot.Clusters = newSnapshot.Clusters
+	currentSnapshot.Resources[cache.Cluster].Items = newSnapshot.GetResources(cache.ClusterType)
 
 	//Validate that the snapshot is consistent.
 	if err := currentSnapshot.Consistent(); err != nil {
