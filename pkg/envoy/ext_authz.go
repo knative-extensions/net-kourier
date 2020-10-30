@@ -23,6 +23,7 @@ import (
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
@@ -97,14 +98,40 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 }
 
 func (e *ExternalAuthzConfig) extAuthzCluster() *v2.Cluster {
-	endpoints := []*endpoint.LbEndpoint{NewLBEndpoint(e.Host, uint32(e.Port))}
-	return NewCluster(config.ExternalAuthzCluster, 5*time.Second, endpoints,
-		true, v2.Cluster_STRICT_DNS)
+	return &v2.Cluster{
+		Name: config.ExternalAuthzCluster,
+		ClusterDiscoveryType: &v2.Cluster_Type{
+			Type: v2.Cluster_STRICT_DNS,
+		},
+		ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+		LoadAssignment: &v2.ClusterLoadAssignment{
+			ClusterName: config.ExternalAuthzCluster,
+			Endpoints: []*endpoint.LocalityLbEndpoints{{
+				LbEndpoints: []*endpoint.LbEndpoint{&endpoint.LbEndpoint{
+					HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+						Endpoint: &endpoint.Endpoint{
+							Address: &core.Address{
+								Address: &core.Address_SocketAddress{
+									SocketAddress: &core.SocketAddress{
+										Protocol: core.SocketAddress_TCP,
+										Address:  e.Host,
+										PortSpecifier: &core.SocketAddress_PortValue{
+											PortValue: uint32(e.Port),
+										},
+										Ipv4Compat: true,
+									},
+								},
+							},
+						},
+					},
+				}},
+			}},
+		},
+	}
 }
 
 func (e *ExternalAuthzConfig) externalAuthZFilter(clusterName string) *httpconnectionmanagerv2.HttpFilter {
-
-	extAuthConfig := extAuthService.ExtAuthz{
+	extAuthConfig := &extAuthService.ExtAuthz{
 		Services: &extAuthService.ExtAuthz_GrpcService{
 			GrpcService: &envoy_api_v2_core.GrpcService{
 				TargetSpecifier: &envoy_api_v2_core.GrpcService_EnvoyGrpc_{
@@ -127,17 +154,15 @@ func (e *ExternalAuthzConfig) externalAuthZFilter(clusterName string) *httpconne
 		ClearRouteCache: false,
 	}
 
-	envoyConf, err := conversion.MessageToStruct(&extAuthConfig)
+	envoyConf, err := conversion.MessageToStruct(extAuthConfig)
 	if err != nil {
 		panic(err)
 	}
 
-	extAuthzFilter := httpconnectionmanagerv2.HttpFilter{
+	return &httpconnectionmanagerv2.HttpFilter{
 		Name: wellknown.HTTPExternalAuthorization,
 		ConfigType: &httpconnectionmanagerv2.HttpFilter_Config{
 			Config: envoyConf,
 		},
 	}
-
-	return &extAuthzFilter
 }
