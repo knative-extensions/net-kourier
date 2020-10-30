@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"go.uber.org/zap"
 )
 
 // Returning an error will end processing and close the stream. OnStreamClosed will still be called.
@@ -36,11 +35,9 @@ func (cb *Callbacks) OnStreamClosed(id int64) {
 // OnStreamRequest is called once a request is received on a stream.
 // Returning an error will end processing and close the stream. OnStreamClosed will still be called.
 func (cb *Callbacks) OnStreamRequest(_ int64, req *v2.DiscoveryRequest) error {
-
 	if req.ErrorDetail != nil {
-		cb.Logger.Infof("OnStreamRequest error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
 		if cb.OnError != nil {
-			cb.OnError()
+			cb.OnError(req)
 		}
 		return fmt.Errorf("OnStreamRequest error pushing snapshot to gateway %v", req.ErrorDetail.Message)
 	}
@@ -62,6 +59,5 @@ func (cb *Callbacks) OnFetchResponse(req *v2.DiscoveryRequest, resp *v2.Discover
 }
 
 type Callbacks struct {
-	Logger  *zap.SugaredLogger
-	OnError func()
+	OnError func(*v2.DiscoveryRequest)
 }
