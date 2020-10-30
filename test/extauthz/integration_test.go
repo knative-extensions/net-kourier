@@ -31,7 +31,7 @@ import (
 
 	"knative.dev/pkg/test"
 
-	v12 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	"gotest.tools/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -151,13 +151,13 @@ func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset,
 		return nil, err
 	}
 
-	ExtAuthzHostEnv := v12.EnvVar{
+	ExtAuthzHostEnv := corev1.EnvVar{
 		Name:      config.ExtAuthzHostEnv,
 		Value:     "externalauthz:6000",
 		ValueFrom: nil,
 	}
 
-	ExtAuthzFailureEnv := v12.EnvVar{
+	ExtAuthzFailureEnv := corev1.EnvVar{
 		Name:      config.ExtAuthzFailureModeEnv,
 		Value:     "false",
 		ValueFrom: nil,
@@ -203,7 +203,7 @@ func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset
 		return err
 	}
 
-	var finalEnvs []v12.EnvVar
+	var finalEnvs []corev1.EnvVar
 	for _, env := range kourierControlDeployment.Spec.Template.Spec.Containers[0].Env {
 		if env.Name != config.ExtAuthzHostEnv && env.Name != config.ExtAuthzFailureModeEnv {
 			finalEnvs = append(finalEnvs, env)

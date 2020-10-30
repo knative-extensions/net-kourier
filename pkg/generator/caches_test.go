@@ -29,7 +29,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/assert"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/net-kourier/pkg/config"
@@ -186,7 +186,7 @@ func createTestDataForIngress(
 	}
 
 	_ = caches.addTranslatedIngress(&v1alpha1.Ingress{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      ingressName,
 			Namespace: ingressNamespace,
 		},
@@ -276,8 +276,8 @@ func TestCacheWithWarmingWithIngressesToSync(t *testing.T) {
 
 	ingressesToSync := []*v1alpha1.Ingress{
 		{
-			TypeMeta:   v1.TypeMeta{},
-			ObjectMeta: v1.ObjectMeta{Name: "test1", Namespace: "namespace1"},
+			TypeMeta:   metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{Name: "test1", Namespace: "namespace1"},
 			Spec:       v1alpha1.IngressSpec{},
 			Status:     v1alpha1.IngressStatus{},
 		},
