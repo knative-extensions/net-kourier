@@ -24,7 +24,6 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kubeclient "k8s.io/client-go/kubernetes"
@@ -32,6 +31,7 @@ import (
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	"knative.dev/pkg/logging"
 	"knative.dev/pkg/tracker"
 )
 
@@ -40,7 +40,6 @@ type IngressTranslator struct {
 	endpointsLister corev1listers.EndpointsLister
 	serviceLister   corev1listers.ServiceLister
 	tracker         tracker.Interface
-	logger          *zap.SugaredLogger
 }
 
 type translatedIngress struct {
@@ -57,18 +56,18 @@ func NewIngressTranslator(
 	kubeclient kubeclient.Interface,
 	endpointsLister corev1listers.EndpointsLister,
 	serviceLister corev1listers.ServiceLister,
-	tracker tracker.Interface,
-	logger *zap.SugaredLogger) IngressTranslator {
+	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
 		kubeclient:      kubeclient,
 		endpointsLister: endpointsLister,
 		serviceLister:   serviceLister,
 		tracker:         tracker,
-		logger:          logger,
 	}
 }
 
 func (translator *IngressTranslator) translateIngress(ctx context.Context, ingress *v1alpha1.Ingress, extAuthzEnabled bool) (*translatedIngress, error) {
+	logger := logging.FromContext(ctx)
+
 	res := &translatedIngress{
 		ingressName:      ingress.Name,
 		ingressNamespace: ingress.Namespace,
@@ -76,10 +75,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 	for _, ingressTLS := range ingress.Spec.TLS {
 		sniMatch, err := sniMatchFromIngressTLS(ctx, ingressTLS, translator.kubeclient)
-
 		if err != nil {
-			translator.logger.Errorf("%s", err)
-
 			// We need to propagate this error to the reconciler so the current
 			// event can be retried. This error might be caused because the
 			// secrets referenced in the TLS section of the spec do not exist
@@ -87,7 +83,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			// See the "TestPerKsvcCert_localCA" test in Knative Serving. It's a
 			// test that fails if this error is not propagated:
 			// https://github.com/knative/serving/blob/571e4db2392839082c559870ea8d4b72ef61e59d/test/e2e/autotls/auto_tls_test.go#L68
-			return nil, err
+			return nil, fmt.Errorf("failed to get sniMatch: %w", err)
 		}
 		res.sniMatches = append(res.sniMatches, sniMatch)
 	}
@@ -112,7 +108,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
 				if apierrors.IsNotFound(err) {
-					translator.logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					return nil, nil
 				} else if err != nil {
 					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
@@ -120,7 +116,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 				service, err := translator.serviceLister.Services(split.ServiceNamespace).Get(split.ServiceName)
 				if apierrors.IsNotFound(err) {
-					translator.logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					return nil, nil
 				} else if err != nil {
 					return nil, fmt.Errorf("failed to fetch service '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)

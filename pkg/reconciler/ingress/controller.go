@@ -137,8 +137,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	tracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		r.kubeClient, endpointsInformer.Lister(), serviceInformer.Lister(),
-		tracker, logger)
+		r.kubeClient, endpointsInformer.Lister(), serviceInformer.Lister(), tracker)
 	r.ingressTranslator = &ingressTranslator
 
 	// Initialize the Envoy snapshot.

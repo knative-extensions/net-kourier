@@ -35,7 +35,6 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
-	logtest "knative.dev/pkg/logging/testing"
 	pkgtest "knative.dev/pkg/reconciler/testing"
 )
 
@@ -120,7 +119,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{})
 
 	ingressTranslation, err := ingressTranslator.translateIngress(ctx, &ingress, false)
 	if err != nil {
@@ -199,7 +198,7 @@ func TestIngressVisibility(t *testing.T) {
 			}
 
 			ingressTranslator := NewIngressTranslator(
-				kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+				kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{})
 
 			translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 			if err != nil {
@@ -253,7 +252,7 @@ func TestIngressWithTLS(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{})
 
 	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 	if err != nil {
@@ -287,11 +286,11 @@ func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{}, logtest.TestLogger(t))
+		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{})
 
 	_, err := ingressTranslator.translateIngress(ctx, ingress, false)
 
-	assert.Error(t, err, fmt.Sprintf("secrets \"%s\" not found", tlsSecretName))
+	assert.Error(t, err, fmt.Sprintf("failed to get sniMatch: secrets \"%s\" not found", tlsSecretName))
 }
 
 func newMockedEndpointsLister() corev1listers.EndpointsLister {
