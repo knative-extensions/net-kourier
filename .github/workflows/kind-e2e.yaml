@@ -27,6 +27,10 @@ jobs:
         - v1.18.8
         - v1.19.1
 
+        test-suite:
+        - ./test/conformance
+        - ./test/ha
+
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
         # See: https://github.com/kubernetes-sigs/kind/releases/tag/v0.9.0
@@ -41,7 +45,6 @@ jobs:
           kind-version: v0.9.0
           kind-image-sha: sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600
 
-        - test-suite: ./test/conformance
         - test-suite: ./test/ha
           test-flags: "-parallel=1"
 
