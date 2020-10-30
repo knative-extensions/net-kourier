@@ -58,26 +58,28 @@ const (
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	logger := logging.FromContext(ctx)
+
 	kubernetesClient := kubeclient.Get(ctx)
 	knativeClient := knativeclient.Get(ctx)
-	logger := logging.FromContext(ctx)
 	ingressInformer := ingressinformer.Get(ctx)
 	endpointsInformer := endpointsinformer.Get(ctx)
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
+
 	extAuthZConfig := envoy.GetExternalAuthzConfig()
 
 	// Get the current list of ingresses that are ready, and pass it to the cache so we can
 	// know when it has been synced.
 	ingressesToSync, err := getReadyIngresses(ctx, knativeClient.NetworkingV1alpha1())
 	if err != nil {
-		panic(err)
+		logger.Fatalw("Failed to get initial set of ready ingresses", zap.Error(err))
 	}
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
 	caches, err := generator.NewCaches(ctx, logger.Named("caches"), kubernetesClient, extAuthZConfig.Enabled, ingressesToSync)
 	if err != nil {
-		panic(err)
+		logger.Fatalw("Failed create new caches", zap.Error(err))
 	}
 
 	r := &Reconciler{

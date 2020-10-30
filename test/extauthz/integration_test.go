@@ -67,7 +67,7 @@ func ExtAuthzScenario(t *testing.T) {
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	servingNetworkClient, err := KnativeServingNetworkClient(kubeconfig)
