@@ -34,7 +34,6 @@ const (
 )
 
 type XdsServer struct {
-	gatewayPort    uint
 	managementPort uint
 	ctx            context.Context
 	server         xds.Server
@@ -52,13 +51,12 @@ func (h hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewXdsServer(gatewayPort uint, managementPort uint, callbacks xds.Callbacks) *XdsServer {
+func NewXdsServer(managementPort uint, callbacks xds.Callbacks) *XdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, hasher{}, nil)
 	srv := xds.NewServer(ctx, snapshotCache, callbacks)
 
 	return &XdsServer{
-		gatewayPort:    gatewayPort,
 		managementPort: managementPort,
 		ctx:            ctx,
 		server:         srv,

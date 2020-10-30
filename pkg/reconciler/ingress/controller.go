@@ -53,7 +53,6 @@ const (
 	gatewayLabelValue = "3scale-kourier-gateway"
 
 	nodeID             = "3scale-kourier-gateway"
-	gatewayPort        = 19001
 	managementPort     = 18000
 	cacheWarmUPTimeout = 720 * time.Second
 )
@@ -95,17 +94,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
 	)
 
-	envoyXdsServer := envoy.NewXdsServer(
-		gatewayPort,
-		managementPort,
-		&envoy.Callbacks{
-			OnError: func(req *v2.DiscoveryRequest) {
-				logger.Infof("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
-				impl.FilteredGlobalResync(func(obj interface{}) bool {
-					return classFilter(obj) && !obj.(*v1alpha1.Ingress).IsReady()
-				}, ingressInformer.Informer())
-			},
-		})
+	envoyXdsServer := envoy.NewXdsServer(managementPort, &envoy.Callbacks{
+		OnError: func(req *v2.DiscoveryRequest) {
+			logger.Infof("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
+			impl.FilteredGlobalResync(func(obj interface{}) bool {
+				return classFilter(obj) && !obj.(*v1alpha1.Ingress).IsReady()
+			}, ingressInformer.Informer())
+		},
+	})
 	r.xdsServer = envoyXdsServer
 
 	statusProber := status.NewProber(
