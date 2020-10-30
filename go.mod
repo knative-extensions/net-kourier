@@ -18,7 +18,7 @@ require (
 	knative.dev/hack v0.0.0-20201028205534-fe80f1c8af68
 	knative.dev/networking v0.0.0-20201029132834-0fb5d8bc0634
 	knative.dev/pkg v0.0.0-20201029122234-6d905b3f84a6
-	knative.dev/serving v0.18.1-0.20201029100934-fbc2b6640b56
+	knative.dev/serving v0.18.1-0.20201029234034-837d1e442c34
 )
 
 replace (
