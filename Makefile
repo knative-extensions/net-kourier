@@ -33,13 +33,13 @@ test: test-unit test-integration test-serving-conformance ## Runs all the tests
 
 test-unit: ## Runs unit tests
 	mkdir -p "$(PROJECT_PATH)/tests_output"
-	k3d kubeconfig merge kourier-integration --switch-context
 	go test -mod vendor -race $(shell go list ./... | grep -v kourier/test) -coverprofile="$(PROJECT_PATH)/tests_output/unit.cov"
 
 test-integration: local-setup ## Runs integration tests
 	go test -mod vendor -race test/*.go
+
 test-serving-conformance: local-setup ## Runs Knative Serving conformance tests
-	k3d kubeconfig merge kourier-integration --switch-context
+	kind export kubeconfig --name kourier-integration
 	ko apply -f test/config/100-test-namespace.yaml
 	go test -v -tags=e2e ./vendor/knative.dev/serving/test/conformance/ingress/... --ingressClass="kourier.ingress.networking.knative.dev"
 
