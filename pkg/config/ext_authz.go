@@ -31,71 +31,50 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/conversion"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/kelseyhightower/envconfig"
 )
 
-const maxRequestBytesDefault = 8192
-
-var ExternalAuthz *ExternalAuthzConfig
+var ExternalAuthz = &ExternalAuthzConfig{}
 
 type ExternalAuthzConfig struct {
-	Enabled          bool
-	Host             string
-	Port             int
-	FailureModeAllow bool
-	MaxRequestBytes  int
-	Timeout          time.Duration
-	Cluster          *v2.Cluster
-	HTTPFilter       *httpconnectionmanagerv2.HttpFilter
+	Enabled    bool
+	Cluster    *v2.Cluster
+	HTTPFilter *httpconnectionmanagerv2.HttpFilter
+}
+
+type config struct {
+	Host             string `split_words:"true"`
+	FailureModeAllow bool   `split_words:"true"`
+	MaxRequestBytes  uint32 `split_words:"true" default:"8192"`
+	Timeout          int    `split_words:"true" default:"2000"`
 }
 
 func init() {
-	res := &ExternalAuthzConfig{}
-	var err error
-
-	if externalAuthzURI, ok := os.LookupEnv(ExtAuthzHostEnv); ok {
-		var strPort string
-		res.Host, strPort, err = net.SplitHostPort(externalAuthzURI)
-		if err != nil {
-			panic(err)
-		}
-		res.Port, err = strconv.Atoi(strPort)
-		if err != nil {
-			panic(err)
-		}
-		res.Enabled = true
+	if _, ok := os.LookupEnv("KOURIER_EXTAUTHZ_HOST"); !ok {
+		// No ExtAuthz setup.
+		return
 	}
 
-	if failureMode, ok := os.LookupEnv(ExtAuthzFailureModeEnv); ok {
-		res.FailureModeAllow, err = strconv.ParseBool(failureMode)
-		if err != nil {
-			panic(err)
-		}
+	var env config
+	envconfig.MustProcess("KOURIER_EXTAUTHZ", &env)
+
+	host, portStr, err := net.SplitHostPort(env.Host)
+	if err != nil {
+		panic(err)
 	}
 
-	if maxRequestBytes, ok := os.LookupEnv(ExtAuthzMaxRequestsBytes); ok {
-		res.MaxRequestBytes, err = strconv.Atoi(maxRequestBytes)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		res.MaxRequestBytes = maxRequestBytesDefault
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		panic(err)
 	}
 
-	if strTimeout, ok := os.LookupEnv(ExtAuthzTimeout); ok {
-		millis, err := strconv.Atoi(strTimeout)
-		if err != nil {
-			panic(err)
-		}
+	timeout := time.Duration(env.Timeout) * time.Millisecond
 
-		res.Timeout = time.Duration(millis) * time.Millisecond
-	} else {
-		res.Timeout = 2 * time.Second
+	ExternalAuthz = &ExternalAuthzConfig{
+		Enabled:    true,
+		Cluster:    extAuthzCluster(host, uint32(port)),
+		HTTPFilter: externalAuthZFilter(ExternalAuthzCluster, timeout, env.FailureModeAllow, env.MaxRequestBytes),
 	}
-
-	res.Cluster = extAuthzCluster(res.Host, uint32(res.Port))
-	res.HTTPFilter = externalAuthZFilter(ExternalAuthzCluster, res.Timeout, res.FailureModeAllow, uint32(res.MaxRequestBytes))
-
-	ExternalAuthz = res
 }
 
 func extAuthzCluster(host string, port uint32) *v2.Cluster {
