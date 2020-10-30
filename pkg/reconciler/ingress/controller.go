@@ -67,7 +67,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 
-	extAuthZConfig := envoy.GetExternalAuthzConfig()
+	extAuthZConfig := config.GetExternalAuthzConfig()
 
 	// Get the current list of ingresses that are ready, and pass it to the cache so we can
 	// know when it has been synced.

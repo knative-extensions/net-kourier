@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package envoy
+package config
 
 import (
 	"net"
@@ -31,7 +31,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/conversion"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
-	"knative.dev/net-kourier/pkg/config"
 )
 
 const maxRequestBytesDefault = 8192
@@ -51,7 +50,7 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 	res := ExternalAuthzConfig{}
 	var err error
 
-	if externalAuthzURI, ok := os.LookupEnv(config.ExtAuthzHostEnv); ok {
+	if externalAuthzURI, ok := os.LookupEnv(ExtAuthzHostEnv); ok {
 		var strPort string
 		res.Host, strPort, err = net.SplitHostPort(externalAuthzURI)
 		if err != nil {
@@ -64,14 +63,14 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 		res.Enabled = true
 	}
 
-	if failureMode, ok := os.LookupEnv(config.ExtAuthzFailureModeEnv); ok {
+	if failureMode, ok := os.LookupEnv(ExtAuthzFailureModeEnv); ok {
 		res.FailureModeAllow, err = strconv.ParseBool(failureMode)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	if maxRequestBytes, ok := os.LookupEnv(config.ExtAuthzMaxRequestsBytes); ok {
+	if maxRequestBytes, ok := os.LookupEnv(ExtAuthzMaxRequestsBytes); ok {
 		res.MaxRequestBytes, err = strconv.Atoi(maxRequestBytes)
 		if err != nil {
 			panic(err)
@@ -80,7 +79,7 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 		res.MaxRequestBytes = maxRequestBytesDefault
 	}
 
-	if strTimeout, ok := os.LookupEnv(config.ExtAuthzTimeout); ok {
+	if strTimeout, ok := os.LookupEnv(ExtAuthzTimeout); ok {
 		millis, err := strconv.Atoi(strTimeout)
 		if err != nil {
 			panic(err)
@@ -99,13 +98,13 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 
 func (e *ExternalAuthzConfig) extAuthzCluster() *v2.Cluster {
 	return &v2.Cluster{
-		Name: config.ExternalAuthzCluster,
+		Name: ExternalAuthzCluster,
 		ClusterDiscoveryType: &v2.Cluster_Type{
 			Type: v2.Cluster_STRICT_DNS,
 		},
 		ConnectTimeout: ptypes.DurationProto(5 * time.Second),
 		LoadAssignment: &v2.ClusterLoadAssignment{
-			ClusterName: config.ExternalAuthzCluster,
+			ClusterName: ExternalAuthzCluster,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
 				LbEndpoints: []*endpoint.LbEndpoint{&endpoint.LbEndpoint{
 					HostIdentifier: &endpoint.LbEndpoint_Endpoint{
