@@ -147,7 +147,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// start the server as somehow we couldn't sync.
 	go func() {
 		waitForCache(logger, caches)
-		logger.Infof("Starting Management Server on Port %d", managementPort)
+		logger.Info("Starting Management Server on Port ", managementPort)
 		if err := envoyXdsServer.RunManagementServer(); err != nil {
 			logger.Fatalw("Failed to serve XDS Server", zap.Error(err))
 		}
