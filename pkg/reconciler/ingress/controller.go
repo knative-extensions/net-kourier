@@ -105,9 +105,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 					return classFilter(obj) && !obj.(*v1alpha1.Ingress).IsReady()
 				}, ingressInformer.Informer())
 			},
-		},
-		logger,
-	)
+		})
 	r.xdsServer = envoyXdsServer
 
 	statusProber := status.NewProber(
@@ -153,8 +151,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// start the server as somehow we couldn't sync.
 	go func() {
 		waitForCache(logger, caches)
-		go envoyXdsServer.RunManagementServer()
-		<-ctx.Done()
+		logger.Infof("Starting Management Server on Port %d", managementPort)
+		if err := envoyXdsServer.RunManagementServer(); err != nil {
+			logger.Fatalw("Failed to serve XDS Server", zap.Error(err))
+		}
 	}()
 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
