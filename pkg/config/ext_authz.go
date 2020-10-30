@@ -90,13 +90,13 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 		res.Timeout = 2 * time.Second
 	}
 
-	res.Cluster = res.extAuthzCluster()
-	res.HTTPFilter = res.externalAuthZFilter(res.Cluster.Name)
+	res.Cluster = extAuthzCluster(res.Host, uint32(res.Port))
+	res.HTTPFilter = externalAuthZFilter(ExternalAuthzCluster, res.Timeout, res.FailureModeAllow, uint32(res.MaxRequestBytes))
 
 	return res
 }
 
-func (e *ExternalAuthzConfig) extAuthzCluster() *v2.Cluster {
+func extAuthzCluster(host string, port uint32) *v2.Cluster {
 	return &v2.Cluster{
 		Name: ExternalAuthzCluster,
 		ClusterDiscoveryType: &v2.Cluster_Type{
@@ -113,9 +113,9 @@ func (e *ExternalAuthzConfig) extAuthzCluster() *v2.Cluster {
 								Address: &core.Address_SocketAddress{
 									SocketAddress: &core.SocketAddress{
 										Protocol: core.SocketAddress_TCP,
-										Address:  e.Host,
+										Address:  host,
 										PortSpecifier: &core.SocketAddress_PortValue{
-											PortValue: uint32(e.Port),
+											PortValue: port,
 										},
 										Ipv4Compat: true,
 									},
@@ -129,7 +129,7 @@ func (e *ExternalAuthzConfig) extAuthzCluster() *v2.Cluster {
 	}
 }
 
-func (e *ExternalAuthzConfig) externalAuthZFilter(clusterName string) *httpconnectionmanagerv2.HttpFilter {
+func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeAllow bool, maxRequestBytes uint32) *httpconnectionmanagerv2.HttpFilter {
 	extAuthConfig := &extAuthService.ExtAuthz{
 		Services: &extAuthService.ExtAuthz_GrpcService{
 			GrpcService: &envoy_api_v2_core.GrpcService{
@@ -138,16 +138,16 @@ func (e *ExternalAuthzConfig) externalAuthZFilter(clusterName string) *httpconne
 						ClusterName: clusterName,
 					},
 				},
-				Timeout: ptypes.DurationProto(e.Timeout),
+				Timeout: ptypes.DurationProto(timeout),
 				InitialMetadata: []*envoy_api_v2_core.HeaderValue{{
 					Key:   "client",
 					Value: "kourier",
 				}},
 			},
 		},
-		FailureModeAllow: e.FailureModeAllow,
+		FailureModeAllow: failureModeAllow,
 		WithRequestBody: &extAuthService.BufferSettings{
-			MaxRequestBytes:     uint32(e.MaxRequestBytes),
+			MaxRequestBytes:     maxRequestBytes,
 			AllowPartialMessage: true,
 		},
 		ClearRouteCache: false,
