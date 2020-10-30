@@ -34,6 +34,8 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+const extAuthzClusterName = "extAuthz"
+
 var ExternalAuthz = &ExternalAuthzConfig{
 	Enabled: false,
 }
@@ -75,19 +77,19 @@ func init() {
 	ExternalAuthz = &ExternalAuthzConfig{
 		Enabled:    true,
 		Cluster:    extAuthzCluster(host, uint32(port)),
-		HTTPFilter: externalAuthZFilter(ExternalAuthzCluster, timeout, env.FailureModeAllow, env.MaxRequestBytes),
+		HTTPFilter: externalAuthZFilter(extAuthzClusterName, timeout, env.FailureModeAllow, env.MaxRequestBytes),
 	}
 }
 
 func extAuthzCluster(host string, port uint32) *v2.Cluster {
 	return &v2.Cluster{
-		Name: ExternalAuthzCluster,
+		Name: extAuthzClusterName,
 		ClusterDiscoveryType: &v2.Cluster_Type{
 			Type: v2.Cluster_STRICT_DNS,
 		},
 		ConnectTimeout: ptypes.DurationProto(5 * time.Second),
 		LoadAssignment: &v2.ClusterLoadAssignment{
-			ClusterName: ExternalAuthzCluster,
+			ClusterName: extAuthzClusterName,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
 				LbEndpoints: []*endpoint.LbEndpoint{&endpoint.LbEndpoint{
 					HostIdentifier: &endpoint.LbEndpoint_Endpoint{

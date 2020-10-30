@@ -32,11 +32,5 @@ const (
 
 	GatewayNamespaceEnv = "KOURIER_GATEWAY_NAMESPACE"
 
-	ExtAuthzHostEnv          = "KOURIER_EXTAUTHZ_HOST"
-	ExtAuthzFailureModeEnv   = "KOURIER_EXTAUTHZ_FAILUREMODEALLOW"
-	ExtAuthzMaxRequestsBytes = "KOURIER_EXTAUTHZ_MAXREQUESTBYTES"
-	ExtAuthzTimeout          = "KOURIER_EXTAUTHZ_TIMEOUT"
-	ExternalAuthzCluster     = "extAuthz"
-
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
