@@ -25,7 +25,7 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"go.uber.org/zap"
-	kubev1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kubeclient "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -208,7 +208,7 @@ func trackService(t tracker.Interface, svcName string, ingress *v1alpha1.Ingress
 	return nil
 }
 
-func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
+func lbEndpointsForKubeEndpoints(kubeEndpoints *corev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
 	for _, subset := range kubeEndpoints.Subsets {
 		for _, address := range subset.Addresses {
 			lbEndpoint := envoy.NewLBEndpoint(address.IP, uint32(targetPort))

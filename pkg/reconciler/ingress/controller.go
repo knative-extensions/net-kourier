@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
@@ -170,14 +170,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
 			tracker.OnChanged,
-			v1.SchemeGroupVersion.WithKind("Services"),
+			corev1.SchemeGroupVersion.WithKind("Services"),
 		),
 	))
 
 	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
 			tracker.OnChanged,
-			v1.SchemeGroupVersion.WithKind("Endpoints"),
+			corev1.SchemeGroupVersion.WithKind("Endpoints"),
 		),
 	))
 
@@ -186,7 +186,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		Handler: cache.ResourceEventHandlerFuncs{
 			// Cancel probing when a Pod is deleted
 			DeleteFunc: func(obj interface{}) {
-				pod, ok := obj.(*v1.Pod)
+				pod, ok := obj.(*corev1.Pod)
 				if ok {
 					statusProber.CancelPodProbing(pod)
 				}

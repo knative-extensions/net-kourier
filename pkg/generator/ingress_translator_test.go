@@ -26,7 +26,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/google/go-cmp/cmp"
 	"gotest.tools/assert"
-	kubev1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -300,8 +300,8 @@ func newMockedEndpointsLister() corev1listers.EndpointsLister {
 
 type endpointsLister struct{}
 
-func (endpointsLister *endpointsLister) List(selector labels.Selector) ([]*kubev1.Endpoints, error) {
-	return []*kubev1.Endpoints{{}}, nil
+func (endpointsLister *endpointsLister) List(selector labels.Selector) ([]*corev1.Endpoints, error) {
+	return []*corev1.Endpoints{{}}, nil
 }
 
 func (endpointsLister *endpointsLister) Endpoints(namespace string) corev1listers.EndpointsNamespaceLister {
@@ -310,12 +310,12 @@ func (endpointsLister *endpointsLister) Endpoints(namespace string) corev1lister
 
 type endpoints struct{}
 
-func (endpoints *endpoints) List(selector labels.Selector) ([]*kubev1.Endpoints, error) {
-	return []*kubev1.Endpoints{{}}, nil
+func (endpoints *endpoints) List(selector labels.Selector) ([]*corev1.Endpoints, error) {
+	return []*corev1.Endpoints{{}}, nil
 }
 
-func (endpoints *endpoints) Get(name string) (*kubev1.Endpoints, error) {
-	return &kubev1.Endpoints{}, nil
+func (endpoints *endpoints) Get(name string) (*corev1.Endpoints, error) {
+	return &corev1.Endpoints{}, nil
 }
 
 func newMockedServiceLister() corev1listers.ServiceLister {
@@ -324,8 +324,8 @@ func newMockedServiceLister() corev1listers.ServiceLister {
 
 type serviceLister struct{}
 
-func (endpointsLister *serviceLister) List(selector labels.Selector) ([]*kubev1.Service, error) {
-	return []*kubev1.Service{{}}, nil
+func (endpointsLister *serviceLister) List(selector labels.Selector) ([]*corev1.Service, error) {
+	return []*corev1.Service{{}}, nil
 }
 
 func (endpointsLister *serviceLister) Services(namespace string) corev1listers.ServiceNamespaceLister {
@@ -334,12 +334,12 @@ func (endpointsLister *serviceLister) Services(namespace string) corev1listers.S
 
 type service struct{}
 
-func (endpoints *service) List(selector labels.Selector) ([]*kubev1.Service, error) {
-	return []*kubev1.Service{{}}, nil
+func (endpoints *service) List(selector labels.Selector) ([]*corev1.Service, error) {
+	return []*corev1.Service{{}}, nil
 }
 
-func (endpoints *service) Get(name string) (*kubev1.Service, error) {
-	return &kubev1.Service{}, nil
+func (endpoints *service) Get(name string) (*corev1.Service, error) {
+	return &corev1.Service{}, nil
 }
 
 func createIngress(name string, hosts []string, visibility v1alpha1.IngressVisibility) *v1alpha1.Ingress {
@@ -420,7 +420,7 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 }
 
 func createSecret(ctx context.Context, kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert string, key string) error {
-	tlsSecret := kubev1.Secret{
+	tlsSecret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretName,
 		},
@@ -436,7 +436,7 @@ func createSecret(ctx context.Context, kubeClient kubernetes.Interface, secretNa
 
 func createServicesWithNames(ctx context.Context, kubeclient kubernetes.Interface, names []string, namespace string) error {
 	for _, serviceName := range names {
-		service := kubev1.Service{
+		service := corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: serviceName,
 			},
