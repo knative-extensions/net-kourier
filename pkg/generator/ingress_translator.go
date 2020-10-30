@@ -31,6 +31,7 @@ import (
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/tracker"
 )
@@ -159,14 +160,11 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		domains := knative.Domains(rule)
 		var virtualHost route.VirtualHost
 		if extAuthzEnabled {
-
-			ContextExtensions := map[string]string{
+			contextExtensions := kmeta.UnionMaps(map[string]string{
 				"client":     "kourier",
 				"visibility": string(rule.Visibility),
-			}
-
-			ContextExtensions = mergeMapString(ContextExtensions, ingress.GetLabels())
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, ContextExtensions, domains, ruleRoute)
+			}, ingress.GetLabels())
+			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, contextExtensions, domains, ruleRoute)
 		} else {
 			virtualHost = envoy.NewVirtualHost(ingress.GetName(), domains, ruleRoute)
 		}
@@ -256,15 +254,4 @@ func sniMatchFromIngressTLS(ctx context.Context, ingressTLS v1alpha1.IngressTLS,
 
 	sniMatch := envoy.NewSNIMatch(ingressTLS.Hosts, certChain, privateKey)
 	return &sniMatch, nil
-}
-
-func mergeMapString(a, b map[string]string) map[string]string {
-	merged := make(map[string]string)
-	for k, v := range a {
-		merged[k] = v
-	}
-	for k, v := range b {
-		merged[k] = v
-	}
-	return merged
 }
