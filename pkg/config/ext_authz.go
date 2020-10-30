@@ -34,7 +34,9 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-var ExternalAuthz = &ExternalAuthzConfig{}
+var ExternalAuthz = &ExternalAuthzConfig{
+	Enabled: false,
+}
 
 type ExternalAuthzConfig struct {
 	Enabled    bool
