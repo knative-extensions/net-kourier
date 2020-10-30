@@ -125,10 +125,11 @@ func TestTrafficSplits(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, 1, len(ingressTranslation.routes))
+	assert.Equal(t, 1, len(ingressTranslation.internalVirtualHosts))
+	assert.Equal(t, 1, len(ingressTranslation.internalVirtualHosts[0].GetRoutes()))
 
 	// Check that there are 2 weighted clusters for the route
-	envoyRoute := ingressTranslation.routes[0]
+	envoyRoute := ingressTranslation.internalVirtualHosts[0].GetRoutes()[0]
 	weightedClusters := envoyRoute.GetRoute().GetWeightedClusters().Clusters
 	assert.Equal(t, 2, len(weightedClusters))
 

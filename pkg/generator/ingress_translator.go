@@ -36,21 +36,20 @@ import (
 	"knative.dev/pkg/tracker"
 )
 
+type translatedIngress struct {
+	ingressName          string
+	ingressNamespace     string
+	sniMatches           []*envoy.SNIMatch
+	clusters             []*v2.Cluster
+	externalVirtualHosts []*route.VirtualHost
+	internalVirtualHosts []*route.VirtualHost
+}
+
 type IngressTranslator struct {
 	kubeclient      kubeclient.Interface
 	endpointsLister corev1listers.EndpointsLister
 	serviceLister   corev1listers.ServiceLister
 	tracker         tracker.Interface
-}
-
-type translatedIngress struct {
-	ingressName          string
-	ingressNamespace     string
-	sniMatches           []*envoy.SNIMatch
-	routes               []*route.Route
-	clusters             []*v2.Cluster
-	externalVirtualHosts []*route.VirtualHost
-	internalVirtualHosts []*route.VirtualHost
 }
 
 func NewIngressTranslator(
@@ -69,11 +68,7 @@ func NewIngressTranslator(
 func (translator *IngressTranslator) translateIngress(ctx context.Context, ingress *v1alpha1.Ingress, extAuthzEnabled bool) (*translatedIngress, error) {
 	logger := logging.FromContext(ctx)
 
-	res := &translatedIngress{
-		ingressName:      ingress.Name,
-		ingressNamespace: ingress.Namespace,
-	}
-
+	sniMatches := make([]*envoy.SNIMatch, 0, len(ingress.Spec.TLS))
 	for _, ingressTLS := range ingress.Spec.TLS {
 		sniMatch, err := sniMatchFromIngressTLS(ctx, ingressTLS, translator.kubeclient)
 		if err != nil {
@@ -86,22 +81,23 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			// https://github.com/knative/serving/blob/571e4db2392839082c559870ea8d4b72ef61e59d/test/e2e/autotls/auto_tls_test.go#L68
 			return nil, fmt.Errorf("failed to get sniMatch: %w", err)
 		}
-		res.sniMatches = append(res.sniMatches, sniMatch)
+		sniMatches = append(sniMatches, sniMatch)
 	}
 
+	internalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
+	externalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
+	clusters := make([]*v2.Cluster, 0, len(ingress.Spec.Rules))
+
 	for _, rule := range ingress.Spec.Rules {
-
-		var ruleRoute []*route.Route
-
+		routes := make([]*route.Route, 0, len(rule.HTTP.Paths))
 		for _, httpPath := range rule.HTTP.Paths {
-
-			path := "/"
-			if httpPath.Path != "" {
-				path = httpPath.Path
+			// Default the path to "/" if none is passed.
+			path := httpPath.Path
+			if path == "" {
+				path = "/"
 			}
 
-			var wrs []*route.WeightedCluster_ClusterWeight
-
+			wrs := make([]*route.WeightedCluster_ClusterWeight, 0, len(httpPath.Splits))
 			for _, split := range httpPath.Splits {
 				if err := trackService(translator.tracker, split.ServiceName, ingress); err != nil {
 					return nil, err
@@ -110,6 +106,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
 				if apierrors.IsNotFound(err) {
 					logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					// TODO(markusthoemmes): Find out if we should actually `continue` here.
 					return nil, nil
 				} else if err != nil {
 					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
@@ -118,13 +115,18 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				service, err := translator.serviceLister.Services(split.ServiceNamespace).Get(split.ServiceName)
 				if apierrors.IsNotFound(err) {
 					logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					// TODO(markusthoemmes): Find out if we should actually `continue` here.
 					return nil, nil
 				} else if err != nil {
 					return nil, fmt.Errorf("failed to fetch service '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
-				var targetPort int32
-				http2 := false
+				// Match the ingress' port with a port on the Service to find the target.
+				// Also find out if the target supports HTTP2.
+				var (
+					targetPort int32
+					http2      bool
+				)
 				for _, port := range service.Spec.Ports {
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
 						targetPort = port.TargetPort.IntVal
@@ -133,26 +135,23 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				}
 
 				publicLbEndpoints := lbEndpointsForKubeEndpoints(endpoints, targetPort)
-
 				connectTimeout := 5 * time.Second
 				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2, v2.Cluster_STATIC)
-
-				res.clusters = append(res.clusters, cluster)
+				clusters = append(clusters, cluster)
 
 				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
-
 				wrs = append(wrs, weightedCluster)
 			}
 
 			if len(wrs) != 0 {
-				r := createRouteForRevision(ingress.Name, ingress.Namespace, httpPath, wrs)
-				ruleRoute = append(ruleRoute, r)
-				res.routes = append(res.routes, r)
+				// Note: routeName uses the non-defaulted path.
+				routeName := ingress.Name + "_" + ingress.Namespace + "_" + httpPath.Path
+				routes = append(routes, envoy.NewRoute(
+					routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders))
 			}
-
 		}
 
-		if len(ruleRoute) == 0 {
+		if len(routes) == 0 {
 			// Return nothing if there are not routes to generate.
 			return nil, nil
 		}
@@ -164,21 +163,25 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				"client":     "kourier",
 				"visibility": string(rule.Visibility),
 			}, ingress.GetLabels())
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, contextExtensions, domains, ruleRoute)
+			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, contextExtensions, domains, routes)
 		} else {
-			virtualHost = envoy.NewVirtualHost(ingress.GetName(), domains, ruleRoute)
+			virtualHost = envoy.NewVirtualHost(ingress.Name, domains, routes)
 		}
 
+		internalHosts = append(internalHosts, &virtualHost)
 		if knative.RuleIsExternal(rule) {
-			res.externalVirtualHosts = append(res.externalVirtualHosts, &virtualHost)
-			// External should also be accessible internally
-			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
-		} else {
-			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
+			externalHosts = append(externalHosts, &virtualHost)
 		}
 	}
 
-	return res, nil
+	return &translatedIngress{
+		ingressName:          ingress.Name,
+		ingressNamespace:     ingress.Namespace,
+		sniMatches:           sniMatches,
+		clusters:             clusters,
+		externalVirtualHosts: externalHosts,
+		internalVirtualHosts: internalHosts,
+	}, nil
 }
 
 func trackService(t tracker.Interface, svcName string, ingress *v1alpha1.Ingress) error {
@@ -202,35 +205,31 @@ func trackService(t tracker.Interface, svcName string, ingress *v1alpha1.Ingress
 	return nil
 }
 
-func lbEndpointsForKubeEndpoints(kubeEndpoints *corev1.Endpoints, targetPort int32) (publicLbEndpoints []*endpoint.LbEndpoint) {
+func lbEndpointsForKubeEndpoints(kubeEndpoints *corev1.Endpoints, targetPort int32) []*endpoint.LbEndpoint {
+	var readyAddressCount int
+	for _, subset := range kubeEndpoints.Subsets {
+		readyAddressCount += len(subset.Addresses)
+	}
+
+	if readyAddressCount == 0 {
+		return nil
+	}
+
+	eps := make([]*endpoint.LbEndpoint, 0, readyAddressCount)
 	for _, subset := range kubeEndpoints.Subsets {
 		for _, address := range subset.Addresses {
-			lbEndpoint := envoy.NewLBEndpoint(address.IP, uint32(targetPort))
-			publicLbEndpoints = append(publicLbEndpoints, lbEndpoint)
+			eps = append(eps, envoy.NewLBEndpoint(address.IP, uint32(targetPort)))
 		}
 	}
 
-	return publicLbEndpoints
-}
-
-func createRouteForRevision(ingressName string, ingressNamespace string, httpPath v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) *route.Route {
-	routeName := ingressName + "_" + ingressNamespace + "_" + httpPath.Path
-
-	path := "/"
-	if httpPath.Path != "" {
-		path = httpPath.Path
-	}
-
-	return envoy.NewRoute(
-		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders,
-	)
+	return eps
 }
 
 func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.HeaderMatcher {
 	matchHeaders := make([]*route.HeaderMatcher, 0, len(httpPath.Headers))
 
 	for header, matchType := range httpPath.Headers {
-		matchHeader := route.HeaderMatcher{
+		matchHeader := &route.HeaderMatcher{
 			Name: header,
 		}
 		if matchType.Exact != "" {
@@ -238,7 +237,7 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 				ExactMatch: matchType.Exact,
 			}
 		}
-		matchHeaders = append(matchHeaders, &matchHeader)
+		matchHeaders = append(matchHeaders, matchHeader)
 	}
 	return matchHeaders
 }

@@ -55,7 +55,6 @@ func TestDeleteIngressInfo(t *testing.T) {
 		firstIngressName,
 		firstIngressNamespace,
 		"cluster_for_ingress_1",
-		"route_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
 		&kubeClient,
@@ -70,7 +69,6 @@ func TestDeleteIngressInfo(t *testing.T) {
 		secondIngressName,
 		secondIngressNamespace,
 		"cluster_for_ingress_2",
-		"route_for_ingress_2",
 		"internal_host_for_ingress_2",
 		"external_host_for_ingress_2",
 		&kubeClient,
@@ -118,7 +116,6 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 		firstIngressName,
 		firstIngressNamespace,
 		"cluster_for_ingress_1",
-		"route_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
 		&kubeClient,
@@ -171,7 +168,6 @@ func createTestDataForIngress(
 	ingressName string,
 	ingressNamespace string,
 	clusterName string,
-	routeName string,
 	internalVHostName string,
 	externalVHostName string,
 	kubeClient kubeclient.Interface) {
@@ -179,7 +175,6 @@ func createTestDataForIngress(
 	translatedIngress := translatedIngress{
 		ingressName:          ingressName,
 		ingressNamespace:     ingressNamespace,
-		routes:               []*route.Route{{Name: routeName}},
 		clusters:             []*v2.Cluster{{Name: clusterName}},
 		externalVirtualHosts: []*route.VirtualHost{{Name: externalVHostName, Domains: []string{externalVHostName}}},
 		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
@@ -212,7 +207,6 @@ func TestValidateIngress(t *testing.T) {
 		"ingress_1",
 		"ingress_1_namespace",
 		"cluster_for_ingress_1",
-		"route_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
 		&kubeClient,
@@ -221,7 +215,6 @@ func TestValidateIngress(t *testing.T) {
 	translatedIngress := translatedIngress{
 		ingressName:          "ingress_2",
 		ingressNamespace:     "ingress_2_namespace",
-		routes:               []*route.Route{{Name: "route_for_ingress_2"}},
 		clusters:             []*v2.Cluster{{Name: "cluster_for_ingress_2"}},
 		externalVirtualHosts: []*route.VirtualHost{{Name: "external_host_for_ingress_2", Domains: []string{"external_host_for_ingress_2"}}},
 		//This domain should clash with the cached ingress.
