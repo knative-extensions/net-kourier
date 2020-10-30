@@ -26,7 +26,6 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -35,12 +34,10 @@ const (
 )
 
 type XdsServer struct {
-	gatewayPort    uint
 	managementPort uint
 	ctx            context.Context
 	server         xds.Server
 	snapshotCache  cache.SnapshotCache
-	logger         *zap.SugaredLogger
 }
 
 // hasher returns node ID as an ID
@@ -54,32 +51,28 @@ func (h hasher) ID(node *core.Node) string {
 	return node.Id
 }
 
-func NewXdsServer(gatewayPort uint, managementPort uint, callbacks xds.Callbacks, logger *zap.SugaredLogger) *XdsServer {
+func NewXdsServer(managementPort uint, callbacks xds.Callbacks) *XdsServer {
 	ctx := context.Background()
 	snapshotCache := cache.NewSnapshotCache(true, hasher{}, nil)
 	srv := xds.NewServer(ctx, snapshotCache, callbacks)
 
 	return &XdsServer{
-		gatewayPort:    gatewayPort,
 		managementPort: managementPort,
 		ctx:            ctx,
 		server:         srv,
 		snapshotCache:  snapshotCache,
-		logger:         logger,
 	}
 }
 
 // RunManagementServer starts an xDS server at the given Port.
-func (envoyXdsServer *XdsServer) RunManagementServer() {
+func (envoyXdsServer *XdsServer) RunManagementServer() error {
 	port := envoyXdsServer.managementPort
 	server := envoyXdsServer.server
 
-	var grpcOptions []grpc.ServerOption
-	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(grpcMaxConcurrentStreams))
-	grpcServer := grpc.NewServer(grpcOptions...)
+	grpcServer := grpc.NewServer(grpc.MaxConcurrentStreams(grpcMaxConcurrentStreams))
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		envoyXdsServer.logger.Fatalw("Failed to listen", zap.Error(err))
+		return fmt.Errorf("failed to listen: %w", err)
 	}
 
 	// register services
@@ -88,14 +81,20 @@ func (envoyXdsServer *XdsServer) RunManagementServer() {
 	envoyv2.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	envoyv2.RegisterRouteDiscoveryServiceServer(grpcServer, server)
 
-	envoyXdsServer.logger.Infof("Starting Management Server on Port %d", port)
+	errCh := make(chan error)
 	go func() {
 		if err = grpcServer.Serve(lis); err != nil {
-			envoyXdsServer.logger.Fatalw("Failed to serve", zap.Error(err))
+			errCh <- err
 		}
 	}()
-	<-envoyXdsServer.ctx.Done()
-	grpcServer.GracefulStop()
+
+	select {
+	case <-envoyXdsServer.ctx.Done():
+		grpcServer.GracefulStop()
+		return nil
+	case err := <-errCh:
+		return fmt.Errorf("failed to serve: %w", err)
+	}
 }
 
 func (envoyXdsServer *XdsServer) GetSnapshot(nodeid string) (cache.Snapshot, error) {

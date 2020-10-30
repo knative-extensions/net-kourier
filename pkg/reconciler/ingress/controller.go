@@ -53,7 +53,6 @@ const (
 	gatewayLabelValue = "3scale-kourier-gateway"
 
 	nodeID             = "3scale-kourier-gateway"
-	gatewayPort        = 19001
 	managementPort     = 18000
 	cacheWarmUPTimeout = 720 * time.Second
 )
@@ -95,19 +94,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
 	)
 
-	envoyXdsServer := envoy.NewXdsServer(
-		gatewayPort,
-		managementPort,
-		&envoy.Callbacks{
-			OnError: func(req *v2.DiscoveryRequest) {
-				logger.Infof("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
-				impl.FilteredGlobalResync(func(obj interface{}) bool {
-					return classFilter(obj) && !obj.(*v1alpha1.Ingress).IsReady()
-				}, ingressInformer.Informer())
-			},
+	envoyXdsServer := envoy.NewXdsServer(managementPort, &envoy.Callbacks{
+		OnError: func(req *v2.DiscoveryRequest) {
+			logger.Infof("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
+			impl.FilteredGlobalResync(func(obj interface{}) bool {
+				return classFilter(obj) && !obj.(*v1alpha1.Ingress).IsReady()
+			}, ingressInformer.Informer())
 		},
-		logger,
-	)
+	})
 	r.xdsServer = envoyXdsServer
 
 	statusProber := status.NewProber(
@@ -153,8 +147,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// start the server as somehow we couldn't sync.
 	go func() {
 		waitForCache(logger, caches)
-		go envoyXdsServer.RunManagementServer()
-		<-ctx.Done()
+		logger.Info("Starting Management Server on Port ", managementPort)
+		if err := envoyXdsServer.RunManagementServer(); err != nil {
+			logger.Fatalw("Failed to serve XDS Server", zap.Error(err))
+		}
 	}()
 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
