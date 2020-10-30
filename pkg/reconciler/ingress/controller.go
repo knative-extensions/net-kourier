@@ -73,7 +73,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// know when it has been synced.
 	ingressesToSync, err := getReadyIngresses(ctx, knativeClient.NetworkingV1alpha1())
 	if err != nil {
-		logger.Fatalw("Failed to get intial set of ready ingresses", zap.Error(err))
+		logger.Fatalw("Failed to get initial set of ready ingresses", zap.Error(err))
 	}
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
