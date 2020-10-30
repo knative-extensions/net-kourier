@@ -91,7 +91,7 @@ func extAuthzCluster(host string, port uint32) *v2.Cluster {
 		LoadAssignment: &v2.ClusterLoadAssignment{
 			ClusterName: extAuthzClusterName,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
-				LbEndpoints: []*endpoint.LbEndpoint{&endpoint.LbEndpoint{
+				LbEndpoints: []*endpoint.LbEndpoint{{
 					HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 						Endpoint: &endpoint.Endpoint{
 							Address: &core.Address{
