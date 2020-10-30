@@ -35,6 +35,8 @@ import (
 
 const maxRequestBytesDefault = 8192
 
+var ExternalAuthz *ExternalAuthzConfig
+
 type ExternalAuthzConfig struct {
 	Enabled          bool
 	Host             string
@@ -46,8 +48,8 @@ type ExternalAuthzConfig struct {
 	HTTPFilter       *httpconnectionmanagerv2.HttpFilter
 }
 
-func GetExternalAuthzConfig() ExternalAuthzConfig {
-	res := ExternalAuthzConfig{}
+func init() {
+	res := &ExternalAuthzConfig{}
 	var err error
 
 	if externalAuthzURI, ok := os.LookupEnv(ExtAuthzHostEnv); ok {
@@ -93,7 +95,7 @@ func GetExternalAuthzConfig() ExternalAuthzConfig {
 	res.Cluster = extAuthzCluster(res.Host, uint32(res.Port))
 	res.HTTPFilter = externalAuthZFilter(ExternalAuthzCluster, res.Timeout, res.FailureModeAllow, uint32(res.MaxRequestBytes))
 
-	return res
+	ExternalAuthz = res
 }
 
 func extAuthzCluster(host string, port uint32) *v2.Cluster {

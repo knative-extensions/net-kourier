@@ -33,11 +33,8 @@ func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 
 	var filters []*httpconnectionmanagerv2.HttpFilter
 
-	// Get the extAuthzConf from envs vars.
-	extAuthzConf := config.GetExternalAuthzConfig()
-
-	if extAuthzConf.Enabled {
-		filters = append(filters, extAuthzConf.HTTPFilter)
+	if config.ExternalAuthz.Enabled {
+		filters = append(filters, config.ExternalAuthz.HTTPFilter)
 	}
 
 	// Append the Router filter at the end.

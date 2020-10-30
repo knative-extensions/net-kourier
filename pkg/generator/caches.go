@@ -101,8 +101,7 @@ func (caches *Caches) UpdateIngress(ctx context.Context, ingress *v1alpha1.Ingre
 
 func (caches *Caches) initConfig(ctx context.Context, kubernetesClient kubeclient.Interface, extAuthz bool) error {
 	if extAuthz {
-		extAuthZConfig := config.GetExternalAuthzConfig()
-		caches.addClusterForIngress(extAuthZConfig.Cluster, "__extAuthZCluster", "_internal")
+		caches.addClusterForIngress(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
 	}
 	caches.addStatusVirtualHost()
 	return caches.setListeners(ctx, kubernetesClient)
