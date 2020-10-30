@@ -41,7 +41,7 @@ kubectl patch configmap/config-network \
   domain):
 
 ```bash
- kubectl patch configmap/config-domain \
+kubectl patch configmap/config-domain \
   -n knative-serving \
   --type merge \
   -p '{"data":{"127.0.0.1.nip.io":""}}'
@@ -50,7 +50,20 @@ kubectl patch configmap/config-network \
 - (OPTIONAL) Deploy a sample hello world app:
 
 ```bash
-kubectl apply -f ./samples/helloworld-go.yaml
+cat <<-EOF | kubectl apply -f -
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: helloworld-go
+spec:
+  template:
+    spec:
+      containers:
+      - image: gcr.io/knative-samples/helloworld-go
+        env:
+        - name: TARGET
+          value: Go Sample v1
+EOF
 ```
 
 - (OPTIONAL) For testing purposes, you can use port-forwarding to make requests
