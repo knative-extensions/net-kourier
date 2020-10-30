@@ -24,7 +24,6 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
@@ -117,14 +116,14 @@ func extAuthzCluster(host string, port uint32) *v2.Cluster {
 func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeAllow bool, maxRequestBytes uint32) *httpconnectionmanagerv2.HttpFilter {
 	extAuthConfig := &extAuthService.ExtAuthz{
 		Services: &extAuthService.ExtAuthz_GrpcService{
-			GrpcService: &envoy_api_v2_core.GrpcService{
-				TargetSpecifier: &envoy_api_v2_core.GrpcService_EnvoyGrpc_{
-					EnvoyGrpc: &envoy_api_v2_core.GrpcService_EnvoyGrpc{
+			GrpcService: &core.GrpcService{
+				TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
+					EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
 						ClusterName: clusterName,
 					},
 				},
 				Timeout: ptypes.DurationProto(timeout),
-				InitialMetadata: []*envoy_api_v2_core.HeaderValue{{
+				InitialMetadata: []*core.HeaderValue{{
 					Key:   "client",
 					Value: "kourier",
 				}},

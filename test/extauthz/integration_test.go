@@ -27,8 +27,6 @@ import (
 	"testing"
 	"time"
 
-	"knative.dev/net-kourier/pkg/config"
-
 	"knative.dev/pkg/test"
 
 	corev1 "k8s.io/api/core/v1"
@@ -152,13 +150,13 @@ func setupExtAuthzScenario(ctx context.Context, k8sClient *kubernetes.Clientset,
 	}
 
 	ExtAuthzHostEnv := corev1.EnvVar{
-		Name:      config.ExtAuthzHostEnv,
+		Name:      "KOURIER_EXTAUTHZ_HOST",
 		Value:     "externalauthz:6000",
 		ValueFrom: nil,
 	}
 
 	ExtAuthzFailureEnv := corev1.EnvVar{
-		Name:      config.ExtAuthzFailureModeEnv,
+		Name:      "KOURIER_EXTAUTHZ_FAILUREMODEALLOW",
 		Value:     "false",
 		ValueFrom: nil,
 	}
@@ -205,7 +203,7 @@ func cleanExtAuthzScenario(ctx context.Context, kubeClient *kubernetes.Clientset
 
 	var finalEnvs []corev1.EnvVar
 	for _, env := range kourierControlDeployment.Spec.Template.Spec.Containers[0].Env {
-		if env.Name != config.ExtAuthzHostEnv && env.Name != config.ExtAuthzFailureModeEnv {
+		if env.Name != "KOURIER_EXTAUTHZ_HOST" && env.Name != "KOURIER_EXTAUTHZ_FAILUREMODEALLOW" {
 			finalEnvs = append(finalEnvs, env)
 		}
 	}
