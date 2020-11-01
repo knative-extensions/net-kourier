@@ -3,28 +3,6 @@
 SHELL = /bin/bash
 PROJECT_PATH := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-run: ## runs kourier locally with "go run"
-	@echo "[i] Remember to have a valid kubeconfig in $(HOME)/.kube/config"
-	@go run ./cmd/kourier/main.go
-
-docker-run-envoy: ## Runs envoy in a docker
-	docker run --rm  -p 19000:19000 -p 10000:10000 --link kourier --name kourier_envoy -v $(PWD)/conf/:/tmp/conf --entrypoint=/usr/local/bin/envoy -ti docker.io/maistra/proxyv2-ubi8:1.0.8 -c /tmp/conf/envoy-bootstrap.yaml
-
-docker-run: docker-build ## Runs kourier in a docker
-	@echo "[i] Remember to have a valid kubeconfig in $(HOME)/.kube/config"
-	docker run --rm  --name kourier -v $(HOME)/.kube:/tmp/.kube -ti 3scale-kourier:test -kubeconfig /tmp/.kube/config
-
-.PHONY: build
-build: ## Builds kourier binary, outputs binary to ./build
-	mkdir -p ./build
-	go build -mod vendor -o build/kourier cmd/kourier/main.go 
-
-docker-build: ## Builds kourier docker, tagged by default as 3scale-kourier:test
-	docker build -t 3scale-kourier:test ./
-
-docker-build-extauthzutil: ## Builds kourier docker, tagged by default as test_externalauthz:latest
-	docker build -f ./utils/extauthz_test_image/Dockerfile -t test_externalauthz:latest ./utils/extauthz_test_image/
-
 local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
 	./utils/setup.sh
 
