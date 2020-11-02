@@ -123,13 +123,23 @@ func (caches *Caches) SetOnEvicted(f func(types.NamespacedName, interface{})) {
 }
 
 func (caches *Caches) setListeners(ctx context.Context, kubeclient kubeclient.Interface) error {
-	localVHosts := append(caches.clusterLocalVirtualHosts(), caches.statusVirtualHost)
+	localVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses)+1)
+	externalVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
+	sniMatches := make([]*envoy.SNIMatch, 0, len(caches.translatedIngresses))
+
+	for _, translatedIngress := range caches.translatedIngresses {
+		localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
+		externalVHosts = append(externalVHosts, translatedIngress.externalVirtualHosts...)
+		sniMatches = append(sniMatches, translatedIngress.sniMatches...)
+	}
+	// Append the statusHost too.
+	localVHosts = append(localVHosts, caches.statusVirtualHost)
 
 	listeners, err := listenersFromVirtualHosts(
 		ctx,
-		caches.externalVirtualHosts(),
+		externalVHosts,
 		localVHosts,
-		caches.sniMatches(),
+		sniMatches,
 		kubeclient,
 		caches,
 	)
@@ -226,31 +236,4 @@ func (caches *Caches) getNewSnapshotVersion() (string, error) {
 	}
 
 	return snapshotVersion.String(), nil
-}
-
-func (caches *Caches) externalVirtualHosts() []*route.VirtualHost {
-	res := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
-	for _, translatedIngress := range caches.translatedIngresses {
-		res = append(res, translatedIngress.externalVirtualHosts...)
-	}
-
-	return res
-}
-
-func (caches *Caches) clusterLocalVirtualHosts() []*route.VirtualHost {
-	res := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
-	for _, translatedIngress := range caches.translatedIngresses {
-		res = append(res, translatedIngress.internalVirtualHosts...)
-	}
-
-	return res
-}
-
-func (caches *Caches) sniMatches() []*envoy.SNIMatch {
-	res := make([]*envoy.SNIMatch, 0, len(caches.translatedIngresses))
-	for _, translatedIngress := range caches.translatedIngresses {
-		res = append(res, translatedIngress.sniMatches...)
-	}
-
-	return res
 }
