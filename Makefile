@@ -7,7 +7,7 @@ local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative
 	./utils/setup.sh
 
 .PHONY: test
-test: test-unit test-integration test-serving-conformance ## Runs all the tests
+test: test-unit test-integration ## Runs all the tests
 
 test-unit: ## Runs unit tests
 	mkdir -p "$(PROJECT_PATH)/tests_output"
@@ -15,11 +15,6 @@ test-unit: ## Runs unit tests
 
 test-integration: local-setup ## Runs integration tests
 	go test -mod vendor -race test/*.go
-
-test-serving-conformance: local-setup ## Runs Knative Serving conformance tests
-	kind export kubeconfig --name kourier-integration
-	ko apply -f test/config/100-test-namespace.yaml
-	go test -v -tags=e2e ./vendor/knative.dev/serving/test/conformance/ingress/... --ingressClass="kourier.ingress.networking.knative.dev"
 
 test-unit-coverage: test-unit ## Runs unit tests and generates a coverage report
 	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
