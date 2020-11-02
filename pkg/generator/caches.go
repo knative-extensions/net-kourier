@@ -113,8 +113,14 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 }
 
 // SetOnEvicted allows to set a function that will be executed when any key on the cache expires.
-func (caches *Caches) SetOnEvicted(f func(string, interface{})) {
-	caches.clusters.clusters.OnEvicted(f)
+func (caches *Caches) SetOnEvicted(f func(types.NamespacedName, interface{})) {
+	caches.clusters.clusters.OnEvicted(func(key string, val interface{}) {
+		_, name, namespace := explodeKey(key)
+		f(types.NamespacedName{
+			Namespace: namespace,
+			Name:      name,
+		}, val)
+	})
 }
 
 func (caches *Caches) setListeners(ctx context.Context, kubeclient kubeclient.Interface) error {

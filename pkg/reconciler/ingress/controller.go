@@ -18,7 +18,6 @@ package ingress
 
 import (
 	"context"
-	"strings"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"go.uber.org/zap"
@@ -106,16 +105,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	r.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 
-	r.caches.SetOnEvicted(func(key string, value interface{}) {
-		// The format of the key received is "clusterName:ingressName:ingressNamespace"
-		logger.Debugf("Evicted %s", key)
-		keyParts := strings.Split(key, ":")
+	r.caches.SetOnEvicted(func(key types.NamespacedName, value interface{}) {
+		logger.Debugf("Evicted %s", key.String())
 		// We enqueue the ingress name and namespace as if it was a new event, to force
 		// a config refresh.
-		impl.EnqueueKey(types.NamespacedName{
-			Namespace: keyParts[2],
-			Name:      keyParts[1],
-		})
+		impl.EnqueueKey(key)
 	})
 
 	tracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
