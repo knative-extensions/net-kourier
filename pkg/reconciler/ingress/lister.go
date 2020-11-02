@@ -63,11 +63,7 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 }
 
 func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
-	ips := sets.NewString()
-
-	for _, ip := range gatewayIps {
-		ips.Insert(ip)
-	}
+	ips := sets.NewString(gatewayIps...)
 
 	targets := make([]status.ProbeTarget, 0, len(ing.Spec.Rules))
 	for _, rule := range ing.Spec.Rules {
