@@ -52,8 +52,17 @@ func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient 
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
 		clustersToIngress:   make(map[string][]string),
 		logger:              logger,
+		statusVirtualHost:   statusVHost(),
 	}
-	return c, c.initConfig(ctx, kubernetesClient, extAuthz)
+
+	if extAuthz {
+		c.addClusterForIngress(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
+	}
+
+	if err := c.setListeners(ctx, kubernetesClient); err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func (caches *Caches) UpdateIngress(ctx context.Context, ingress *v1alpha1.Ingress, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
@@ -69,14 +78,6 @@ func (caches *Caches) UpdateIngress(ctx context.Context, ingress *v1alpha1.Ingre
 	}
 
 	return caches.setListeners(ctx, kubeclient)
-}
-
-func (caches *Caches) initConfig(ctx context.Context, kubernetesClient kubeclient.Interface, extAuthz bool) error {
-	if extAuthz {
-		caches.addClusterForIngress(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
-	}
-	caches.addStatusVirtualHost()
-	return caches.setListeners(ctx, kubernetesClient)
 }
 
 func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
@@ -124,10 +125,6 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 // SetOnEvicted allows to set a function that will be executed when any key on the cache expires.
 func (caches *Caches) SetOnEvicted(f func(string, interface{})) {
 	caches.clusters.clusters.OnEvicted(f)
-}
-
-func (caches *Caches) addStatusVirtualHost() {
-	caches.statusVirtualHost = statusVHost()
 }
 
 func (caches *Caches) setListeners(ctx context.Context, kubeclient kubeclient.Interface) error {
