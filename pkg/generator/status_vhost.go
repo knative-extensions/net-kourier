@@ -35,10 +35,10 @@ func statusVHost() route.VirtualHost {
 }
 
 func readyRoute() *route.Route {
-	cluster := envoy.NewWeightedCluster("service_stats", 100, map[string]string{})
+	cluster := envoy.NewWeightedCluster("service_stats", 100, nil)
 	var wrs []*route.WeightedCluster_ClusterWeight
 	wrs = append(wrs, cluster)
-	route := envoy.NewRoute("gateway_ready", nil, "/ready", wrs, 1*time.Second, map[string]string{})
+	route := envoy.NewRoute("gateway_ready", nil, "/ready", wrs, 1*time.Second, nil)
 
 	return route
 }
