@@ -39,7 +39,6 @@ type Caches struct {
 	mu                  sync.Mutex
 	translatedIngresses map[string]*translatedIngress
 	clusters            *ClustersCache
-	clustersToIngress   map[string][]string
 	routeConfig         []v2.RouteConfiguration
 	listeners           []*v2.Listener
 	statusVirtualHost   *route.VirtualHost
@@ -50,13 +49,12 @@ func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient 
 	c := &Caches{
 		translatedIngresses: make(map[string]*translatedIngress),
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
-		clustersToIngress:   make(map[string][]string),
 		logger:              logger,
 		statusVirtualHost:   statusVHost(),
 	}
 
 	if extAuthz {
-		c.addClusterForIngress(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
+		c.clusters.set(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
 	}
 
 	if err := c.setListeners(ctx, kubernetesClient); err != nil {
@@ -116,7 +114,7 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 	caches.translatedIngresses[key] = translatedIngress
 
 	for _, cluster := range translatedIngress.clusters {
-		caches.addClusterForIngress(cluster, ingress.Name, ingress.Namespace)
+		caches.clusters.set(cluster, ingress.Name, ingress.Namespace)
 	}
 
 	return nil
@@ -207,25 +205,13 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 	key := mapKey(ingressName, ingressNamespace)
 
 	// Set to expire all the clusters belonging to that Ingress.
-	clusters := caches.clustersToIngress[key]
-	for _, cluster := range clusters {
-		caches.clusters.setExpiration(cluster, ingressName, ingressNamespace)
+	if translated := caches.translatedIngresses[key]; translated != nil {
+		for _, cluster := range translated.clusters {
+			caches.clusters.setExpiration(cluster.Name, ingressName, ingressNamespace)
+		}
+
+		delete(caches.translatedIngresses, key)
 	}
-
-	delete(caches.translatedIngresses, key)
-	delete(caches.clustersToIngress, key)
-}
-
-func (caches *Caches) addClusterForIngress(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
-	caches.logger.Debugf("adding cluster %s for ingress %s/%s", cluster.Name, ingressName, ingressNamespace)
-
-	caches.clusters.set(cluster, ingressName, ingressNamespace)
-
-	key := mapKey(ingressName, ingressNamespace)
-	caches.clustersToIngress[key] = append(
-		caches.clustersToIngress[key],
-		cluster.Name,
-	)
 }
 
 func (caches *Caches) getNewSnapshotVersion() (string, error) {
