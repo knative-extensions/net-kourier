@@ -26,7 +26,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/assert"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,11 +35,10 @@ import (
 )
 
 func TestDeleteIngressInfo(t *testing.T) {
-	logger := zap.S()
 	kubeClient := fake.Clientset{}
 	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, logger, &kubeClient, false)
+	caches, err := NewCaches(ctx, &kubeClient, false)
 	if err != nil {
 		t.Fail()
 	}
@@ -97,11 +95,10 @@ func TestDeleteIngressInfo(t *testing.T) {
 func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	// If the ingress does not exist, nothing should be deleted from the caches
 	// instance.
-	logger := zap.S()
 	kubeClient := fake.Clientset{}
 	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, logger, &kubeClient, false)
+	caches, err := NewCaches(ctx, &kubeClient, false)
 	if err != nil {
 		t.Fail()
 	}
@@ -186,11 +183,10 @@ func createTestDataForIngress(
 }
 
 func TestValidateIngress(t *testing.T) {
-	logger := zap.S()
 	kubeClient := fake.Clientset{}
 	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, logger, &kubeClient, false)
+	caches, err := NewCaches(ctx, &kubeClient, false)
 	if err != nil {
 		t.Fail()
 	}

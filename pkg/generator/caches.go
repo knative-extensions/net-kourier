@@ -19,6 +19,7 @@ package generator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -26,7 +27,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclient "k8s.io/client-go/kubernetes"
@@ -44,15 +44,13 @@ type Caches struct {
 	routeConfig         []v2.RouteConfiguration
 	listeners           []*v2.Listener
 	statusVirtualHost   *route.VirtualHost
-	logger              *zap.SugaredLogger
 }
 
-func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
+func NewCaches(ctx context.Context, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
 	c := &Caches{
 		translatedIngresses: make(map[types.NamespacedName]*translatedIngress),
-		clusters:            newClustersCache(logger.Named("cluster-cache")),
+		clusters:            newClustersCache(),
 		domainsInUse:        sets.NewString(),
-		logger:              logger,
 		statusVirtualHost:   statusVHost(),
 	}
 
@@ -92,8 +90,6 @@ func (caches *Caches) validateIngress(translatedIngress *translatedIngress) erro
 }
 
 func (caches *Caches) addTranslatedIngress(translatedIngress *translatedIngress) error {
-	caches.logger.Debugf("adding ingress: %s/%s", translatedIngress.name.Name, translatedIngress.name.Namespace)
-
 	if err := caches.validateIngress(translatedIngress); err != nil {
 		return err
 	}
@@ -147,7 +143,6 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
 
-	caches.logger.Debugf("Preparing Envoy Snapshot")
 	// Instead of sending the Routes, we send the RouteConfigs.
 	routes := make([]cache.Resource, len(caches.routeConfig))
 	for i := range caches.routeConfig {
@@ -156,13 +151,11 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 		// in the Knative serving test suite fails sometimes.
 		// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
 		caches.routeConfig[i].ValidateClusters = &wrappers.BoolValue{Value: true}
-		caches.logger.Debugf("Adding Route %#v", &caches.routeConfig[i])
 		routes[i] = &caches.routeConfig[i]
 	}
 
 	listeners := make([]cache.Resource, len(caches.listeners))
 	for i := range caches.listeners {
-		caches.logger.Debugf("Adding listener %#v", caches.listeners[i])
 		listeners[i] = caches.listeners[i]
 	}
 
@@ -170,8 +163,7 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 	// to each envoy
 	snapshotVersion, err := caches.getNewSnapshotVersion()
 	if err != nil {
-		caches.logger.Errorf("Failed generating a new Snapshot version: %s", err)
-		return cache.Snapshot{}, err
+		return cache.Snapshot{}, fmt.Errorf("failed to generate a new snapshot version: %w", err)
 	}
 
 	return cache.NewSnapshot(
@@ -197,8 +189,6 @@ func (caches *Caches) DeleteIngressInfo(ctx context.Context, ingressName string,
 }
 
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {
-	caches.logger.Debugf("deleting ingress: %s/%s", ingressName, ingressNamespace)
-
 	key := types.NamespacedName{
 		Namespace: ingressNamespace,
 		Name:      ingressName,

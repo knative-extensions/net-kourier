@@ -96,7 +96,7 @@ func (r *Reconciler) ObserveFinalizeKind(ctx context.Context, ing *v1alpha1.Ingr
 		return err
 	}
 
-	return r.updateEnvoyConfig()
+	return r.updateEnvoyConfig(ctx)
 }
 
 func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingress) error {
@@ -109,18 +109,22 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 		return err
 	}
 
-	if err := r.updateEnvoyConfig(); err != nil {
+	if err := r.updateEnvoyConfig(ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *Reconciler) updateEnvoyConfig() error {
+func (r *Reconciler) updateEnvoyConfig(ctx context.Context) error {
+	logger := logging.FromContext(ctx)
+
 	currentSnapshot, err := r.xdsServer.GetSnapshot(config.EnvoyNodeID)
 	if err != nil {
 		return err
 	}
+
+	logger.Debugf("Preparing Envoy Snapshot")
 	newSnapshot, err := r.caches.ToEnvoySnapshot()
 	if err != nil {
 		return err

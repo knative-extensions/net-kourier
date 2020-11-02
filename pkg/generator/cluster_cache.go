@@ -43,7 +43,6 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache"
 	gocache "github.com/patrickmn/go-cache"
-	"go.uber.org/zap"
 )
 
 const (
@@ -54,18 +53,15 @@ const (
 
 type ClustersCache struct {
 	clusters *gocache.Cache
-	logger   *zap.SugaredLogger
 }
 
-func newClustersCache(logger *zap.SugaredLogger) *ClustersCache {
-	goCache := gocache.New(defaultExpiration, defaultCleanupInterval)
-	return &ClustersCache{clusters: goCache, logger: logger}
+func newClustersCache() *ClustersCache {
+	return newClustersCacheWithExpAndCleanupIntervals(defaultExpiration, defaultCleanupInterval)
 }
 
-func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanupInterval time.Duration,
-	logger *zap.SugaredLogger) *ClustersCache {
+func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanupInterval time.Duration) *ClustersCache {
 	goCache := gocache.New(expiration, cleanupInterval)
-	return &ClustersCache{clusters: goCache, logger: logger}
+	return &ClustersCache{clusters: goCache}
 }
 
 func (cc *ClustersCache) set(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
@@ -81,11 +77,8 @@ func (cc *ClustersCache) setExpiration(clusterName string, ingressName string, i
 }
 
 func (cc *ClustersCache) list() []envoycache.Resource {
-	cc.logger.Debug("listing clusters")
-
 	res := make([]envoycache.Resource, 0, cc.clusters.ItemCount())
 	for _, cluster := range cc.clusters.Items() {
-		cc.logger.Debugf("listing cluster %#v", cluster.Object.(*v2.Cluster))
 		res = append(res, cluster.Object.(envoycache.Resource))
 	}
 

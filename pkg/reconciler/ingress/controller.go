@@ -69,7 +69,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	podInformer := podinformer.Get(ctx)
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
-	caches, err := generator.NewCaches(ctx, logger.Named("caches"), kubernetesClient, config.ExternalAuthz.Enabled)
+	caches, err := generator.NewCaches(ctx, kubernetesClient, config.ExternalAuthz.Enabled)
 	if err != nil {
 		logger.Fatalw("Failed create new caches", zap.Error(err))
 	}
@@ -162,7 +162,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		}
 	}
 	// Update the entire batch of ready ingresses at once.
-	if err := r.updateEnvoyConfig(); err != nil {
+	if err := r.updateEnvoyConfig(ctx); err != nil {
 		logger.Fatalw("Failed to set initial envoy config", zap.Error(err))
 	}
 
