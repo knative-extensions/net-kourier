@@ -32,7 +32,6 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
-	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 )
 
 var ErrDomainConflict = errors.New("ingress has a conflicting domain with another ingress")
@@ -67,15 +66,15 @@ func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient 
 	return c, nil
 }
 
-func (caches *Caches) UpdateIngress(ctx context.Context, ingress *v1alpha1.Ingress, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
+func (caches *Caches) UpdateIngress(ctx context.Context, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
 	// we hold a lock for Updating the ingress, to avoid another worker to generate an snapshot just when we have
 	// deleted the ingress before adding it.
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
 
-	caches.deleteTranslatedIngress(ingress.Name, ingress.Namespace)
+	caches.deleteTranslatedIngress(ingressTranslation.name.Name, ingressTranslation.name.Namespace)
 
-	if err := caches.addTranslatedIngress(ingress, ingressTranslation); err != nil {
+	if err := caches.addTranslatedIngress(ingressTranslation); err != nil {
 		return err
 	}
 
@@ -92,8 +91,8 @@ func (caches *Caches) validateIngress(translatedIngress *translatedIngress) erro
 	return nil
 }
 
-func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translatedIngress *translatedIngress) error {
-	caches.logger.Debugf("adding ingress: %s/%s", ingress.Name, ingress.Namespace)
+func (caches *Caches) addTranslatedIngress(translatedIngress *translatedIngress) error {
+	caches.logger.Debugf("adding ingress: %s/%s", translatedIngress.name.Name, translatedIngress.name.Namespace)
 
 	if err := caches.validateIngress(translatedIngress); err != nil {
 		return err
@@ -106,7 +105,7 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 	caches.translatedIngresses[translatedIngress.name] = translatedIngress
 
 	for _, cluster := range translatedIngress.clusters {
-		caches.clusters.set(cluster, ingress.Name, ingress.Namespace)
+		caches.clusters.set(cluster, translatedIngress.name.Name, translatedIngress.name.Namespace)
 	}
 
 	return nil

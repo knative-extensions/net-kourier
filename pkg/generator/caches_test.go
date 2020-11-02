@@ -29,12 +29,10 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 )
 
 func TestDeleteIngressInfo(t *testing.T) {
@@ -173,7 +171,7 @@ func createTestDataForIngress(
 	externalVHostName string,
 	kubeClient kubeclient.Interface) {
 
-	translatedIngress := translatedIngress{
+	translatedIngress := &translatedIngress{
 		name: types.NamespacedName{
 			Namespace: ingressNamespace,
 			Name:      ingressName,
@@ -183,13 +181,7 @@ func createTestDataForIngress(
 		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
 	}
 
-	_ = caches.addTranslatedIngress(&v1alpha1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ingressName,
-			Namespace: ingressNamespace,
-		},
-	}, &translatedIngress)
-
+	_ = caches.addTranslatedIngress(translatedIngress)
 	_ = caches.setListeners(ctx, kubeClient)
 }
 

@@ -60,7 +60,7 @@ func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ing
 		return nil
 	}
 
-	return caches.UpdateIngress(ctx, ing, ingressTranslation, kubeclient)
+	return caches.UpdateIngress(ctx, ingressTranslation, kubeclient)
 }
 
 func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*route.VirtualHost,
