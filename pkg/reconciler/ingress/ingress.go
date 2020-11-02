@@ -88,14 +88,9 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) re
 }
 func (r *Reconciler) ObserveFinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
 	logger := logging.FromContext(ctx)
-	logger.Infof("Deleting Ingress %s namespace: %s", ing.Name, ing.Namespace)
-	ingress := r.caches.GetIngress(ing.Name, ing.Namespace)
+	logger.Infof("Deleting Ingress %s/%s", ing.Name, ing.Namespace)
 
-	// We need to check for ingress not being nil, because we can receive an event from an already
-	// removed ingress, like for example, when the endpoints object for that ingress is updated/removed.
-	if ingress != nil {
-		r.statusManager.CancelIngressProbing(ingress)
-	}
+	r.statusManager.CancelIngressProbing(ing)
 
 	if err := r.caches.DeleteIngressInfo(ctx, ing.Name, ing.Namespace, r.kubeClient); err != nil {
 		return err

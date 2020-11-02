@@ -37,7 +37,6 @@ var ErrDomainConflict = errors.New("ingress has a conflicting domain with anothe
 
 type Caches struct {
 	mu                  sync.Mutex
-	ingresses           map[string]*v1alpha1.Ingress
 	translatedIngresses map[string]*translatedIngress
 	clusters            *ClustersCache
 	clustersToIngress   map[string][]string
@@ -49,7 +48,6 @@ type Caches struct {
 
 func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
 	c := &Caches{
-		ingresses:           make(map[string]*v1alpha1.Ingress),
 		translatedIngresses: make(map[string]*translatedIngress),
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
 		clustersToIngress:   make(map[string][]string),
@@ -79,13 +77,6 @@ func (caches *Caches) initConfig(ctx context.Context, kubernetesClient kubeclien
 	}
 	caches.addStatusVirtualHost()
 	return caches.setListeners(ctx, kubernetesClient)
-}
-
-func (caches *Caches) GetIngress(ingressName, ingressNamespace string) *v1alpha1.Ingress {
-	caches.mu.Lock()
-	defer caches.mu.Unlock()
-	caches.logger.Debugf("getting ingress: %s/%s", ingressName, ingressNamespace)
-	return caches.ingresses[mapKey(ingressName, ingressNamespace)]
 }
 
 func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
@@ -121,7 +112,6 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 	}
 
 	key := mapKey(ingress.Name, ingress.Namespace)
-	caches.ingresses[key] = ingress
 	caches.translatedIngresses[key] = translatedIngress
 
 	for _, cluster := range translatedIngress.clusters {
@@ -226,7 +216,6 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 		caches.clusters.setExpiration(cluster, ingressName, ingressNamespace)
 	}
 
-	delete(caches.ingresses, key)
 	delete(caches.translatedIngresses, key)
 	delete(caches.clustersToIngress, key)
 }
