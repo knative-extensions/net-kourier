@@ -18,6 +18,7 @@ package ingress
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
@@ -70,7 +71,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 func (r *Reconciler) ObserveKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
 	ingress.SetDefaults(ctx)
 
-	if err := r.updateIngress(ctx, ingress); err == generator.ErrDomainConflict {
+	if err := r.updateIngress(ctx, ingress); errors.Is(err, generator.ErrDomainConflict) {
 		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
 		// custom status. We don't want to return an error in this case as we want to update its status.
 		logging.FromContext(ctx).Errorw(err.Error(), ingress.Name, ingress.Namespace)
