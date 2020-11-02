@@ -27,6 +27,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy"
@@ -39,6 +40,7 @@ type Caches struct {
 	mu                  sync.Mutex
 	translatedIngresses map[string]*translatedIngress
 	clusters            *ClustersCache
+	domainsInUse        sets.String
 	routeConfig         []v2.RouteConfiguration
 	listeners           []*v2.Listener
 	statusVirtualHost   *route.VirtualHost
@@ -49,6 +51,7 @@ func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient 
 	c := &Caches{
 		translatedIngresses: make(map[string]*translatedIngress),
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
+		domainsInUse:        sets.NewString(),
 		logger:              logger,
 		statusVirtualHost:   statusVHost(),
 	}
@@ -79,24 +82,9 @@ func (caches *Caches) UpdateIngress(ctx context.Context, ingress *v1alpha1.Ingre
 }
 
 func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
-	// We compare the Translated Ingress to current cached Virtualhosts, and look for any domain
-	// clashes. If there's one clashing domain, we reject the ingress.
-	localVhosts := caches.clusterLocalVirtualHosts()
-
-	// Return true early.
-	if len(localVhosts) == 0 {
-		return nil
-	}
-
 	for _, vhost := range translatedIngress.internalVirtualHosts {
-		for _, domain := range vhost.Domains {
-			for _, cacheVhost := range localVhosts {
-				for _, cachedDomain := range cacheVhost.Domains {
-					if domain == cachedDomain {
-						return ErrDomainConflict
-					}
-				}
-			}
+		if caches.domainsInUse.HasAny(vhost.Domains...) {
+			return ErrDomainConflict
 		}
 	}
 
@@ -108,6 +96,10 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 
 	if err := caches.validateIngress(translatedIngress); err != nil {
 		return err
+	}
+
+	for _, vhost := range translatedIngress.internalVirtualHosts {
+		caches.domainsInUse.Insert(vhost.Domains...)
 	}
 
 	key := mapKey(ingress.Name, ingress.Namespace)
@@ -208,6 +200,10 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 	if translated := caches.translatedIngresses[key]; translated != nil {
 		for _, cluster := range translated.clusters {
 			caches.clusters.setExpiration(cluster.Name, ingressName, ingressNamespace)
+		}
+
+		for _, vhost := range translated.internalVirtualHosts {
+			caches.domainsInUse.Delete(vhost.Domains...)
 		}
 
 		delete(caches.translatedIngresses, key)
