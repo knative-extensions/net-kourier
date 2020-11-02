@@ -27,6 +27,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
@@ -38,7 +39,7 @@ var ErrDomainConflict = errors.New("ingress has a conflicting domain with anothe
 
 type Caches struct {
 	mu                  sync.Mutex
-	translatedIngresses map[string]*translatedIngress
+	translatedIngresses map[types.NamespacedName]*translatedIngress
 	clusters            *ClustersCache
 	domainsInUse        sets.String
 	routeConfig         []v2.RouteConfiguration
@@ -49,7 +50,7 @@ type Caches struct {
 
 func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
 	c := &Caches{
-		translatedIngresses: make(map[string]*translatedIngress),
+		translatedIngresses: make(map[types.NamespacedName]*translatedIngress),
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
 		domainsInUse:        sets.NewString(),
 		logger:              logger,
@@ -102,8 +103,7 @@ func (caches *Caches) addTranslatedIngress(ingress *v1alpha1.Ingress, translated
 		caches.domainsInUse.Insert(vhost.Domains...)
 	}
 
-	key := mapKey(ingress.Name, ingress.Namespace)
-	caches.translatedIngresses[key] = translatedIngress
+	caches.translatedIngresses[translatedIngress.name] = translatedIngress
 
 	for _, cluster := range translatedIngress.clusters {
 		caches.clusters.set(cluster, ingress.Name, ingress.Namespace)
@@ -194,7 +194,10 @@ func (caches *Caches) DeleteIngressInfo(ctx context.Context, ingressName string,
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {
 	caches.logger.Debugf("deleting ingress: %s/%s", ingressName, ingressNamespace)
 
-	key := mapKey(ingressName, ingressNamespace)
+	key := types.NamespacedName{
+		Namespace: ingressNamespace,
+		Name:      ingressName,
+	}
 
 	// Set to expire all the clusters belonging to that Ingress.
 	if translated := caches.translatedIngresses[key]; translated != nil {
@@ -245,8 +248,4 @@ func (caches *Caches) sniMatches() []*envoy.SNIMatch {
 	}
 
 	return res
-}
-
-func mapKey(ingressName string, ingressNamespace string) string {
-	return ingressNamespace + "/" + ingressName
 }
