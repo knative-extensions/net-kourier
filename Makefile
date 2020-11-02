@@ -3,7 +3,7 @@
 SHELL = /bin/bash
 PROJECT_PATH := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-local-setup: ## Builds and deploys kourier locally in a k3s cluster with knative, forwards the local 8080 to kourier/envoy
+local-setup: ## Builds and deploys kourier locally in a "kind" cluster with knative, forwards the local 8080 to kourier/envoy
 	./utils/setup.sh
 
 .PHONY: test
