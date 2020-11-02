@@ -24,8 +24,8 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 )
 
-func NewVirtualHost(name string, domains []string, routes []*route.Route) route.VirtualHost {
-	return route.VirtualHost{
+func NewVirtualHost(name string, domains []string, routes []*route.Route) *route.VirtualHost {
+	return &route.VirtualHost{
 		Name:    name,
 		Domains: domains,
 		Routes:  routes,
@@ -33,7 +33,7 @@ func NewVirtualHost(name string, domains []string, routes []*route.Route) route.
 }
 
 func NewVirtualHostWithExtAuthz(name string, contextExtensions map[string]string, domains []string,
-	routes []*route.Route) route.VirtualHost {
+	routes []*route.Route) *route.VirtualHost {
 
 	perFilterConfig := extAuthService.ExtAuthzPerRoute{
 		Override: &extAuthService.ExtAuthzPerRoute_CheckSettings{
@@ -52,7 +52,7 @@ func NewVirtualHostWithExtAuthz(name string, contextExtensions map[string]string
 		Value:   b.Bytes(),
 	}
 
-	r := route.VirtualHost{
+	return &route.VirtualHost{
 		Name:    name,
 		Domains: domains,
 		Routes:  routes,
@@ -60,7 +60,5 @@ func NewVirtualHostWithExtAuthz(name string, contextExtensions map[string]string
 			wellknown.HTTPExternalAuthorization: filter,
 		},
 	}
-
-	return r
 
 }

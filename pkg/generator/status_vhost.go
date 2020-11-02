@@ -26,7 +26,7 @@ import (
 
 // Generates an internal virtual host that signals that the Envoy instance has
 // been configured, this endpoint is used by the kubernetes readiness probe.
-func statusVHost() route.VirtualHost {
+func statusVHost() *route.VirtualHost {
 	return envoy.NewVirtualHost(
 		config.InternalKourierDomain,
 		[]string{config.InternalKourierDomain},

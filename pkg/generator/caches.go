@@ -137,8 +137,7 @@ func (caches *Caches) SetOnEvicted(f func(string, interface{})) {
 }
 
 func (caches *Caches) addStatusVirtualHost() {
-	statusVirtualHost := statusVHost()
-	caches.statusVirtualHost = &statusVirtualHost
+	caches.statusVirtualHost = statusVHost()
 }
 
 func (caches *Caches) setListeners(ctx context.Context, kubeclient kubeclient.Interface) error {
