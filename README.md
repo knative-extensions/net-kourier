@@ -147,8 +147,8 @@ make test-integration
 ```
 
 - Set up a local environment with Knative running on top of
-[kind](https://kind.sigs.k8s.io/) (needs both kind and
-[ko](https://github.com/google/ko) installed):
+  [kind](https://kind.sigs.k8s.io/) (needs both kind and
+  [ko](https://github.com/google/ko) installed):
 
 ```bash
 make local-setup
