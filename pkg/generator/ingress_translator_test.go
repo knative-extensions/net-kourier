@@ -28,11 +28,9 @@ import (
 	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	pkgtest "knative.dev/pkg/reconciler/testing"
@@ -119,7 +117,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{})
+		kubeClient, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
 	ingressTranslation, err := ingressTranslator.translateIngress(ctx, &ingress, false)
 	if err != nil {
@@ -199,7 +197,7 @@ func TestIngressVisibility(t *testing.T) {
 			}
 
 			ingressTranslator := NewIngressTranslator(
-				kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{})
+				kubeClient, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
 			translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 			if err != nil {
@@ -253,7 +251,7 @@ func TestIngressWithTLS(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{})
+		kubeClient, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
 	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 	if err != nil {
@@ -287,58 +285,18 @@ func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, newMockedEndpointsLister(), newMockedServiceLister(), &pkgtest.FakeTracker{})
+		kubeClient, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
 	_, err := ingressTranslator.translateIngress(ctx, ingress, false)
 
 	assert.Error(t, err, fmt.Sprintf("failed to get sniMatch: secrets \"%s\" not found", tlsSecretName))
 }
 
-func newMockedEndpointsLister() corev1listers.EndpointsLister {
-	return new(endpointsLister)
-}
-
-type endpointsLister struct{}
-
-func (endpointsLister *endpointsLister) List(selector labels.Selector) ([]*corev1.Endpoints, error) {
-	return []*corev1.Endpoints{{}}, nil
-}
-
-func (endpointsLister *endpointsLister) Endpoints(namespace string) corev1listers.EndpointsNamespaceLister {
-	return new(endpoints)
-}
-
-type endpoints struct{}
-
-func (endpoints *endpoints) List(selector labels.Selector) ([]*corev1.Endpoints, error) {
-	return []*corev1.Endpoints{{}}, nil
-}
-
-func (endpoints *endpoints) Get(name string) (*corev1.Endpoints, error) {
+var mockedEndpointsGetter = func(ns, name string) (*corev1.Endpoints, error) {
 	return &corev1.Endpoints{}, nil
 }
 
-func newMockedServiceLister() corev1listers.ServiceLister {
-	return new(serviceLister)
-}
-
-type serviceLister struct{}
-
-func (endpointsLister *serviceLister) List(selector labels.Selector) ([]*corev1.Service, error) {
-	return []*corev1.Service{{}}, nil
-}
-
-func (endpointsLister *serviceLister) Services(namespace string) corev1listers.ServiceNamespaceLister {
-	return new(service)
-}
-
-type service struct{}
-
-func (endpoints *service) List(selector labels.Selector) ([]*corev1.Service, error) {
-	return []*corev1.Service{{}}, nil
-}
-
-func (endpoints *service) Get(name string) (*corev1.Service, error) {
+var mockedServiceGetter = func(ns, name string) (*corev1.Service, error) {
 	return &corev1.Service{}, nil
 }
 

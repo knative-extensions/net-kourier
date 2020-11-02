@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kubeclient "k8s.io/client-go/kubernetes"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -47,20 +46,20 @@ type translatedIngress struct {
 
 type IngressTranslator struct {
 	kubeclient      kubeclient.Interface
-	endpointsLister corev1listers.EndpointsLister
-	serviceLister   corev1listers.ServiceLister
+	endpointsGetter func(ns, name string) (*corev1.Endpoints, error)
+	serviceGetter   func(ns, name string) (*corev1.Service, error)
 	tracker         tracker.Interface
 }
 
 func NewIngressTranslator(
 	kubeclient kubeclient.Interface,
-	endpointsLister corev1listers.EndpointsLister,
-	serviceLister corev1listers.ServiceLister,
+	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
+	serviceGetter func(ns, name string) (*corev1.Service, error),
 	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
 		kubeclient:      kubeclient,
-		endpointsLister: endpointsLister,
-		serviceLister:   serviceLister,
+		endpointsGetter: endpointsGetter,
+		serviceGetter:   serviceGetter,
 		tracker:         tracker,
 	}
 }
@@ -103,7 +102,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					return nil, err
 				}
 
-				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
+				endpoints, err := translator.endpointsGetter(split.ServiceNamespace, split.ServiceName)
 				if apierrors.IsNotFound(err) {
 					logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					// TODO(markusthoemmes): Find out if we should actually `continue` here.
@@ -112,7 +111,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 				}
 
-				service, err := translator.serviceLister.Services(split.ServiceNamespace).Get(split.ServiceName)
+				service, err := translator.serviceGetter(split.ServiceNamespace, split.ServiceName)
 				if apierrors.IsNotFound(err) {
 					logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					// TODO(markusthoemmes): Find out if we should actually `continue` here.
