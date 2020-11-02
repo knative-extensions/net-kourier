@@ -187,8 +187,6 @@ func createTestDataForIngress(
 		},
 	}, &translatedIngress)
 
-	statusVirtualHost := statusVHost()
-	caches.statusVirtualHost = &statusVirtualHost
 	_ = caches.setListeners(ctx, kubeClient)
 }
 
