@@ -87,7 +87,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		"vHost2", []string{"another_host.com", "another_host.com:*"}, []*route.Route{},
 	)
 
-	manager := NewHTTPConnectionManager([]*route.VirtualHost{&vHost1, &vHost2})
+	manager := NewHTTPConnectionManager([]*route.VirtualHost{vHost1, vHost2})
 
 	listener, err := NewHTTPSListenerWithSNI(&manager, 8443, sniMatches)
 	if err != nil {

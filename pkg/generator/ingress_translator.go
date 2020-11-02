@@ -156,7 +156,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		}
 
 		domains := knative.Domains(rule)
-		var virtualHost route.VirtualHost
+		var virtualHost *route.VirtualHost
 		if extAuthzEnabled {
 			contextExtensions := kmeta.UnionMaps(map[string]string{
 				"client":     "kourier",
@@ -167,9 +167,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			virtualHost = envoy.NewVirtualHost(ingress.Name, domains, routes)
 		}
 
-		internalHosts = append(internalHosts, &virtualHost)
+		internalHosts = append(internalHosts, virtualHost)
 		if knative.RuleIsExternal(rule) {
-			externalHosts = append(externalHosts, &virtualHost)
+			externalHosts = append(externalHosts, virtualHost)
 		}
 	}
 
