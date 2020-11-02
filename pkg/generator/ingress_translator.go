@@ -26,6 +26,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/envoy"
 	"knative.dev/net-kourier/pkg/knative"
@@ -36,8 +37,7 @@ import (
 )
 
 type translatedIngress struct {
-	ingressName          string
-	ingressNamespace     string
+	name                 types.NamespacedName
 	sniMatches           []*envoy.SNIMatch
 	clusters             []*v2.Cluster
 	externalVirtualHosts []*route.VirtualHost
@@ -174,8 +174,10 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	}
 
 	return &translatedIngress{
-		ingressName:          ingress.Name,
-		ingressNamespace:     ingress.Namespace,
+		name: types.NamespacedName{
+			Namespace: ingress.Namespace,
+			Name:      ingress.Name,
+		},
 		sniMatches:           sniMatches,
 		clusters:             clusters,
 		externalVirtualHosts: externalHosts,

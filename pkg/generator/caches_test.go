@@ -30,6 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/net-kourier/pkg/config"
@@ -173,8 +174,10 @@ func createTestDataForIngress(
 	kubeClient kubeclient.Interface) {
 
 	translatedIngress := translatedIngress{
-		ingressName:          ingressName,
-		ingressNamespace:     ingressNamespace,
+		name: types.NamespacedName{
+			Namespace: ingressNamespace,
+			Name:      ingressName,
+		},
 		clusters:             []*v2.Cluster{{Name: clusterName}},
 		externalVirtualHosts: []*route.VirtualHost{{Name: externalVHostName, Domains: []string{externalVHostName}}},
 		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
@@ -212,8 +215,10 @@ func TestValidateIngress(t *testing.T) {
 	)
 
 	translatedIngress := translatedIngress{
-		ingressName:          "ingress_2",
-		ingressNamespace:     "ingress_2_namespace",
+		name: types.NamespacedName{
+			Namespace: "ingress_2_namespace",
+			Name:      "ingress_2",
+		},
 		clusters:             []*v2.Cluster{{Name: "cluster_for_ingress_2"}},
 		externalVirtualHosts: []*route.VirtualHost{{Name: "external_host_for_ingress_2", Domains: []string{"external_host_for_ingress_2"}}},
 		//This domain should clash with the cached ingress.

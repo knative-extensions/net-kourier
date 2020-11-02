@@ -97,3 +97,8 @@ func (cc *ClustersCache) list() []envoycache.Resource {
 func key(clusterName, ingressName, ingressNamespace string) string {
 	return strings.Join([]string{clusterName, ingressName, ingressNamespace}, ":")
 }
+
+func explodeKey(key string) (string, string, string) {
+	keyParts := strings.Split(key, ":")
+	return keyParts[0], keyParts[1], keyParts[2]
+}
