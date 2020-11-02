@@ -26,17 +26,15 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
+	"knative.dev/net-kourier/pkg/config"
 )
 
 func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
 
 	var filters []*httpconnectionmanagerv2.HttpFilter
 
-	// Get the extAuthzConf from envs vars.
-	extAuthzConf := GetExternalAuthzConfig()
-
-	if extAuthzConf.Enabled {
-		filters = append(filters, extAuthzConf.HTTPFilter)
+	if config.ExternalAuthz.Enabled {
+		filters = append(filters, config.ExternalAuthz.HTTPFilter)
 	}
 
 	// Append the Router filter at the end.

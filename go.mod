@@ -7,6 +7,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.2
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.16.0
 	google.golang.org/grpc v1.33.1
