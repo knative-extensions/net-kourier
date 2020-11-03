@@ -127,7 +127,7 @@ jobs:
         # Build and Publish our containers to the docker daemon (including test assets)
         export GO111MODULE=on
         export GOFLAGS=-mod=vendor
-        ko resolve --platform=all -Pf test/config/ -f deploy/kourier-knative.yaml | \
+        ko resolve -f test/config/ -f deploy/kourier-knative.yaml | \
           sed 's/LoadBalancer/NodePort/g' | \
           kubectl apply -f -
 
