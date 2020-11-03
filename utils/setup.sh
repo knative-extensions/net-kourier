@@ -38,4 +38,4 @@ port=$(kubectl -n kourier-system get svc kourier -ojsonpath='{.spec.ports[?(@.na
 echo
 echo "You can connect to Kourier at ${ips[0]}:${port}"
 echo "Consider exporting it via 'export KOURIER_IP=${ips[0]}:${port}'"
-echo "Example usage: 'curl -H \"Host: helloworld.default.example.com\" \$KOURIER_IP'"
+echo "Example usage: 'curl -H \"Host: helloworld-go.default.example.com\" \$KOURIER_IP'"
