@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: externalauthz
+  namespace: knative-serving
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: externalauthz
+  template:
+    metadata:
+      labels:
+        app: externalauthz
+    spec:
+      containers:
+      - image: ko://knative.dev/net-kourier/test/config/extauthz/src
+        name: externalauthz
+        ports:
+        - containerPort: 6000
+        readinessProbe:
+          tcpSocket:
+            port: 6000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: externalauthz
+  namespace: knative-serving
+spec:
+  type: ClusterIP
+  selector:
+    app: externalauthz
+  ports:
+  - name: grpc
+    port: 6000
+    protocol: TCP

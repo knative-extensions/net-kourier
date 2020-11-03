@@ -53,7 +53,7 @@ type config struct {
 }
 
 func init() {
-	if _, ok := os.LookupEnv("KOURIER_EXTAUTHZ_HOST"); !ok {
+	if host := os.Getenv("KOURIER_EXTAUTHZ_HOST"); host == "" {
 		// No ExtAuthz setup.
 		return
 	}
@@ -86,7 +86,8 @@ func extAuthzCluster(host string, port uint32) *v2.Cluster {
 		ClusterDiscoveryType: &v2.Cluster_Type{
 			Type: v2.Cluster_STRICT_DNS,
 		},
-		ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
+		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
 		LoadAssignment: &v2.ClusterLoadAssignment{
 			ClusterName: extAuthzClusterName,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
