@@ -1,0 +1,77 @@
+# Copyright 2020 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: 3scale-kourier-control
+  namespace: knative-serving
+  labels:
+    networking.knative.dev/ingress-provider: kourier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: 3scale-kourier-control
+  template:
+    metadata:
+      labels:
+        app: 3scale-kourier-control
+    spec:
+      containers:
+        - image: ko://knative.dev/net-kourier/cmd/kourier
+          name: kourier-control
+          env:
+            - name: CERTS_SECRET_NAMESPACE
+              value: ""
+            - name: CERTS_SECRET_NAME
+              value: ""
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: METRICS_DOMAIN
+              value: "knative.dev/samples"
+            - name: KOURIER_GATEWAY_NAMESPACE
+              value: "kourier-system"
+          ports:
+          - name: http2-xds
+            containerPort: 18000
+            protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - all
+      restartPolicy: Always
+      serviceAccountName: 3scale-kourier
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier-control
+  namespace: knative-serving
+  labels:
+    networking.knative.dev/ingress-provider: kourier
+spec:
+  ports:
+    - name: grpc-xds
+      port: 18000
+      protocol: TCP
+      targetPort: 18000
+  selector:
+    app: 3scale-kourier-control
+  type: ClusterIP
