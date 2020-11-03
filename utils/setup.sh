@@ -17,7 +17,7 @@ kubectl apply -f https://github.com/knative/serving/releases/download/${KNATIVE_
 kubectl patch configmap/config-network -n ${KNATIVE_NAMESPACE} --type merge -p '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
 
 echo "Deploying Kourier"
-export KO_DOCKER_REPO
+export KO_DOCKER_REPO=kind.local
 ko resolve -f test/config -f deploy/kourier-knative.yaml | \
   sed 's/LoadBalancer/NodePort/g' | \
   kubectl apply -f -
