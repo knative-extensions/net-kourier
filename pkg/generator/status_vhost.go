@@ -21,7 +21,7 @@ import (
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/envoy"
+	envoy "knative.dev/net-kourier/pkg/envoy/api"
 )
 
 // Generates an internal virtual host that signals that the Envoy instance has

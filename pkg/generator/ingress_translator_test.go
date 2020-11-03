@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	"knative.dev/net-kourier/pkg/envoy"
+	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	pkgtest "knative.dev/pkg/reconciler/testing"
 )
