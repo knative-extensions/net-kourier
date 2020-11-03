@@ -10,14 +10,15 @@ local-setup: ## Builds and deploys kourier locally in a "kind" cluster with knat
 test: test-unit test-integration ## Runs all the tests
 
 test-unit: ## Runs unit tests
+	go test -race ./...
+
+test-unit-coverage: ## Runs unit tests and generates a coverage report
 	mkdir -p "$(PROJECT_PATH)/tests_output"
-	go test -mod vendor -race $(shell go list ./... | grep -v kourier/test) -coverprofile="$(PROJECT_PATH)/tests_output/unit.cov"
+	go test -race ./... -coverprofile="$(PROJECT_PATH)/tests_output/unit.cov"
+	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
 
 test-integration: local-setup ## Runs integration tests
 	go test -mod vendor -race test/*.go
-
-test-unit-coverage: test-unit ## Runs unit tests and generates a coverage report
-	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
 
 .PHONY: fmt
 fmt: ## Runs code formatting
