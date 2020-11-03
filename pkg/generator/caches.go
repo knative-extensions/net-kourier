@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/envoy"
+	envoy "knative.dev/net-kourier/pkg/envoy/api"
 )
 
 var ErrDomainConflict = errors.New("ingress has a conflicting domain with another ingress")

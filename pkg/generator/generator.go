@@ -28,7 +28,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 
 	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/envoy"
+	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/ingress"
 )
