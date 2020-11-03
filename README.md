@@ -85,8 +85,8 @@ different namespaces:
 
 To change the Kourier gateway namespace, you will need to:
 
-- Modify the `deploy/kourier-knative.yaml` file, and replace all the namespaces
-  fields that have `kourier-system` with the desired namespace.
+- Modify the files in `config/` and replace all the namespaces fields that have
+  `kourier-system` with the desired namespace.
 - Set the `KOURIER_GATEWAY_NAMESPACE` env var in the kourier-control deployment
   to the new namespace.
 

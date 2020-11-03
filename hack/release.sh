@@ -22,7 +22,7 @@ source $(dirname $0)/../vendor/knative.dev/hack/release.sh
 # Yaml files to generate, and the source config dir for them.
 declare -A COMPONENTS
 COMPONENTS=(
-  ["kourier.yaml"]="deploy"
+  ["kourier.yaml"]="config"
 )
 readonly COMPONENTS
 
