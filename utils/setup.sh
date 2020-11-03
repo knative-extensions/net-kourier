@@ -32,3 +32,10 @@ for d in $(kubectl -n ${KOURIER_GATEWAY_NAMESPACE} get deploy -oname)
 do
   kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" wait --timeout=300s --for=condition=Available "$d"
 done
+
+ips=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
+port=$(kubectl -n kourier-system get svc kourier -ojsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
+echo
+echo "You can connect to Kourier at ${ips[0]}:${port}"
+echo "Consider exporting it via 'export KOURIER_IP=${ips[0]}:${port}'"
+echo "Example usage: 'curl -H \"Host: helloworld.default.example.com\" \$KOURIER_IP'"
