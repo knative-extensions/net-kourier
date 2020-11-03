@@ -12,7 +12,7 @@ test: test-unit test-integration ## Runs all the tests
 test-unit: ## Runs unit tests
 	go test -race ./...
 
-test-unit-coverage: test-unit ## Runs unit tests and generates a coverage report
+test-unit-coverage: ## Runs unit tests and generates a coverage report
 	mkdir -p "$(PROJECT_PATH)/tests_output"
 	go test -race ./... -coverprofile="$(PROJECT_PATH)/tests_output/unit.cov"
 	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
