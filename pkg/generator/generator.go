@@ -19,7 +19,6 @@ package generator
 import (
 	"context"
 	"fmt"
-	"os"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -34,8 +33,6 @@ import (
 )
 
 const (
-	envCertsSecretNamespace = "CERTS_SECRET_NAMESPACE"
-	envCertsSecretName      = "CERTS_SECRET_NAME"
 	certFieldInSecret       = "tls.crt"
 	keyFieldInSecret        = "tls.key"
 	externalRouteConfigName = "external_services"
@@ -44,7 +41,7 @@ const (
 
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
-func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, extAuthzEnabled bool) error {
+func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, translator *IngressTranslator, extAuthzEnabled bool) error {
 	// Adds a header with the ingress Hash and a random value header to force the config reload.
 	_, err := ingress.InsertProbe(ing)
 	if err != nil {
@@ -60,13 +57,14 @@ func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ing
 		return nil
 	}
 
-	return caches.UpdateIngress(ctx, ingressTranslation, kubeclient)
+	return caches.UpdateIngress(ingressTranslation)
 }
 
-func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*route.VirtualHost,
+func listenersFromVirtualHosts(
+	externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	sniMatches []*envoy.SNIMatch,
-	kubeclient kubeclient.Interface, caches *Caches) ([]*v2.Listener, error) {
+	caches *Caches) ([]*v2.Listener, error) {
 
 	var listeners []*v2.Listener
 
@@ -127,24 +125,9 @@ func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*rout
 			return nil, err
 		}
 		listeners = append(listeners, externalHTTPSEnvoyListener)
-	} else if useHTTPSListenerWithOneCert() {
-		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
-			ctx, &externalManager, kubeclient,
-		)
-		if err != nil {
-			return nil, err
-		}
-		listeners = append(listeners, externalHTTPSEnvoyListener)
 	}
 
 	return listeners, nil
-}
-
-// Returns true if we need to modify the HTTPS listener with just one cert
-// instead of one per ingress
-func useHTTPSListenerWithOneCert() bool {
-	return os.Getenv(envCertsSecretNamespace) != "" &&
-		os.Getenv(envCertsSecretName) != ""
 }
 
 func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamespace string, secretName string) (certificateChain string, privateKey string, err error) {
@@ -158,18 +141,6 @@ func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamesp
 	privateKey = string(secret.Data[keyFieldInSecret])
 
 	return certificateChain, privateKey, nil
-}
-
-func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv2.HttpConnectionManager, kubeClient kubeclient.Interface) (*v2.Listener, error) {
-	certificateChain, privateKey, err := sslCreds(
-		ctx, kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return envoy.NewHTTPSListener(manager, config.HTTPSPortExternal, certificateChain, privateKey)
 }
 
 func newExternalHTTPEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {

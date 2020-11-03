@@ -17,7 +17,6 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"errors"
 	"sync"
 
@@ -29,7 +28,6 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 )
@@ -47,7 +45,7 @@ type Caches struct {
 	logger              *zap.SugaredLogger
 }
 
-func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
+func NewCaches(logger *zap.SugaredLogger, extAuthz bool) (*Caches, error) {
 	c := &Caches{
 		translatedIngresses: make(map[types.NamespacedName]*translatedIngress),
 		clusters:            newClustersCache(logger.Named("cluster-cache")),
@@ -60,13 +58,13 @@ func NewCaches(ctx context.Context, logger *zap.SugaredLogger, kubernetesClient 
 		c.clusters.set(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
 	}
 
-	if err := c.setListeners(ctx, kubernetesClient); err != nil {
+	if err := c.setListeners(); err != nil {
 		return nil, err
 	}
 	return c, nil
 }
 
-func (caches *Caches) UpdateIngress(ctx context.Context, ingressTranslation *translatedIngress, kubeclient kubeclient.Interface) error {
+func (caches *Caches) UpdateIngress(ingressTranslation *translatedIngress) error {
 	// we hold a lock for Updating the ingress, to avoid another worker to generate an snapshot just when we have
 	// deleted the ingress before adding it.
 	caches.mu.Lock()
@@ -78,7 +76,7 @@ func (caches *Caches) UpdateIngress(ctx context.Context, ingressTranslation *tra
 		return err
 	}
 
-	return caches.setListeners(ctx, kubeclient)
+	return caches.setListeners()
 }
 
 func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
@@ -122,7 +120,7 @@ func (caches *Caches) SetOnEvicted(f func(types.NamespacedName, interface{})) {
 	})
 }
 
-func (caches *Caches) setListeners(ctx context.Context, kubeclient kubeclient.Interface) error {
+func (caches *Caches) setListeners() error {
 	localVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses)+1)
 	externalVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
 	sniMatches := make([]*envoy.SNIMatch, 0, len(caches.translatedIngresses))
@@ -136,11 +134,9 @@ func (caches *Caches) setListeners(ctx context.Context, kubeclient kubeclient.In
 	localVHosts = append(localVHosts, caches.statusVirtualHost)
 
 	listeners, err := listenersFromVirtualHosts(
-		ctx,
 		externalVHosts,
 		localVHosts,
 		sniMatches,
-		kubeclient,
 		caches,
 	)
 
@@ -197,13 +193,12 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 // Note: changes the snapshot version of the caches object
 // Notice that the clusters are not deleted. That's handled with the expiration
 // time set in the "ClustersCache" struct.
-func (caches *Caches) DeleteIngressInfo(ctx context.Context, ingressName string, ingressNamespace string,
-	kubeclient kubeclient.Interface) error {
+func (caches *Caches) DeleteIngressInfo(ingressName string, ingressNamespace string) error {
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
 
 	caches.deleteTranslatedIngress(ingressName, ingressNamespace)
-	return caches.setListeners(ctx, kubeclient)
+	return caches.setListeners()
 }
 
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {

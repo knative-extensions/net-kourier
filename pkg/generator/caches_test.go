@@ -17,7 +17,6 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"sort"
 	"testing"
 
@@ -30,17 +29,13 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/assert"
 	"k8s.io/apimachinery/pkg/types"
-	kubeclient "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/net-kourier/pkg/config"
 )
 
 func TestDeleteIngressInfo(t *testing.T) {
 	logger := zap.S()
-	kubeClient := fake.Clientset{}
-	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, logger, &kubeClient, false)
+	caches, err := NewCaches(logger, false)
 	if err != nil {
 		t.Fail()
 	}
@@ -49,32 +44,28 @@ func TestDeleteIngressInfo(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		firstIngressName,
 		firstIngressNamespace,
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
-		&kubeClient,
 	)
 
 	// Add info for a different ingress
 	secondIngressName := "ingress_2"
 	secondIngressNamespace := "ingress_2_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		secondIngressName,
 		secondIngressNamespace,
 		"cluster_for_ingress_2",
 		"internal_host_for_ingress_2",
 		"external_host_for_ingress_2",
-		&kubeClient,
 	)
 
 	// Delete the first ingress
-	_ = caches.DeleteIngressInfo(ctx, firstIngressName, firstIngressNamespace, &kubeClient)
+	_ = caches.DeleteIngressInfo(firstIngressName, firstIngressNamespace)
 
 	// Check that the listeners only have the virtual hosts of the second
 	// ingress.
@@ -98,10 +89,8 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	// If the ingress does not exist, nothing should be deleted from the caches
 	// instance.
 	logger := zap.S()
-	kubeClient := fake.Clientset{}
-	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, logger, &kubeClient, false)
+	caches, err := NewCaches(logger, false)
 	if err != nil {
 		t.Fail()
 	}
@@ -110,14 +99,12 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		firstIngressName,
 		firstIngressNamespace,
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
-		&kubeClient,
 	)
 
 	snapshotBeforeDelete, err := caches.ToEnvoySnapshot()
@@ -129,7 +116,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	routesBeforeDelete := snapshotBeforeDelete.GetResources(cache.RouteType)
 	listenersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ListenerType)
 
-	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace", &kubeClient)
+	err = caches.DeleteIngressInfo("non_existing_name", "non_existing_namespace")
 	if err != nil {
 		t.FailNow()
 	}
@@ -162,14 +149,12 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 // Creates an ingress translation and listeners from the given names an
 // associates them with the ingress name/namespace received.
 func createTestDataForIngress(
-	ctx context.Context,
 	caches *Caches,
 	ingressName string,
 	ingressNamespace string,
 	clusterName string,
 	internalVHostName string,
-	externalVHostName string,
-	kubeClient kubeclient.Interface) {
+	externalVHostName string) {
 
 	translatedIngress := &translatedIngress{
 		name: types.NamespacedName{
@@ -182,28 +167,24 @@ func createTestDataForIngress(
 	}
 
 	_ = caches.addTranslatedIngress(translatedIngress)
-	_ = caches.setListeners(ctx, kubeClient)
+	_ = caches.setListeners()
 }
 
 func TestValidateIngress(t *testing.T) {
 	logger := zap.S()
-	kubeClient := fake.Clientset{}
-	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, logger, &kubeClient, false)
+	caches, err := NewCaches(logger, false)
 	if err != nil {
 		t.Fail()
 	}
 
 	createTestDataForIngress(
-		ctx,
 		caches,
 		"ingress_1",
 		"ingress_1_namespace",
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
-		&kubeClient,
 	)
 
 	translatedIngress := translatedIngress{

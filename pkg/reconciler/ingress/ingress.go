@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
-	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
@@ -36,7 +35,6 @@ import (
 
 type Reconciler struct {
 	xdsServer         *envoy.XdsServer
-	kubeClient        kubeclient.Interface
 	caches            *generator.Caches
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
@@ -92,7 +90,7 @@ func (r *Reconciler) ObserveFinalizeKind(ctx context.Context, ing *v1alpha1.Ingr
 
 	r.statusManager.CancelIngressProbing(ing)
 
-	if err := r.caches.DeleteIngressInfo(ctx, ing.Name, ing.Namespace, r.kubeClient); err != nil {
+	if err := r.caches.DeleteIngressInfo(ing.Name, ing.Namespace); err != nil {
 		return err
 	}
 
@@ -103,9 +101,7 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 	logger := logging.FromContext(ctx)
 	logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
 
-	if err := generator.UpdateInfoForIngress(
-		ctx, r.caches, ingress, r.kubeClient, r.ingressTranslator, r.extAuthz,
-	); err != nil {
+	if err := generator.UpdateInfoForIngress(ctx, r.caches, ingress, r.ingressTranslator, r.extAuthz); err != nil {
 		return err
 	}
 

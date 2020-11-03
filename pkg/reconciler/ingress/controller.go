@@ -69,15 +69,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	podInformer := podinformer.Get(ctx)
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
-	caches, err := generator.NewCaches(ctx, logger.Named("caches"), kubernetesClient, config.ExternalAuthz.Enabled)
+	caches, err := generator.NewCaches(logger.Named("caches"), config.ExternalAuthz.Enabled)
 	if err != nil {
 		logger.Fatalw("Failed create new caches", zap.Error(err))
 	}
 
 	r := &Reconciler{
-		kubeClient: kubernetesClient,
-		caches:     caches,
-		extAuthz:   config.ExternalAuthz.Enabled,
+		caches:   caches,
+		extAuthz: config.ExternalAuthz.Enabled,
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName)
@@ -115,7 +114,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	tracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		r.kubeClient,
+		kubernetesClient,
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return endpointsInformer.Lister().Endpoints(ns).Get(name)
 		},
@@ -145,7 +144,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// The startup translator uses clients instead of listeners to correctly list all
 	// resources at startup.
 	startupTranslator := generator.NewIngressTranslator(
-		r.kubeClient,
+		kubernetesClient,
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
 		},
@@ -156,8 +155,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	for _, ingress := range ingressesToSync {
 		if err := generator.UpdateInfoForIngress(
-			ctx, caches, ingress, kubernetesClient,
-			&startupTranslator, config.ExternalAuthz.Enabled); err != nil {
+			ctx, caches, ingress, &startupTranslator, config.ExternalAuthz.Enabled); err != nil {
 			logger.Fatalw("Failed prewarm ingress", zap.Error(err))
 		}
 	}
