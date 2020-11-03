@@ -18,7 +18,7 @@ test-unit-coverage: ## Runs unit tests and generates a coverage report
 	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
 
 test-integration: local-setup ## Runs integration tests
-	go test -mod vendor -race test/*.go
+	./test/e2e-kind.sh
 
 .PHONY: fmt
 fmt: ## Runs code formatting
