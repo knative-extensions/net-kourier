@@ -42,12 +42,12 @@ const (
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
 
-// ServiceDomains returns the external and internal service's respective domain.
+// ServiceHostnames returns the external and internal service's respective hostname.
 //
 // Example: kourier.kourier-system.svc.cluster.local.
-func ServiceDomains() (string, string) {
-	suffix := "." + GatewayNamespace() + ".svc." + network.GetClusterDomainName()
-	return ExternalServiceName + suffix, InternalServiceName + suffix
+func ServiceHostnames() (string, string) {
+	return network.GetServiceHostname(ExternalServiceName, GatewayNamespace()),
+		network.GetServiceHostname(InternalServiceName, GatewayNamespace())
 }
 
 func GatewayNamespace() string {

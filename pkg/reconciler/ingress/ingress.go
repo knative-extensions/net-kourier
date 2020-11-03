@@ -58,7 +58,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 			return fmt.Errorf("failed to probe Ingress %s/%s: %w", ing.GetNamespace(), ing.GetName(), err)
 		}
 		if ready {
-			external, internal := config.ServiceDomains()
+			external, internal := config.ServiceHostnames()
 			ing.Status.MarkLoadBalancerReady(
 				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: external}},
 				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: internal}},
