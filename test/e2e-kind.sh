@@ -19,6 +19,7 @@
 set -euo pipefail
 
 export KO_DOCKER_REPO=kind.local
+export KIND_CLUSTER_NAME="kourier-integration"
 $(dirname $0)/upload-test-images.sh
 
 ips=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
