@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
 )
@@ -45,7 +44,7 @@ type gatewayPodTargetLister struct {
 
 func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
 
-	eps, err := l.endpointsLister.Endpoints(knative.GetGatewayNamespace()).Get(config.InternalServiceName)
+	eps, err := l.endpointsLister.Endpoints(config.GatewayNamespace()).Get(config.InternalServiceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get internal service: %w", err)
 	}
@@ -72,7 +71,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 		domains := rule.Hosts
 		scheme := "http"
 
-		if knative.RuleIsExternal(rule) {
+		if rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
 			target = status.ProbeTarget{
 				PodIPs: ips,
 			}

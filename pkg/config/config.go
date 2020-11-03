@@ -16,6 +16,13 @@ limitations under the License.
 
 package config
 
+import (
+	"os"
+
+	"knative.dev/pkg/network"
+	"knative.dev/pkg/system"
+)
+
 const (
 	ControllerName = "kourier"
 
@@ -34,3 +41,19 @@ const (
 
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
+
+// ServiceDomains returns the external and internal service's respective domain.
+//
+// Example: kourier.kourier-system.svc.cluster.local.
+func ServiceDomains() (string, string) {
+	suffix := "." + GatewayNamespace() + ".svc." + network.GetClusterDomainName()
+	return ExternalServiceName + suffix, InternalServiceName + suffix
+}
+
+func GatewayNamespace() string {
+	namespace := os.Getenv(GatewayNamespaceEnv)
+	if namespace == "" {
+		return system.Namespace()
+	}
+	return namespace
+}
