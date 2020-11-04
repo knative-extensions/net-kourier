@@ -211,7 +211,7 @@ func TestValidateIngress(t *testing.T) {
 	assert.Error(t, err, ErrDomainConflict.Error())
 }
 
-func getVHostsNames(routeConfigs []v2.RouteConfiguration) []string {
+func getVHostsNames(routeConfigs []*v2.RouteConfiguration) []string {
 	var res []string
 
 	for _, routeConfig := range routeConfigs {
