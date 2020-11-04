@@ -117,7 +117,7 @@ func TestTrafficSplits(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
+		mockedSecretGetter, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
 	ingressTranslation, err := ingressTranslator.translateIngress(ctx, &ingress, false)
 	if err != nil {
@@ -197,7 +197,7 @@ func TestIngressVisibility(t *testing.T) {
 			}
 
 			ingressTranslator := NewIngressTranslator(
-				kubeClient, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
+				mockedSecretGetter, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
 			translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 			if err != nil {
@@ -245,13 +245,22 @@ func TestIngressWithTLS(t *testing.T) {
 	}
 
 	// Create secret with TLS data
-	err := createSecret(ctx, kubeClient, tlsSecretNamespace, tlsSecretName, tlsCert, tlsKey)
-	if err != nil {
-		t.Error(err)
+	tlsSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: tlsSecretName,
+		},
+		Data: map[string][]byte{
+			certFieldInSecret: tlsCert,
+			keyFieldInSecret:  tlsKey,
+		},
 	}
-
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
+		func(ns, name string) (*corev1.Secret, error) {
+			return tlsSecret, nil
+		},
+		mockedEndpointsGetter,
+		mockedServiceGetter,
+		&pkgtest.FakeTracker{})
 
 	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
 	if err != nil {
@@ -285,11 +294,20 @@ func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
 	}
 
 	ingressTranslator := NewIngressTranslator(
-		kubeClient, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
+		func(ns, name string) (*corev1.Secret, error) {
+			return nil, fmt.Errorf("secrets %q not found", name)
+		},
+		mockedEndpointsGetter,
+		mockedServiceGetter,
+		&pkgtest.FakeTracker{})
 
 	_, err := ingressTranslator.translateIngress(ctx, ingress, false)
 
-	assert.Error(t, err, fmt.Sprintf("failed to get sniMatch: secrets \"%s\" not found", tlsSecretName))
+	assert.Error(t, err, fmt.Sprintf("failed to fetch secret: secrets %q not found", tlsSecretName))
+}
+
+var mockedSecretGetter = func(ns, name string) (*corev1.Secret, error) {
+	return &corev1.Secret{}, nil
 }
 
 var mockedEndpointsGetter = func(ns, name string) (*corev1.Endpoints, error) {
@@ -375,21 +393,6 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 		Status: v1alpha1.IngressStatus{},
 	}
 
-}
-
-func createSecret(ctx context.Context, kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert []byte, key []byte) error {
-	tlsSecret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: secretName,
-		},
-		Data: map[string][]byte{
-			certFieldInSecret: cert,
-			keyFieldInSecret:  key,
-		},
-	}
-
-	_, err := kubeClient.CoreV1().Secrets(secretNamespace).Create(ctx, &tlsSecret, metav1.CreateOptions{})
-	return err
 }
 
 func createServicesWithNames(ctx context.Context, kubeclient kubernetes.Interface, names []string, namespace string) error {
