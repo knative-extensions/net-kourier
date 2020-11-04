@@ -30,11 +30,11 @@ import (
 
 type SNIMatch struct {
 	hosts            []string
-	certificateChain string
-	privateKey       string
+	certificateChain []byte
+	privateKey       []byte
 }
 
-func NewSNIMatch(hosts []string, certificateChain string, privateKey string) SNIMatch {
+func NewSNIMatch(hosts []string, certificateChain []byte, privateKey []byte) SNIMatch {
 	return SNIMatch{
 		hosts:            hosts,
 		certificateChain: certificateChain,
@@ -63,8 +63,8 @@ func NewHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint
 
 func NewHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 	port uint32,
-	certificateChain string,
-	privateKey string) (*v2.Listener, error) {
+	certificateChain []byte,
+	privateKey []byte) (*v2.Listener, error) {
 
 	filters, err := createFilters(manager)
 	if err != nil {
@@ -184,16 +184,16 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 	return res, nil
 }
 
-func createTLSContext(certificate string, privateKey string) *auth.DownstreamTlsContext {
+func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTlsContext {
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			TlsCertificates: []*auth.TlsCertificate{
 				{
 					CertificateChain: &core.DataSource{
-						Specifier: &core.DataSource_InlineBytes{InlineBytes: []byte(certificate)},
+						Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
 					},
 					PrivateKey: &core.DataSource{
-						Specifier: &core.DataSource_InlineBytes{InlineBytes: []byte(privateKey)},
+						Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
 					},
 				},
 			},

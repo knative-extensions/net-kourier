@@ -147,24 +147,19 @@ func useHTTPSListenerWithOneCert() bool {
 		os.Getenv(envCertsSecretName) != ""
 }
 
-func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamespace string, secretName string) (certificateChain string, privateKey string, err error) {
+func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamespace string, secretName string) (certificateChain []byte, privateKey []byte, err error) {
 	secret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
-
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
 
-	certificateChain = string(secret.Data[certFieldInSecret])
-	privateKey = string(secret.Data[keyFieldInSecret])
-
-	return certificateChain, privateKey, nil
+	return secret.Data[certFieldInSecret], secret.Data[keyFieldInSecret], nil
 }
 
 func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv2.HttpConnectionManager, kubeClient kubeclient.Interface) (*v2.Listener, error) {
 	certificateChain, privateKey, err := sslCreds(
 		ctx, kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
 	)
-
 	if err != nil {
 		return nil, err
 	}

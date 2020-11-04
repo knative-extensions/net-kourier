@@ -50,7 +50,10 @@ func TestNewHTTPListener(t *testing.T) {
 func TestNewHTTPSListener(t *testing.T) {
 	manager := NewHTTPConnectionManager([]*route.VirtualHost{})
 
-	l, err := NewHTTPSListener(&manager, 8081, "some_certificate_chain", "some_private_key")
+	certChain := []byte("some_certificate_chain")
+	privateKey := []byte("some_private_key")
+
+	l, err := NewHTTPSListener(&manager, 8081, certChain, privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,23 +63,23 @@ func TestNewHTTPSListener(t *testing.T) {
 	assert.Equal(t, uint32(8081), l.Address.GetSocketAddress().GetPortValue())
 
 	// Check that TLS is configured
-	certChain, privateKey, err := getTLSCreds(l.FilterChains[0])
+	gotCertChain, gotPrivateKey, err := getTLSCreds(l.FilterChains[0])
 	assert.NilError(t, err)
-	assert.Equal(t, "some_certificate_chain", certChain)
-	assert.Equal(t, "some_private_key", privateKey)
+	assert.DeepEqual(t, certChain, gotCertChain)
+	assert.DeepEqual(t, privateKey, gotPrivateKey)
 }
 
 func TestNewHTTPSListenerWithSNI(t *testing.T) {
 	sniMatches := []*SNIMatch{
 		{
 			hosts:            []string{"some_host.com"},
-			certificateChain: "cert1",
-			privateKey:       "key1",
+			certificateChain: []byte("cert1"),
+			privateKey:       []byte("key1"),
 		},
 		{
 			hosts:            []string{"another_host.com"},
-			certificateChain: "cert2",
-			privateKey:       "key2",
+			certificateChain: []byte("cert2"),
+			privateKey:       []byte("key2"),
 		},
 	}
 
@@ -116,8 +119,8 @@ func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v2.Li
 
 	certChain, privateKey, err := getTLSCreds(filterChainFirstSNIMatch)
 	assert.NilError(t, err)
-	assert.Equal(t, match.certificateChain, certChain)
-	assert.Equal(t, match.privateKey, privateKey)
+	assert.DeepEqual(t, match.certificateChain, certChain)
+	assert.DeepEqual(t, match.privateKey, privateKey)
 
 	vHostsDomains, err := getVHostDomains(filterChainFirstSNIMatch)
 	assert.NilError(t, err)
@@ -137,22 +140,22 @@ func getFilterChainByServerName(listener *envoy_api_v2.Listener, serverNames []s
 }
 
 // Note: Returns an error when there are multiple certificates
-func getTLSCreds(filterChain *envoy_api_v2_listener.FilterChain) (certChain string, privateKey string, err error) {
+func getTLSCreds(filterChain *envoy_api_v2_listener.FilterChain) (certChain []byte, privateKey []byte, err error) {
 	downstreamTLSContext := &auth.DownstreamTlsContext{}
 	err = ptypes.UnmarshalAny(
 		filterChain.GetTransportSocket().GetTypedConfig(), downstreamTLSContext,
 	)
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
 
 	if len(downstreamTLSContext.CommonTlsContext.TlsCertificates) > 1 {
-		return "", "", fmt.Errorf("more than one certificate configured")
+		return nil, nil, fmt.Errorf("more than one certificate configured")
 	}
 
 	certs := downstreamTLSContext.CommonTlsContext.TlsCertificates[0]
-	certChain = string(certs.CertificateChain.GetInlineBytes())
-	privateKey = string(certs.PrivateKey.GetInlineBytes())
+	certChain = certs.CertificateChain.GetInlineBytes()
+	privateKey = certs.PrivateKey.GetInlineBytes()
 
 	return certChain, privateKey, nil
 }
