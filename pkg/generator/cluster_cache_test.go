@@ -22,7 +22,6 @@ import (
 	"time"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"go.uber.org/zap"
 	"gotest.tools/assert"
 )
 
@@ -35,9 +34,7 @@ var testCluster2 = envoy_api_v2.Cluster{
 }
 
 func TestSetCluster(t *testing.T) {
-	logger := zap.S()
-
-	cache := newClustersCache(logger)
+	cache := newClustersCache()
 	cache.set(&testCluster1, "some_ingress_name", "some_ingress_namespace")
 
 	list := cache.list()
@@ -47,9 +44,7 @@ func TestSetCluster(t *testing.T) {
 }
 
 func TestSetSeveralClusters(t *testing.T) {
-	logger := zap.S()
-
-	cache := newClustersCache(logger)
+	cache := newClustersCache()
 	cache.set(&testCluster1, "some_ingress_name", "some_ingress_namespace")
 	cache.set(&testCluster2, "some_ingress_name", "some_ingress_namespace")
 
@@ -69,10 +64,8 @@ func TestSetSeveralClusters(t *testing.T) {
 }
 
 func TestClustersExpire(t *testing.T) {
-	logger := zap.S()
-
 	cleanupInterval := time.Second
-	cache := newClustersCacheWithExpAndCleanupIntervals(time.Second, cleanupInterval, logger)
+	cache := newClustersCacheWithExpAndCleanupIntervals(time.Second, cleanupInterval)
 	cache.setExpiration(testCluster1.Name, "some_ingress_name", "some_ingress_namespace")
 	time.Sleep(cleanupInterval + time.Second)
 
@@ -82,9 +75,7 @@ func TestClustersExpire(t *testing.T) {
 }
 
 func TestListWhenThereAreNoClusters(t *testing.T) {
-	logger := zap.S()
-
-	cache := newClustersCache(logger)
+	cache := newClustersCache()
 
 	list := cache.list()
 
