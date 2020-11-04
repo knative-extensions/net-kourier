@@ -229,8 +229,8 @@ func TestIngressWithTLS(t *testing.T) {
 	tlsSecretName := "tls-secret"
 	tlsSecretNamespace := "default"
 	tlsHosts := []string{"hello-world.example.com"}
-	tlsCert := "some-cert"
-	tlsKey := "tls-key"
+	tlsCert := []byte("some-cert")
+	tlsKey := []byte("tls-key")
 	svcNamespace := "default"
 	ctx := context.Background()
 
@@ -377,14 +377,14 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 
 }
 
-func createSecret(ctx context.Context, kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert string, key string) error {
+func createSecret(ctx context.Context, kubeClient kubernetes.Interface, secretNamespace string, secretName string, cert []byte, key []byte) error {
 	tlsSecret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretName,
 		},
 		Data: map[string][]byte{
-			certFieldInSecret: []byte(cert),
-			keyFieldInSecret:  []byte(key),
+			certFieldInSecret: cert,
+			keyFieldInSecret:  key,
 		},
 	}
 
