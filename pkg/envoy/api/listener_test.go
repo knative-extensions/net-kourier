@@ -36,7 +36,7 @@ import (
 func TestNewHTTPListener(t *testing.T) {
 	manager := NewHTTPConnectionManager([]*route.VirtualHost{})
 
-	l, err := NewHTTPListener(&manager, 8080)
+	l, err := NewHTTPListener(manager, 8080)
 	if err != nil {
 		t.Error(err)
 	}
@@ -53,7 +53,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
 
-	l, err := NewHTTPSListener(&manager, 8081, certChain, privateKey)
+	l, err := NewHTTPSListener(manager, 8081, certChain, privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -92,7 +92,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 
 	manager := NewHTTPConnectionManager([]*route.VirtualHost{vHost1, vHost2})
 
-	listener, err := NewHTTPSListenerWithSNI(&manager, 8443, sniMatches)
+	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches)
 	if err != nil {
 		t.Error(err)
 	}

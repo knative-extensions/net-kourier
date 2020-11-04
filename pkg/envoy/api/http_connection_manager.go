@@ -29,7 +29,7 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 )
 
-func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
+func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) *httpconnectionmanagerv2.HttpConnectionManager {
 
 	var filters []*httpconnectionmanagerv2.HttpFilter
 
@@ -43,7 +43,7 @@ func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 	}
 	filters = append(filters, &routerFilter)
 
-	return httpconnectionmanagerv2.HttpConnectionManager{
+	return &httpconnectionmanagerv2.HttpConnectionManager{
 		CodecType:  httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix: "ingress_http",
 		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_RouteConfig{
@@ -57,8 +57,8 @@ func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionm
 	}
 }
 
-func NewRDSHTTPConnectionManager(routeConfigName string) httpconnectionmanagerv2.HttpConnectionManager_Rds {
-	return httpconnectionmanagerv2.HttpConnectionManager_Rds{
+func NewRDSHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.HttpConnectionManager_Rds {
+	return &httpconnectionmanagerv2.HttpConnectionManager_Rds{
 		Rds: &httpconnectionmanagerv2.Rds{
 			ConfigSource: &envoy_api_v2_core.ConfigSource{
 				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
@@ -94,7 +94,7 @@ func accessLogs() []*envoy_accesslog_v2.AccessLog {
 // only the virtual hosts in the route config. It filters the virtual hosts
 // keeping only the ones whose domains contain all the domains received in the
 // params.
-func filterByDomains(connManager *httpconnectionmanagerv2.HttpConnectionManager, domains []string) httpconnectionmanagerv2.HttpConnectionManager {
+func filterByDomains(connManager *httpconnectionmanagerv2.HttpConnectionManager, domains []string) *httpconnectionmanagerv2.HttpConnectionManager {
 	currentVirtualHosts := connManager.GetRouteSpecifier().(*httpconnectionmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig.GetVirtualHosts()
 
 	res := NewHTTPConnectionManager(currentVirtualHosts)

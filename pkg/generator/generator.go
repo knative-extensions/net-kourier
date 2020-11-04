@@ -92,23 +92,23 @@ func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*rout
 	// Now let's forget about the cache, and override the internal manager to point to the RDS and look for the proper
 	// names.
 	internalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager(internalRouteConfigName)
-	internalManager.RouteSpecifier = &internalRDSHTTPConnectionManager
+	internalManager.RouteSpecifier = internalRDSHTTPConnectionManager
 
 	// Set the discovery to ADS
 	externalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager(externalRouteConfigName)
-	externalManager.RouteSpecifier = &externalRDSHTTPConnectionManager
+	externalManager.RouteSpecifier = externalRDSHTTPConnectionManager
 
 	// CleanUp virtual hosts.
 	externalRouteConfig.VirtualHosts = []*route.VirtualHost{}
 	internalRouteConfig.VirtualHosts = []*route.VirtualHost{}
 
-	externalHTTPEnvoyListener, err := newExternalHTTPEnvoyListener(&externalManager)
+	externalHTTPEnvoyListener, err := newExternalHTTPEnvoyListener(externalManager)
 	if err != nil {
 		return nil, err
 	}
 	listeners = append(listeners, externalHTTPEnvoyListener)
 
-	internalEnvoyListener, err := newInternalEnvoyListener(&internalManager)
+	internalEnvoyListener, err := newInternalEnvoyListener(internalManager)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*rout
 		// TODO: Can we make this work with "HttpConnectionManager_Rds"?
 		externalRouteConfig.VirtualHosts = originalExternalVHosts
 		externalHTTPSEnvoyListener, err := newExternalHTTPSEnvoyListener(
-			&originalExternalManager, sniMatches,
+			originalExternalManager, sniMatches,
 		)
 		if err != nil {
 			return nil, err
@@ -129,7 +129,7 @@ func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*rout
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 	} else if useHTTPSListenerWithOneCert() {
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
-			ctx, &externalManager, kubeclient,
+			ctx, externalManager, kubeclient,
 		)
 		if err != nil {
 			return nil, err
