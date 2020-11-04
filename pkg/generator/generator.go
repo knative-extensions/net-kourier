@@ -44,7 +44,7 @@ const (
 
 // For now, when updating the info for an ingress we delete it, and then
 // regenerate it. We can optimize this later.
-func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, kubeclient kubeclient.Interface, translator *IngressTranslator, extAuthzEnabled bool) error {
+func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, translator *IngressTranslator, extAuthzEnabled bool) error {
 	// Adds a header with the ingress Hash and a random value header to force the config reload.
 	_, err := ingress.InsertProbe(ing)
 	if err != nil {
@@ -60,7 +60,7 @@ func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ing
 		return nil
 	}
 
-	return caches.UpdateIngress(ctx, ingressTranslation, kubeclient)
+	return caches.UpdateIngress(ctx, ingressTranslation)
 }
 
 func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*route.VirtualHost,
