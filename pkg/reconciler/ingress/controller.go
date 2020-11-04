@@ -38,6 +38,7 @@ import (
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
+	secretinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret"
 	serviceinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/service"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
@@ -67,6 +68,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	endpointsInformer := endpointsinformer.Get(ctx)
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
+	secretInformer := secretinformer.Get(ctx)
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
 	caches, err := generator.NewCaches(ctx, kubernetesClient, config.ExternalAuthz.Enabled)
@@ -114,7 +116,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	tracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(
-		kubernetesClient,
+		func(ns, name string) (*corev1.Secret, error) {
+			return secretInformer.Lister().Secrets(ns).Get(name)
+		},
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return endpointsInformer.Lister().Endpoints(ns).Get(name)
 		},
@@ -144,7 +148,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// The startup translator uses clients instead of listeners to correctly list all
 	// resources at startup.
 	startupTranslator := generator.NewIngressTranslator(
-		kubernetesClient,
+		func(ns, name string) (*corev1.Secret, error) {
+			return kubernetesClient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+		},
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
 		},
@@ -190,6 +196,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		controller.EnsureTypeMeta(
 			tracker.OnChanged,
 			corev1.SchemeGroupVersion.WithKind("Endpoints"),
+		),
+	))
+
+	secretInformer.Informer().AddEventHandler(controller.HandleAll(
+		controller.EnsureTypeMeta(
+			tracker.OnChanged,
+			corev1.SchemeGroupVersion.WithKind("Secrets"),
 		),
 	))
 

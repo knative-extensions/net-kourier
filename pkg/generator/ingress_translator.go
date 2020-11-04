@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	kubeclient "k8s.io/client-go/kubernetes"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/kmeta"
@@ -44,19 +43,19 @@ type translatedIngress struct {
 }
 
 type IngressTranslator struct {
-	kubeclient      kubeclient.Interface
+	secretGetter    func(ns, name string) (*corev1.Secret, error)
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error)
 	serviceGetter   func(ns, name string) (*corev1.Service, error)
 	tracker         tracker.Interface
 }
 
 func NewIngressTranslator(
-	kubeclient kubeclient.Interface,
+	secretGetter func(ns, name string) (*corev1.Secret, error),
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
 	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
-		kubeclient:      kubeclient,
+		secretGetter:    secretGetter,
 		endpointsGetter: endpointsGetter,
 		serviceGetter:   serviceGetter,
 		tracker:         tracker,
@@ -68,18 +67,17 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 	sniMatches := make([]*envoy.SNIMatch, 0, len(ingress.Spec.TLS))
 	for _, ingressTLS := range ingress.Spec.TLS {
-		sniMatch, err := sniMatchFromIngressTLS(ctx, ingressTLS, translator.kubeclient)
-		if err != nil {
-			// We need to propagate this error to the reconciler so the current
-			// event can be retried. This error might be caused because the
-			// secrets referenced in the TLS section of the spec do not exist
-			// yet. That's expected when auto TLS is configured.
-			// See the "TestPerKsvcCert_localCA" test in Knative Serving. It's a
-			// test that fails if this error is not propagated:
-			// https://github.com/knative/serving/blob/571e4db2392839082c559870ea8d4b72ef61e59d/test/e2e/autotls/auto_tls_test.go#L68
-			return nil, fmt.Errorf("failed to get sniMatch: %w", err)
+		if err := trackSecret(translator.tracker, ingressTLS.SecretNamespace, ingressTLS.SecretName, ingress); err != nil {
+			return nil, err
 		}
-		sniMatches = append(sniMatches, sniMatch)
+
+		secret, err := translator.secretGetter(ingressTLS.SecretNamespace, ingressTLS.SecretName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch secret: %w", err)
+		}
+
+		sniMatch := envoy.NewSNIMatch(ingressTLS.Hosts, secret.Data[certFieldInSecret], secret.Data[keyFieldInSecret])
+		sniMatches = append(sniMatches, &sniMatch)
 	}
 
 	internalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
@@ -183,6 +181,15 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	}, nil
 }
 
+func trackSecret(t tracker.Interface, ns, name string, ingress *v1alpha1.Ingress) error {
+	return t.TrackReference(tracker.Reference{
+		Kind:       "Secret",
+		APIVersion: "v1",
+		Namespace:  ns,
+		Name:       name,
+	}, ingress)
+}
+
 func trackService(t tracker.Interface, svcName string, ingress *v1alpha1.Ingress) error {
 	if err := t.TrackReference(tracker.Reference{
 		Kind:       "Service",
@@ -239,19 +246,6 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 		matchHeaders = append(matchHeaders, matchHeader)
 	}
 	return matchHeaders
-}
-
-func sniMatchFromIngressTLS(ctx context.Context, ingressTLS v1alpha1.IngressTLS, kubeClient kubeclient.Interface) (*envoy.SNIMatch, error) {
-	certChain, privateKey, err := sslCreds(
-		ctx, kubeClient, ingressTLS.SecretNamespace, ingressTLS.SecretName,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	sniMatch := envoy.NewSNIMatch(ingressTLS.Hosts, certChain, privateKey)
-	return &sniMatch, nil
 }
 
 // domainsForRule returns all domains for the given rule.
