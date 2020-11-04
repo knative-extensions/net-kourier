@@ -30,7 +30,6 @@ import (
 )
 
 func NewHTTPConnectionManager(virtualHosts []*route.VirtualHost) httpconnectionmanagerv2.HttpConnectionManager {
-
 	var filters []*httpconnectionmanagerv2.HttpFilter
 
 	if config.ExternalAuthz.Enabled {
@@ -80,14 +79,12 @@ func accessLogs() []*envoy_accesslog_v2.AccessLog {
 		Path: "/dev/stdout",
 	})
 
-	return []*envoy_accesslog_v2.AccessLog{
-		{
-			Name: "envoy.file_access_log",
-			ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
-				TypedConfig: accessLog,
-			},
+	return []*envoy_accesslog_v2.AccessLog{{
+		Name: "envoy.file_access_log",
+		ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
+			TypedConfig: accessLog,
 		},
-	}
+	}}
 }
 
 // Returns a copy of the HttpConnectionManager received in the params changing

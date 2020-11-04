@@ -40,18 +40,20 @@ func NewRoute(name string,
 			},
 			Headers: headersMatch,
 		},
-		Action: &route.Route_Route{Route: &route.RouteAction{
-			ClusterSpecifier: &route.RouteAction_WeightedClusters{
-				WeightedClusters: &route.WeightedCluster{
-					Clusters: wrs,
+		Action: &route.Route_Route{
+			Route: &route.RouteAction{
+				ClusterSpecifier: &route.RouteAction_WeightedClusters{
+					WeightedClusters: &route.WeightedCluster{
+						Clusters: wrs,
+					},
 				},
+				Timeout: ptypes.DurationProto(routeTimeout),
+				UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
+					UpgradeType: "websocket",
+					Enabled:     &wrappers.BoolValue{Value: true},
+				}},
 			},
-			Timeout: ptypes.DurationProto(routeTimeout),
-			UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
-				UpgradeType: "websocket",
-				Enabled:     &wrappers.BoolValue{Value: true},
-			}},
-		}},
+		},
 		RequestHeadersToAdd: headersToAdd(headers),
 	}
 }

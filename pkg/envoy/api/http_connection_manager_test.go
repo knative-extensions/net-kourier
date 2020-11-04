@@ -27,17 +27,15 @@ import (
 	"gotest.tools/assert"
 )
 
-var testVirtualHosts = []*route.VirtualHost{
-	{
-		Name:    "helloworld-go",
-		Domains: []string{"helloworld-go.default.127.0.0.1.nip.io"},
-		Routes: []*route.Route{
-			{
-				Name: "helloworld-route",
-			},
+var testVirtualHosts = []*route.VirtualHost{{
+	Name:    "helloworld-go",
+	Domains: []string{"helloworld-go.default.127.0.0.1.nip.io"},
+	Routes: []*route.Route{
+		{
+			Name: "helloworld-route",
 		},
 	},
-}
+}}
 
 func TestCreatesManagerWithVirtualHosts(t *testing.T) {
 	connManager := NewHTTPConnectionManager(testVirtualHosts)

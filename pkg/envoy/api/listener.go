@@ -48,17 +48,13 @@ func NewHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint
 		return nil, err
 	}
 
-	envoyListener := &v2.Listener{
+	return &v2.Listener{
 		Name:    fmt.Sprintf("listener_%d", port),
 		Address: createAddress(port),
-		FilterChains: []*listener.FilterChain{
-			{
-				Filters: filters,
-			},
-		},
-	}
-
-	return envoyListener, nil
+		FilterChains: []*listener.FilterChain{{
+			Filters: filters,
+		}},
+	}, nil
 }
 
 func NewHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
@@ -77,21 +73,17 @@ func NewHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 		return nil, err
 	}
 
-	envoyListener := v2.Listener{
+	return &v2.Listener{
 		Name:    fmt.Sprintf("listener_%d", port),
 		Address: createAddress(port),
-		FilterChains: []*listener.FilterChain{
-			{
-				Filters: filters,
-				TransportSocket: &core.TransportSocket{
-					Name:       "tls",
-					ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
-				},
+		FilterChains: []*listener.FilterChain{{
+			Filters: filters,
+			TransportSocket: &core.TransportSocket{
+				Name:       "tls",
+				ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
 			},
-		},
-	}
-
-	return &envoyListener, nil
+		}},
+	}, nil
 }
 
 // Configures a Listener with SNI.
@@ -102,21 +94,17 @@ func NewHTTPSListenerWithSNI(manager *httpconnmanagerv2.HttpConnectionManager, p
 		return nil, err
 	}
 
-	envoyListener := v2.Listener{
+	return &v2.Listener{
 		Name:         fmt.Sprintf("listener_%d", port),
 		Address:      createAddress(port),
 		FilterChains: filterChains,
-		ListenerFilters: []*listener.ListenerFilter{
-			{
-				// TLS Inspector listener filter must be configured in order to
-				// detect requested SNI.
-				// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
-				Name: wellknown.TlsInspector,
-			},
-		},
-	}
-
-	return &envoyListener, nil
+		ListenerFilters: []*listener.ListenerFilter{{
+			// TLS Inspector listener filter must be configured in order to
+			// detect requested SNI.
+			// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
+			Name: wellknown.TlsInspector,
+		}},
+	}, nil
 }
 
 func createAddress(port uint32) *core.Address {
@@ -139,14 +127,10 @@ func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listene
 		return []*listener.Filter{}, err
 	}
 
-	filters := []*listener.Filter{
-		{
-			Name:       wellknown.HTTPConnectionManager,
-			ConfigType: &listener.Filter_TypedConfig{TypedConfig: managerAny},
-		},
-	}
-
-	return filters, nil
+	return []*listener.Filter{{
+		Name:       wellknown.HTTPConnectionManager,
+		ConfigType: &listener.Filter_TypedConfig{TypedConfig: managerAny},
+	}}, nil
 }
 
 func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*SNIMatch) ([]*listener.FilterChain, error) {
@@ -187,16 +171,14 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTlsContext {
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
-			TlsCertificates: []*auth.TlsCertificate{
-				{
-					CertificateChain: &core.DataSource{
-						Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
-					},
-					PrivateKey: &core.DataSource{
-						Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
-					},
+			TlsCertificates: []*auth.TlsCertificate{{
+				CertificateChain: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
 				},
-			},
+				PrivateKey: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
+				},
+			}},
 		},
 	}
 }

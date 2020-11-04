@@ -57,48 +57,41 @@ func TestTrafficSplits(t *testing.T) {
 			Name: "hello-world",
 		},
 		Spec: v1alpha1.IngressSpec{
-			Rules: []v1alpha1.IngressRule{
-				{
-					HTTP: &v1alpha1.HTTPIngressRuleValue{
-						Paths: []v1alpha1.HTTPIngressPath{
-							{
-								Splits: []v1alpha1.IngressBackendSplit{
-									{
-										IngressBackend: v1alpha1.IngressBackend{
-											ServiceNamespace: "default",
-											ServiceName:      "hello-world-rev1",
-											ServicePort: intstr.IntOrString{
-												Type:   intstr.Int,
-												IntVal: 80,
-											},
-										},
-										Percent: 60,
-										AppendHeaders: map[string]string{
-											"Knative-Serving-Namespace": "default",
-											"Knative-Serving-Revision":  "hello-world-rev1",
-										},
-									},
-									{
-										IngressBackend: v1alpha1.IngressBackend{
-											ServiceNamespace: "default",
-											ServiceName:      "hello-world-rev2",
-											ServicePort: intstr.IntOrString{
-												Type:   intstr.Int,
-												IntVal: 80,
-											},
-										},
-										Percent: 40,
-										AppendHeaders: map[string]string{
-											"Knative-Serving-Namespace": "default",
-											"Knative-Serving-Revision":  "hello-world-rev2",
-										},
-									},
+			Rules: []v1alpha1.IngressRule{{
+				HTTP: &v1alpha1.HTTPIngressRuleValue{
+					Paths: []v1alpha1.HTTPIngressPath{{
+						Splits: []v1alpha1.IngressBackendSplit{{
+							IngressBackend: v1alpha1.IngressBackend{
+								ServiceNamespace: "default",
+								ServiceName:      "hello-world-rev1",
+								ServicePort: intstr.IntOrString{
+									Type:   intstr.Int,
+									IntVal: 80,
 								},
 							},
-						},
-					},
+							Percent: 60,
+							AppendHeaders: map[string]string{
+								"Knative-Serving-Namespace": "default",
+								"Knative-Serving-Revision":  "hello-world-rev1",
+							},
+						}, {
+							IngressBackend: v1alpha1.IngressBackend{
+								ServiceNamespace: "default",
+								ServiceName:      "hello-world-rev2",
+								ServicePort: intstr.IntOrString{
+									Type:   intstr.Int,
+									IntVal: 80,
+								},
+							},
+							Percent: 40,
+							AppendHeaders: map[string]string{
+								"Knative-Serving-Namespace": "default",
+								"Knative-Serving-Revision":  "hello-world-rev2",
+							},
+						}},
+					}},
 				},
-			},
+			}},
 		},
 		Status: v1alpha1.IngressStatus{},
 	}
@@ -362,33 +355,27 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 				SecretName:      secretName,
 				SecretNamespace: secretNamespace,
 			}},
-			Rules: []v1alpha1.IngressRule{
-				{
-					Visibility: v1alpha1.IngressVisibilityExternalIP,
-					HTTP: &v1alpha1.HTTPIngressRuleValue{
-						Paths: []v1alpha1.HTTPIngressPath{
-							{
-								Splits: []v1alpha1.IngressBackendSplit{
-									{
-										IngressBackend: v1alpha1.IngressBackend{
-											ServiceNamespace: svcNamespace,
-											ServiceName:      "hello-world",
-											ServicePort: intstr.IntOrString{
-												Type:   intstr.Int,
-												IntVal: 80,
-											},
-										},
-										AppendHeaders: map[string]string{
-											"Knative-Serving-Namespace": svcNamespace,
-											"Knative-Serving-Revision":  "hello-world",
-										},
-									},
+			Rules: []v1alpha1.IngressRule{{
+				Visibility: v1alpha1.IngressVisibilityExternalIP,
+				HTTP: &v1alpha1.HTTPIngressRuleValue{
+					Paths: []v1alpha1.HTTPIngressPath{{
+						Splits: []v1alpha1.IngressBackendSplit{{
+							IngressBackend: v1alpha1.IngressBackend{
+								ServiceNamespace: svcNamespace,
+								ServiceName:      "hello-world",
+								ServicePort: intstr.IntOrString{
+									Type:   intstr.Int,
+									IntVal: 80,
 								},
 							},
-						},
-					},
+							AppendHeaders: map[string]string{
+								"Knative-Serving-Namespace": svcNamespace,
+								"Knative-Serving-Revision":  "hello-world",
+							},
+						}},
+					}},
 				},
-			},
+			}},
 		},
 		Status: v1alpha1.IngressStatus{},
 	}
