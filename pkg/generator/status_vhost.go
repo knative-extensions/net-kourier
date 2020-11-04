@@ -20,6 +20,10 @@ import (
 	"time"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 )
@@ -27,11 +31,31 @@ import (
 // Generates an internal virtual host that signals that the Envoy instance has
 // been configured, this endpoint is used by the kubernetes readiness probe.
 func statusVHost() *route.VirtualHost {
-	return envoy.NewVirtualHost(
+	vhost := envoy.NewVirtualHost(
 		config.InternalKourierDomain,
 		[]string{config.InternalKourierDomain},
 		[]*route.Route{readyRoute()},
 	)
+
+	// Make sure that ExtAuthz configuration is ignored on this path.
+	perFilterConfig := &extAuthService.ExtAuthzPerRoute{
+		Override: &extAuthService.ExtAuthzPerRoute_Disabled{
+			Disabled: true,
+		},
+	}
+
+	b := proto.NewBuffer(nil)
+	b.Marshal(perFilterConfig)
+	filter := &any.Any{
+		TypeUrl: "type.googleapis.com/envoy.config.filter.http.ext_authz.v2.ExtAuthzPerRoute",
+		Value:   b.Bytes(),
+	}
+
+	vhost.TypedPerFilterConfig = map[string]*any.Any{
+		wellknown.HTTPExternalAuthorization: filter,
+	}
+
+	return vhost
 }
 
 func readyRoute() *route.Route {

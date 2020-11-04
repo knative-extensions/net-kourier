@@ -47,8 +47,7 @@ func NewVirtualHostWithExtAuthz(name string, contextExtensions map[string]string
 	b.SetDeterministic(true)
 	_ = b.Marshal(&perFilterConfig)
 	filter := &any.Any{
-		//
-		TypeUrl: "type.googleapis.com/" + proto.MessageName(&perFilterConfig), //nolint
+		TypeUrl: "type.googleapis.com/envoy.config.filter.http.ext_authz.v2.ExtAuthzPerRoute",
 		Value:   b.Bytes(),
 	}
 

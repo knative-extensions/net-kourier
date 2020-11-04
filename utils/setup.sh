@@ -18,7 +18,7 @@ kubectl patch configmap/config-network -n ${KNATIVE_NAMESPACE} --type merge -p '
 
 echo "Deploying Kourier"
 export KO_DOCKER_REPO=kind.local
-ko resolve -f test/config -f config | \
+ko resolve -f config | \
   sed 's/LoadBalancer/NodePort/g' | \
   kubectl apply -f -
 
