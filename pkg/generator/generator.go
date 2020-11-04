@@ -63,73 +63,53 @@ func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ing
 	return caches.UpdateIngress(ctx, ingressTranslation)
 }
 
-func listenersFromVirtualHosts(ctx context.Context, externalVirtualHosts []*route.VirtualHost,
+func listenersFromVirtualHosts(
+	ctx context.Context,
+	externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	sniMatches []*envoy.SNIMatch,
-	kubeclient kubeclient.Interface, caches *Caches) ([]*v2.Listener, error) {
+	kubeclient kubeclient.Interface,
+	caches *Caches) ([]*v2.Listener, error) {
 
-	var listeners []*v2.Listener
+	// First, we save the RouteConfigs with the proper name and all the virtualhosts etc. into the cache.
+	externalRouteConfig := envoy.NewRouteConfig(externalRouteConfigName, externalVirtualHosts)
+	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
+	caches.routeConfig = []v2.RouteConfiguration{*externalRouteConfig, *internalRouteConfig}
 
-	externalManager := envoy.NewHTTPConnectionManager(externalVirtualHosts)
-	internalManager := envoy.NewHTTPConnectionManager(clusterLocalVirtualHosts)
+	// Now we setup connection managers, that reference the routeconfigs via RDS.
+	externalManager := envoy.NewHTTPConnectionManager()
+	internalManager := envoy.NewHTTPConnectionManager()
+	internalManager.RouteSpecifier = envoy.NewRDSHTTPConnectionManager(internalRouteConfigName)
+	externalManager.RouteSpecifier = envoy.NewRDSHTTPConnectionManager(externalRouteConfigName)
 
-	internalRouteConfig := internalManager.GetRouteConfig()
-	externalRouteConfig := externalManager.GetRouteConfig()
-
-	// We need to keep these for the case of HTTPS with SNI routing
-	originalExternalManager := externalManager
-	originalExternalVHosts := externalRouteConfig.VirtualHosts
-
-	// Set proper names so those can be referred later.
-	internalRouteConfig.Name = internalRouteConfigName
-	externalRouteConfig.Name = externalRouteConfigName
-
-	// Now we save the RouteConfigs with the proper name and all the virtualhosts etc.. into the cache.
-	caches.routeConfig = []v2.RouteConfiguration{}
-	caches.routeConfig = append(caches.routeConfig, *externalRouteConfig)
-	caches.routeConfig = append(caches.routeConfig, *internalRouteConfig)
-
-	// Now let's forget about the cache, and override the internal manager to point to the RDS and look for the proper
-	// names.
-	internalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager(internalRouteConfigName)
-	internalManager.RouteSpecifier = &internalRDSHTTPConnectionManager
-
-	// Set the discovery to ADS
-	externalRDSHTTPConnectionManager := envoy.NewRDSHTTPConnectionManager(externalRouteConfigName)
-	externalManager.RouteSpecifier = &externalRDSHTTPConnectionManager
-
-	// CleanUp virtual hosts.
-	externalRouteConfig.VirtualHosts = []*route.VirtualHost{}
-	internalRouteConfig.VirtualHosts = []*route.VirtualHost{}
-
-	externalHTTPEnvoyListener, err := newExternalHTTPEnvoyListener(&externalManager)
+	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal)
 	if err != nil {
 		return nil, err
 	}
-	listeners = append(listeners, externalHTTPEnvoyListener)
-
-	internalEnvoyListener, err := newInternalEnvoyListener(&internalManager)
+	internalEnvoyListener, err := envoy.NewHTTPListener(internalManager, config.HTTPPortInternal)
 	if err != nil {
 		return nil, err
 	}
-	listeners = append(listeners, internalEnvoyListener)
+
+	listeners := []*v2.Listener{externalHTTPEnvoyListener, internalEnvoyListener}
 
 	// Configure TLS Listener. If there's at least one ingress that contains the
 	// TLS field, that takes precedence. If there is not, TLS will be configured
 	// using a single cert for all the services if the creds are given via ENV.
 	if len(sniMatches) > 0 {
 		// TODO: Can we make this work with "HttpConnectionManager_Rds"?
-		externalRouteConfig.VirtualHosts = originalExternalVHosts
-		externalHTTPSEnvoyListener, err := newExternalHTTPSEnvoyListener(
-			&originalExternalManager, sniMatches,
-		)
+		sniManager := envoy.NewHTTPConnectionManager()
+		sniManager.RouteSpecifier = &httpconnmanagerv2.HttpConnectionManager_RouteConfig{
+			RouteConfig: externalRouteConfig,
+		}
+		externalHTTPSEnvoyListener, err := newExternalHTTPSEnvoyListener(sniManager, sniMatches)
 		if err != nil {
 			return nil, err
 		}
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 	} else if useHTTPSListenerWithOneCert() {
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
-			ctx, &externalManager, kubeclient,
+			ctx, externalManager, kubeclient,
 		)
 		if err != nil {
 			return nil, err
@@ -165,14 +145,6 @@ func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnm
 	}
 
 	return envoy.NewHTTPSListener(manager, config.HTTPSPortExternal, certificateChain, privateKey)
-}
-
-func newExternalHTTPEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
-	return envoy.NewHTTPListener(manager, config.HTTPPortExternal)
-}
-
-func newInternalEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager) (*v2.Listener, error) {
-	return envoy.NewHTTPListener(manager, config.HTTPPortInternal)
 }
 
 func newExternalHTTPSEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*envoy.SNIMatch) (*v2.Listener, error) {
