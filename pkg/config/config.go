@@ -16,6 +16,13 @@ limitations under the License.
 
 package config
 
+import (
+	"os"
+
+	"knative.dev/pkg/network"
+	"knative.dev/pkg/system"
+)
+
 const (
 	ControllerName = "kourier"
 
@@ -34,3 +41,19 @@ const (
 
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
+
+// ServiceHostnames returns the external and internal service's respective hostname.
+//
+// Example: kourier.kourier-system.svc.cluster.local.
+func ServiceHostnames() (string, string) {
+	return network.GetServiceHostname(ExternalServiceName, GatewayNamespace()),
+		network.GetServiceHostname(InternalServiceName, GatewayNamespace())
+}
+
+func GatewayNamespace() string {
+	namespace := os.Getenv(GatewayNamespaceEnv)
+	if namespace == "" {
+		return system.Namespace()
+	}
+	return namespace
+}

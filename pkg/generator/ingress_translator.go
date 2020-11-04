@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kubeclient "k8s.io/client-go/kubernetes"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
-	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
@@ -155,20 +154,19 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, nil
 		}
 
-		domains := knative.Domains(rule)
 		var virtualHost *route.VirtualHost
 		if extAuthzEnabled {
 			contextExtensions := kmeta.UnionMaps(map[string]string{
 				"client":     "kourier",
 				"visibility": string(rule.Visibility),
 			}, ingress.GetLabels())
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, contextExtensions, domains, routes)
+			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, contextExtensions, domainsForRule(rule), routes)
 		} else {
-			virtualHost = envoy.NewVirtualHost(ingress.Name, domains, routes)
+			virtualHost = envoy.NewVirtualHost(ingress.Name, domainsForRule(rule), routes)
 		}
 
 		internalHosts = append(internalHosts, virtualHost)
-		if knative.RuleIsExternal(rule) {
+		if rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
 			externalHosts = append(externalHosts, virtualHost)
 		}
 	}
@@ -254,4 +252,22 @@ func sniMatchFromIngressTLS(ctx context.Context, ingressTLS v1alpha1.IngressTLS,
 
 	sniMatch := envoy.NewSNIMatch(ingressTLS.Hosts, certChain, privateKey)
 	return &sniMatch, nil
+}
+
+// domainsForRule returns all domains for the given rule.
+//
+// For example, external domains returns domains with the following formats:
+// 	- sub-route_host.namespace.example.com
+// 	- sub-route_host.namespace.example.com:*
+//
+// Somehow envoy doesn't match properly gRPC authorities with ports.
+// The fix is to include ":*" in the domains.
+// This applies both for internal and external domains.
+// More info https://github.com/envoyproxy/envoy/issues/886
+func domainsForRule(rule v1alpha1.IngressRule) []string {
+	domains := make([]string, 0, 2*len(rule.Hosts))
+	for _, host := range rule.Hosts {
+		domains = append(domains, host, host+":*")
+	}
+	return domains
 }

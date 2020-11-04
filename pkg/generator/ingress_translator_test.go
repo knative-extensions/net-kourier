@@ -446,3 +446,25 @@ func assertWeightedClusterCorrect(t *testing.T,
 	}
 	assert.DeepEqual(t, clusterHeaders, headersToAdd)
 }
+
+func TestDomainsForRule(t *testing.T) {
+	domains := domainsForRule(v1alpha1.IngressRule{
+		Hosts: []string{
+			"helloworld-go.default.svc.cluster.local",
+			"helloworld-go.default.svc",
+			"helloworld-go.default",
+		},
+	})
+
+	expected := []string{
+		"helloworld-go.default",
+		"helloworld-go.default:*",
+		"helloworld-go.default.svc",
+		"helloworld-go.default.svc:*",
+		"helloworld-go.default.svc.cluster.local",
+		"helloworld-go.default.svc.cluster.local:*",
+	}
+	sort.Strings(domains)
+	sort.Strings(expected)
+	assert.DeepEqual(t, domains, expected)
+}

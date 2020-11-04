@@ -25,7 +25,6 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
-	"knative.dev/net-kourier/pkg/knative"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	"knative.dev/networking/pkg/status"
@@ -57,7 +56,12 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 			return fmt.Errorf("failed to probe Ingress %s/%s: %w", ing.GetNamespace(), ing.GetName(), err)
 		}
 		if ready {
-			knative.MarkIngressReady(ing)
+			external, internal := config.ServiceHostnames()
+			ing.Status.MarkLoadBalancerReady(
+				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: external}},
+				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: internal}},
+			)
+			ing.Status.MarkNetworkConfigured()
 		} else {
 			ing.Status.MarkLoadBalancerNotReady()
 		}
