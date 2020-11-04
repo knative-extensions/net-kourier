@@ -29,7 +29,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/assert"
 	"k8s.io/apimachinery/pkg/types"
-	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/net-kourier/pkg/config"
 )
@@ -54,7 +53,6 @@ func TestDeleteIngressInfo(t *testing.T) {
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
-		&kubeClient,
 	)
 
 	// Add info for a different ingress
@@ -68,11 +66,10 @@ func TestDeleteIngressInfo(t *testing.T) {
 		"cluster_for_ingress_2",
 		"internal_host_for_ingress_2",
 		"external_host_for_ingress_2",
-		&kubeClient,
 	)
 
 	// Delete the first ingress
-	_ = caches.DeleteIngressInfo(ctx, firstIngressName, firstIngressNamespace, &kubeClient)
+	_ = caches.DeleteIngressInfo(ctx, firstIngressName, firstIngressNamespace)
 
 	// Check that the listeners only have the virtual hosts of the second
 	// ingress.
@@ -114,7 +111,6 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
-		&kubeClient,
 	)
 
 	snapshotBeforeDelete, err := caches.ToEnvoySnapshot()
@@ -126,7 +122,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	routesBeforeDelete := snapshotBeforeDelete.GetResources(cache.RouteType)
 	listenersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ListenerType)
 
-	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace", &kubeClient)
+	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace")
 	if err != nil {
 		t.FailNow()
 	}
@@ -165,8 +161,7 @@ func createTestDataForIngress(
 	ingressNamespace string,
 	clusterName string,
 	internalVHostName string,
-	externalVHostName string,
-	kubeClient kubeclient.Interface) {
+	externalVHostName string) {
 
 	translatedIngress := &translatedIngress{
 		name: types.NamespacedName{
@@ -179,7 +174,7 @@ func createTestDataForIngress(
 	}
 
 	_ = caches.addTranslatedIngress(translatedIngress)
-	_ = caches.setListeners(ctx, kubeClient)
+	_ = caches.setListeners(ctx)
 }
 
 func TestValidateIngress(t *testing.T) {
@@ -199,7 +194,6 @@ func TestValidateIngress(t *testing.T) {
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
-		&kubeClient,
 	)
 
 	translatedIngress := translatedIngress{
