@@ -32,7 +32,10 @@ func NewVirtualHost(name string, domains []string, routes []*route.Route) *route
 	}
 }
 
-func NewVirtualHostWithExtAuthz(name string, contextExtensions map[string]string, domains []string,
+func NewVirtualHostWithExtAuthz(
+	name string,
+	contextExtensions map[string]string,
+	domains []string,
 	routes []*route.Route) *route.VirtualHost {
 
 	perFilterConfig := extAuthService.ExtAuthzPerRoute{

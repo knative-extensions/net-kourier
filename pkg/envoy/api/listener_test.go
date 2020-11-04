@@ -70,18 +70,15 @@ func TestNewHTTPSListener(t *testing.T) {
 }
 
 func TestNewHTTPSListenerWithSNI(t *testing.T) {
-	sniMatches := []*SNIMatch{
-		{
-			hosts:            []string{"some_host.com"},
-			certificateChain: []byte("cert1"),
-			privateKey:       []byte("key1"),
-		},
-		{
-			hosts:            []string{"another_host.com"},
-			certificateChain: []byte("cert2"),
-			privateKey:       []byte("key2"),
-		},
-	}
+	sniMatches := []*SNIMatch{{
+		hosts:            []string{"some_host.com"},
+		certificateChain: []byte("cert1"),
+		privateKey:       []byte("key1"),
+	}, {
+		hosts:            []string{"another_host.com"},
+		certificateChain: []byte("cert2"),
+		privateKey:       []byte("key2"),
+	}}
 
 	vHost1 := NewVirtualHost(
 		"vHost1", []string{"some_host.com", "some_host.com:*"}, []*route.Route{},

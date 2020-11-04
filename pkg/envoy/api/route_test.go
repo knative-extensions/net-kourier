@@ -25,17 +25,14 @@ import (
 )
 
 func TestNewRouteHeaderMatch(t *testing.T) {
-
 	name := "testRoute_12345"
 	path := "/my_route"
-	headerMatch := []*envoy_api_v2_route.HeaderMatcher{
-		{
-			Name: "myHeader",
-			HeaderMatchSpecifier: &envoy_api_v2_route.HeaderMatcher_ExactMatch{
-				ExactMatch: "strict",
-			},
+	headerMatch := []*envoy_api_v2_route.HeaderMatcher{{
+		Name: "myHeader",
+		HeaderMatchSpecifier: &envoy_api_v2_route.HeaderMatcher_ExactMatch{
+			ExactMatch: "strict",
 		},
-	}
+	}}
 	AppendHeaders := map[string]string{}
 	var wrs []*envoy_api_v2_route.WeightedCluster_ClusterWeight
 
@@ -46,7 +43,6 @@ func TestNewRouteHeaderMatch(t *testing.T) {
 }
 
 func TestNewRouteStatusOK(t *testing.T) {
-
 	name := "testRoute_12345"
 	path := "/my_route"
 
