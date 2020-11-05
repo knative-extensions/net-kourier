@@ -26,7 +26,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"gotest.tools/assert"
@@ -34,9 +34,9 @@ import (
 )
 
 func TestNewHTTPListener(t *testing.T) {
-	manager := NewHTTPConnectionManager([]*route.VirtualHost{})
+	manager := NewHTTPConnectionManager()
 
-	l, err := NewHTTPListener(&manager, 8080)
+	l, err := NewHTTPListener(manager, 8080)
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,12 +48,12 @@ func TestNewHTTPListener(t *testing.T) {
 }
 
 func TestNewHTTPSListener(t *testing.T) {
-	manager := NewHTTPConnectionManager([]*route.VirtualHost{})
+	manager := NewHTTPConnectionManager()
 
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
 
-	l, err := NewHTTPSListener(&manager, 8081, certChain, privateKey)
+	l, err := NewHTTPSListener(manager, 8081, certChain, privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -87,9 +87,12 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		"vHost2", []string{"another_host.com", "another_host.com:*"}, []*route.Route{},
 	)
 
-	manager := NewHTTPConnectionManager([]*route.VirtualHost{vHost1, vHost2})
+	manager := NewHTTPConnectionManager()
+	manager.RouteSpecifier = &httpconnmanagerv2.HttpConnectionManager_RouteConfig{
+		RouteConfig: NewRouteConfig("test", []*route.VirtualHost{vHost1, vHost2}),
+	}
 
-	listener, err := NewHTTPSListenerWithSNI(&manager, 8443, sniMatches)
+	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches)
 	if err != nil {
 		t.Error(err)
 	}
@@ -159,14 +162,14 @@ func getTLSCreds(filterChain *envoy_api_v2_listener.FilterChain) (certChain []by
 
 // Note: Returns an error when there are multiple virtual hosts configured
 func getVHostDomains(filterChain *envoy_api_v2_listener.FilterChain) ([]string, error) {
-	connManager := httpconnectionmanagerv2.HttpConnectionManager{}
+	connManager := httpconnmanagerv2.HttpConnectionManager{}
 	err := ptypes.UnmarshalAny(filterChain.Filters[0].GetTypedConfig(), &connManager)
 
 	if err != nil {
 		return nil, err
 	}
 
-	routeConfig := connManager.GetRouteSpecifier().(*httpconnectionmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig
+	routeConfig := connManager.GetRouteSpecifier().(*httpconnmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig
 
 	if len(routeConfig.VirtualHosts) > 1 {
 		return nil, fmt.Errorf("more than one virtual host configured")

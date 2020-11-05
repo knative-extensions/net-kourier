@@ -41,7 +41,7 @@ type Caches struct {
 	translatedIngresses map[types.NamespacedName]*translatedIngress
 	clusters            *ClustersCache
 	domainsInUse        sets.String
-	routeConfig         []v2.RouteConfiguration
+	routeConfig         []*v2.RouteConfiguration
 	listeners           []*v2.Listener
 	statusVirtualHost   *route.VirtualHost
 
@@ -164,7 +164,7 @@ func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
 		// in the Knative serving test suite fails sometimes.
 		// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
 		caches.routeConfig[i].ValidateClusters = &wrappers.BoolValue{Value: true}
-		routes[i] = &caches.routeConfig[i]
+		routes[i] = caches.routeConfig[i]
 	}
 
 	listeners := make([]cache.Resource, len(caches.listeners))
