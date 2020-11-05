@@ -186,6 +186,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		Handler:    controller.HandleAll(impl.Enqueue),
 	})
 
+	// Make sure trackers are deleted once the observers are removed.
+	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		FilterFunc: isKourierIngress,
+		Handler: cache.ResourceEventHandlerFuncs{
+			DeleteFunc: tracker.OnDeletedObserver,
+		},
+	})
+
 	serviceInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
 			tracker.OnChanged,
