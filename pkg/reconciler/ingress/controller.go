@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
@@ -192,12 +193,25 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		),
 	))
 
-	endpointsInformer.Informer().AddEventHandler(controller.HandleAll(
-		controller.EnsureTypeMeta(
-			tracker.OnChanged,
-			corev1.SchemeGroupVersion.WithKind("Endpoints"),
-		),
-	))
+	viaTracker := controller.EnsureTypeMeta(
+		tracker.OnChanged,
+		corev1.SchemeGroupVersion.WithKind("Endpoints"))
+	endpointsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    viaTracker,
+		DeleteFunc: viaTracker,
+		UpdateFunc: func(old interface{}, new interface{}) {
+			before := readyAddresses(old.(*corev1.Endpoints))
+			after := readyAddresses(new.(*corev1.Endpoints))
+
+			// If the ready addresses have not changed, there is no reason for us to
+			// reconcile this endpoint, so why bother?
+			if before.Equal(after) {
+				return
+			}
+
+			viaTracker(new)
+		},
+	})
 
 	secretInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
@@ -237,4 +251,24 @@ func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.Ne
 		}
 	}
 	return ingressesToWarm, nil
+}
+
+func readyAddresses(eps *corev1.Endpoints) sets.String {
+	var count int
+	for _, subset := range eps.Subsets {
+		count += len(subset.Addresses)
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	ready := make(sets.String, count)
+	for _, subset := range eps.Subsets {
+		for _, address := range subset.Addresses {
+			ready.Insert(address.IP)
+		}
+	}
+
+	return ready
 }
