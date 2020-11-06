@@ -25,6 +25,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
+// NewRoute creates a new Route.
 func NewRoute(name string,
 	headersMatch []*route.HeaderMatcher,
 	path string,
@@ -58,7 +59,7 @@ func NewRoute(name string,
 	}
 }
 
-// Creates a route that simply returns 200
+// NewRouteStatusOK creates a route that simply returns 200.
 func NewRouteStatusOK(name string, path string) *route.Route {
 	return &route.Route{
 		Name: name,

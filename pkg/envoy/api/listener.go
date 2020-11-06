@@ -29,6 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// SNIMatch represents an SNI match, including the hosts to match, the certificates and
+// keys to use and the source where we got the certs/keys from.
 type SNIMatch struct {
 	Hosts            []string
 	CertSource       types.NamespacedName
@@ -36,15 +38,7 @@ type SNIMatch struct {
 	PrivateKey       []byte
 }
 
-func NewSNIMatch(hosts []string, certSource types.NamespacedName, certificateChain []byte, privateKey []byte) *SNIMatch {
-	return &SNIMatch{
-		Hosts:            hosts,
-		CertSource:       certSource,
-		CertificateChain: certificateChain,
-		PrivateKey:       privateKey,
-	}
-}
-
+// NewHTTPListener creates a new Listener at the given port, backed by the given manager.
 func NewHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint32) (*v2.Listener, error) {
 	filters, err := createFilters(manager)
 	if err != nil {
@@ -60,7 +54,10 @@ func NewHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint
 	}, nil
 }
 
-func NewHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
+// NewHTTPSListener creates a new Listener at the given port, backed by the given manager
+// and serving the given certificate chain and key.
+func NewHTTPSListener(
+	manager *httpconnmanagerv2.HttpConnectionManager,
 	port uint32,
 	certificateChain []byte,
 	privateKey []byte) (*v2.Listener, error) {
@@ -89,7 +86,9 @@ func NewHTTPSListener(manager *httpconnmanagerv2.HttpConnectionManager,
 	}, nil
 }
 
-// Configures a Listener with SNI.
+// NewHTTPSListenerWithSNI creates a new Listener at the given port, backed by the given
+// manager and applies a FilterChain with the given sniMatches.
+//
 // Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
 func NewHTTPSListenerWithSNI(manager *httpconnmanagerv2.HttpConnectionManager, port uint32, sniMatches []*SNIMatch) (*v2.Listener, error) {
 	filterChains, err := createFilterChainsForTLS(manager, sniMatches)
@@ -127,7 +126,7 @@ func createAddress(port uint32) *core.Address {
 func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listener.Filter, error) {
 	managerAny, err := ptypes.MarshalAny(manager)
 	if err != nil {
-		return []*listener.Filter{}, err
+		return nil, err
 	}
 
 	return []*listener.Filter{{

@@ -35,14 +35,12 @@ func TestNewHTTPListener(t *testing.T) {
 	manager := NewHTTPConnectionManager("test")
 
 	l, err := NewHTTPListener(manager, 8080)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
 	assert.Equal(t, uint32(8080), l.Address.GetSocketAddress().GetPortValue())
-	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) //TLS not configured
+	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) // TLS not configured
 }
 
 func TestNewHTTPSListener(t *testing.T) {
@@ -52,9 +50,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	privateKey := []byte("some_private_key")
 
 	l, err := NewHTTPSListener(manager, 8081, certChain, privateKey)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
@@ -63,6 +59,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	// Check that TLS is configured
 	gotCertChain, gotPrivateKey, err := getTLSCreds(l.FilterChains[0])
 	assert.NilError(t, err)
+
 	assert.DeepEqual(t, certChain, gotCertChain)
 	assert.DeepEqual(t, privateKey, gotPrivateKey)
 }
@@ -80,9 +77,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 
 	manager := NewHTTPConnectionManager("test")
 	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, listener.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", listener.Address.GetSocketAddress().Address)
