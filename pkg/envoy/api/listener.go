@@ -26,19 +26,22 @@ import (
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type SNIMatch struct {
-	hosts            []string
-	certificateChain []byte
-	privateKey       []byte
+	Hosts            []string
+	CertSource       types.NamespacedName
+	CertificateChain []byte
+	PrivateKey       []byte
 }
 
-func NewSNIMatch(hosts []string, certificateChain []byte, privateKey []byte) SNIMatch {
-	return SNIMatch{
-		hosts:            hosts,
-		certificateChain: certificateChain,
-		privateKey:       privateKey,
+func NewSNIMatch(hosts []string, certSource types.NamespacedName, certificateChain []byte, privateKey []byte) *SNIMatch {
+	return &SNIMatch{
+		Hosts:            hosts,
+		CertSource:       certSource,
+		CertificateChain: certificateChain,
+		PrivateKey:       privateKey,
 	}
 }
 
@@ -141,7 +144,7 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 			return nil, err
 		}
 
-		tlsContext := createTLSContext(sniMatch.certificateChain, sniMatch.privateKey)
+		tlsContext := createTLSContext(sniMatch.CertificateChain, sniMatch.PrivateKey)
 		tlsAny, err := ptypes.MarshalAny(tlsContext)
 		if err != nil {
 			return nil, err
@@ -149,7 +152,7 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 
 		filterChain := listener.FilterChain{
 			FilterChainMatch: &listener.FilterChainMatch{
-				ServerNames: sniMatch.hosts,
+				ServerNames: sniMatch.Hosts,
 			},
 			TransportSocket: &core.TransportSocket{
 				Name:       "tls",

@@ -76,8 +76,15 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, fmt.Errorf("failed to fetch secret: %w", err)
 		}
 
-		sniMatch := envoy.NewSNIMatch(ingressTLS.Hosts, secret.Data[certFieldInSecret], secret.Data[keyFieldInSecret])
-		sniMatches = append(sniMatches, &sniMatch)
+		secretRef := types.NamespacedName{
+			Namespace: ingressTLS.SecretNamespace,
+			Name:      ingressTLS.SecretName,
+		}
+		sniMatches = append(sniMatches, envoy.NewSNIMatch(
+			ingressTLS.Hosts,
+			secretRef,
+			secret.Data[certFieldInSecret],
+			secret.Data[keyFieldInSecret]))
 	}
 
 	internalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))

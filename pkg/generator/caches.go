@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
-	envoy "knative.dev/net-kourier/pkg/envoy/api"
 )
 
 var ErrDomainConflict = errors.New("ingress has a conflicting domain with another ingress")
@@ -124,12 +123,15 @@ func (caches *Caches) SetOnEvicted(f func(types.NamespacedName, interface{})) {
 func (caches *Caches) setListeners(ctx context.Context) error {
 	localVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses)+1)
 	externalVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
-	sniMatches := make([]*envoy.SNIMatch, 0, len(caches.translatedIngresses))
+	snis := sniMatches{}
 
 	for _, translatedIngress := range caches.translatedIngresses {
 		localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
 		externalVHosts = append(externalVHosts, translatedIngress.externalVirtualHosts...)
-		sniMatches = append(sniMatches, translatedIngress.sniMatches...)
+
+		for _, match := range translatedIngress.sniMatches {
+			snis.consume(match)
+		}
 	}
 	// Append the statusHost too.
 	localVHosts = append(localVHosts, caches.statusVirtualHost)
@@ -138,7 +140,7 @@ func (caches *Caches) setListeners(ctx context.Context) error {
 		ctx,
 		externalVHosts,
 		localVHosts,
-		sniMatches,
+		snis.list(),
 		caches.kubeClient,
 		caches,
 	)
