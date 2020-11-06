@@ -77,10 +77,8 @@ func listenersFromVirtualHosts(
 	caches.routeConfig = []*v2.RouteConfiguration{externalRouteConfig, internalRouteConfig}
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
-	externalManager := envoy.NewHTTPConnectionManager()
-	internalManager := envoy.NewHTTPConnectionManager()
-	externalManager.RouteSpecifier = envoy.NewRDSHTTPConnectionManager(externalRouteConfig.Name)
-	internalManager.RouteSpecifier = envoy.NewRDSHTTPConnectionManager(internalRouteConfig.Name)
+	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name)
+	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name)
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal)
 	if err != nil {
 		return nil, err
@@ -96,12 +94,7 @@ func listenersFromVirtualHosts(
 	// TLS field, that takes precedence. If there is not, TLS will be configured
 	// using a single cert for all the services if the creds are given via ENV.
 	if len(sniMatches) > 0 {
-		// TODO: Can we make this work with "HttpConnectionManager_Rds"?
-		sniManager := envoy.NewHTTPConnectionManager()
-		sniManager.RouteSpecifier = &httpconnmanagerv2.HttpConnectionManager_RouteConfig{
-			RouteConfig: externalRouteConfig,
-		}
-		externalHTTPSEnvoyListener, err := newExternalHTTPSEnvoyListener(sniManager, sniMatches)
+		externalHTTPSEnvoyListener, err := envoy.NewHTTPSListenerWithSNI(externalManager, config.HTTPSPortExternal, sniMatches)
 		if err != nil {
 			return nil, err
 		}
@@ -144,8 +137,4 @@ func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnm
 	}
 
 	return envoy.NewHTTPSListener(manager, config.HTTPSPortExternal, certificateChain, privateKey)
-}
-
-func newExternalHTTPSEnvoyListener(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*envoy.SNIMatch) (*v2.Listener, error) {
-	return envoy.NewHTTPSListenerWithSNI(manager, config.HTTPSPortExternal, sniMatches)
 }

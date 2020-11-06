@@ -136,11 +136,7 @@ func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listene
 func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*SNIMatch) ([]*listener.FilterChain, error) {
 	res := make([]*listener.FilterChain, 0, len(sniMatches))
 	for _, sniMatch := range sniMatches {
-		// The connection manager received in the params contains all the
-		// matching rules. For each sniMatch, we just need the rules defined for
-		// the same hosts defined in the sniMatch
-		connManager := filterByDomains(manager, sniMatch.hosts)
-		filters, err := createFilters(connManager)
+		filters, err := createFilters(manager)
 		if err != nil {
 			return nil, err
 		}

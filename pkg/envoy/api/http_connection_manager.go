@@ -29,7 +29,7 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 )
 
-func NewHTTPConnectionManager() *httpconnectionmanagerv2.HttpConnectionManager {
+func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.HttpConnectionManager {
 	var filters []*httpconnectionmanagerv2.HttpFilter
 
 	if config.ExternalAuthz.Enabled {
@@ -47,6 +47,20 @@ func NewHTTPConnectionManager() *httpconnectionmanagerv2.HttpConnectionManager {
 		StatPrefix:  "ingress_http",
 		HttpFilters: filters,
 		AccessLog:   accessLogs(),
+		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_Rds{
+			Rds: &httpconnectionmanagerv2.Rds{
+				ConfigSource: &envoy_api_v2_core.ConfigSource{
+					ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
+						Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+					},
+					InitialFetchTimeout: &duration.Duration{
+						Seconds: 10,
+						Nanos:   0,
+					},
+				},
+				RouteConfigName: routeConfigName,
+			},
+		},
 	}
 }
 
@@ -54,23 +68,6 @@ func NewRouteConfig(name string, virtualHosts []*route.VirtualHost) *v2.RouteCon
 	return &v2.RouteConfiguration{
 		Name:         name,
 		VirtualHosts: virtualHosts,
-	}
-}
-
-func NewRDSHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.HttpConnectionManager_Rds {
-	return &httpconnectionmanagerv2.HttpConnectionManager_Rds{
-		Rds: &httpconnectionmanagerv2.Rds{
-			ConfigSource: &envoy_api_v2_core.ConfigSource{
-				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-					Ads: &envoy_api_v2_core.AggregatedConfigSource{},
-				},
-				InitialFetchTimeout: &duration.Duration{
-					Seconds: 10,
-					Nanos:   0,
-				},
-			},
-			RouteConfigName: routeConfigName,
-		},
 	}
 }
 
@@ -86,47 +83,4 @@ func accessLogs() []*envoy_accesslog_v2.AccessLog {
 			TypedConfig: accessLog,
 		},
 	}}
-}
-
-// Returns a copy of the HttpConnectionManager received in the params changing
-// only the virtual hosts in the route config. It filters the virtual hosts
-// keeping only the ones whose domains contain all the domains received in the
-// params.
-func filterByDomains(connManager *httpconnectionmanagerv2.HttpConnectionManager, domains []string) *httpconnectionmanagerv2.HttpConnectionManager {
-	rc := connManager.GetRouteSpecifier().(*httpconnectionmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig
-
-	res := NewHTTPConnectionManager()
-
-	var newVirtualHosts []*route.VirtualHost
-	for _, virtualHost := range rc.GetVirtualHosts() {
-		if containsAll(virtualHost.Domains, domains) {
-			newVirtualHosts = append(newVirtualHosts, virtualHost)
-		}
-	}
-
-	res.RouteSpecifier = &httpconnectionmanagerv2.HttpConnectionManager_RouteConfig{
-		RouteConfig: NewRouteConfig(rc.Name, newVirtualHosts),
-	}
-
-	return res
-}
-
-// Returns true if slice contains all the items in elems
-func containsAll(slice []string, elems []string) bool {
-	for _, elem := range elems {
-		contained := false
-
-		for _, s := range slice {
-			if elem == s {
-				contained = true
-				break
-			}
-		}
-
-		if !contained {
-			return false
-		}
-	}
-
-	return true
 }

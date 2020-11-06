@@ -25,8 +25,6 @@ import (
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"gotest.tools/assert"
@@ -34,7 +32,7 @@ import (
 )
 
 func TestNewHTTPListener(t *testing.T) {
-	manager := NewHTTPConnectionManager()
+	manager := NewHTTPConnectionManager("test")
 
 	l, err := NewHTTPListener(manager, 8080)
 	if err != nil {
@@ -48,7 +46,7 @@ func TestNewHTTPListener(t *testing.T) {
 }
 
 func TestNewHTTPSListener(t *testing.T) {
-	manager := NewHTTPConnectionManager()
+	manager := NewHTTPConnectionManager("test")
 
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
@@ -80,18 +78,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		privateKey:       []byte("key2"),
 	}}
 
-	vHost1 := NewVirtualHost(
-		"vHost1", []string{"some_host.com", "some_host.com:*"}, []*route.Route{},
-	)
-	vHost2 := NewVirtualHost(
-		"vHost2", []string{"another_host.com", "another_host.com:*"}, []*route.Route{},
-	)
-
-	manager := NewHTTPConnectionManager()
-	manager.RouteSpecifier = &httpconnmanagerv2.HttpConnectionManager_RouteConfig{
-		RouteConfig: NewRouteConfig("test", []*route.VirtualHost{vHost1, vHost2}),
-	}
-
+	manager := NewHTTPConnectionManager("test")
 	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches)
 	if err != nil {
 		t.Error(err)
@@ -104,16 +91,11 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 	// Listener Filter required for SNI
 	assert.Equal(t, listener.ListenerFilters[0].Name, wellknown.TlsInspector)
 
-	assertListenerHasSNIMatchConfigured(
-		t, listener, sniMatches[0], []string{"some_host.com", "some_host.com:*"},
-	)
-
-	assertListenerHasSNIMatchConfigured(
-		t, listener, sniMatches[1], []string{"another_host.com", "another_host.com:*"},
-	)
+	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[0])
+	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[1])
 }
 
-func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v2.Listener, match *SNIMatch, expectedVHostDomains []string) {
+func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v2.Listener, match *SNIMatch) {
 	filterChainFirstSNIMatch := getFilterChainByServerName(listener, match.hosts)
 	assert.Assert(t, filterChainFirstSNIMatch != nil)
 
@@ -121,10 +103,6 @@ func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v2.Li
 	assert.NilError(t, err)
 	assert.DeepEqual(t, match.certificateChain, certChain)
 	assert.DeepEqual(t, match.privateKey, privateKey)
-
-	vHostsDomains, err := getVHostDomains(filterChainFirstSNIMatch)
-	assert.NilError(t, err)
-	assert.DeepEqual(t, expectedVHostDomains, vHostsDomains)
 }
 
 func getFilterChainByServerName(listener *envoy_api_v2.Listener, serverNames []string) *envoy_api_v2_listener.FilterChain {
@@ -158,22 +136,4 @@ func getTLSCreds(filterChain *envoy_api_v2_listener.FilterChain) (certChain []by
 	privateKey = certs.PrivateKey.GetInlineBytes()
 
 	return certChain, privateKey, nil
-}
-
-// Note: Returns an error when there are multiple virtual hosts configured
-func getVHostDomains(filterChain *envoy_api_v2_listener.FilterChain) ([]string, error) {
-	connManager := httpconnmanagerv2.HttpConnectionManager{}
-	err := ptypes.UnmarshalAny(filterChain.Filters[0].GetTypedConfig(), &connManager)
-
-	if err != nil {
-		return nil, err
-	}
-
-	routeConfig := connManager.GetRouteSpecifier().(*httpconnmanagerv2.HttpConnectionManager_RouteConfig).RouteConfig
-
-	if len(routeConfig.VirtualHosts) > 1 {
-		return nil, fmt.Errorf("more than one virtual host configured")
-	}
-
-	return routeConfig.VirtualHosts[0].Domains, nil
 }
