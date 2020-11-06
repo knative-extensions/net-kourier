@@ -26,7 +26,7 @@ import (
 )
 
 func TestCreatesManagerThatOutputsToStdOut(t *testing.T) {
-	connManager := NewHTTPConnectionManager()
+	connManager := NewHTTPConnectionManager("test")
 	accessLog := connManager.AccessLog[0]
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v2.AccessLog_TypedConfig).TypedConfig
 	fileAccesLog := &accesslog_v2.FileAccessLog{}

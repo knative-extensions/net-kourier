@@ -77,10 +77,8 @@ func listenersFromVirtualHosts(
 	caches.routeConfig = []*v2.RouteConfiguration{externalRouteConfig, internalRouteConfig}
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
-	externalManager := envoy.NewHTTPConnectionManager()
-	internalManager := envoy.NewHTTPConnectionManager()
-	externalManager.RouteSpecifier = envoy.NewRDSHTTPConnectionManager(externalRouteConfig.Name)
-	internalManager.RouteSpecifier = envoy.NewRDSHTTPConnectionManager(internalRouteConfig.Name)
+	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name)
+	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name)
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal)
 	if err != nil {
 		return nil, err

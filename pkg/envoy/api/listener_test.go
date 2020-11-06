@@ -32,7 +32,7 @@ import (
 )
 
 func TestNewHTTPListener(t *testing.T) {
-	manager := NewHTTPConnectionManager()
+	manager := NewHTTPConnectionManager("test")
 
 	l, err := NewHTTPListener(manager, 8080)
 	if err != nil {
@@ -46,7 +46,7 @@ func TestNewHTTPListener(t *testing.T) {
 }
 
 func TestNewHTTPSListener(t *testing.T) {
-	manager := NewHTTPConnectionManager()
+	manager := NewHTTPConnectionManager("test")
 
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
@@ -78,7 +78,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		privateKey:       []byte("key2"),
 	}}
 
-	manager := NewHTTPConnectionManager()
+	manager := NewHTTPConnectionManager("test")
 	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches)
 	if err != nil {
 		t.Error(err)

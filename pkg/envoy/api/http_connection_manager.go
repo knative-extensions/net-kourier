@@ -29,7 +29,7 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 )
 
-func NewHTTPConnectionManager() *httpconnectionmanagerv2.HttpConnectionManager {
+func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.HttpConnectionManager {
 	var filters []*httpconnectionmanagerv2.HttpFilter
 
 	if config.ExternalAuthz.Enabled {
@@ -47,6 +47,20 @@ func NewHTTPConnectionManager() *httpconnectionmanagerv2.HttpConnectionManager {
 		StatPrefix:  "ingress_http",
 		HttpFilters: filters,
 		AccessLog:   accessLogs(),
+		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_Rds{
+			Rds: &httpconnectionmanagerv2.Rds{
+				ConfigSource: &envoy_api_v2_core.ConfigSource{
+					ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
+						Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+					},
+					InitialFetchTimeout: &duration.Duration{
+						Seconds: 10,
+						Nanos:   0,
+					},
+				},
+				RouteConfigName: routeConfigName,
+			},
+		},
 	}
 }
 
@@ -54,23 +68,6 @@ func NewRouteConfig(name string, virtualHosts []*route.VirtualHost) *v2.RouteCon
 	return &v2.RouteConfiguration{
 		Name:         name,
 		VirtualHosts: virtualHosts,
-	}
-}
-
-func NewRDSHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.HttpConnectionManager_Rds {
-	return &httpconnectionmanagerv2.HttpConnectionManager_Rds{
-		Rds: &httpconnectionmanagerv2.Rds{
-			ConfigSource: &envoy_api_v2_core.ConfigSource{
-				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-					Ads: &envoy_api_v2_core.AggregatedConfigSource{},
-				},
-				InitialFetchTimeout: &duration.Duration{
-					Seconds: 10,
-					Nanos:   0,
-				},
-			},
-			RouteConfigName: routeConfigName,
-		},
 	}
 }
 
