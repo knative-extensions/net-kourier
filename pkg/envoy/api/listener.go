@@ -36,8 +36,8 @@ type SNIMatch struct {
 	privateKey       []byte
 }
 
-func NewSNIMatch(hosts []string, certSource types.NamespacedName, certificateChain []byte, privateKey []byte) SNIMatch {
-	return SNIMatch{
+func NewSNIMatch(hosts []string, certSource types.NamespacedName, certificateChain []byte, privateKey []byte) *SNIMatch {
+	return &SNIMatch{
 		hosts:            hosts,
 		certSource:       certSource,
 		certificateChain: certificateChain,

@@ -80,12 +80,11 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			Namespace: ingressTLS.SecretNamespace,
 			Name:      ingressTLS.SecretName,
 		}
-		sniMatch := envoy.NewSNIMatch(
+		sniMatches = append(sniMatches, envoy.NewSNIMatch(
 			ingressTLS.Hosts,
 			secretRef,
 			secret.Data[certFieldInSecret],
-			secret.Data[keyFieldInSecret])
-		sniMatches = append(sniMatches, &sniMatch)
+			secret.Data[keyFieldInSecret]))
 	}
 
 	internalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
