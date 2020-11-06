@@ -109,7 +109,7 @@ func TestDeduplication(t *testing.T) {
 				return got[i].CertSource.String() < got[j].CertSource.String()
 			})
 
-			assert.DeepEqual(t, test.out, matches.list())
+			assert.DeepEqual(t, test.out, got)
 		})
 	}
 }
