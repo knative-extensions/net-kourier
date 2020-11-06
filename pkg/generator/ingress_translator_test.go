@@ -28,6 +28,7 @@ import (
 	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -240,13 +241,19 @@ func TestIngressWithTLS(t *testing.T) {
 	// Create secret with TLS data
 	tlsSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: tlsSecretName,
+			Namespace: tlsSecretNamespace,
+			Name:      tlsSecretName,
 		},
 		Data: map[string][]byte{
 			certFieldInSecret: tlsCert,
 			keyFieldInSecret:  tlsKey,
 		},
 	}
+	secretRef := types.NamespacedName{
+		Namespace: tlsSecretNamespace,
+		Name:      tlsSecretName,
+	}
+
 	ingressTranslator := NewIngressTranslator(
 		func(ns, name string) (*corev1.Secret, error) {
 			return tlsSecret, nil
@@ -263,7 +270,7 @@ func TestIngressWithTLS(t *testing.T) {
 	assert.Equal(t, 1, len(translatedIngress.sniMatches))
 	assert.DeepEqual(
 		t,
-		envoy.NewSNIMatch(tlsHosts, tlsCert, tlsKey),
+		envoy.NewSNIMatch(tlsHosts, secretRef, tlsCert, tlsKey),
 		*translatedIngress.sniMatches[0],
 		cmp.AllowUnexported(envoy.SNIMatch{}),
 	)

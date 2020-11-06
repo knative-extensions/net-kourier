@@ -26,17 +26,20 @@ import (
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type SNIMatch struct {
 	hosts            []string
+	certSource       types.NamespacedName
 	certificateChain []byte
 	privateKey       []byte
 }
 
-func NewSNIMatch(hosts []string, certificateChain []byte, privateKey []byte) SNIMatch {
+func NewSNIMatch(hosts []string, certSource types.NamespacedName, certificateChain []byte, privateKey []byte) SNIMatch {
 	return SNIMatch{
 		hosts:            hosts,
+		certSource:       certSource,
 		certificateChain: certificateChain,
 		privateKey:       privateKey,
 	}
