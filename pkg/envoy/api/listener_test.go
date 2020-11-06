@@ -69,13 +69,13 @@ func TestNewHTTPSListener(t *testing.T) {
 
 func TestNewHTTPSListenerWithSNI(t *testing.T) {
 	sniMatches := []*SNIMatch{{
-		hosts:            []string{"some_host.com"},
-		certificateChain: []byte("cert1"),
-		privateKey:       []byte("key1"),
+		Hosts:            []string{"some_host.com"},
+		CertificateChain: []byte("cert1"),
+		PrivateKey:       []byte("key1"),
 	}, {
-		hosts:            []string{"another_host.com"},
-		certificateChain: []byte("cert2"),
-		privateKey:       []byte("key2"),
+		Hosts:            []string{"another_host.com"},
+		CertificateChain: []byte("cert2"),
+		PrivateKey:       []byte("key2"),
 	}}
 
 	manager := NewHTTPConnectionManager("test")
@@ -96,13 +96,13 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 }
 
 func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v2.Listener, match *SNIMatch) {
-	filterChainFirstSNIMatch := getFilterChainByServerName(listener, match.hosts)
+	filterChainFirstSNIMatch := getFilterChainByServerName(listener, match.Hosts)
 	assert.Assert(t, filterChainFirstSNIMatch != nil)
 
 	certChain, privateKey, err := getTLSCreds(filterChainFirstSNIMatch)
 	assert.NilError(t, err)
-	assert.DeepEqual(t, match.certificateChain, certChain)
-	assert.DeepEqual(t, match.privateKey, privateKey)
+	assert.DeepEqual(t, match.CertificateChain, certChain)
+	assert.DeepEqual(t, match.PrivateKey, privateKey)
 }
 
 func getFilterChainByServerName(listener *envoy_api_v2.Listener, serverNames []string) *envoy_api_v2_listener.FilterChain {

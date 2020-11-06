@@ -30,18 +30,18 @@ import (
 )
 
 type SNIMatch struct {
-	hosts            []string
-	certSource       types.NamespacedName
-	certificateChain []byte
-	privateKey       []byte
+	Hosts            []string
+	CertSource       types.NamespacedName
+	CertificateChain []byte
+	PrivateKey       []byte
 }
 
 func NewSNIMatch(hosts []string, certSource types.NamespacedName, certificateChain []byte, privateKey []byte) *SNIMatch {
 	return &SNIMatch{
-		hosts:            hosts,
-		certSource:       certSource,
-		certificateChain: certificateChain,
-		privateKey:       privateKey,
+		Hosts:            hosts,
+		CertSource:       certSource,
+		CertificateChain: certificateChain,
+		PrivateKey:       privateKey,
 	}
 }
 
@@ -144,7 +144,7 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 			return nil, err
 		}
 
-		tlsContext := createTLSContext(sniMatch.certificateChain, sniMatch.privateKey)
+		tlsContext := createTLSContext(sniMatch.CertificateChain, sniMatch.PrivateKey)
 		tlsAny, err := ptypes.MarshalAny(tlsContext)
 		if err != nil {
 			return nil, err
@@ -152,7 +152,7 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 
 		filterChain := listener.FilterChain{
 			FilterChainMatch: &listener.FilterChainMatch{
-				ServerNames: sniMatch.hosts,
+				ServerNames: sniMatch.Hosts,
 			},
 			TransportSocket: &core.TransportSocket{
 				Name:       "tls",
