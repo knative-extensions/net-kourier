@@ -106,15 +106,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					return nil, err
 				}
 
-				endpoints, err := translator.endpointsGetter(split.ServiceNamespace, split.ServiceName)
-				if apierrors.IsNotFound(err) {
-					logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-					// TODO(markusthoemmes): Find out if we should actually `continue` here.
-					return nil, nil
-				} else if err != nil {
-					return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
-				}
-
 				service, err := translator.serviceGetter(split.ServiceNamespace, split.ServiceName)
 				if apierrors.IsNotFound(err) {
 					logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
@@ -127,19 +118,45 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// Match the ingress' port with a port on the Service to find the target.
 				// Also find out if the target supports HTTP2.
 				var (
-					targetPort int32
-					http2      bool
+					externalPort int32
+					targetPort   int32
+					http2        bool
 				)
 				for _, port := range service.Spec.Ports {
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
+						externalPort = port.Port
 						targetPort = port.TargetPort.IntVal
 						http2 = port.Name == "http2" || port.Name == "h2c"
 					}
 				}
 
-				publicLbEndpoints := lbEndpointsForKubeEndpoints(endpoints, targetPort)
+				var (
+					publicLbEndpoints []*endpoint.LbEndpoint
+					typ               v2.Cluster_DiscoveryType
+				)
+				if service.Spec.Type == corev1.ServiceTypeExternalName {
+					// If the service is of type ExternalName, we add a single endpoint.
+					typ = v2.Cluster_LOGICAL_DNS
+					publicLbEndpoints = []*endpoint.LbEndpoint{
+						envoy.NewLBEndpoint(service.Spec.ExternalName, uint32(externalPort)),
+					}
+				} else {
+					// For all other types, fetch the endpoints object.
+					endpoints, err := translator.endpointsGetter(split.ServiceNamespace, split.ServiceName)
+					if apierrors.IsNotFound(err) {
+						logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+						// TODO(markusthoemmes): Find out if we should actually `continue` here.
+						return nil, nil
+					} else if err != nil {
+						return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
+					}
+
+					typ = v2.Cluster_STATIC
+					publicLbEndpoints = lbEndpointsForKubeEndpoints(endpoints, targetPort)
+				}
+
 				connectTimeout := 5 * time.Second
-				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2, v2.Cluster_STATIC)
+				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2, typ)
 				clusters = append(clusters, cluster)
 
 				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
@@ -150,7 +167,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// Note: routeName uses the non-defaulted path.
 				routeName := ingress.Name + "_" + ingress.Namespace + "_" + httpPath.Path
 				routes = append(routes, envoy.NewRoute(
-					routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders))
+					routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
 			}
 		}
 

@@ -31,7 +31,27 @@ func NewRoute(name string,
 	path string,
 	wrs []*route.WeightedCluster_ClusterWeight,
 	routeTimeout time.Duration,
-	headers map[string]string) *route.Route {
+	headers map[string]string,
+	hostRewrite string) *route.Route {
+
+	routeAction := &route.RouteAction{
+		ClusterSpecifier: &route.RouteAction_WeightedClusters{
+			WeightedClusters: &route.WeightedCluster{
+				Clusters: wrs,
+			},
+		},
+		Timeout: ptypes.DurationProto(routeTimeout),
+		UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
+			UpgradeType: "websocket",
+			Enabled:     &wrappers.BoolValue{Value: true},
+		}},
+	}
+
+	if hostRewrite != "" {
+		routeAction.HostRewriteSpecifier = &route.RouteAction_HostRewrite{
+			HostRewrite: hostRewrite,
+		}
+	}
 
 	return &route.Route{
 		Name: name,
@@ -42,18 +62,7 @@ func NewRoute(name string,
 			Headers: headersMatch,
 		},
 		Action: &route.Route_Route{
-			Route: &route.RouteAction{
-				ClusterSpecifier: &route.RouteAction_WeightedClusters{
-					WeightedClusters: &route.WeightedCluster{
-						Clusters: wrs,
-					},
-				},
-				Timeout: ptypes.DurationProto(routeTimeout),
-				UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
-					UpgradeType: "websocket",
-					Enabled:     &wrappers.BoolValue{Value: true},
-				}},
-			},
+			Route: routeAction,
 		},
 		RequestHeadersToAdd: headersToAdd(headers),
 	}

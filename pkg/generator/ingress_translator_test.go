@@ -26,6 +26,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/google/go-cmp/cmp"
 	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -155,6 +156,52 @@ func TestTrafficSplits(t *testing.T) {
 		true,
 		clustersExist([]string{"hello-world-rev1/", "hello-world-rev2/"}, ingressTranslation.clusters),
 	)
+}
+
+func TestExternalNameService(t *testing.T) {
+	ctx := context.Background()
+
+	ingress := createIngress("test", []string{"foo", "bar"}, v1alpha1.IngressVisibilityExternalIP)
+	svc := &corev1.Service{
+		Spec: corev1.ServiceSpec{
+			Type:         corev1.ServiceTypeExternalName,
+			ExternalName: "example.com",
+			Ports: []corev1.ServicePort{{
+				Name:       "http",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	}
+
+	ingressTranslator := NewIngressTranslator(
+		mockedSecretGetter,
+		mockedEndpointsGetter,
+		func(ns, name string) (*corev1.Service, error) {
+			return svc, nil
+		},
+		&pkgtest.FakeTracker{})
+
+	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	clusters := translatedIngress.clusters
+	assert.Assert(t, is.Len(clusters, 1))
+
+	cluster := clusters[0]
+	assert.Assert(t, is.Nil(cluster.Http2ProtocolOptions))
+	assert.Equal(t, cluster.GetType(), v2.Cluster_LOGICAL_DNS)
+
+	localityEps := cluster.GetLoadAssignment().GetEndpoints()
+	assert.Assert(t, is.Len(localityEps, 1))
+
+	eps := localityEps[0].LbEndpoints
+	assert.Assert(t, is.Len(eps, 1))
+
+	ep := eps[0]
+	assert.Equal(t, ep.GetEndpoint().GetAddress().GetSocketAddress().GetAddress(), "example.com")
 }
 
 func TestIngressVisibility(t *testing.T) {

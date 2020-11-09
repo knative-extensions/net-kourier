@@ -20,26 +20,31 @@ import (
 	"net/http"
 	"testing"
 
-	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"gotest.tools/assert"
 )
 
 func TestNewRouteHeaderMatch(t *testing.T) {
 	name := "testRoute_12345"
 	path := "/my_route"
-	headerMatch := []*envoy_api_v2_route.HeaderMatcher{{
+	headerMatch := []*route.HeaderMatcher{{
 		Name: "myHeader",
-		HeaderMatchSpecifier: &envoy_api_v2_route.HeaderMatcher_ExactMatch{
+		HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
 			ExactMatch: "strict",
 		},
 	}}
-	AppendHeaders := map[string]string{}
-	var wrs []*envoy_api_v2_route.WeightedCluster_ClusterWeight
 
-	r := NewRoute(name, headerMatch, path, wrs, 0, AppendHeaders)
+	r := NewRoute(name, headerMatch, path, nil, 0, nil, "")
 	assert.Equal(t, r.Match.Headers[0].Name, "myHeader")
 	assert.Equal(t, r.Match.Headers[0].GetExactMatch(), "strict")
+}
 
+func TestNewRouteHostRewrite(t *testing.T) {
+	name := "testRoute_12345"
+	path := "/my_route"
+
+	r := NewRoute(name, nil, path, nil, 0, nil, "test.host")
+	assert.Equal(t, r.Action.(*route.Route_Route).Route.GetHostRewrite(), "test.host")
 }
 
 func TestNewRouteStatusOK(t *testing.T) {
