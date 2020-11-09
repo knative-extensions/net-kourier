@@ -19,13 +19,15 @@ package envoy
 import (
 	"testing"
 
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/golang/protobuf/ptypes"
 	"gotest.tools/assert"
 )
 
-func TestCreatesManagerThatOutputsToStdOut(t *testing.T) {
+func TestNewHTTPConnectionManager(t *testing.T) {
 	connManager := NewHTTPConnectionManager("test")
 	accessLog := connManager.AccessLog[0]
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v2.AccessLog_TypedConfig).TypedConfig
@@ -37,4 +39,19 @@ func TestCreatesManagerThatOutputsToStdOut(t *testing.T) {
 	}
 
 	assert.Equal(t, "/dev/stdout", fileAccesLog.Path)
+}
+
+func TestNewRouteConfig(t *testing.T) {
+	vhost := NewVirtualHost(
+		"test",
+		[]string{"foo", "bar"},
+		[]*route.Route{{Name: "baz"}})
+
+	got := NewRouteConfig("test", []*route.VirtualHost{vhost})
+	want := &v2.RouteConfiguration{
+		Name:         "test",
+		VirtualHosts: []*route.VirtualHost{vhost},
+	}
+
+	assert.DeepEqual(t, got, want)
 }

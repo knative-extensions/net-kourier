@@ -270,7 +270,12 @@ func TestIngressWithTLS(t *testing.T) {
 	assert.Equal(t, 1, len(translatedIngress.sniMatches))
 	assert.DeepEqual(
 		t,
-		envoy.NewSNIMatch(tlsHosts, secretRef, tlsCert, tlsKey),
+		&envoy.SNIMatch{
+			Hosts:            tlsHosts,
+			CertSource:       secretRef,
+			CertificateChain: tlsCert,
+			PrivateKey:       tlsKey,
+		},
 		translatedIngress.sniMatches[0],
 		cmp.AllowUnexported(envoy.SNIMatch{}),
 	)

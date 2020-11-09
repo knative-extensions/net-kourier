@@ -29,24 +29,35 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 )
 
+// NewHTTPConnectionManager creates a new HttpConnectionManager that points to the given
+// RouteConfig for further configuration.
 func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.HttpConnectionManager {
-	var filters []*httpconnectionmanagerv2.HttpFilter
+	filters := make([]*httpconnectionmanagerv2.HttpFilter, 0, 1)
 
 	if config.ExternalAuthz.Enabled {
 		filters = append(filters, config.ExternalAuthz.HTTPFilter)
 	}
 
 	// Append the Router filter at the end.
-	routerFilter := httpconnectionmanagerv2.HttpFilter{
+	filters = append(filters, &httpconnectionmanagerv2.HttpFilter{
 		Name: wellknown.Router,
-	}
-	filters = append(filters, &routerFilter)
+	})
+
+	// Write access logs to stdout by default.
+	accessLog, _ := ptypes.MarshalAny(&accesslog_v2.FileAccessLog{
+		Path: "/dev/stdout",
+	})
 
 	return &httpconnectionmanagerv2.HttpConnectionManager{
 		CodecType:   httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix:  "ingress_http",
 		HttpFilters: filters,
-		AccessLog:   accessLogs(),
+		AccessLog: []*envoy_accesslog_v2.AccessLog{{
+			Name: "envoy.file_access_log",
+			ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
+				TypedConfig: accessLog,
+			},
+		}},
 		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_Rds{
 			Rds: &httpconnectionmanagerv2.Rds{
 				ConfigSource: &envoy_api_v2_core.ConfigSource{
@@ -64,23 +75,10 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 	}
 }
 
+// NewRouteConfig create a new RouteConfiguration with the given name and hosts.
 func NewRouteConfig(name string, virtualHosts []*route.VirtualHost) *v2.RouteConfiguration {
 	return &v2.RouteConfiguration{
 		Name:         name,
 		VirtualHosts: virtualHosts,
 	}
-}
-
-// Outputs to /dev/stdout using the default format
-func accessLogs() []*envoy_accesslog_v2.AccessLog {
-	accessLog, _ := ptypes.MarshalAny(&accesslog_v2.FileAccessLog{
-		Path: "/dev/stdout",
-	})
-
-	return []*envoy_accesslog_v2.AccessLog{{
-		Name: "envoy.file_access_log",
-		ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
-			TypedConfig: accessLog,
-		},
-	}}
 }

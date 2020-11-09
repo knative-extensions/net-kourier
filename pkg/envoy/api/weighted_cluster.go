@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
+// NewWeightedCluster creates a new WeightedCluster.
 func NewWeightedCluster(name string, trafficPerc uint32, headers map[string]string) *route.WeightedCluster_ClusterWeight {
 	return &route.WeightedCluster_ClusterWeight{
 		Name: name,

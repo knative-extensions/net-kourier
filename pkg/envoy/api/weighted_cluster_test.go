@@ -17,30 +17,34 @@ limitations under the License.
 package envoy
 
 import (
+	"testing"
+
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"gotest.tools/assert"
 )
 
-// headersToAdd generates a list of HeaderValueOption from a map of headers.
-func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
-	if len(headers) == 0 {
-		return nil
-	}
-
-	res := make([]*core.HeaderValueOption, 0, len(headers))
-	for headerName, headerVal := range headers {
-		res = append(res, &core.HeaderValueOption{
+func TestNewWeightedCluster(t *testing.T) {
+	got := NewWeightedCluster("test", 50, map[string]string{
+		"foo": "bar",
+	})
+	want := &route.WeightedCluster_ClusterWeight{
+		Name: "test",
+		Weight: &wrappers.UInt32Value{
+			Value: 50,
+		},
+		RequestHeadersToAdd: []*core.HeaderValueOption{{
 			Header: &core.HeaderValue{
-				Key:   headerName,
-				Value: headerVal,
+				Key:   "foo",
+				Value: "bar",
 			},
 			Append: &wrappers.BoolValue{
-				// In Knative Serving, headers are set instead of appended.
-				// Ref: https://github.com/knative/serving/pull/6366
 				Value: false,
 			},
-		})
+		}},
 	}
 
-	return res
+	assert.DeepEqual(t, got, want, cmpopts.IgnoreUnexported(wrappers.BoolValue{}, wrappers.UInt32Value{}))
 }

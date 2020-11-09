@@ -25,8 +25,13 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-func NewCluster(name string, connectTimeout time.Duration, endpoints []*endpoint.LbEndpoint,
-	isHTTP2 bool, discoveryType v2.Cluster_DiscoveryType) *v2.Cluster {
+// NewCluster generates a new v2.Cluster with the given settings.
+func NewCluster(
+	name string,
+	connectTimeout time.Duration,
+	endpoints []*endpoint.LbEndpoint,
+	isHTTP2 bool,
+	discoveryType v2.Cluster_DiscoveryType) *v2.Cluster {
 
 	cluster := &v2.Cluster{
 		Name: name,
@@ -36,11 +41,9 @@ func NewCluster(name string, connectTimeout time.Duration, endpoints []*endpoint
 		ConnectTimeout: ptypes.DurationProto(connectTimeout),
 		LoadAssignment: &v2.ClusterLoadAssignment{
 			ClusterName: name,
-			Endpoints: []*endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: endpoints,
-				},
-			},
+			Endpoints: []*endpoint.LocalityLbEndpoints{{
+				LbEndpoints: endpoints,
+			}},
 		},
 	}
 

@@ -24,6 +24,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 )
 
+// NewVirtualHost creates a new VirtualHost.
 func NewVirtualHost(name string, domains []string, routes []*route.Route) *route.VirtualHost {
 	return &route.VirtualHost{
 		Name:    name,
@@ -32,6 +33,7 @@ func NewVirtualHost(name string, domains []string, routes []*route.Route) *route
 	}
 }
 
+// NewVirtualHostWithExtAuthz creates a new VirtualHost with ExtAuthz settings.
 func NewVirtualHostWithExtAuthz(
 	name string,
 	contextExtensions map[string]string,

@@ -21,6 +21,7 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 )
 
+// NewLBEndpoint creates a new LbEndpoint.
 func NewLBEndpoint(ip string, port uint32) *endpoint.LbEndpoint {
 	return &endpoint.LbEndpoint{
 		HostIdentifier: &endpoint.LbEndpoint_Endpoint{
