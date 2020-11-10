@@ -156,7 +156,7 @@ jobs:
 
         # Run conformance tests.
         go test -race -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... \
-           --enable-alpha --enable-beta --skip-tests="host-rewrite" \
+           --enable-alpha --enable-beta \
            --ingressendpoint="${IPS[0]}" \
            --ingressClass=kourier.ingress.networking.knative.dev \
            --cluster-suffix=$CLUSTER_SUFFIX
