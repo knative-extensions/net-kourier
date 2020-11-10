@@ -17,7 +17,6 @@ limitations under the License.
 package envoy
 
 import (
-	"net/http"
 	"time"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -56,20 +55,5 @@ func NewRoute(name string,
 			},
 		},
 		RequestHeadersToAdd: headersToAdd(headers),
-	}
-}
-
-// NewRouteStatusOK creates a route that simply returns 200.
-func NewRouteStatusOK(name string, path string) *route.Route {
-	return &route.Route{
-		Name: name,
-		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Path{
-				Path: path,
-			},
-		},
-		Action: &route.Route_DirectResponse{
-			DirectResponse: &route.DirectResponseAction{Status: http.StatusOK},
-		},
 	}
 }
