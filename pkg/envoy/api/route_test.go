@@ -17,7 +17,6 @@ limitations under the License.
 package envoy
 
 import (
-	"net/http"
 	"testing"
 
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -40,14 +39,4 @@ func TestNewRouteHeaderMatch(t *testing.T) {
 	assert.Equal(t, r.Match.Headers[0].Name, "myHeader")
 	assert.Equal(t, r.Match.Headers[0].GetExactMatch(), "strict")
 
-}
-
-func TestNewRouteStatusOK(t *testing.T) {
-	name := "testRoute_12345"
-	path := "/my_route"
-
-	r := NewRouteStatusOK(name, path)
-
-	assert.Equal(t, r.Match.GetPath(), path)
-	assert.Equal(t, r.GetDirectResponse().Status, uint32(http.StatusOK))
 }
