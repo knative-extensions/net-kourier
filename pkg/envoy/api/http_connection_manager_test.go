@@ -24,7 +24,7 @@ import (
 	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/golang/protobuf/ptypes"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestNewHTTPConnectionManager(t *testing.T) {

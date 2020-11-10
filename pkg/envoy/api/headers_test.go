@@ -23,7 +23,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestHeadersToAdd(t *testing.T) {

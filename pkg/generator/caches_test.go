@@ -27,7 +27,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/types/known/anypb"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/net-kourier/pkg/config"

@@ -20,7 +20,7 @@ import (
 	"sort"
 	"testing"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 	"k8s.io/apimachinery/pkg/types"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 )

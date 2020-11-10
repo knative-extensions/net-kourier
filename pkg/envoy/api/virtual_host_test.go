@@ -21,7 +21,7 @@ import (
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestVirtualHost(t *testing.T) {

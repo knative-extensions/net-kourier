@@ -21,7 +21,7 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestNewLBEndpoint(t *testing.T) {
