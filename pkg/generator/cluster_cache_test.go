@@ -22,7 +22,7 @@ import (
 	"time"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 var testCluster1 = envoy_api_v2.Cluster{

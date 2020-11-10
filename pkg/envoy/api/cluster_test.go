@@ -22,7 +22,7 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestNewCluster(t *testing.T) {
