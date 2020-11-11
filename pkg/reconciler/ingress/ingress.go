@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
@@ -120,30 +119,11 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 func (r *Reconciler) updateEnvoyConfig(ctx context.Context) error {
 	logger := logging.FromContext(ctx)
 
-	currentSnapshot, err := r.xdsServer.GetSnapshot(config.EnvoyNodeID)
-	if err != nil {
-		return err
-	}
-
 	logger.Debugf("Preparing Envoy Snapshot")
 	newSnapshot, err := r.caches.ToEnvoySnapshot()
 	if err != nil {
 		return err
 	}
 
-	// Let's warm the Clusters first, by sending the previous snapshot with the new cluster list, that includes
-	// both new and old clusters.
-	currentSnapshot.Resources[cache.Cluster].Items = newSnapshot.GetResources(cache.ClusterType)
-
-	//Validate that the snapshot is consistent.
-	if err := currentSnapshot.Consistent(); err != nil {
-		return err
-	}
-
-	if err := r.xdsServer.SetSnapshot(&currentSnapshot, nodeID); err != nil {
-		return err
-	}
-
-	// Now, send the full new snapshot.
 	return r.xdsServer.SetSnapshot(&newSnapshot, nodeID)
 }
