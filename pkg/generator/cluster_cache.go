@@ -46,13 +46,13 @@ import (
 )
 
 const (
-	clusterExpiration      = 15 * time.Second
-	defaultExpiration      = gocache.NoExpiration
+	defaultExpiration      = 15 * time.Second
 	defaultCleanupInterval = 1 * time.Minute
 )
 
 type ClustersCache struct {
-	clusters *gocache.Cache
+	clusterExpiration time.Duration
+	clusters          *gocache.Cache
 }
 
 func newClustersCache() *ClustersCache {
@@ -60,19 +60,19 @@ func newClustersCache() *ClustersCache {
 }
 
 func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanupInterval time.Duration) *ClustersCache {
-	goCache := gocache.New(expiration, cleanupInterval)
-	return &ClustersCache{clusters: goCache}
+	goCache := gocache.New(gocache.NoExpiration, cleanupInterval)
+	return &ClustersCache{clusters: goCache, clusterExpiration: expiration}
 }
 
 func (cc *ClustersCache) set(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
 	key := key(cluster.Name, ingressName, ingressNamespace)
-	cc.clusters.Set(key, cluster, defaultExpiration)
+	cc.clusters.Set(key, cluster, gocache.NoExpiration)
 }
 
 func (cc *ClustersCache) setExpiration(clusterName string, ingressName string, ingressNamespace string) {
 	key := key(clusterName, ingressName, ingressNamespace)
 	if cluster, ok := cc.clusters.Get(key); ok {
-		cc.clusters.Set(key, cluster, clusterExpiration)
+		cc.clusters.Set(key, cluster, cc.clusterExpiration)
 	}
 }
 

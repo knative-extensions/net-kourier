@@ -24,6 +24,7 @@ import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var testCluster1 = envoy_api_v2.Cluster{
@@ -64,11 +65,22 @@ func TestSetSeveralClusters(t *testing.T) {
 }
 
 func TestClustersExpire(t *testing.T) {
-	cleanupInterval := time.Second
-	cache := newClustersCacheWithExpAndCleanupIntervals(time.Second, cleanupInterval)
-	cache.setExpiration(testCluster1.Name, "some_ingress_name", "some_ingress_namespace")
-	time.Sleep(cleanupInterval + time.Second)
+	interval := 10 * time.Millisecond
+	cache := newClustersCacheWithExpAndCleanupIntervals(interval, interval)
+	cache.set(&testCluster1, "some_ingress_name", "some_ingress_namespace")
+	assert.Assert(t, is.Len(cache.list(), 1))
 
+	// Wait for twice the interval and assert that the cluster is still there.
+	time.Sleep(2 * interval)
+	assert.Assert(t, is.Len(cache.list(), 1))
+
+	// Mark the cluster to be expired.
+	cache.setExpiration(testCluster1.Name, "some_ingress_name", "some_ingress_namespace")
+
+	// The cluster should eventually disappear.
+	wait.PollImmediate(interval, 5*time.Second, func() (bool, error) {
+		return len(cache.list()) == 0, nil
+	})
 	assert.Assert(t, is.Len(cache.list(), 0))
 }
 
