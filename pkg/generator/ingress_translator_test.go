@@ -17,71 +17,409 @@ limitations under the License.
 package generator
 
 import (
-	"context"
-	"fmt"
-	"sort"
 	"testing"
+	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes/fake"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	pkgtest "knative.dev/pkg/reconciler/testing"
 )
 
-// Tests that when there is a traffic split defined in the ingress:
-// - Creates a route with weighted clusters defined.
-// - There's one weighted cluster for each traffic split and each contains:
-// 		- The traffic percentage.
-//		- The headers to add (namespace and revision name).
-//		- The cluster name, based on the revision name plus the path.
-// - The weighted clusters exists also in the clusters cache with the same
-//   name.
-//
-// Note: for now, the name of the cluster is the name of the revision plus the
-// path. That might change in the future.
-func TestTrafficSplits(t *testing.T) {
-	ingress := v1alpha1.Ingress{
+func TestIngressTranslator(t *testing.T) {
+	tests := []struct {
+		name  string
+		in    *v1alpha1.Ingress
+		state []runtime.Object
+		want  *translatedIngress
+	}{{
+		name: "simple",
+		in:   ing("simplens", "simplename"),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"simplename",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"simplename_simplens_/test",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicename/test", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v2.Cluster{
+					envoy.NewCluster(
+						"servicename/test",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v2.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts: vHosts,
+				internalVirtualHosts: vHosts,
+			}
+		}(),
+	}, {
+		name: "tls",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.TLS = []v1alpha1.IngressTLS{{
+				Hosts:           []string{"foo.example.com"},
+				SecretNamespace: "secretns",
+				SecretName:      "secretname",
+			}}
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			secret("secretns", "secretname"),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"testname",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"testname_testspace_/test",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicename/test", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{{
+					Hosts: []string{"foo.example.com"},
+					CertSource: types.NamespacedName{
+						Namespace: "secretns",
+						Name:      "secretname",
+					},
+					CertificateChain: cert,
+					PrivateKey:       privateKey,
+				}},
+				clusters: []*v2.Cluster{
+					envoy.NewCluster(
+						"servicename/test",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v2.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts: vHosts,
+				internalVirtualHosts: vHosts,
+			}
+		}(),
+	}, {
+		name: "split",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			path := &ing.Spec.Rules[0].HTTP.Paths[0]
+			path.Splits[0].Percent = 33
+			path.Splits = append(path.Splits, v1alpha1.IngressBackendSplit{
+				Percent: 33,
+				IngressBackend: v1alpha1.IngressBackend{
+					ServiceNamespace: "servicens2",
+					ServiceName:      "servicename2",
+					ServicePort:      intstr.FromString("http"),
+				},
+			}, v1alpha1.IngressBackendSplit{
+				Percent: 34,
+				IngressBackend: v1alpha1.IngressBackend{
+					ServiceNamespace: "servicens3",
+					ServiceName:      "servicename3",
+					ServicePort:      intstr.FromString("http"),
+				},
+			})
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			svc("servicens2", "servicename2"),
+			eps("servicens2", "servicename2"),
+			svc("servicens3", "servicename3", func(svc *corev1.Service) {
+				svc.Spec.Type = corev1.ServiceTypeExternalName
+				svc.Spec.ExternalName = "example.com"
+			}),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"testname",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"testname_testspace_/test",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicename/test", 33, map[string]string{"baz": "gna"}),
+							envoy.NewWeightedCluster("servicename2/test", 33, nil),
+							envoy.NewWeightedCluster("servicename3/test", 34, nil),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v2.Cluster{
+					envoy.NewCluster(
+						"servicename/test",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v2.Cluster_STATIC,
+					),
+					envoy.NewCluster(
+						"servicename2/test",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v2.Cluster_STATIC,
+					),
+					envoy.NewCluster(
+						"servicename3/test",
+						5*time.Second,
+						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
+						false,
+						v2.Cluster_LOGICAL_DNS,
+					),
+				},
+				externalVirtualHosts: vHosts,
+				internalVirtualHosts: vHosts,
+			}
+		}(),
+	}, {
+		name: "path defaulting",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].Path = ""
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"testname",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"testname_testspace_",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicename/", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v2.Cluster{
+					envoy.NewCluster(
+						"servicename/",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v2.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts: vHosts,
+				internalVirtualHosts: vHosts,
+			}
+		}(),
+	}, {
+		name: "external service",
+		in:   ing("testspace", "testname"),
+		state: []runtime.Object{
+			svc("servicens", "servicename", func(svc *corev1.Service) {
+				svc.Spec.Type = corev1.ServiceTypeExternalName
+				svc.Spec.ExternalName = "example.com"
+			}),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"testname",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"testname_testspace_/test",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicename/test", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v2.Cluster{
+					envoy.NewCluster(
+						"servicename/test",
+						5*time.Second,
+						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
+						false,
+						v2.Cluster_LOGICAL_DNS,
+					),
+				},
+				externalVirtualHosts: vHosts,
+				internalVirtualHosts: vHosts,
+			}
+		}(),
+	}, {
+		name: "missing service",
+		in:   ing("testspace", "testname"),
+	}, {
+		name:  "missing endpoints",
+		in:    ing("testspace", "testname"),
+		state: []runtime.Object{svc("servicens", "servicename")},
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, _ := pkgtest.SetupFakeContext(t)
+			kubeclient := fake.NewSimpleClientset(test.state...)
+
+			translator := NewIngressTranslator(
+				func(ns, name string) (*corev1.Secret, error) {
+					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns, name string) (*corev1.Endpoints, error) {
+					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns, name string) (*corev1.Service, error) {
+					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				&pkgtest.FakeTracker{},
+			)
+
+			got, err := translator.translateIngress(ctx, test.in, false)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, test.want,
+				cmp.AllowUnexported(translatedIngress{}),
+				cmpopts.IgnoreUnexported(durationpb.Duration{}, wrapperspb.UInt32Value{}, wrapperspb.BoolValue{}),
+			)
+		})
+	}
+}
+
+func ing(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {
+	ingress := &v1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "hello-world",
+			Namespace: ns,
+			Name:      name,
 		},
 		Spec: v1alpha1.IngressSpec{
 			Rules: []v1alpha1.IngressRule{{
+				Hosts:      []string{"foo.example.com"},
+				Visibility: v1alpha1.IngressVisibilityExternalIP,
 				HTTP: &v1alpha1.HTTPIngressRuleValue{
 					Paths: []v1alpha1.HTTPIngressPath{{
+						RewriteHost: "rewritten.example.com",
+						Headers: map[string]v1alpha1.HeaderMatch{
+							"testheader": {Exact: "foo"},
+						},
+						Path: "/test",
+						AppendHeaders: map[string]string{
+							"foo": "bar",
+						},
 						Splits: []v1alpha1.IngressBackendSplit{{
-							IngressBackend: v1alpha1.IngressBackend{
-								ServiceNamespace: "default",
-								ServiceName:      "hello-world-rev1",
-								ServicePort: intstr.IntOrString{
-									Type:   intstr.Int,
-									IntVal: 80,
-								},
-							},
-							Percent: 60,
+							Percent: 100,
 							AppendHeaders: map[string]string{
-								"Knative-Serving-Namespace": "default",
-								"Knative-Serving-Revision":  "hello-world-rev1",
+								"baz": "gna",
 							},
-						}, {
 							IngressBackend: v1alpha1.IngressBackend{
-								ServiceNamespace: "default",
-								ServiceName:      "hello-world-rev2",
-								ServicePort: intstr.IntOrString{
-									Type:   intstr.Int,
-									IntVal: 80,
-								},
-							},
-							Percent: 40,
-							AppendHeaders: map[string]string{
-								"Knative-Serving-Namespace": "default",
-								"Knative-Serving-Revision":  "hello-world-rev2",
+								ServiceNamespace: "servicens",
+								ServiceName:      "servicename",
+								ServicePort:      intstr.FromString("http"),
 							},
 						}},
 					}},
@@ -89,61 +427,28 @@ func TestTrafficSplits(t *testing.T) {
 			}},
 		},
 	}
-	ctx := context.Background()
-	ingressTranslator := NewIngressTranslator(
-		mockedSecretGetter, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
-	ingressTranslation, err := ingressTranslator.translateIngress(ctx, &ingress, false)
-	assert.NilError(t, err)
+	for _, opt := range opts {
+		opt(ingress)
+	}
 
-	vHosts := ingressTranslation.internalVirtualHosts
-	assert.Assert(t, is.Len(vHosts, 1))
-
-	routes := vHosts[0].GetRoutes()
-	assert.Assert(t, is.Len(routes, 1))
-
-	// Check that there are 2 weighted clusters for the route
-	weightedClusters := routes[0].GetRoute().GetWeightedClusters().GetClusters()
-	assert.Assert(t, is.Len(weightedClusters, 2))
-
-	// Check the first weighted cluster
-	assertWeightedClusterCorrect(
-		t,
-		weightedClusters[0],
-		"hello-world-rev1/",
-		uint32(60),
-		map[string]string{
-			"Knative-Serving-Namespace": "default",
-			"Knative-Serving-Revision":  "hello-world-rev1",
-		},
-	)
-
-	// Check the second weighted cluster
-	assertWeightedClusterCorrect(
-		t,
-		weightedClusters[1],
-		"hello-world-rev2/",
-		uint32(40),
-		map[string]string{
-			"Knative-Serving-Namespace": "default",
-			"Knative-Serving-Revision":  "hello-world-rev2",
-		},
-	)
-
-	// Check the clusters cache
-	assert.Assert(t,
-		clustersExist([]string{"hello-world-rev1/", "hello-world-rev2/"}, ingressTranslation.clusters))
+	return ingress
 }
 
-func TestExternalNameService(t *testing.T) {
-	ctx := context.Background()
-
-	ingress := createIngress("test", []string{"foo", "bar"}, v1alpha1.IngressVisibilityExternalIP)
-	svc := &corev1.Service{
+func svc(ns, name string, opts ...func(*corev1.Service)) *corev1.Service {
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      name,
+		},
 		Spec: corev1.ServiceSpec{
-			Type:         corev1.ServiceTypeExternalName,
-			ExternalName: "example.com",
+			Type:      corev1.ServiceTypeClusterIP,
+			ClusterIP: "1.1.1.1",
 			Ports: []corev1.ServicePort{{
+				Name:       "foo",
+				Port:       1337,
+				TargetPort: intstr.FromInt(1338),
+			}, {
 				Name:       "http",
 				Port:       80,
 				TargetPort: intstr.FromInt(8080),
@@ -151,287 +456,56 @@ func TestExternalNameService(t *testing.T) {
 		},
 	}
 
-	ingressTranslator := NewIngressTranslator(
-		mockedSecretGetter,
-		mockedEndpointsGetter,
-		func(ns, name string) (*corev1.Service, error) {
-			return svc, nil
-		},
-		&pkgtest.FakeTracker{})
+	for _, opt := range opts {
+		opt(service)
+	}
 
-	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
-	assert.NilError(t, err)
-
-	clusters := translatedIngress.clusters
-	assert.Assert(t, is.Len(clusters, 1))
-
-	cluster := clusters[0]
-	assert.Assert(t, is.Nil(cluster.Http2ProtocolOptions))
-	assert.Equal(t, cluster.GetType(), v2.Cluster_LOGICAL_DNS)
-
-	localityEps := cluster.GetLoadAssignment().GetEndpoints()
-	assert.Assert(t, is.Len(localityEps, 1))
-
-	eps := localityEps[0].LbEndpoints
-	assert.Assert(t, is.Len(eps, 1))
-
-	ep := eps[0]
-	assert.Equal(t, ep.GetEndpoint().GetAddress().GetSocketAddress().GetAddress(), "example.com")
+	return service
 }
 
-func TestIngressVisibility(t *testing.T) {
-	ctx := context.Background()
-	tests := []struct {
-		name       string
-		hosts      []string
-		extDomains []string
-		intDomains []string
-		visibility v1alpha1.IngressVisibility
-	}{{
-		name:       "external visibility",
-		hosts:      []string{"hello.default.example.com"},
-		extDomains: []string{"hello.default.example.com", "hello.default.example.com:*"},
-		// External should also be accessible internally
-		intDomains: []string{"hello.default.example.com", "hello.default.example.com:*"},
-		visibility: v1alpha1.IngressVisibilityExternalIP,
-	}, {
-		name:       "cluster local visibility",
-		hosts:      []string{"hello.default", "hello.default.svc", "hello.default.svc.cluster.local"},
-		intDomains: []string{"hello.default", "hello.default:*", "hello.default.svc", "hello.default.svc:*", "hello.default.svc.cluster.local", "hello.default.svc.cluster.local:*"},
-		visibility: v1alpha1.IngressVisibilityClusterLocal,
-	}}
-
-	for num, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ingress := createIngress(fmt.Sprintf("hello-%d", num), test.hosts, test.visibility)
-			ingressTranslator := NewIngressTranslator(
-				mockedSecretGetter, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
-
-			translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
-			assert.NilError(t, err)
-
-			extHosts := translatedIngress.externalVirtualHosts
-			intHosts := translatedIngress.internalVirtualHosts
-
-			var extDomains, intDomains []string
-			for _, v := range extHosts {
-				extDomains = append(extDomains, v.Domains...)
-			}
-			for _, v := range intHosts {
-				intDomains = append(intDomains, v.Domains...)
-			}
-
-			sort.Strings(extDomains)
-			sort.Strings(intDomains)
-			sort.Strings(test.extDomains)
-			sort.Strings(test.intDomains)
-
-			assert.DeepEqual(t, extDomains, test.extDomains)
-			assert.DeepEqual(t, intDomains, test.intDomains)
-		})
+func eps(ns, name string) *corev1.Endpoints {
+	return &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      name,
+		},
+		Subsets: []corev1.EndpointSubset{{
+			Addresses: []corev1.EndpointAddress{{
+				IP: "2.2.2.2",
+			}, {
+				IP: "3.3.3.3",
+			}},
+		}, {
+			Addresses: []corev1.EndpointAddress{{
+				IP: "4.4.4.4",
+			}, {
+				IP: "5.5.5.5",
+			}},
+		}},
 	}
 }
 
-func TestIngressWithTLS(t *testing.T) {
-	// TLS data for the test
-	tlsSecretName := "tls-secret"
-	tlsSecretNamespace := "default"
-	tlsHosts := []string{"hello-world.example.com"}
-	tlsCert := []byte("some-cert")
-	tlsKey := []byte("tls-key")
-	svcNamespace := "default"
-	ctx := context.Background()
+var lbEndpoints = []*endpoint.LbEndpoint{
+	envoy.NewLBEndpoint("2.2.2.2", 8080),
+	envoy.NewLBEndpoint("3.3.3.3", 8080),
+	envoy.NewLBEndpoint("4.4.4.4", 8080),
+	envoy.NewLBEndpoint("5.5.5.5", 8080),
+}
 
-	ingress := createIngressWithTLS(tlsHosts, tlsSecretName, tlsSecretNamespace, svcNamespace)
-
-	// Create secret with TLS data
-	tlsSecret := &corev1.Secret{
+func secret(ns, name string) *corev1.Secret {
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: tlsSecretNamespace,
-			Name:      tlsSecretName,
+			Namespace: ns,
+			Name:      name,
 		},
 		Data: map[string][]byte{
-			certFieldInSecret: tlsCert,
-			keyFieldInSecret:  tlsKey,
-		},
-	}
-	secretRef := types.NamespacedName{
-		Namespace: tlsSecretNamespace,
-		Name:      tlsSecretName,
-	}
-
-	ingressTranslator := NewIngressTranslator(
-		func(ns, name string) (*corev1.Secret, error) {
-			return tlsSecret, nil
-		},
-		mockedEndpointsGetter,
-		mockedServiceGetter,
-		&pkgtest.FakeTracker{})
-
-	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
-	assert.NilError(t, err)
-
-	assert.Assert(t, is.Len(translatedIngress.sniMatches, 1))
-	assert.DeepEqual(
-		t,
-		&envoy.SNIMatch{
-			Hosts:            tlsHosts,
-			CertSource:       secretRef,
-			CertificateChain: tlsCert,
-			PrivateKey:       tlsKey,
-		},
-		translatedIngress.sniMatches[0])
-}
-
-func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
-	tlsSecretName := "tls-secret"
-	tlsSecretNamespace := "default"
-	tlsHosts := []string{"hello-world.example.com"}
-	svcNamespace := "default"
-
-	ingress := createIngressWithTLS(tlsHosts, tlsSecretName, tlsSecretNamespace, svcNamespace)
-	ctx := context.Background()
-
-	ingressTranslator := NewIngressTranslator(
-		func(ns, name string) (*corev1.Secret, error) {
-			return nil, fmt.Errorf("secrets %q not found", name)
-		},
-		mockedEndpointsGetter,
-		mockedServiceGetter,
-		&pkgtest.FakeTracker{})
-
-	_, err := ingressTranslator.translateIngress(ctx, ingress, false)
-	assert.Error(t, err, fmt.Sprintf("failed to fetch secret: secrets %q not found", tlsSecretName))
-}
-
-var mockedSecretGetter = func(ns, name string) (*corev1.Secret, error) {
-	return &corev1.Secret{}, nil
-}
-
-var mockedEndpointsGetter = func(ns, name string) (*corev1.Endpoints, error) {
-	return &corev1.Endpoints{}, nil
-}
-
-var mockedServiceGetter = func(ns, name string) (*corev1.Service, error) {
-	return &corev1.Service{}, nil
-}
-
-func createIngress(name string, hosts []string, visibility v1alpha1.IngressVisibility) *v1alpha1.Ingress {
-	return &v1alpha1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: v1alpha1.IngressSpec{
-			Rules: []v1alpha1.IngressRule{{
-				Hosts:      hosts,
-				Visibility: visibility,
-				HTTP: &v1alpha1.HTTPIngressRuleValue{
-					Paths: []v1alpha1.HTTPIngressPath{{
-						Splits: []v1alpha1.IngressBackendSplit{{
-							IngressBackend: v1alpha1.IngressBackend{
-								ServiceName: name,
-								ServicePort: intstr.FromInt(80),
-							},
-						}},
-					}},
-				},
-			}},
+			"tls.crt": cert,
+			"tls.key": privateKey,
 		},
 	}
 }
 
-func createIngressWithTLS(hosts []string, secretName string, secretNamespace string, svcNamespace string) *v1alpha1.Ingress {
-	return &v1alpha1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "hello-world",
-		},
-		Spec: v1alpha1.IngressSpec{
-			TLS: []v1alpha1.IngressTLS{{
-				Hosts:           hosts,
-				SecretName:      secretName,
-				SecretNamespace: secretNamespace,
-			}},
-			Rules: []v1alpha1.IngressRule{{
-				Visibility: v1alpha1.IngressVisibilityExternalIP,
-				HTTP: &v1alpha1.HTTPIngressRuleValue{
-					Paths: []v1alpha1.HTTPIngressPath{{
-						Splits: []v1alpha1.IngressBackendSplit{{
-							IngressBackend: v1alpha1.IngressBackend{
-								ServiceNamespace: svcNamespace,
-								ServiceName:      "hello-world",
-								ServicePort: intstr.IntOrString{
-									Type:   intstr.Int,
-									IntVal: 80,
-								},
-							},
-							AppendHeaders: map[string]string{
-								"Knative-Serving-Namespace": svcNamespace,
-								"Knative-Serving-Revision":  "hello-world",
-							},
-						}},
-					}},
-				},
-			}},
-		},
-	}
-
-}
-
-func clustersExist(names []string, clusters []*v2.Cluster) bool {
-	// Create map that contains names that are present
-	present := make(map[string]bool)
-	for _, cacheCluster := range clusters {
-		present[cacheCluster.Name] = true
-	}
-
-	// Verify if the received names are present
-	for _, name := range names {
-		if !present[name] {
-			return false
-		}
-	}
-
-	return true
-}
-
-// Checks whether the weightedCluster received has the received name, traffic
-// percentage and headers to add
-func assertWeightedClusterCorrect(t *testing.T,
-	weightedCluster *route.WeightedCluster_ClusterWeight,
-	name string,
-	trafficPerc uint32,
-	headersToAdd map[string]string) {
-
-	assert.Equal(t, name, weightedCluster.Name)
-
-	assert.Equal(t, trafficPerc, weightedCluster.Weight.Value)
-
-	// Collect headers for easier comparison
-	clusterHeaders := make(map[string]string)
-	for _, header := range weightedCluster.RequestHeadersToAdd {
-		clusterHeaders[header.Header.Key] = header.Header.Value
-	}
-	assert.DeepEqual(t, clusterHeaders, headersToAdd)
-}
-
-func TestDomainsForRule(t *testing.T) {
-	domains := domainsForRule(v1alpha1.IngressRule{
-		Hosts: []string{
-			"helloworld-go.default.svc.cluster.local",
-			"helloworld-go.default.svc",
-			"helloworld-go.default",
-		},
-	})
-
-	expected := []string{
-		"helloworld-go.default",
-		"helloworld-go.default:*",
-		"helloworld-go.default.svc",
-		"helloworld-go.default.svc:*",
-		"helloworld-go.default.svc.cluster.local",
-		"helloworld-go.default.svc.cluster.local:*",
-	}
-	sort.Strings(domains)
-	sort.Strings(expected)
-	assert.DeepEqual(t, domains, expected)
-}
+var (
+	cert       = []byte("cert")
+	privateKey = []byte("key")
+)
