@@ -23,6 +23,7 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 var testCluster1 = envoy_api_v2.Cluster{
@@ -39,7 +40,7 @@ func TestSetCluster(t *testing.T) {
 
 	list := cache.list()
 
-	assert.Equal(t, 1, len(list))
+	assert.Assert(t, is.Len(list, 1))
 	assert.Equal(t, testCluster1.Name, list[0].(*envoy_api_v2.Cluster).Name)
 }
 
@@ -54,12 +55,11 @@ func TestSetSeveralClusters(t *testing.T) {
 		names = append(names, cluster.(*envoy_api_v2.Cluster).Name)
 	}
 
-	assert.Equal(t, 2, len(list))
-
 	// Could be returned in any order
 	expectedNames := []string{testCluster1.Name, testCluster2.Name}
 	sort.Strings(expectedNames)
 	sort.Strings(names)
+
 	assert.DeepEqual(t, expectedNames, names)
 }
 
@@ -69,15 +69,10 @@ func TestClustersExpire(t *testing.T) {
 	cache.setExpiration(testCluster1.Name, "some_ingress_name", "some_ingress_namespace")
 	time.Sleep(cleanupInterval + time.Second)
 
-	list := cache.list()
-
-	assert.Equal(t, 0, len(list))
+	assert.Assert(t, is.Len(cache.list(), 0))
 }
 
 func TestListWhenThereAreNoClusters(t *testing.T) {
 	cache := newClustersCache()
-
-	list := cache.list()
-
-	assert.Equal(t, 0, len(list))
+	assert.Assert(t, is.Len(cache.list(), 0))
 }

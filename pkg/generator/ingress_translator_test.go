@@ -24,15 +24,12 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	pkgtest "knative.dev/pkg/reconciler/testing"
@@ -51,10 +48,6 @@ import (
 // path. That might change in the future.
 func TestTrafficSplits(t *testing.T) {
 	ingress := v1alpha1.Ingress{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Ingress",
-			APIVersion: "networking.internal.knative.dev/v1alpha1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "hello-world",
 		},
@@ -95,36 +88,23 @@ func TestTrafficSplits(t *testing.T) {
 				},
 			}},
 		},
-		Status: v1alpha1.IngressStatus{},
 	}
-
-	kubeClient := fake.NewSimpleClientset()
 	ctx := context.Background()
-	// Create the Kubernetes services associated to the Knative services that
-	// appear in the ingress above
-	if err := createServicesWithNames(
-		ctx,
-		kubeClient,
-		[]string{"hello-world-rev1", "hello-world-rev2"},
-		"default",
-	); err != nil {
-		t.Error(err)
-	}
-
 	ingressTranslator := NewIngressTranslator(
 		mockedSecretGetter, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
 	ingressTranslation, err := ingressTranslator.translateIngress(ctx, &ingress, false)
-	if err != nil {
-		t.Error(err)
-	}
-	assert.Equal(t, 1, len(ingressTranslation.internalVirtualHosts))
-	assert.Equal(t, 1, len(ingressTranslation.internalVirtualHosts[0].GetRoutes()))
+	assert.NilError(t, err)
+
+	vHosts := ingressTranslation.internalVirtualHosts
+	assert.Assert(t, is.Len(vHosts, 1))
+
+	routes := vHosts[0].GetRoutes()
+	assert.Assert(t, is.Len(routes, 1))
 
 	// Check that there are 2 weighted clusters for the route
-	envoyRoute := ingressTranslation.internalVirtualHosts[0].GetRoutes()[0]
-	weightedClusters := envoyRoute.GetRoute().GetWeightedClusters().Clusters
-	assert.Equal(t, 2, len(weightedClusters))
+	weightedClusters := routes[0].GetRoute().GetWeightedClusters().GetClusters()
+	assert.Assert(t, is.Len(weightedClusters, 2))
 
 	// Check the first weighted cluster
 	assertWeightedClusterCorrect(
@@ -151,11 +131,8 @@ func TestTrafficSplits(t *testing.T) {
 	)
 
 	// Check the clusters cache
-	assert.Equal(
-		t,
-		true,
-		clustersExist([]string{"hello-world-rev1/", "hello-world-rev2/"}, ingressTranslation.clusters),
-	)
+	assert.Assert(t,
+		clustersExist([]string{"hello-world-rev1/", "hello-world-rev2/"}, ingressTranslation.clusters))
 }
 
 func TestExternalNameService(t *testing.T) {
@@ -183,9 +160,7 @@ func TestExternalNameService(t *testing.T) {
 		&pkgtest.FakeTracker{})
 
 	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, err)
 
 	clusters := translatedIngress.clusters
 	assert.Assert(t, is.Len(clusters, 1))
@@ -206,7 +181,6 @@ func TestExternalNameService(t *testing.T) {
 
 func TestIngressVisibility(t *testing.T) {
 	ctx := context.Background()
-	kubeClient := fake.NewSimpleClientset()
 	tests := []struct {
 		name       string
 		hosts      []string
@@ -230,35 +204,28 @@ func TestIngressVisibility(t *testing.T) {
 	for num, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ingress := createIngress(fmt.Sprintf("hello-%d", num), test.hosts, test.visibility)
-
-			// Create the Kubernetes services associated to the Knative service that
-			// appears in the ingress above
-			if err := createServicesWithNames(ctx, kubeClient, []string{ingress.ObjectMeta.Name}, ingress.ObjectMeta.Namespace); err != nil {
-				t.Error(err)
-			}
-
 			ingressTranslator := NewIngressTranslator(
 				mockedSecretGetter, mockedEndpointsGetter, mockedServiceGetter, &pkgtest.FakeTracker{})
 
 			translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
-			if err != nil {
-				t.Error(err)
-			}
-			var extDomains, intDomains []string
-			var extHosts, intHosts []*route.VirtualHost
-			extHosts = translatedIngress.externalVirtualHosts
-			intHosts = translatedIngress.internalVirtualHosts
+			assert.NilError(t, err)
 
+			extHosts := translatedIngress.externalVirtualHosts
+			intHosts := translatedIngress.internalVirtualHosts
+
+			var extDomains, intDomains []string
 			for _, v := range extHosts {
 				extDomains = append(extDomains, v.Domains...)
 			}
 			for _, v := range intHosts {
 				intDomains = append(intDomains, v.Domains...)
 			}
+
 			sort.Strings(extDomains)
 			sort.Strings(intDomains)
 			sort.Strings(test.extDomains)
 			sort.Strings(test.intDomains)
+
 			assert.DeepEqual(t, extDomains, test.extDomains)
 			assert.DeepEqual(t, intDomains, test.intDomains)
 		})
@@ -276,14 +243,6 @@ func TestIngressWithTLS(t *testing.T) {
 	ctx := context.Background()
 
 	ingress := createIngressWithTLS(tlsHosts, tlsSecretName, tlsSecretNamespace, svcNamespace)
-
-	kubeClient := fake.NewSimpleClientset()
-
-	// Create the Kubernetes services associated to the Knative service that
-	// appears in the ingress above
-	if err := createServicesWithNames(ctx, kubeClient, []string{ingress.ObjectMeta.Name}, svcNamespace); err != nil {
-		t.Error(err)
-	}
 
 	// Create secret with TLS data
 	tlsSecret := &corev1.Secret{
@@ -310,11 +269,9 @@ func TestIngressWithTLS(t *testing.T) {
 		&pkgtest.FakeTracker{})
 
 	translatedIngress, err := ingressTranslator.translateIngress(ctx, ingress, false)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NilError(t, err)
 
-	assert.Equal(t, 1, len(translatedIngress.sniMatches))
+	assert.Assert(t, is.Len(translatedIngress.sniMatches, 1))
 	assert.DeepEqual(
 		t,
 		&envoy.SNIMatch{
@@ -323,9 +280,7 @@ func TestIngressWithTLS(t *testing.T) {
 			CertificateChain: tlsCert,
 			PrivateKey:       tlsKey,
 		},
-		translatedIngress.sniMatches[0],
-		cmp.AllowUnexported(envoy.SNIMatch{}),
-	)
+		translatedIngress.sniMatches[0])
 }
 
 func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
@@ -335,15 +290,7 @@ func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
 	svcNamespace := "default"
 
 	ingress := createIngressWithTLS(tlsHosts, tlsSecretName, tlsSecretNamespace, svcNamespace)
-
-	kubeClient := fake.NewSimpleClientset()
 	ctx := context.Background()
-
-	// Create the Kubernetes services associated to the Knative service that
-	// appears in the ingress above
-	if err := createServicesWithNames(ctx, kubeClient, []string{ingress.ObjectMeta.Name}, "default"); err != nil {
-		t.Error(err)
-	}
 
 	ingressTranslator := NewIngressTranslator(
 		func(ns, name string) (*corev1.Secret, error) {
@@ -354,7 +301,6 @@ func TestReturnsErrorWhenTLSSecretDoesNotExist(t *testing.T) {
 		&pkgtest.FakeTracker{})
 
 	_, err := ingressTranslator.translateIngress(ctx, ingress, false)
-
 	assert.Error(t, err, fmt.Sprintf("failed to fetch secret: secrets %q not found", tlsSecretName))
 }
 
@@ -372,10 +318,6 @@ var mockedServiceGetter = func(ns, name string) (*corev1.Service, error) {
 
 func createIngress(name string, hosts []string, visibility v1alpha1.IngressVisibility) *v1alpha1.Ingress {
 	return &v1alpha1.Ingress{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Ingress",
-			APIVersion: "networking.internal.knative.dev/v1alpha1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -395,16 +337,11 @@ func createIngress(name string, hosts []string, visibility v1alpha1.IngressVisib
 				},
 			}},
 		},
-		Status: v1alpha1.IngressStatus{},
 	}
 }
 
 func createIngressWithTLS(hosts []string, secretName string, secretNamespace string, svcNamespace string) *v1alpha1.Ingress {
 	return &v1alpha1.Ingress{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Ingress",
-			APIVersion: "networking.internal.knative.dev/v1alpha1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "hello-world",
 		},
@@ -436,27 +373,8 @@ func createIngressWithTLS(hosts []string, secretName string, secretNamespace str
 				},
 			}},
 		},
-		Status: v1alpha1.IngressStatus{},
 	}
 
-}
-
-func createServicesWithNames(ctx context.Context, kubeclient kubernetes.Interface, names []string, namespace string) error {
-	for _, serviceName := range names {
-		service := corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: serviceName,
-			},
-		}
-
-		_, err := kubeclient.CoreV1().Services(namespace).Create(ctx, &service, metav1.CreateOptions{})
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func clustersExist(names []string, clusters []*v2.Cluster) bool {

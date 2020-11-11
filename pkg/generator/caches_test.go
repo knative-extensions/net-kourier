@@ -38,9 +38,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	ctx := context.Background()
 
 	caches, err := NewCaches(ctx, &kubeClient, false)
-	if err != nil {
-		t.Fail()
-	}
+	assert.NilError(t, err)
 
 	// Add info for an ingress
 	firstIngressName := "ingress_1"
@@ -69,7 +67,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	)
 
 	// Delete the first ingress
-	_ = caches.DeleteIngressInfo(ctx, firstIngressName, firstIngressNamespace)
+	caches.DeleteIngressInfo(ctx, firstIngressName, firstIngressNamespace)
 
 	// Check that the listeners only have the virtual hosts of the second
 	// ingress.
@@ -96,9 +94,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	ctx := context.Background()
 
 	caches, err := NewCaches(ctx, &kubeClient, false)
-	if err != nil {
-		t.Fail()
-	}
+	assert.NilError(t, err)
 
 	// Add info for an ingress
 	firstIngressName := "ingress_1"
@@ -114,23 +110,17 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	)
 
 	snapshotBeforeDelete, err := caches.ToEnvoySnapshot()
-	if err != nil {
-		t.FailNow()
-	}
+	assert.NilError(t, err)
 
 	clustersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ClusterType)
 	routesBeforeDelete := snapshotBeforeDelete.GetResources(cache.RouteType)
 	listenersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ListenerType)
 
 	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace")
-	if err != nil {
-		t.FailNow()
-	}
+	assert.NilError(t, err)
 
 	snapshotAfterDelete, err := caches.ToEnvoySnapshot()
-	if err != nil {
-		t.FailNow()
-	}
+	assert.NilError(t, err)
 
 	clustersAfterDelete := snapshotAfterDelete.GetResources(cache.ClusterType)
 	routesAfterDelete := snapshotAfterDelete.GetResources(cache.RouteType)
@@ -173,8 +163,8 @@ func createTestDataForIngress(
 		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
 	}
 
-	_ = caches.addTranslatedIngress(translatedIngress)
-	_ = caches.setListeners(ctx)
+	caches.addTranslatedIngress(translatedIngress)
+	caches.setListeners(ctx)
 }
 
 func TestValidateIngress(t *testing.T) {
@@ -182,9 +172,7 @@ func TestValidateIngress(t *testing.T) {
 	ctx := context.Background()
 
 	caches, err := NewCaches(ctx, &kubeClient, false)
-	if err != nil {
-		t.Fail()
-	}
+	assert.NilError(t, err)
 
 	createTestDataForIngress(
 		ctx,
