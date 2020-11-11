@@ -59,9 +59,9 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 	}
 
 	if !ing.IsReady() {
-		ready, err := r.statusManager.IsReady(context.TODO(), before)
+		ready, err := r.statusManager.IsReady(ctx, before)
 		if err != nil {
-			return fmt.Errorf("failed to probe Ingress %s/%s: %w", ing.GetNamespace(), ing.GetName(), err)
+			return fmt.Errorf("failed to probe Ingress: %w", err)
 		}
 		if ready {
 			external, internal := config.ServiceHostnames()
@@ -95,9 +95,10 @@ func (r *Reconciler) ObserveKind(ctx context.Context, ing *v1alpha1.Ingress) rec
 func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
 	return r.ObserveFinalizeKind(ctx, ing)
 }
+
 func (r *Reconciler) ObserveFinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
 	logger := logging.FromContext(ctx)
-	logger.Infof("Deleting Ingress %s/%s", ing.Name, ing.Namespace)
+	logger.Infof("Deleting Ingress")
 
 	r.statusManager.CancelIngressProbing(ing)
 
@@ -110,24 +111,20 @@ func (r *Reconciler) ObserveFinalizeKind(ctx context.Context, ing *v1alpha1.Ingr
 
 func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingress) error {
 	logger := logging.FromContext(ctx)
-	logger.Infof("Updating Ingress %s namespace: %s", ingress.Name, ingress.Namespace)
+	logger.Infof("Updating Ingress")
 
 	if err := generator.UpdateInfoForIngress(
 		ctx, r.caches, ingress, r.ingressTranslator, r.extAuthz); err != nil {
 		return err
 	}
 
-	if err := r.updateEnvoyConfig(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return r.updateEnvoyConfig(ctx)
 }
 
 func (r *Reconciler) updateEnvoyConfig(ctx context.Context) error {
 	logger := logging.FromContext(ctx)
-
 	logger.Debugf("Preparing Envoy Snapshot")
+
 	newSnapshot, err := r.caches.ToEnvoySnapshot(ctx)
 	if err != nil {
 		return err

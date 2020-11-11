@@ -28,14 +28,13 @@ import (
 // regenerate it. We can optimize this later.
 func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, translator *IngressTranslator, extAuthzEnabled bool) error {
 	// Adds a header with the ingress Hash and a random value header to force the config reload.
-	_, err := ingress.InsertProbe(ing)
-	if err != nil {
-		return fmt.Errorf("failed to add knative probe header in ingress: %s", ing.GetName())
+	if _, err := ingress.InsertProbe(ing); err != nil {
+		return fmt.Errorf("failed to add knative probe header: %w", err)
 	}
 
 	ingressTranslation, err := translator.translateIngress(ctx, ing, extAuthzEnabled)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to translate ingress: %w", err)
 	}
 
 	if ingressTranslation == nil {
