@@ -53,8 +53,6 @@ type Caches struct {
 	translatedIngresses map[types.NamespacedName]*translatedIngress
 	clusters            *ClustersCache
 	domainsInUse        sets.String
-	routeConfig         []*v2.RouteConfiguration
-	listeners           []*v2.Listener
 	statusVirtualHost   *route.VirtualHost
 
 	kubeClient kubeclient.Interface
@@ -72,10 +70,6 @@ func NewCaches(ctx context.Context, kubernetesClient kubeclient.Interface, extAu
 	if extAuthz {
 		c.clusters.set(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
 	}
-
-	if err := c.setListeners(ctx); err != nil {
-		return nil, err
-	}
 	return c, nil
 }
 
@@ -86,12 +80,7 @@ func (caches *Caches) UpdateIngress(ctx context.Context, ingressTranslation *tra
 	defer caches.mu.Unlock()
 
 	caches.deleteTranslatedIngress(ingressTranslation.name.Name, ingressTranslation.name.Namespace)
-
-	if err := caches.addTranslatedIngress(ingressTranslation); err != nil {
-		return err
-	}
-
-	return caches.setListeners(ctx)
+	return caches.addTranslatedIngress(ingressTranslation)
 }
 
 func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
@@ -133,7 +122,10 @@ func (caches *Caches) SetOnEvicted(f func(types.NamespacedName, interface{})) {
 	})
 }
 
-func (caches *Caches) setListeners(ctx context.Context) error {
+func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, error) {
+	caches.mu.Lock()
+	defer caches.mu.Unlock()
+
 	localVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses)+1)
 	externalVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
 	snis := sniMatches{}
@@ -149,42 +141,15 @@ func (caches *Caches) setListeners(ctx context.Context) error {
 	// Append the statusHost too.
 	localVHosts = append(localVHosts, caches.statusVirtualHost)
 
-	listeners, err := listenersFromVirtualHosts(
+	listeners, routes, err := generateListenersAndRouteConfigs(
 		ctx,
 		externalVHosts,
 		localVHosts,
 		snis.list(),
 		caches.kubeClient,
-		caches,
 	)
-
 	if err != nil {
-		return err
-	}
-
-	caches.listeners = listeners
-
-	return nil
-}
-
-func (caches *Caches) ToEnvoySnapshot() (cache.Snapshot, error) {
-	caches.mu.Lock()
-	defer caches.mu.Unlock()
-
-	// Instead of sending the Routes, we send the RouteConfigs.
-	routes := make([]cache.Resource, len(caches.routeConfig))
-	for i := range caches.routeConfig {
-		// Without this we can generate routes that point to non-existing clusters
-		// That causes some "no_cluster" errors in Envoy and the "TestUpdate"
-		// in the Knative serving test suite fails sometimes.
-		// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
-		caches.routeConfig[i].ValidateClusters = &wrappers.BoolValue{Value: true}
-		routes[i] = caches.routeConfig[i]
-	}
-
-	listeners := make([]cache.Resource, len(caches.listeners))
-	for i := range caches.listeners {
-		listeners[i] = caches.listeners[i]
+		return cache.Snapshot{}, err
 	}
 
 	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
@@ -212,7 +177,7 @@ func (caches *Caches) DeleteIngressInfo(ctx context.Context, ingressName string,
 	defer caches.mu.Unlock()
 
 	caches.deleteTranslatedIngress(ingressName, ingressNamespace)
-	return caches.setListeners(ctx)
+	return nil
 }
 
 func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace string) {
@@ -245,32 +210,37 @@ func (caches *Caches) getNewSnapshotVersion() (string, error) {
 	return snapshotVersion.String(), nil
 }
 
-func listenersFromVirtualHosts(
+func generateListenersAndRouteConfigs(
 	ctx context.Context,
 	externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	sniMatches []*envoy.SNIMatch,
-	kubeclient kubeclient.Interface,
-	caches *Caches) ([]*v2.Listener, error) {
+	kubeclient kubeclient.Interface) ([]cache.Resource, []cache.Resource, error) {
 
 	// First, we save the RouteConfigs with the proper name and all the virtualhosts etc. into the cache.
 	externalRouteConfig := envoy.NewRouteConfig(externalRouteConfigName, externalVirtualHosts)
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
-	caches.routeConfig = []*v2.RouteConfiguration{externalRouteConfig, internalRouteConfig}
+
+	// Without this we can generate routes that point to non-existing clusters
+	// That causes some "no_cluster" errors in Envoy and the "TestUpdate"
+	// in the Knative serving test suite fails sometimes.
+	// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
+	externalRouteConfig.ValidateClusters = &wrappers.BoolValue{Value: true}
+	internalRouteConfig.ValidateClusters = &wrappers.BoolValue{Value: true}
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
 	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name)
 	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name)
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	internalEnvoyListener, err := envoy.NewHTTPListener(internalManager, config.HTTPPortInternal)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	listeners := []*v2.Listener{externalHTTPEnvoyListener, internalEnvoyListener}
+	listeners := []cache.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
 
 	// Configure TLS Listener. If there's at least one ingress that contains the
 	// TLS field, that takes precedence. If there is not, TLS will be configured
@@ -278,7 +248,7 @@ func listenersFromVirtualHosts(
 	if len(sniMatches) > 0 {
 		externalHTTPSEnvoyListener, err := envoy.NewHTTPSListenerWithSNI(externalManager, config.HTTPSPortExternal, sniMatches)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 	} else if useHTTPSListenerWithOneCert() {
@@ -286,12 +256,12 @@ func listenersFromVirtualHosts(
 			ctx, externalManager, kubeclient,
 		)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 	}
 
-	return listeners, nil
+	return listeners, []cache.Resource{externalRouteConfig, internalRouteConfig}, nil
 }
 
 // Returns true if we need to modify the HTTPS listener with just one cert

@@ -130,7 +130,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	r.ingressTranslator = &ingressTranslator
 
 	// Initialize the Envoy snapshot.
-	snapshot, err := r.caches.ToEnvoySnapshot()
+	snapshot, err := r.caches.ToEnvoySnapshot(ctx)
 	if err != nil {
 		logger.Fatalw("Failed to create snapshot", zap.Error(err))
 	}

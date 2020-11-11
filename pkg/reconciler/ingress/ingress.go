@@ -126,7 +126,7 @@ func (r *Reconciler) updateEnvoyConfig(ctx context.Context) error {
 	}
 
 	logger.Debugf("Preparing Envoy Snapshot")
-	newSnapshot, err := r.caches.ToEnvoySnapshot()
+	newSnapshot, err := r.caches.ToEnvoySnapshot(ctx)
 	if err != nil {
 		return err
 	}

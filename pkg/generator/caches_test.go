@@ -69,11 +69,20 @@ func TestDeleteIngressInfo(t *testing.T) {
 	// Delete the first ingress
 	caches.DeleteIngressInfo(ctx, firstIngressName, firstIngressNamespace)
 
+	snapshot, err := caches.ToEnvoySnapshot(ctx)
+	assert.NilError(t, err)
+
+	routeConfigsR := snapshot.GetResources(cache.RouteType)
+	routeConfigs := make([]*v2.RouteConfiguration, len(routeConfigsR))
+	for _, r := range routeConfigsR {
+		routeConfigs = append(routeConfigs, r.(*v2.RouteConfiguration))
+	}
+
 	// Check that the listeners only have the virtual hosts of the second
 	// ingress.
 	// Note: Apart from the vHosts that were added explicitly, there's also
 	// the one used to verify the snapshot version.
-	vHostsNames := getVHostsNames(caches.routeConfig)
+	vHostsNames := getVHostsNames(routeConfigs)
 
 	sort.Strings(vHostsNames)
 
@@ -109,7 +118,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 		"external_host_for_ingress_1",
 	)
 
-	snapshotBeforeDelete, err := caches.ToEnvoySnapshot()
+	snapshotBeforeDelete, err := caches.ToEnvoySnapshot(ctx)
 	assert.NilError(t, err)
 
 	clustersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ClusterType)
@@ -119,7 +128,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace")
 	assert.NilError(t, err)
 
-	snapshotAfterDelete, err := caches.ToEnvoySnapshot()
+	snapshotAfterDelete, err := caches.ToEnvoySnapshot(ctx)
 	assert.NilError(t, err)
 
 	clustersAfterDelete := snapshotAfterDelete.GetResources(cache.ClusterType)
@@ -164,7 +173,6 @@ func createTestDataForIngress(
 	}
 
 	caches.addTranslatedIngress(translatedIngress)
-	caches.setListeners(ctx)
 }
 
 func TestValidateIngress(t *testing.T) {
