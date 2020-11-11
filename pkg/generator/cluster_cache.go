@@ -66,7 +66,7 @@ func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanu
 
 func (cc *ClustersCache) set(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
 	key := key(cluster.Name, ingressName, ingressNamespace)
-	cc.clusters.Set(key, cluster, gocache.DefaultExpiration)
+	cc.clusters.Set(key, cluster, gocache.NoExpiration)
 }
 
 func (cc *ClustersCache) setExpiration(clusterName string, ingressName string, ingressNamespace string) {
