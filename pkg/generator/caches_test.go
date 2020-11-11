@@ -44,7 +44,6 @@ func TestDeleteIngressInfo(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		firstIngressName,
 		firstIngressNamespace,
@@ -57,7 +56,6 @@ func TestDeleteIngressInfo(t *testing.T) {
 	secondIngressName := "ingress_2"
 	secondIngressNamespace := "ingress_2_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		secondIngressName,
 		secondIngressNamespace,
@@ -109,7 +107,6 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		firstIngressName,
 		firstIngressNamespace,
@@ -154,7 +151,6 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 // Creates an ingress translation and listeners from the given names an
 // associates them with the ingress name/namespace received.
 func createTestDataForIngress(
-	ctx context.Context,
 	caches *Caches,
 	ingressName string,
 	ingressNamespace string,
@@ -183,7 +179,6 @@ func TestValidateIngress(t *testing.T) {
 	assert.NilError(t, err)
 
 	createTestDataForIngress(
-		ctx,
 		caches,
 		"ingress_1",
 		"ingress_1_namespace",
