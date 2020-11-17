@@ -134,7 +134,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	if err != nil {
 		logger.Fatalw("Failed to create snapshot", zap.Error(err))
 	}
-	err = r.xdsServer.SetSnapshot(&snapshot, nodeID)
+	err = r.xdsServer.SetSnapshot(nodeID, snapshot)
 	if err != nil {
 		logger.Fatalw("Failed to set snapshot", zap.Error(err))
 	}
