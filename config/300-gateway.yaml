@@ -35,7 +35,7 @@ spec:
             - --log-level info
           command:
             - /usr/local/bin/envoy
-          image: docker.io/maistra/proxyv2-ubi8:1.1.5
+          image: docker.io/maistra/proxyv2-ubi8:2.0.0
           name: kourier-gateway
           ports:
             - name: http2-external
@@ -156,7 +156,9 @@ data:
                             - "*"
                           routes:
                             - match:
-                                regex: '/(certs|stats(/prometheus)?|server_info|clusters|listeners|ready)?'
+                                safe_regex:
+                                  google_re2: {}
+                                  regex: '/(certs|stats(/prometheus)?|server_info|clusters|listeners|ready)?'
                                 headers:
                                   - name: ':method'
                                     exact_match: GET
