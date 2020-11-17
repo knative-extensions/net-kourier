@@ -107,13 +107,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	r.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 
-	r.caches.SetOnEvicted(func(key types.NamespacedName, value interface{}) {
-		logger.Debug("Evicted", key.String())
-		// We enqueue the ingress name and namespace as if it was a new event, to force
-		// a config refresh.
-		impl.EnqueueKey(key)
-	})
-
 	tracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
 
 	ingressTranslator := generator.NewIngressTranslator(

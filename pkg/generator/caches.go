@@ -51,26 +51,21 @@ var ErrDomainConflict = errors.New("ingress has a conflicting domain with anothe
 type Caches struct {
 	mu                  sync.Mutex
 	translatedIngresses map[types.NamespacedName]*translatedIngress
-	clusters            *ClustersCache
 	domainsInUse        sets.String
 	statusVirtualHost   *route.VirtualHost
 
+	extAuthz   bool
 	kubeClient kubeclient.Interface
 }
 
 func NewCaches(ctx context.Context, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
-	c := &Caches{
+	return &Caches{
 		translatedIngresses: make(map[types.NamespacedName]*translatedIngress),
-		clusters:            newClustersCache(),
 		domainsInUse:        sets.NewString(),
 		statusVirtualHost:   statusVHost(),
 		kubeClient:          kubernetesClient,
-	}
-
-	if extAuthz {
-		c.clusters.set(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
-	}
-	return c, nil
+		extAuthz:            extAuthz,
+	}, nil
 }
 
 func (caches *Caches) UpdateIngress(ctx context.Context, ingressTranslation *translatedIngress) error {
@@ -104,22 +99,7 @@ func (caches *Caches) addTranslatedIngress(translatedIngress *translatedIngress)
 
 	caches.translatedIngresses[translatedIngress.name] = translatedIngress
 
-	for _, cluster := range translatedIngress.clusters {
-		caches.clusters.set(cluster, translatedIngress.name.Name, translatedIngress.name.Namespace)
-	}
-
 	return nil
-}
-
-// SetOnEvicted allows to set a function that will be executed when any key on the cache expires.
-func (caches *Caches) SetOnEvicted(f func(types.NamespacedName, interface{})) {
-	caches.clusters.clusters.OnEvicted(func(key string, val interface{}) {
-		_, name, namespace := explodeKey(key)
-		f(types.NamespacedName{
-			Namespace: namespace,
-			Name:      name,
-		}, val)
-	})
 }
 
 func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, error) {
@@ -128,11 +108,16 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 
 	localVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses)+1)
 	externalVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
+	clusters := make([]cache.Resource, 0, len(caches.translatedIngresses))
 	snis := sniMatches{}
 
 	for _, translatedIngress := range caches.translatedIngresses {
 		localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
 		externalVHosts = append(externalVHosts, translatedIngress.externalVirtualHosts...)
+
+		for _, cluster := range translatedIngress.clusters {
+			clusters = append(clusters, cluster)
+		}
 
 		for _, match := range translatedIngress.sniMatches {
 			snis.consume(match)
@@ -140,6 +125,10 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 	}
 	// Append the statusHost too.
 	localVHosts = append(localVHosts, caches.statusVirtualHost)
+
+	if caches.extAuthz {
+		clusters = append(clusters, config.ExternalAuthz.Cluster)
+	}
 
 	listeners, routes, err := generateListenersAndRouteConfigs(
 		ctx,
@@ -162,7 +151,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 	return cache.NewSnapshot(
 		snapshotVersion,
 		make([]cache.Resource, 0),
-		caches.clusters.list(),
+		clusters,
 		routes,
 		listeners,
 		make([]cache.Resource, 0),
@@ -186,12 +175,7 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 		Name:      ingressName,
 	}
 
-	// Set to expire all the clusters belonging to that Ingress.
 	if translated := caches.translatedIngresses[key]; translated != nil {
-		for _, cluster := range translated.clusters {
-			caches.clusters.setExpiration(cluster.Name, ingressName, ingressNamespace)
-		}
-
 		for _, vhost := range translated.internalVirtualHosts {
 			caches.domainsInUse.Delete(vhost.Domains...)
 		}
