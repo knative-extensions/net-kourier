@@ -120,7 +120,7 @@ func (r *Reconciler) updateEnvoyConfig(ctx context.Context) error {
 	logger := logging.FromContext(ctx)
 
 	logger.Debugf("Preparing Envoy Snapshot")
-	newSnapshot, err := r.caches.ToEnvoySnapshot()
+	newSnapshot, err := r.caches.ToEnvoySnapshot(ctx)
 	if err != nil {
 		return err
 	}

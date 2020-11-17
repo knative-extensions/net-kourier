@@ -44,7 +44,6 @@ func TestDeleteIngressInfo(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		firstIngressName,
 		firstIngressNamespace,
@@ -57,7 +56,6 @@ func TestDeleteIngressInfo(t *testing.T) {
 	secondIngressName := "ingress_2"
 	secondIngressNamespace := "ingress_2_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		secondIngressName,
 		secondIngressNamespace,
@@ -69,11 +67,20 @@ func TestDeleteIngressInfo(t *testing.T) {
 	// Delete the first ingress
 	caches.DeleteIngressInfo(ctx, firstIngressName, firstIngressNamespace)
 
+	snapshot, err := caches.ToEnvoySnapshot(ctx)
+	assert.NilError(t, err)
+
+	routeConfigsR := snapshot.GetResources(cache.RouteType)
+	routeConfigs := make([]*v2.RouteConfiguration, len(routeConfigsR))
+	for _, r := range routeConfigsR {
+		routeConfigs = append(routeConfigs, r.(*v2.RouteConfiguration))
+	}
+
 	// Check that the listeners only have the virtual hosts of the second
 	// ingress.
 	// Note: Apart from the vHosts that were added explicitly, there's also
 	// the one used to verify the snapshot version.
-	vHostsNames := getVHostsNames(caches.routeConfig)
+	vHostsNames := getVHostsNames(routeConfigs)
 
 	sort.Strings(vHostsNames)
 
@@ -100,7 +107,6 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	firstIngressName := "ingress_1"
 	firstIngressNamespace := "ingress_1_namespace"
 	createTestDataForIngress(
-		ctx,
 		caches,
 		firstIngressName,
 		firstIngressNamespace,
@@ -109,7 +115,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 		"external_host_for_ingress_1",
 	)
 
-	snapshotBeforeDelete, err := caches.ToEnvoySnapshot()
+	snapshotBeforeDelete, err := caches.ToEnvoySnapshot(ctx)
 	assert.NilError(t, err)
 
 	clustersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ClusterType)
@@ -119,7 +125,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace")
 	assert.NilError(t, err)
 
-	snapshotAfterDelete, err := caches.ToEnvoySnapshot()
+	snapshotAfterDelete, err := caches.ToEnvoySnapshot(ctx)
 	assert.NilError(t, err)
 
 	clustersAfterDelete := snapshotAfterDelete.GetResources(cache.ClusterType)
@@ -145,7 +151,6 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 // Creates an ingress translation and listeners from the given names an
 // associates them with the ingress name/namespace received.
 func createTestDataForIngress(
-	ctx context.Context,
 	caches *Caches,
 	ingressName string,
 	ingressNamespace string,
@@ -164,7 +169,6 @@ func createTestDataForIngress(
 	}
 
 	caches.addTranslatedIngress(translatedIngress)
-	caches.setListeners(ctx)
 }
 
 func TestValidateIngress(t *testing.T) {
@@ -175,7 +179,6 @@ func TestValidateIngress(t *testing.T) {
 	assert.NilError(t, err)
 
 	createTestDataForIngress(
-		ctx,
 		caches,
 		"ingress_1",
 		"ingress_1_namespace",
