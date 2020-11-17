@@ -97,10 +97,6 @@ func (envoyXdsServer *XdsServer) RunManagementServer() error {
 	}
 }
 
-func (envoyXdsServer *XdsServer) GetSnapshot(nodeid string) (cache.Snapshot, error) {
-	return envoyXdsServer.snapshotCache.GetSnapshot(nodeid)
-}
-
-func (envoyXdsServer *XdsServer) SetSnapshot(snapshot *cache.Snapshot, nodeID string) error {
-	return envoyXdsServer.snapshotCache.SetSnapshot(nodeID, *snapshot)
+func (envoyXdsServer *XdsServer) SetSnapshot(nodeID string, snapshot cache.Snapshot) error {
+	return envoyXdsServer.snapshotCache.SetSnapshot(nodeID, snapshot)
 }

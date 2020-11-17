@@ -125,5 +125,5 @@ func (r *Reconciler) updateEnvoyConfig(ctx context.Context) error {
 		return err
 	}
 
-	return r.xdsServer.SetSnapshot(&newSnapshot, nodeID)
+	return r.xdsServer.SetSnapshot(nodeID, newSnapshot)
 }
