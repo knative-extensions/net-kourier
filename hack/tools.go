@@ -4,6 +4,7 @@ package tools
 
 import (
 	_ "knative.dev/hack"
+	_ "knative.dev/pkg/hack"
 
 	// For chaos testing the leaderelection stuff.
 	_ "knative.dev/pkg/leaderelection/chaosduck"
