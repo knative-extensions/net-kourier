@@ -22,7 +22,6 @@ import (
 	"net"
 
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v2"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v2"
@@ -40,20 +39,9 @@ type XdsServer struct {
 	snapshotCache  cache.SnapshotCache
 }
 
-// hasher returns node ID as an ID
-type hasher struct {
-}
-
-func (h hasher) ID(node *core.Node) string {
-	if node == nil {
-		return "unknown"
-	}
-	return node.Id
-}
-
 func NewXdsServer(managementPort uint, callbacks xds.Callbacks) *XdsServer {
 	ctx := context.Background()
-	snapshotCache := cache.NewSnapshotCache(true, hasher{}, nil)
+	snapshotCache := cache.NewSnapshotCache(true, cache.IDHash{}, nil)
 	srv := xds.NewServer(ctx, snapshotCache, callbacks)
 
 	return &XdsServer{
