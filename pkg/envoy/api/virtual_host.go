@@ -20,7 +20,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/proto" //nolint // TODO: Move over to non-deprecated proto package
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 )
 
@@ -40,21 +40,13 @@ func NewVirtualHostWithExtAuthz(
 	domains []string,
 	routes []*route.Route) *route.VirtualHost {
 
-	perFilterConfig := extAuthService.ExtAuthzPerRoute{
+	filter, _ := ptypes.MarshalAny(&extAuthService.ExtAuthzPerRoute{
 		Override: &extAuthService.ExtAuthzPerRoute_CheckSettings{
 			CheckSettings: &extAuthService.CheckSettings{
 				ContextExtensions: contextExtensions,
 			},
 		},
-	}
-
-	b := proto.NewBuffer(nil)
-	b.SetDeterministic(true)
-	_ = b.Marshal(&perFilterConfig)
-	filter := &any.Any{
-		TypeUrl: "type.googleapis.com/envoy.config.filter.http.ext_authz.v2.ExtAuthzPerRoute",
-		Value:   b.Bytes(),
-	}
+	})
 
 	return &route.VirtualHost{
 		Name:    name,
