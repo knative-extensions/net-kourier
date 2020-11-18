@@ -26,7 +26,8 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/cache"
+	cachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v2"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -161,11 +162,12 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 
 	return cache.NewSnapshot(
 		snapshotVersion,
-		make([]cache.Resource, 0),
+		make([]cachetypes.Resource, 0),
 		caches.clusters.list(),
 		routes,
 		listeners,
-		make([]cache.Resource, 0),
+		make([]cachetypes.Resource, 0),
+		make([]cachetypes.Resource, 0),
 	), nil
 }
 
@@ -215,7 +217,7 @@ func generateListenersAndRouteConfigs(
 	externalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	sniMatches []*envoy.SNIMatch,
-	kubeclient kubeclient.Interface) ([]cache.Resource, []cache.Resource, error) {
+	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, error) {
 
 	// First, we save the RouteConfigs with the proper name and all the virtualhosts etc. into the cache.
 	externalRouteConfig := envoy.NewRouteConfig(externalRouteConfigName, externalVirtualHosts)
@@ -240,7 +242,7 @@ func generateListenersAndRouteConfigs(
 		return nil, nil, err
 	}
 
-	listeners := []cache.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
+	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
 
 	// Configure TLS Listener. If there's at least one ingress that contains the
 	// TLS field, that takes precedence. If there is not, TLS will be configured
@@ -261,7 +263,7 @@ func generateListenersAndRouteConfigs(
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 	}
 
-	return listeners, []cache.Resource{externalRouteConfig, internalRouteConfig}, nil
+	return listeners, []cachetypes.Resource{externalRouteConfig, internalRouteConfig}, nil
 }
 
 // Returns true if we need to modify the HTTPS listener with just one cert

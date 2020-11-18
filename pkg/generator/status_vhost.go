@@ -22,7 +22,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto" //nolint // TODO: Move over to non-deprecated proto package
 	"github.com/golang/protobuf/ptypes/any"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
@@ -38,14 +38,16 @@ func statusVHost() *route.VirtualHost {
 	)
 
 	// Make sure that ExtAuthz configuration is ignored on this path.
-	perFilterConfig := &extAuthService.ExtAuthzPerRoute{
+	perFilterConfig := extAuthService.ExtAuthzPerRoute{
 		Override: &extAuthService.ExtAuthzPerRoute_Disabled{
 			Disabled: true,
 		},
 	}
 
 	b := proto.NewBuffer(nil)
-	b.Marshal(perFilterConfig)
+	b.SetDeterministic(true)
+	b.Marshal(&perFilterConfig)
+
 	filter := &any.Any{
 		TypeUrl: "type.googleapis.com/envoy.config.filter.http.ext_authz.v2.ExtAuthzPerRoute",
 		Value:   b.Bytes(),

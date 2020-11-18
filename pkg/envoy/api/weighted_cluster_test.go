@@ -22,7 +22,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 )
 
@@ -46,5 +46,5 @@ func TestNewWeightedCluster(t *testing.T) {
 		}},
 	}
 
-	assert.DeepEqual(t, got, want, cmpopts.IgnoreUnexported(wrappers.BoolValue{}, wrappers.UInt32Value{}))
+	assert.DeepEqual(t, got, want, protocmp.Transform())
 }
