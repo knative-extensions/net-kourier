@@ -19,6 +19,7 @@ metadata:
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    serving.knative.dev/release: devel
 spec:
   selector:
     matchLabels:
@@ -84,6 +85,7 @@ metadata:
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    serving.knative.dev/release: devel
 spec:
   ports:
     - name: http2
@@ -105,6 +107,7 @@ metadata:
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    serving.knative.dev/release: devel
 spec:
   ports:
     - name: http2
@@ -122,6 +125,7 @@ metadata:
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    serving.knative.dev/release: devel
 data:
   envoy-bootstrap.yaml: |
     dynamic_resources:
