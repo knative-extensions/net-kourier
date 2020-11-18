@@ -20,6 +20,7 @@ import (
 	"context"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds "github.com/envoyproxy/go-control-plane/pkg/server/v2"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,12 +87,18 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	envoyXdsServer := envoy.NewXdsServer(
 		managementPort,
-		&envoy.Callbacks{
-			OnError: func(req *v2.DiscoveryRequest) {
+		&xds.CallbackFuncs{
+			StreamRequestFunc: func(_ int64, req *v2.DiscoveryRequest) error {
+				if req.ErrorDetail == nil {
+					return nil
+				}
+
 				logger.Infof("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
 				impl.FilteredGlobalResync(func(obj interface{}) bool {
 					return isKourierIngress(obj) && !obj.(*v1alpha1.Ingress).IsReady()
 				}, ingressInformer.Informer())
+
+				return nil
 			},
 		},
 	)
