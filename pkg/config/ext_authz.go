@@ -27,7 +27,6 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/conversion"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/kelseyhightower/envconfig"
@@ -138,15 +137,15 @@ func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeA
 		ClearRouteCache: false,
 	}
 
-	envoyConf, err := conversion.MessageToStruct(extAuthConfig)
+	envoyConf, err := ptypes.MarshalAny(extAuthConfig)
 	if err != nil {
 		panic(err)
 	}
 
 	return &httpconnectionmanagerv2.HttpFilter{
 		Name: wellknown.HTTPExternalAuthorization,
-		ConfigType: &httpconnectionmanagerv2.HttpFilter_Config{
-			Config: envoyConf,
+		ConfigType: &httpconnectionmanagerv2.HttpFilter_TypedConfig{
+			TypedConfig: envoyConf,
 		},
 	}
 }
