@@ -45,9 +45,18 @@ var _ ingress.Finalizer = (*Reconciler)(nil)
 var _ ingress.ReadOnlyFinalizer = (*Reconciler)(nil)
 
 func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+	ing.SetDefaults(ctx)
 	before := ing.DeepCopy()
 
-	r.ObserveKind(ctx, ing)
+	if err := r.updateIngress(ctx, ing); errors.Is(err, generator.ErrDomainConflict) {
+		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
+		// custom status. We don't want to return an error in this case as we want to update its status.
+		logging.FromContext(ctx).Info("Ingress rejected as its domain conflicts with another ingress")
+		ing.Status.MarkLoadBalancerFailed("DomainConflict", "Ingress rejected as its domain conflicts with another ingress")
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to update ingress: %w", err)
+	}
 
 	if !ing.IsReady() {
 		ready, err := r.statusManager.IsReady(context.TODO(), before)
@@ -69,14 +78,13 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 	return nil
 }
 
-func (r *Reconciler) ObserveKind(ctx context.Context, ingress *v1alpha1.Ingress) reconciler.Event {
-	ingress.SetDefaults(ctx)
+func (r *Reconciler) ObserveKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+	ing.SetDefaults(ctx)
 
-	if err := r.updateIngress(ctx, ingress); errors.Is(err, generator.ErrDomainConflict) {
-		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
-		// custom status. We don't want to return an error in this case as we want to update its status.
-		logging.FromContext(ctx).Errorw(err.Error(), ingress.Name, ingress.Namespace)
-		ingress.Status.MarkLoadBalancerFailed("DomainConflict", "Ingress rejected as its domain conflicts with another ingress")
+	if err := r.updateIngress(ctx, ing); errors.Is(err, generator.ErrDomainConflict) {
+		// If we had an error due to a duplicated domain, just abort.
+		logging.FromContext(ctx).Info("Ingress rejected as its domain conflicts with another ingress")
+		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
 	}
