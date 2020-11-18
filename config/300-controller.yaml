@@ -19,6 +19,7 @@ metadata:
   namespace: knative-serving
   labels:
     networking.knative.dev/ingress-provider: kourier
+    serving.knative.dev/release: devel
 spec:
   replicas: 1
   selector:
@@ -66,6 +67,7 @@ metadata:
   namespace: knative-serving
   labels:
     networking.knative.dev/ingress-provider: kourier
+    serving.knative.dev/release: devel
 spec:
   ports:
     - name: grpc-xds

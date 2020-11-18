@@ -18,3 +18,4 @@ metadata:
   name: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    serving.knative.dev/release: devel
