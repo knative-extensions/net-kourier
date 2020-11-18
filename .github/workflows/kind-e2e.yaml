@@ -155,7 +155,7 @@ jobs:
         IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
 
         # Run conformance tests.
-        go test -race -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... \
+        go test -race -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e/... \
            --enable-alpha --enable-beta \
            --ingressendpoint="${IPS[0]}" \
            --ingressClass=kourier.ingress.networking.knative.dev \
