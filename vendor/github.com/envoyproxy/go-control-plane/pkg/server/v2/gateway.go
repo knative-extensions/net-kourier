@@ -16,15 +16,17 @@ package server
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"path"
 
 	"github.com/golang/protobuf/jsonpb"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/cache"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/log"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v2"
 )
 
 // HTTPGateway is a custom implementation of [gRPC gateway](https://github.com/grpc-ecosystem/grpc-gateway)
@@ -37,45 +39,41 @@ type HTTPGateway struct {
 	Server Server
 }
 
-func (h *HTTPGateway) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+func (h *HTTPGateway) ServeHTTP(req *http.Request) ([]byte, int, error) {
 	p := path.Clean(req.URL.Path)
 
 	typeURL := ""
 	switch p {
-	case "/v2/discovery:endpoints":
-		typeURL = cache.EndpointType
-	case "/v2/discovery:clusters":
-		typeURL = cache.ClusterType
-	case "/v2/discovery:listeners":
-		typeURL = cache.ListenerType
-	case "/v2/discovery:routes":
-		typeURL = cache.RouteType
-	case "/v2/discovery:secrets":
-		typeURL = cache.SecretType
-	case "/v2/discovery:runtime":
-		typeURL = cache.RuntimeType
+	case resource.FetchEndpoints:
+		typeURL = resource.EndpointType
+	case resource.FetchClusters:
+		typeURL = resource.ClusterType
+	case resource.FetchListeners:
+		typeURL = resource.ListenerType
+	case resource.FetchRoutes:
+		typeURL = resource.RouteType
+	case resource.FetchSecrets:
+		typeURL = resource.SecretType
+	case resource.FetchRuntimes:
+		typeURL = resource.RuntimeType
 	default:
-		http.Error(resp, "no endpoint", http.StatusNotFound)
-		return
+		return nil, http.StatusNotFound, fmt.Errorf("no endpoint")
 	}
 
 	if req.Body == nil {
-		http.Error(resp, "empty body", http.StatusBadRequest)
-		return
+		return nil, http.StatusBadRequest, fmt.Errorf("empty body")
 	}
 
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		http.Error(resp, "cannot read body", http.StatusBadRequest)
-		return
+		return nil, http.StatusBadRequest, fmt.Errorf("cannot read body")
 	}
 
 	// parse as JSON
-	out := &v2.DiscoveryRequest{}
+	out := &discovery.DiscoveryRequest{}
 	err = jsonpb.UnmarshalString(string(body), out)
 	if err != nil {
-		http.Error(resp, "cannot parse JSON body: "+err.Error(), http.StatusBadRequest)
-		return
+		return nil, http.StatusBadRequest, fmt.Errorf("cannot parse JSON body: " + err.Error())
 	}
 	out.TypeUrl = typeURL
 
@@ -84,20 +82,16 @@ func (h *HTTPGateway) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		// SkipFetchErrors will return a 304 which will signify to the envoy client that
 		// it is already at the latest version; all other errors will 500 with a message.
-		if _, ok := err.(*cache.SkipFetchError); ok {
-			resp.WriteHeader(http.StatusNotModified)
-		} else {
-			http.Error(resp, "fetch error: "+err.Error(), http.StatusInternalServerError)
+		if _, ok := err.(*types.SkipFetchError); ok {
+			return nil, http.StatusNotModified, nil
 		}
-		return
+		return nil, http.StatusInternalServerError, fmt.Errorf("fetch error: " + err.Error())
 	}
 
 	buf := &bytes.Buffer{}
 	if err := (&jsonpb.Marshaler{OrigName: true}).Marshal(buf, res); err != nil {
-		http.Error(resp, "marshal error: "+err.Error(), http.StatusInternalServerError)
+		return nil, http.StatusInternalServerError, fmt.Errorf("marshal error: " + err.Error())
 	}
 
-	if _, err = resp.Write(buf.Bytes()); err != nil && h.Log != nil {
-		h.Log.Errorf("gateway error: %v", err)
-	}
+	return buf.Bytes(), http.StatusOK, nil
 }

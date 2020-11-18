@@ -17,6 +17,8 @@ package cache
 import (
 	"errors"
 	"fmt"
+
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 )
 
 // Resources is a versioned group of resources.
@@ -25,12 +27,12 @@ type Resources struct {
 	Version string
 
 	// Items in the group indexed by name.
-	Items map[string]Resource
+	Items map[string]types.Resource
 }
 
 // IndexResourcesByName creates a map from the resource name to the resource.
-func IndexResourcesByName(items []Resource) map[string]Resource {
-	indexed := make(map[string]Resource, len(items))
+func IndexResourcesByName(items []types.Resource) map[string]types.Resource {
+	indexed := make(map[string]types.Resource, len(items))
 	for _, item := range items {
 		indexed[GetResourceName(item)] = item
 	}
@@ -38,7 +40,7 @@ func IndexResourcesByName(items []Resource) map[string]Resource {
 }
 
 // NewResources creates a new resource group.
-func NewResources(version string, items []Resource) Resources {
+func NewResources(version string, items []types.Resource) Resources {
 	return Resources{
 		Version: version,
 		Items:   IndexResourcesByName(items),
@@ -46,25 +48,27 @@ func NewResources(version string, items []Resource) Resources {
 }
 
 // Snapshot is an internally consistent snapshot of xDS resources.
-// Consistentcy is important for the convergence as different resource types
+// Consistency is important for the convergence as different resource types
 // from the snapshot may be delivered to the proxy in arbitrary order.
 type Snapshot struct {
-	Resources [UnknownType]Resources
+	Resources [types.UnknownType]Resources
 }
 
 // NewSnapshot creates a snapshot from response types and a version.
 func NewSnapshot(version string,
-	endpoints []Resource,
-	clusters []Resource,
-	routes []Resource,
-	listeners []Resource,
-	runtimes []Resource) Snapshot {
+	endpoints []types.Resource,
+	clusters []types.Resource,
+	routes []types.Resource,
+	listeners []types.Resource,
+	runtimes []types.Resource,
+	secrets []types.Resource) Snapshot {
 	out := Snapshot{}
-	out.Resources[Endpoint] = NewResources(version, endpoints)
-	out.Resources[Cluster] = NewResources(version, clusters)
-	out.Resources[Route] = NewResources(version, routes)
-	out.Resources[Listener] = NewResources(version, listeners)
-	out.Resources[Runtime] = NewResources(version, runtimes)
+	out.Resources[types.Endpoint] = NewResources(version, endpoints)
+	out.Resources[types.Cluster] = NewResources(version, clusters)
+	out.Resources[types.Route] = NewResources(version, routes)
+	out.Resources[types.Listener] = NewResources(version, listeners)
+	out.Resources[types.Runtime] = NewResources(version, runtimes)
+	out.Resources[types.Secret] = NewResources(version, secrets)
 	return out
 }
 
@@ -80,28 +84,28 @@ func (s *Snapshot) Consistent() error {
 	if s == nil {
 		return errors.New("nil snapshot")
 	}
-	endpoints := GetResourceReferences(s.Resources[Cluster].Items)
-	if len(endpoints) != len(s.Resources[Endpoint].Items) {
-		return fmt.Errorf("mismatched endpoint reference and resource lengths: %v != %d", endpoints, len(s.Resources[Endpoint].Items))
+	endpoints := GetResourceReferences(s.Resources[types.Cluster].Items)
+	if len(endpoints) != len(s.Resources[types.Endpoint].Items) {
+		return fmt.Errorf("mismatched endpoint reference and resource lengths: %v != %d", endpoints, len(s.Resources[types.Endpoint].Items))
 	}
-	if err := superset(endpoints, s.Resources[Endpoint].Items); err != nil {
+	if err := superset(endpoints, s.Resources[types.Endpoint].Items); err != nil {
 		return err
 	}
 
-	routes := GetResourceReferences(s.Resources[Listener].Items)
-	if len(routes) != len(s.Resources[Route].Items) {
-		return fmt.Errorf("mismatched route reference and resource lengths: %v != %d", routes, len(s.Resources[Route].Items))
+	routes := GetResourceReferences(s.Resources[types.Listener].Items)
+	if len(routes) != len(s.Resources[types.Route].Items) {
+		return fmt.Errorf("mismatched route reference and resource lengths: %v != %d", routes, len(s.Resources[types.Route].Items))
 	}
-	return superset(routes, s.Resources[Route].Items)
+	return superset(routes, s.Resources[types.Route].Items)
 }
 
 // GetResources selects snapshot resources by type.
-func (s *Snapshot) GetResources(typeURL string) map[string]Resource {
+func (s *Snapshot) GetResources(typeURL string) map[string]types.Resource {
 	if s == nil {
 		return nil
 	}
 	typ := GetResponseType(typeURL)
-	if typ == UnknownType {
+	if typ == types.UnknownType {
 		return nil
 	}
 	return s.Resources[typ].Items
@@ -113,7 +117,7 @@ func (s *Snapshot) GetVersion(typeURL string) string {
 		return ""
 	}
 	typ := GetResponseType(typeURL)
-	if typ == UnknownType {
+	if typ == types.UnknownType {
 		return ""
 	}
 	return s.Resources[typ].Version

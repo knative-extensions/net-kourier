@@ -21,6 +21,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/log"
 )
 
@@ -51,6 +52,12 @@ type SnapshotCache interface {
 
 	// ClearSnapshot removes all status and snapshot information associated with a node.
 	ClearSnapshot(node string)
+
+	// GetStatusInfo retrieves status information for a node ID.
+	GetStatusInfo(string) StatusInfo
+
+	// GetStatusKeys retrieves node IDs for all statuses.
+	GetStatusKeys() []string
 }
 
 type snapshotCache struct {
@@ -80,7 +87,7 @@ type snapshotCache struct {
 // resources are explicitly named in the request. This avoids the problem of a
 // partial request over a single stream for a subset of resources which would
 // require generating a fresh version for acknowledgement. ADS flag requires
-// snapshot consistency. For non-ADS case (and fetch), mutliple partial
+// snapshot consistency. For non-ADS case (and fetch), multiple partial
 // requests are sent across multiple streams and re-using the snapshot version
 // is OK.
 //
@@ -155,7 +162,7 @@ func nameSet(names []string) map[string]bool {
 }
 
 // superset checks that all resources are listed in the names set.
-func superset(names map[string]bool, resources map[string]Resource) error {
+func superset(names map[string]bool, resources map[string]types.Resource) error {
 	for resourceName := range resources {
 		if _, exists := names[resourceName]; !exists {
 			return fmt.Errorf("%q not listed", resourceName)
@@ -165,7 +172,7 @@ func superset(names map[string]bool, resources map[string]Resource) error {
 }
 
 // CreateWatch returns a watch for an xDS request.
-func (cache *snapshotCache) CreateWatch(request Request) (chan Response, func()) {
+func (cache *snapshotCache) CreateWatch(request *Request) (chan Response, func()) {
 	nodeID := cache.hash.ID(request.Node)
 
 	cache.mu.Lock()
@@ -227,7 +234,7 @@ func (cache *snapshotCache) cancelWatch(nodeID string, watchID int64) func() {
 
 // Respond to a watch with the snapshot value. The value channel should have capacity not to block.
 // TODO(kuat) do not respond always, see issue https://github.com/envoyproxy/go-control-plane/issues/46
-func (cache *snapshotCache) respond(request Request, value chan Response, resources map[string]Resource, version string) {
+func (cache *snapshotCache) respond(request *Request, value chan Response, resources map[string]types.Resource, version string) {
 	// for ADS, the request names must match the snapshot names
 	// if they do not, then the watch is never responded, and it is expected that envoy makes another request
 	if len(request.ResourceNames) != 0 && cache.ads {
@@ -246,8 +253,8 @@ func (cache *snapshotCache) respond(request Request, value chan Response, resour
 	value <- createResponse(request, resources, version)
 }
 
-func createResponse(request Request, resources map[string]Resource, version string) Response {
-	filtered := make([]Resource, 0, len(resources))
+func createResponse(request *Request, resources map[string]types.Resource, version string) Response {
+	filtered := make([]types.Resource, 0, len(resources))
 
 	// Reply only with the requested resources. Envoy may ask each resource
 	// individually in a separate stream. It is ok to reply with the same version
@@ -265,7 +272,7 @@ func createResponse(request Request, resources map[string]Resource, version stri
 		}
 	}
 
-	return Response{
+	return &RawResponse{
 		Request:   request,
 		Version:   version,
 		Resources: filtered,
@@ -274,7 +281,7 @@ func createResponse(request Request, resources map[string]Resource, version stri
 
 // Fetch implements the cache fetch function.
 // Fetch is called on multiple streams, so responding to individual names with the same version works.
-func (cache *snapshotCache) Fetch(ctx context.Context, request Request) (*Response, error) {
+func (cache *snapshotCache) Fetch(ctx context.Context, request *Request) (Response, error) {
 	nodeID := cache.hash.ID(request.Node)
 
 	cache.mu.RLock()
@@ -288,12 +295,12 @@ func (cache *snapshotCache) Fetch(ctx context.Context, request Request) (*Respon
 			if cache.log != nil {
 				cache.log.Warnf("skip fetch: version up to date")
 			}
-			return nil, &SkipFetchError{}
+			return nil, &types.SkipFetchError{}
 		}
 
 		resources := snapshot.GetResources(request.TypeUrl)
 		out := createResponse(request, resources, version)
-		return &out, nil
+		return out, nil
 	}
 
 	return nil, fmt.Errorf("missing snapshot for %q", nodeID)

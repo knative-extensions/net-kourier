@@ -23,10 +23,8 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/envoyproxy/go-control-plane/pkg/cache"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/types/known/anypb"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v2"
+	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
@@ -70,7 +68,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	snapshot, err := caches.ToEnvoySnapshot(ctx)
 	assert.NilError(t, err)
 
-	routeConfigsR := snapshot.GetResources(cache.RouteType)
+	routeConfigsR := snapshot.GetResources(resource.RouteType)
 	routeConfigs := make([]*v2.RouteConfiguration, len(routeConfigsR))
 	for _, r := range routeConfigsR {
 		routeConfigs = append(routeConfigs, r.(*v2.RouteConfiguration))
@@ -118,9 +116,9 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	snapshotBeforeDelete, err := caches.ToEnvoySnapshot(ctx)
 	assert.NilError(t, err)
 
-	clustersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ClusterType)
-	routesBeforeDelete := snapshotBeforeDelete.GetResources(cache.RouteType)
-	listenersBeforeDelete := snapshotBeforeDelete.GetResources(cache.ListenerType)
+	clustersBeforeDelete := snapshotBeforeDelete.GetResources(resource.ClusterType)
+	routesBeforeDelete := snapshotBeforeDelete.GetResources(resource.RouteType)
+	listenersBeforeDelete := snapshotBeforeDelete.GetResources(resource.ListenerType)
 
 	err = caches.DeleteIngressInfo(ctx, "non_existing_name", "non_existing_namespace")
 	assert.NilError(t, err)
@@ -128,9 +126,9 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	snapshotAfterDelete, err := caches.ToEnvoySnapshot(ctx)
 	assert.NilError(t, err)
 
-	clustersAfterDelete := snapshotAfterDelete.GetResources(cache.ClusterType)
-	routesAfterDelete := snapshotAfterDelete.GetResources(cache.RouteType)
-	listenersAfterDelete := snapshotAfterDelete.GetResources(cache.ListenerType)
+	clustersAfterDelete := snapshotAfterDelete.GetResources(resource.ClusterType)
+	routesAfterDelete := snapshotAfterDelete.GetResources(resource.RouteType)
+	listenersAfterDelete := snapshotAfterDelete.GetResources(resource.ListenerType)
 
 	// This is a temporary workaround. Remove when we delete the route with a
 	// randomly generated name in status_vhost.go
@@ -143,9 +141,9 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	vHostsRoutesAfter := routesAfterDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts
 	routesAfterDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts = vHostsRoutesAfter[:len(vHostsRoutesAfter)-1]
 
-	assert.DeepEqual(t, clustersBeforeDelete, clustersAfterDelete)
-	assert.DeepEqual(t, routesBeforeDelete, routesAfterDelete, cmpopts.IgnoreUnexported(wrappers.BoolValue{}))
-	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete, cmpopts.IgnoreUnexported(anypb.Any{}))
+	assert.DeepEqual(t, clustersBeforeDelete, clustersAfterDelete, protocmp.Transform())
+	assert.DeepEqual(t, routesBeforeDelete, routesAfterDelete, protocmp.Transform())
+	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete, protocmp.Transform())
 }
 
 // Creates an ingress translation and listeners from the given names an

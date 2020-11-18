@@ -22,6 +22,7 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 )
 
@@ -38,7 +39,7 @@ func TestNewCluster(t *testing.T) {
 	assert.Equal(t, c.GetConnectTimeout().Seconds, int64(connectTimeout.Seconds()))
 	assert.Assert(t, c.GetHttp2ProtocolOptions() != nil)
 	assert.Equal(t, c.GetName(), name)
-	assert.DeepEqual(t, c.LoadAssignment.Endpoints[0].LbEndpoints, endpoints)
+	assert.DeepEqual(t, c.LoadAssignment.Endpoints[0].LbEndpoints, endpoints, protocmp.Transform())
 
 	// Without HTTP2
 	c = NewCluster(name, connectTimeout, endpoints, false, v2.Cluster_STATIC)

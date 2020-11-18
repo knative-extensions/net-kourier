@@ -24,6 +24,7 @@ import (
 	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 )
 
@@ -53,5 +54,5 @@ func TestNewRouteConfig(t *testing.T) {
 		VirtualHosts: []*route.VirtualHost{vhost},
 	}
 
-	assert.DeepEqual(t, got, want)
+	assert.DeepEqual(t, got, want, protocmp.Transform())
 }

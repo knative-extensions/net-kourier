@@ -21,6 +21,7 @@ import (
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 )
 
@@ -36,7 +37,7 @@ func TestVirtualHost(t *testing.T) {
 		Routes:  routes,
 	}
 
-	assert.DeepEqual(t, got, want)
+	assert.DeepEqual(t, got, want, protocmp.Transform())
 }
 
 func TestVirtualHostWithExtAuthz(t *testing.T) {
@@ -53,6 +54,6 @@ func TestVirtualHostWithExtAuthz(t *testing.T) {
 
 	assert.Equal(t, got.Name, want.Name)
 	assert.DeepEqual(t, got.Domains, want.Domains)
-	assert.DeepEqual(t, got.Routes, want.Routes)
+	assert.DeepEqual(t, got.Routes, want.Routes, protocmp.Transform())
 	assert.Assert(t, got.TypedPerFilterConfig[wellknown.HTTPExternalAuthorization] != nil)
 }

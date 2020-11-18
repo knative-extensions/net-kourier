@@ -22,7 +22,7 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 )
 
@@ -75,7 +75,7 @@ func TestHeadersToAdd(t *testing.T) {
 				return got[i].Header.Key < got[j].Header.Key
 			})
 
-			assert.DeepEqual(t, got, test.out, cmpopts.IgnoreUnexported(wrappers.BoolValue{}))
+			assert.DeepEqual(t, got, test.out, protocmp.Transform())
 		})
 	}
 }

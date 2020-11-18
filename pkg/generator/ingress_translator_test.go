@@ -24,9 +24,7 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -385,7 +383,7 @@ func TestIngressTranslator(t *testing.T) {
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
-				cmpopts.IgnoreUnexported(durationpb.Duration{}, wrapperspb.UInt32Value{}, wrapperspb.BoolValue{}),
+				protocmp.Transform(),
 			)
 		})
 	}

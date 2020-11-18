@@ -41,7 +41,7 @@ import (
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache"
+	cachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	gocache "github.com/patrickmn/go-cache"
 )
 
@@ -76,10 +76,10 @@ func (cc *ClustersCache) setExpiration(clusterName string, ingressName string, i
 	}
 }
 
-func (cc *ClustersCache) list() []envoycache.Resource {
-	res := make([]envoycache.Resource, 0, cc.clusters.ItemCount())
+func (cc *ClustersCache) list() []cachetypes.Resource {
+	res := make([]cachetypes.Resource, 0, cc.clusters.ItemCount())
 	for _, cluster := range cc.clusters.Items() {
-		res = append(res, cluster.Object.(envoycache.Resource))
+		res = append(res, cluster.Object.(cachetypes.Resource))
 	}
 
 	return res
