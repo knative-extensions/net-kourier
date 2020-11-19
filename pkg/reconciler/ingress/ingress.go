@@ -51,8 +51,8 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 	if err := r.updateIngress(ctx, ing); errors.Is(err, generator.ErrDomainConflict) {
 		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
 		// custom status. We don't want to return an error in this case as we want to update its status.
-		logging.FromContext(ctx).Info("Ingress rejected as its domain conflicts with another ingress")
-		ing.Status.MarkLoadBalancerFailed("DomainConflict", "Ingress rejected as its domain conflicts with another ingress")
+		logging.FromContext(ctx).Info(err.Error())
+		ing.Status.MarkLoadBalancerFailed("DomainConflict", "Ingress rejected: "+err.Error())
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
@@ -83,7 +83,7 @@ func (r *Reconciler) ObserveKind(ctx context.Context, ing *v1alpha1.Ingress) rec
 
 	if err := r.updateIngress(ctx, ing); errors.Is(err, generator.ErrDomainConflict) {
 		// If we had an error due to a duplicated domain, just abort.
-		logging.FromContext(ctx).Info("Ingress rejected as its domain conflicts with another ingress")
+		logging.FromContext(ctx).Info(err.Error())
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
