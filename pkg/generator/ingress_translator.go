@@ -172,11 +172,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 
 			if len(wrs) != 0 {
-				// Default the path to "/" if none is passed.
-				path := httpPath.Path
-				if path == "" {
-					path = "/"
-				}
 				routes = append(routes, envoy.NewRoute(
 					pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
 			}
