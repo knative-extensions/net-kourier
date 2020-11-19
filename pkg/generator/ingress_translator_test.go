@@ -53,10 +53,10 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"simplename",
+					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{envoy.NewRoute(
-						"simplename_simplens_/test",
+						"(simplens/simplename).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
 							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
@@ -65,7 +65,7 @@ func TestIngressTranslator(t *testing.T) {
 						}},
 						"/test",
 						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicename/test", 100, map[string]string{"baz": "gna"}),
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 						},
 						0,
 						map[string]string{"foo": "bar"},
@@ -82,7 +82,7 @@ func TestIngressTranslator(t *testing.T) {
 				sniMatches: []*envoy.SNIMatch{},
 				clusters: []*v2.Cluster{
 					envoy.NewCluster(
-						"servicename/test",
+						"servicens/servicename",
 						5*time.Second,
 						lbEndpoints,
 						false,
@@ -110,10 +110,10 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"testname",
+					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{envoy.NewRoute(
-						"testname_testspace_/test",
+						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
 							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
@@ -122,7 +122,7 @@ func TestIngressTranslator(t *testing.T) {
 						}},
 						"/test",
 						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicename/test", 100, map[string]string{"baz": "gna"}),
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 						},
 						0,
 						map[string]string{"foo": "bar"},
@@ -147,7 +147,7 @@ func TestIngressTranslator(t *testing.T) {
 				}},
 				clusters: []*v2.Cluster{
 					envoy.NewCluster(
-						"servicename/test",
+						"servicens/servicename",
 						5*time.Second,
 						lbEndpoints,
 						false,
@@ -192,10 +192,10 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"testname",
+					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{envoy.NewRoute(
-						"testname_testspace_/test",
+						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
 							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
@@ -204,9 +204,9 @@ func TestIngressTranslator(t *testing.T) {
 						}},
 						"/test",
 						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicename/test", 33, map[string]string{"baz": "gna"}),
-							envoy.NewWeightedCluster("servicename2/test", 33, nil),
-							envoy.NewWeightedCluster("servicename3/test", 34, nil),
+							envoy.NewWeightedCluster("servicens/servicename", 33, map[string]string{"baz": "gna"}),
+							envoy.NewWeightedCluster("servicens2/servicename2", 33, nil),
+							envoy.NewWeightedCluster("servicens3/servicename3", 34, nil),
 						},
 						0,
 						map[string]string{"foo": "bar"},
@@ -223,21 +223,21 @@ func TestIngressTranslator(t *testing.T) {
 				sniMatches: []*envoy.SNIMatch{},
 				clusters: []*v2.Cluster{
 					envoy.NewCluster(
-						"servicename/test",
+						"servicens/servicename",
 						5*time.Second,
 						lbEndpoints,
 						false,
 						v2.Cluster_STATIC,
 					),
 					envoy.NewCluster(
-						"servicename2/test",
+						"servicens2/servicename2",
 						5*time.Second,
 						lbEndpoints,
 						false,
 						v2.Cluster_STATIC,
 					),
 					envoy.NewCluster(
-						"servicename3/test",
+						"servicens3/servicename3",
 						5*time.Second,
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,
@@ -260,10 +260,10 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"testname",
+					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{envoy.NewRoute(
-						"testname_testspace_",
+						"(testspace/testname).Rules[0].Paths[/]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
 							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
@@ -272,7 +272,7 @@ func TestIngressTranslator(t *testing.T) {
 						}},
 						"/",
 						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicename/", 100, map[string]string{"baz": "gna"}),
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 						},
 						0,
 						map[string]string{"foo": "bar"},
@@ -289,7 +289,7 @@ func TestIngressTranslator(t *testing.T) {
 				sniMatches: []*envoy.SNIMatch{},
 				clusters: []*v2.Cluster{
 					envoy.NewCluster(
-						"servicename/",
+						"servicens/servicename",
 						5*time.Second,
 						lbEndpoints,
 						false,
@@ -312,10 +312,10 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"testname",
+					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{envoy.NewRoute(
-						"testname_testspace_/test",
+						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
 							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
@@ -324,7 +324,7 @@ func TestIngressTranslator(t *testing.T) {
 						}},
 						"/test",
 						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicename/test", 100, map[string]string{"baz": "gna"}),
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 						},
 						0,
 						map[string]string{"foo": "bar"},
@@ -341,7 +341,7 @@ func TestIngressTranslator(t *testing.T) {
 				sniMatches: []*envoy.SNIMatch{},
 				clusters: []*v2.Cluster{
 					envoy.NewCluster(
-						"servicename/test",
+						"servicens/servicename",
 						5*time.Second,
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,

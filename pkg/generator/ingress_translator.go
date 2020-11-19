@@ -91,7 +91,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	externalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
 	clusters := make([]*v2.Cluster, 0, len(ingress.Spec.Rules))
 
-	for _, rule := range ingress.Spec.Rules {
+	for i, rule := range ingress.Spec.Rules {
+		ruleName := fmt.Sprintf("(%s/%s).Rules[%d]", ingress.Namespace, ingress.Name, i)
+
 		routes := make([]*route.Route, 0, len(rule.HTTP.Paths))
 		for _, httpPath := range rule.HTTP.Paths {
 			// Default the path to "/" if none is passed.
@@ -100,8 +102,14 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				path = "/"
 			}
 
+			pathName := fmt.Sprintf("%s.Paths[%s]", ruleName, path)
+
 			wrs := make([]*route.WeightedCluster_ClusterWeight, 0, len(httpPath.Splits))
 			for _, split := range httpPath.Splits {
+				// The FQN of the service is sufficient here, as clusters towards the
+				// same service are supposed to be deduplicated anyway.
+				splitName := fmt.Sprintf("%s/%s", split.ServiceNamespace, split.ServiceName)
+
 				if err := trackService(translator.tracker, split.ServiceName, ingress); err != nil {
 					return nil, err
 				}
@@ -156,18 +164,21 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				}
 
 				connectTimeout := 5 * time.Second
-				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2, typ)
+				cluster := envoy.NewCluster(splitName, connectTimeout, publicLbEndpoints, http2, typ)
 				clusters = append(clusters, cluster)
 
-				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
+				weightedCluster := envoy.NewWeightedCluster(splitName, uint32(split.Percent), split.AppendHeaders)
 				wrs = append(wrs, weightedCluster)
 			}
 
 			if len(wrs) != 0 {
-				// Note: routeName uses the non-defaulted path.
-				routeName := ingress.Name + "_" + ingress.Namespace + "_" + httpPath.Path
+				// Default the path to "/" if none is passed.
+				path := httpPath.Path
+				if path == "" {
+					path = "/"
+				}
 				routes = append(routes, envoy.NewRoute(
-					routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
+					pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
 			}
 		}
 
@@ -182,9 +193,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				"client":     "kourier",
 				"visibility": string(rule.Visibility),
 			}, ingress.GetLabels())
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ingress.Name, contextExtensions, domainsForRule(rule), routes)
+			virtualHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), routes)
 		} else {
-			virtualHost = envoy.NewVirtualHost(ingress.Name, domainsForRule(rule), routes)
+			virtualHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), routes)
 		}
 
 		internalHosts = append(internalHosts, virtualHost)
