@@ -1099,7 +1099,6 @@ k8s.io/kube-openapi v0.0.0-20200410145947-bcb3869e6f29/go.mod h1:F+5wygcW0wmRTnM
 k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89/go.mod h1:sZAwmy6armz5eXlNoLmJcl4F1QuKu7sr+mFQ0byX7Ew=
 k8s.io/utils v0.0.0-20200603063816-c1c6865ac451 h1:v8ud2Up6QK1lNOKFgiIVrZdMg7MpmSnvtrOieolJKoE=
 k8s.io/utils v0.0.0-20200603063816-c1c6865ac451/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
-knative.dev/hack v0.0.0-20201102193445-9349aeeb6701 h1:at6mUfi8gHWlBRd/qNM66JvUQ4C964cOpsy9hzac+7c=
 knative.dev/hack v0.0.0-20201102193445-9349aeeb6701/go.mod h1:PHt8x8yX5Z9pPquBEfIj0X66f8iWkWfR0S/sarACJrI=
 knative.dev/hack v0.0.0-20201103151104-3d5abc3a0075 h1:YAgWplKIy4O5e3F5vUUECmXAAyZ0M5ymo6fCt1jeZhs=
 knative.dev/hack v0.0.0-20201103151104-3d5abc3a0075/go.mod h1:PHt8x8yX5Z9pPquBEfIj0X66f8iWkWfR0S/sarACJrI=
