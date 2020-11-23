@@ -130,7 +130,7 @@ func TestTrafficSplits(t *testing.T) {
 	assertWeightedClusterCorrect(
 		t,
 		weightedClusters[0],
-		"hello-world-rev1/",
+		"default/hello-world-rev1",
 		uint32(60),
 		map[string]string{
 			"Knative-Serving-Namespace": "default",
@@ -142,7 +142,7 @@ func TestTrafficSplits(t *testing.T) {
 	assertWeightedClusterCorrect(
 		t,
 		weightedClusters[1],
-		"hello-world-rev2/",
+		"default/hello-world-rev2",
 		uint32(40),
 		map[string]string{
 			"Knative-Serving-Namespace": "default",
@@ -154,7 +154,7 @@ func TestTrafficSplits(t *testing.T) {
 	assert.Equal(
 		t,
 		true,
-		clustersExist([]string{"hello-world-rev1/", "hello-world-rev2/"}, ingressTranslation.clusters),
+		clustersExist([]string{"default/hello-world-rev1", "default/hello-world-rev2"}, ingressTranslation.clusters),
 	)
 }
 
