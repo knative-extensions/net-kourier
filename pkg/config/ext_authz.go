@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
+	"math"
 	"net"
 	"os"
 	"strconv"
@@ -68,6 +70,12 @@ func init() {
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		panic(err)
+	}
+
+	if port > 65535 {
+		// Bail out if we exceed the maximum port number.
+		// See https://en.wikipedia.org/wiki/Registered_port.
+		panic(fmt.Sprintf("port %d bigger than %d", port, math.MaxUint32))
 	}
 
 	timeout := time.Duration(env.Timeout) * time.Millisecond
