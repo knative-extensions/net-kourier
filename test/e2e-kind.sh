@@ -28,7 +28,7 @@ $(dirname $0)/upload-test-images.sh
 echo ">> Setup test resources"
 ko apply -f test/config
 
-ips=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
+ip=$(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' | head -n1)
 
 export "GATEWAY_OVERRIDE=kourier"
 export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
@@ -36,7 +36,7 @@ export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 echo ">> Running conformance tests"
 go test -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e/... \
   --enable-alpha --enable-beta \
-  --ingressendpoint="${ips[0]}" \
+  --ingressendpoint="${ip}" \
   --ingressClass=kourier.ingress.networking.knative.dev
 
 echo ">> Scale up components for HA tests"
@@ -45,7 +45,7 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment 3scale-kourier-contro
 
 echo ">> Running HA tests"
 go test -count=1 -timeout=15m -failfast -parallel=1 -tags=e2e ./test/ha -spoofinterval="10ms" \
-  --ingressendpoint="${ips[0]}" \
+  --ingressendpoint="${ip}" \
   --ingressClass=kourier.ingress.networking.knative.dev
 
 echo ">> Scale down after HA tests"
@@ -59,5 +59,5 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment 3scale-kourier-cont
 
 echo ">> Running ExtAuthz tests"
 go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
-  --ingressendpoint="${ips[0]}" \
+  --ingressendpoint="${ip}" \
   --ingressClass=kourier.ingress.networking.knative.dev
