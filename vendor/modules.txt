@@ -860,7 +860,6 @@ knative.dev/networking/test/defaultsystem
 knative.dev/networking/test/test_images/flaky
 knative.dev/networking/test/test_images/grpc-ping
 knative.dev/networking/test/test_images/grpc-ping/proto
-knative.dev/networking/test/test_images/helloworld
 knative.dev/networking/test/test_images/httpproxy
 knative.dev/networking/test/test_images/runtime
 knative.dev/networking/test/test_images/runtime/handlers
