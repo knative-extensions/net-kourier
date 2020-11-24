@@ -33,12 +33,14 @@ import (
 	"golang.org/x/time/rate"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/workqueue"
 
 	network "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/ingress"
+	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging/logkey"
 	"knative.dev/pkg/network/prober"
 )
@@ -116,7 +118,7 @@ type Prober struct {
 
 	// mu guards ingressStates and podContexts
 	mu            sync.Mutex
-	ingressStates map[string]*ingressState
+	ingressStates map[types.NamespacedName]*ingressState
 	podContexts   map[string]cancelContext
 
 	workQueue workqueue.RateLimitingInterface
@@ -135,7 +137,7 @@ func NewProber(
 	readyCallback func(*v1alpha1.Ingress)) *Prober {
 	return &Prober{
 		logger:        logger,
-		ingressStates: make(map[string]*ingressState),
+		ingressStates: make(map[types.NamespacedName]*ingressState),
 		podContexts:   make(map[string]cancelContext),
 		workQueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewMaxOfRateLimiter(
@@ -151,19 +153,14 @@ func NewProber(
 	}
 }
 
-// IngressKey returns a key that uniquely identifies an Ingress object
-func IngressKey(ing *v1alpha1.Ingress) string {
-	return fmt.Sprintf("%s/%s", ing.GetNamespace(), ing.GetName())
-}
-
 // IsReady checks if the provided Ingress is ready, i.e. the Envoy pods serving the Ingress
 // have all been updated. This function is designed to be used by the Ingress controller, i.e. it
 // will be called in the order of reconciliation. This means that if IsReady is called on an Ingress,
 // this Ingress is the latest known version and therefore anything related to older versions can be ignored.
 // Also, it means that IsReady is not called concurrently.
 func (m *Prober) IsReady(ctx context.Context, ing *v1alpha1.Ingress) (bool, error) {
-	ingressKey := IngressKey(ing)
-	logger := m.logger.With(zap.String(logkey.Key, ingressKey))
+	ingressKey := types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name}
+	logger := m.logger.With(zap.String(logkey.Key, ingressKey.String()))
 
 	bytes, err := ingress.ComputeHash(ing)
 	if err != nil {
@@ -307,17 +304,18 @@ func (m *Prober) Start(done <-chan struct{}) chan struct{} {
 }
 
 // CancelIngressProbing cancels probing of the provided Ingress
-// TODO(#6270): Use cache.DeletedFinalStateUnknown.
 func (m *Prober) CancelIngressProbing(obj interface{}) {
-	if ing, ok := obj.(*v1alpha1.Ingress); ok {
-		key := IngressKey(ing)
+	acc, err := kmeta.DeletionHandlingAccessor(obj)
+	if err != nil {
+		return
+	}
 
-		m.mu.Lock()
-		defer m.mu.Unlock()
-		if state, ok := m.ingressStates[key]; ok {
-			state.cancel()
-			delete(m.ingressStates, key)
-		}
+	key := types.NamespacedName{Namespace: acc.GetNamespace(), Name: acc.GetName()}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if state, ok := m.ingressStates[key]; ok {
+		state.cancel()
+		delete(m.ingressStates, key)
 	}
 }
 
@@ -352,7 +350,10 @@ func (m *Prober) processWorkItem() bool {
 		m.logger.Fatalf("Unexpected work item type: want: %s, got: %s\n",
 			reflect.TypeOf(&workItem{}).Name(), reflect.TypeOf(obj).Name())
 	}
-	logger := m.logger.With(zap.String(logkey.Key, IngressKey(item.ingressState.ing)))
+	logger := m.logger.With(zap.String(logkey.Key, types.NamespacedName{
+		Namespace: item.ingressState.ing.Namespace,
+		Name:      item.ingressState.ing.Name,
+	}.String()))
 	logger.Infof("Processing probe for %s, IP: %s:%s (depth: %d)",
 		item.url, item.podIP, item.podPort, m.workQueue.Len())
 
@@ -437,7 +438,10 @@ func (m *Prober) onProbingCancellation(ingressState *ingressState, podState *pod
 }
 
 func (m *Prober) probeVerifier(item *workItem) prober.Verifier {
-	logger := m.logger.With(zap.String(logkey.Key, IngressKey(item.ingressState.ing)))
+	logger := m.logger.With(zap.String(logkey.Key, types.NamespacedName{
+		Namespace: item.ingressState.ing.Namespace,
+		Name:      item.ingressState.ing.Name,
+	}.String()))
 
 	return func(r *http.Response, _ []byte) (bool, error) {
 		// In the happy path, the probe request is forwarded to Activator or Queue-Proxy and the response (HTTP 200)
