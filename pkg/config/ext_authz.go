@@ -18,7 +18,6 @@ package config
 
 import (
 	"fmt"
-	"math"
 	"net"
 	"os"
 	"strconv"
@@ -34,7 +33,11 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-const extAuthzClusterName = "extAuthz"
+const (
+	extAuthzClusterName = "extAuthz"
+	// See https://en.wikipedia.org/wiki/Registered_port.
+	unixMaxPort = 65535
+)
 
 var ExternalAuthz = &ExternalAuthzConfig{
 	Enabled: false,
@@ -72,10 +75,9 @@ func init() {
 		panic(err)
 	}
 
-	if port > 65535 {
+	if port > unixMaxPort {
 		// Bail out if we exceed the maximum port number.
-		// See https://en.wikipedia.org/wiki/Registered_port.
-		panic(fmt.Sprintf("port %d bigger than %d", port, math.MaxUint32))
+		panic(fmt.Sprintf("port %d bigger than %d", port, unixMaxPort))
 	}
 
 	timeout := time.Duration(env.Timeout) * time.Millisecond
