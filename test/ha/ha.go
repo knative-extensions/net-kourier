@@ -25,6 +25,7 @@ import (
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
 	pkgTest "knative.dev/pkg/test"
+	"knative.dev/pkg/test/spoof"
 )
 
 const (
@@ -59,7 +60,7 @@ func assertIngressEventuallyWorks(ctx context.Context, t *testing.T, clients *te
 		clients.KubeClient,
 		t.Logf,
 		url,
-		pkgTest.IsStatusOK,
+		spoof.IsStatusOK,
 		"WaitForIngressToReturnSuccess",
 		test.NetworkingFlags.ResolvableDomain); err != nil {
 		t.Fatalf("The service at %s didn't return success: %v", url, err)
