@@ -40,9 +40,9 @@ import (
 	network "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/ingress"
+	"knative.dev/networking/pkg/prober"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging/logkey"
-	"knative.dev/pkg/network/prober"
 )
 
 const (
