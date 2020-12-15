@@ -10,15 +10,14 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.16.0
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
-	google.golang.org/genproto v0.0.0-20200904004341-0bd0a958aa1d
+	google.golang.org/genproto v0.0.0-20201211151036-40ec1c210f7a
 	google.golang.org/grpc v1.34.0
 	google.golang.org/protobuf v1.25.0
 	gotest.tools/v3 v3.0.3
 	k8s.io/api v0.18.12
 	k8s.io/apimachinery v0.18.12
 	k8s.io/client-go v0.18.12
-	knative.dev/hack v0.0.0-20201201234937-fddbf732e450
-	knative.dev/networking v0.0.0-20201213231442-54d26dd4fc50
-	knative.dev/pkg v0.0.0-20201210165642-80c1131539da
+	knative.dev/hack v0.0.0-20201214230143-4ed1ecb8db24
+	knative.dev/networking v0.0.0-20201215014943-f9843265b98a
+	knative.dev/pkg v0.0.0-20201215015243-0908e494c4d0
 )
