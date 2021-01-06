@@ -37,11 +37,11 @@ function test_setup() {
   echo ">> Publishing test images"
   $(dirname $0)/upload-test-images.sh || fail_test "Error uploading test images"
   echo ">> Creating test resources (test/config/)"
-  ko apply --platform=all ${KO_FLAGS} -f test/config/ || return 1
+  ko apply ${KO_FLAGS} -f test/config/ || return 1
 
   # Bringing up controllers.
   echo ">> Bringing up Kourier"
-  ko resolve --platform=all -f config | sed 's/--log-level info/--log-level debug/g' | kubectl apply -f - || return 1
+  ko resolve -f config | sed 's/--log-level info/--log-level debug/g' | ko apply -f - || return 1
 
   scale_deployment 3scale-kourier-control "${KOURIER_CONTROL_NAMESPACE}"
   scale_deployment 3scale-kourier-gateway "${GATEWAY_NAMESPACE_OVERRIDE}"
