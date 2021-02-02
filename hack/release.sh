@@ -22,7 +22,7 @@ source $(dirname $0)/../vendor/knative.dev/hack/release.sh
 # Yaml files to generate, and the source config dir for them.
 declare -A COMPONENTS
 COMPONENTS=(
-  ["kourier.yaml"]="config config/maistra"
+  ["kourier.yaml"]="config"
 )
 readonly COMPONENTS
 
@@ -47,9 +47,7 @@ function build_release() {
   for yaml in "${!COMPONENTS[@]}"; do
     local config="${COMPONENTS[${yaml}]}"
     echo "Building Knative net-kourier - ${config}"
-    for component in ${config}; do
-      ko resolve --strict ${KO_FLAGS} -f ${component}/ | "${LABEL_YAML_CMD[@]}" >> ${yaml}
-    done
+    ko resolve --strict ${KO_FLAGS} -f ${config}/ | "${LABEL_YAML_CMD[@]}" > ${yaml}
     all_yamls+=(${yaml})
   done
   # Assemble the release

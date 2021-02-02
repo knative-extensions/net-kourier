@@ -27,10 +27,6 @@ jobs:
         - v1.18.8
         - v1.19.1
 
-        gateway:
-        - maistra
-        - envoy
-
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
         # See: https://github.com/kubernetes-sigs/kind/releases/tag/v0.9.0
@@ -128,7 +124,7 @@ jobs:
         # Build and Publish our containers to the docker daemon (including test assets)
         export GO111MODULE=on
         export GOFLAGS=-mod=vendor
-        ko resolve -f test/config/ -f config/ -f config/${{ matrix.gateway }} | \
+        ko resolve -f test/config/ -f config/ | \
           sed 's/LoadBalancer/NodePort/g' | \
           kubectl apply -f -
 
