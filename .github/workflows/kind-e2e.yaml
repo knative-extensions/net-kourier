@@ -27,6 +27,10 @@ jobs:
         - v1.18.8
         - v1.19.1
 
+        gateway:
+        - docker.io/maistra/proxyv2-ubi8:2.0.0
+        - docker.io/envoyproxy/envoy:v1.16.2
+
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
         # See: https://github.com/kubernetes-sigs/kind/releases/tag/v0.9.0
@@ -126,6 +130,7 @@ jobs:
         export GOFLAGS=-mod=vendor
         ko resolve -f test/config/ -f config/ | \
           sed 's/LoadBalancer/NodePort/g' | \
+          sed "s|docker.io/maistra/proxyv2-ubi8:.*|${{ matrix.gateway }}|" | \
           kubectl apply -f -
 
         # This tells the tests what namespace to look in for our kingress LB.
