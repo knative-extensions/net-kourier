@@ -36,7 +36,7 @@ spec:
             - --log-level info
           command:
             - /usr/local/bin/envoy
-          image: docker.io/maistra/proxyv2-ubi8:2.0.0
+          image: docker.io/envoyproxy/envoy:v1.16-latest
           name: kourier-gateway
           ports:
             - name: http2-external
