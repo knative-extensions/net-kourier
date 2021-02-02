@@ -23,6 +23,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+
+	upstreams "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
+
+	"github.com/golang/protobuf/ptypes/any"
+
 	v3Cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -95,8 +101,9 @@ func extAuthzCluster(host string, port uint32) *v3Cluster.Cluster {
 		ClusterDiscoveryType: &v3Cluster.Cluster_Type{
 			Type: v3Cluster.Cluster_STRICT_DNS,
 		},
-		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
-		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
+		TypedExtensionProtocolOptions: http2ProtocolOptions(),
+		Http2ProtocolOptions:          &core.Http2ProtocolOptions{},
+		ConnectTimeout:                ptypes.DurationProto(5 * time.Second),
 		LoadAssignment: &endpoint.ClusterLoadAssignment{
 			ClusterName: extAuthzClusterName,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
@@ -123,6 +130,19 @@ func extAuthzCluster(host string, port uint32) *v3Cluster.Cluster {
 	}
 }
 
+func http2ProtocolOptions() map[string]*any.Any {
+	return map[string]*any.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": mustMarshalAny(
+			&upstreams.HttpProtocolOptions{
+				UpstreamProtocolOptions: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_{
+					ExplicitHttpConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig{
+						ProtocolConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
+					},
+				},
+			}),
+	}
+}
+
 func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeAllow bool, maxRequestBytes uint32) *hcm.HttpFilter {
 	extAuthConfig := &extAuthService.ExtAuthz{
 		Services: &extAuthService.ExtAuthz_GrpcService{
@@ -139,7 +159,8 @@ func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeA
 				}},
 			},
 		},
-		FailureModeAllow: failureModeAllow,
+		TransportApiVersion: core.ApiVersion_V3,
+		FailureModeAllow:    failureModeAllow,
 		WithRequestBody: &extAuthService.BufferSettings{
 			MaxRequestBytes:     maxRequestBytes,
 			AllowPartialMessage: true,
@@ -158,4 +179,12 @@ func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeA
 			TypedConfig: envoyConf,
 		},
 	}
+}
+
+func mustMarshalAny(pb proto.Message) *any.Any {
+	out, err := ptypes.MarshalAny(pb)
+	if err != nil {
+		panic(err)
+	}
+	return out
 }

@@ -21,7 +21,7 @@ import (
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	fileaccesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
-	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
@@ -30,15 +30,15 @@ import (
 
 // NewHTTPConnectionManager creates a new HttpConnectionManager that points to the given
 // RouteConfig for further configuration.
-func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.HttpConnectionManager {
-	filters := make([]*httpconnectionmanagerv2.HttpFilter, 0, 1)
+func NewHTTPConnectionManager(routeConfigName string) *hcm.HttpConnectionManager {
+	filters := make([]*hcm.HttpFilter, 0, 1)
 
 	if config.ExternalAuthz.Enabled {
 		filters = append(filters, config.ExternalAuthz.HTTPFilter)
 	}
 
 	// Append the Router filter at the end.
-	filters = append(filters, &httpconnectionmanagerv2.HttpFilter{
+	filters = append(filters, &hcm.HttpFilter{
 		Name: wellknown.Router,
 	})
 	// Write access logs to stdout by default.
@@ -47,8 +47,8 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 		AccessLogFormat: nil,
 	})
 
-	return &httpconnectionmanagerv2.HttpConnectionManager{
-		CodecType:   httpconnectionmanagerv2.HttpConnectionManager_AUTO,
+	return &hcm.HttpConnectionManager{
+		CodecType:   hcm.HttpConnectionManager_AUTO,
 		StatPrefix:  "ingress_http",
 		HttpFilters: filters,
 		AccessLog: []*envoy_accesslog_v2.AccessLog{{
@@ -57,8 +57,8 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 				TypedConfig: accessLog,
 			},
 		}},
-		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_Rds{
-			Rds: &httpconnectionmanagerv2.Rds{
+		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
+			Rds: &hcm.Rds{
 				ConfigSource: &envoy_api_v2_core.ConfigSource{
 					ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
 						Ads: &envoy_api_v2_core.AggregatedConfigSource{},
@@ -67,6 +67,7 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 						Seconds: 10,
 						Nanos:   0,
 					},
+					ResourceApiVersion: envoy_api_v2_core.ApiVersion_V3,
 				},
 				RouteConfigName: routeConfigName,
 			},

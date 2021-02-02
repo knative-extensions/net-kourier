@@ -24,7 +24,7 @@ import (
 	"log"
 	"net"
 
-	authZ "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
+	authZ "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/genproto/googleapis/rpc/status"

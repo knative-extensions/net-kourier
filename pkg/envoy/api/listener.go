@@ -79,7 +79,7 @@ func NewHTTPSListener(
 		FilterChains: []*listener.FilterChain{{
 			Filters: filters,
 			TransportSocket: &core.TransportSocket{
-				Name:       "tls",
+				Name:       wellknown.TransportSocketTls,
 				ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
 			},
 		}},
