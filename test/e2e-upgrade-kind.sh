@@ -57,7 +57,7 @@ kubectl -n "${TEST_NAMESPACE}" wait --timeout=300s --for=condition=Ready ingress
 
 echo "Install the current Kourier version"
 export KO_DOCKER_REPO=kind.local
-ko resolve -f config | \
+ko resolve -f config -f config/maistra | \
   sed 's/LoadBalancer/NodePort/g' | \
   kubectl apply -f -
 
