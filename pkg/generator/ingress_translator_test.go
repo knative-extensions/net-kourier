@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"

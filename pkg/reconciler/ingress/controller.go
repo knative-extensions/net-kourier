@@ -19,8 +19,8 @@ package ingress
 import (
 	"context"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	xds "github.com/envoyproxy/go-control-plane/pkg/server/v2"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

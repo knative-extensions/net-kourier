@@ -17,12 +17,11 @@ limitations under the License.
 package envoy
 
 import (
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	fileaccesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
@@ -42,10 +41,10 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 	filters = append(filters, &httpconnectionmanagerv2.HttpFilter{
 		Name: wellknown.Router,
 	})
-
 	// Write access logs to stdout by default.
-	accessLog, _ := ptypes.MarshalAny(&accesslog_v2.FileAccessLog{
-		Path: "/dev/stdout",
+	accessLog, _ := ptypes.MarshalAny(&fileaccesslog.FileAccessLog{
+		Path:            "/dev/stdout",
+		AccessLogFormat: nil,
 	})
 
 	return &httpconnectionmanagerv2.HttpConnectionManager{
@@ -53,7 +52,7 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 		StatPrefix:  "ingress_http",
 		HttpFilters: filters,
 		AccessLog: []*envoy_accesslog_v2.AccessLog{{
-			Name: "envoy.file_access_log",
+			Name: wellknown.FileAccessLog,
 			ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
 				TypedConfig: accessLog,
 			},
@@ -76,8 +75,8 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 }
 
 // NewRouteConfig create a new RouteConfiguration with the given name and hosts.
-func NewRouteConfig(name string, virtualHosts []*route.VirtualHost) *v2.RouteConfiguration {
-	return &v2.RouteConfiguration{
+func NewRouteConfig(name string, virtualHosts []*route.VirtualHost) *route.RouteConfiguration {
+	return &route.RouteConfiguration{
 		Name:         name,
 		VirtualHosts: virtualHosts,
 	}

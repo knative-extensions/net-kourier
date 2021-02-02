@@ -40,7 +40,7 @@ import (
 	"strings"
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	cachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	gocache "github.com/patrickmn/go-cache"
 )

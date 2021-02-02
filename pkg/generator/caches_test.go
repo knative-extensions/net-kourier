@@ -21,9 +21,9 @@ import (
 	"sort"
 	"testing"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v2"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 	"k8s.io/apimachinery/pkg/types"
@@ -69,9 +69,9 @@ func TestDeleteIngressInfo(t *testing.T) {
 	assert.NilError(t, err)
 
 	routeConfigsR := snapshot.GetResources(resource.RouteType)
-	routeConfigs := make([]*v2.RouteConfiguration, len(routeConfigsR))
+	routeConfigs := make([]*route.RouteConfiguration, len(routeConfigsR))
 	for _, r := range routeConfigsR {
-		routeConfigs = append(routeConfigs, r.(*v2.RouteConfiguration))
+		routeConfigs = append(routeConfigs, r.(*route.RouteConfiguration))
 	}
 
 	// Check that the listeners only have the virtual hosts of the second
@@ -136,10 +136,10 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	// one randomly generated and changes when we call caches.ToEnvoySnapshot(),
 	// so we do not want to check it, but we want to check everything else which
 	// should have not changed.
-	vHostsRoutesBefore := routesBeforeDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts
-	routesBeforeDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts = vHostsRoutesBefore[:len(vHostsRoutesBefore)-1]
-	vHostsRoutesAfter := routesAfterDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts
-	routesAfterDelete["internal_services"].(*v2.RouteConfiguration).VirtualHosts = vHostsRoutesAfter[:len(vHostsRoutesAfter)-1]
+	vHostsRoutesBefore := routesBeforeDelete["internal_services"].(*route.RouteConfiguration).VirtualHosts
+	routesBeforeDelete["internal_services"].(*route.RouteConfiguration).VirtualHosts = vHostsRoutesBefore[:len(vHostsRoutesBefore)-1]
+	vHostsRoutesAfter := routesAfterDelete["internal_services"].(*route.RouteConfiguration).VirtualHosts
+	routesAfterDelete["internal_services"].(*route.RouteConfiguration).VirtualHosts = vHostsRoutesAfter[:len(vHostsRoutesAfter)-1]
 
 	assert.DeepEqual(t, clustersBeforeDelete, clustersAfterDelete, protocmp.Transform())
 	assert.DeepEqual(t, routesBeforeDelete, routesAfterDelete, protocmp.Transform())
@@ -200,7 +200,7 @@ func TestValidateIngress(t *testing.T) {
 	assert.Error(t, err, ErrDomainConflict.Error())
 }
 
-func getVHostsNames(routeConfigs []*v2.RouteConfiguration) []string {
+func getVHostsNames(routeConfigs []*route.RouteConfiguration) []string {
 	var res []string
 
 	for _, routeConfig := range routeConfigs {

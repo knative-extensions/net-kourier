@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"k8s.io/apimachinery/pkg/util/wait"

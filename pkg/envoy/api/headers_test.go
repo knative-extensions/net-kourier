@@ -20,7 +20,7 @@ import (
 	"sort"
 	"testing"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"

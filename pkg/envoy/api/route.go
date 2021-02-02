@@ -19,7 +19,7 @@ package envoy
 import (
 	"time"
 
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
@@ -47,8 +47,8 @@ func NewRoute(name string,
 	}
 
 	if hostRewrite != "" {
-		routeAction.HostRewriteSpecifier = &route.RouteAction_HostRewrite{
-			HostRewrite: hostRewrite,
+		routeAction.HostRewriteSpecifier = &route.RouteAction_HostRewriteLiteral{
+			HostRewriteLiteral: hostRewrite,
 		}
 	}
 
