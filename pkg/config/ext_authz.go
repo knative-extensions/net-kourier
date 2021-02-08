@@ -101,9 +101,9 @@ func extAuthzCluster(host string, port uint32) *v3Cluster.Cluster {
 		ClusterDiscoveryType: &v3Cluster.Cluster_Type{
 			Type: v3Cluster.Cluster_STRICT_DNS,
 		},
-		TypedExtensionProtocolOptions: http2ProtocolOptions(),
-		Http2ProtocolOptions:          &core.Http2ProtocolOptions{},
-		ConnectTimeout:                ptypes.DurationProto(5 * time.Second),
+		//TypedExtensionProtocolOptions: http2ProtocolOptions(),
+		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
+		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
 		LoadAssignment: &endpoint.ClusterLoadAssignment{
 			ClusterName: extAuthzClusterName,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
