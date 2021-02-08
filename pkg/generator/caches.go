@@ -19,7 +19,6 @@ package generator
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"sync"
 
@@ -153,15 +152,8 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 		return cache.Snapshot{}, err
 	}
 
-	// Generate and append the internal kourier route for keeping track of the snapshot id deployed
-	// to each envoy
-	snapshotVersion, err := caches.getNewSnapshotVersion()
-	if err != nil {
-		return cache.Snapshot{}, fmt.Errorf("failed to generate a new snapshot version: %w", err)
-	}
-
 	return cache.NewSnapshot(
-		snapshotVersion,
+		uuid.NewString(),
 		make([]cachetypes.Resource, 0),
 		caches.clusters.list(),
 		routes,
@@ -200,16 +192,6 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 
 		delete(caches.translatedIngresses, key)
 	}
-}
-
-func (caches *Caches) getNewSnapshotVersion() (string, error) {
-	snapshotVersion, err := uuid.NewUUID()
-
-	if err != nil {
-		return "", err
-	}
-
-	return snapshotVersion.String(), nil
 }
 
 func generateListenersAndRouteConfigs(
