@@ -1,10 +1,10 @@
 # DNS Lookup Cache
 
-[![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/dnscache/master/LICENSE) 
-[![Go Report Card](https://goreportcard.com/badge/github.com/rs/dnscache)](https://goreportcard.com/report/github.com/rs/dnscache) 
-[![Build Status](https://travis-ci.org/rs/dnscache.svg?branch=master)](https://travis-ci.org/rs/dnscache) 
+[![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/dnscache/master/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rs/dnscache)](https://goreportcard.com/report/github.com/rs/dnscache)
+[![Build Status](https://travis-ci.org/rs/dnscache.svg?branch=master)](https://travis-ci.org/rs/dnscache)
 [![Coverage](http://gocover.io/_badge/github.com/rs/dnscache)](http://gocover.io/github.com/rs/dnscache)
-[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/dnscache) 
+[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/dnscache)
 
 The dnscache package provides a DNS cache layer to Go's `net.Resolver`.
 
@@ -67,3 +67,12 @@ t := &http.Transport{
 }
 ```
 
+If addition to the `Refresh` method, you can `RefreshWithOptions`. This method adds an option to persist resource records
+on failed lookups
+```go
+r := &Resolver{}
+options := dnscache.ResolverRefreshOptions{}
+options.ClearUnused = true
+options.PersistOnFailure = false
+resolver.RefreshWithOptions(options)
+```

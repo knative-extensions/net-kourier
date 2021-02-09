@@ -31,6 +31,11 @@ type Resolver struct {
 	OnCacheMiss func()
 }
 
+type ResolverRefreshOptions struct {
+	ClearUnused      bool
+	PersistOnFailure bool
+}
+
 type cacheEntry struct {
 	rrs  []string
 	err  error
@@ -51,10 +56,11 @@ func (r *Resolver) LookupHost(ctx context.Context, host string) (addrs []string,
 	return r.lookup(ctx, "h"+host)
 }
 
-// Refresh refreshes cached entries which has been used at least once since the
-// last Refresh. If clearUnused is true, entries which hasn't be used since the
-// last Refresh are removed from the cache.
-func (r *Resolver) Refresh(clearUnused bool) {
+// refreshRecords refreshes cached entries which have been used at least once since
+// the last Refresh. If clearUnused is true, entries which haven't be used since the
+// last Refresh are removed from the cache. If persistOnFailure is true, stale
+// entries will not be removed on failed lookups
+func (r *Resolver) refreshRecords(clearUnused bool, persistOnFailure bool) {
 	r.once.Do(r.init)
 	r.mu.RLock()
 	update := make([]string, 0, len(r.cache))
@@ -77,8 +83,16 @@ func (r *Resolver) Refresh(clearUnused bool) {
 	}
 
 	for _, key := range update {
-		r.update(context.Background(), key, false)
+		r.update(context.Background(), key, false, persistOnFailure)
 	}
+}
+
+func (r *Resolver) Refresh(clearUnused bool) {
+	r.refreshRecords(clearUnused, false)
+}
+
+func (r *Resolver) RefreshWithOptions(options ResolverRefreshOptions) {
+	r.refreshRecords(options.ClearUnused, options.PersistOnFailure)
 }
 
 func (r *Resolver) init() {
@@ -96,12 +110,12 @@ func (r *Resolver) lookup(ctx context.Context, key string) (rrs []string, err er
 		if r.OnCacheMiss != nil {
 			r.OnCacheMiss()
 		}
-		rrs, err = r.update(ctx, key, true)
+		rrs, err = r.update(ctx, key, true, false)
 	}
 	return
 }
 
-func (r *Resolver) update(ctx context.Context, key string, used bool) (rrs []string, err error) {
+func (r *Resolver) update(ctx context.Context, key string, used bool, persistOnFailure bool) (rrs []string, err error) {
 	c := lookupGroup.DoChan(key, r.lookupFunc(key))
 	select {
 	case <-ctx.Done():
@@ -126,6 +140,15 @@ func (r *Resolver) update(ctx context.Context, key string, used bool) (rrs []str
 		if err == nil {
 			rrs, _ = res.Val.([]string)
 		}
+
+		if err != nil && persistOnFailure {
+			var found bool
+			rrs, err, found = r.load(key)
+			if found {
+				return
+			}
+		}
+
 		r.mu.Lock()
 		r.storeLocked(key, rrs, used, err)
 		r.mu.Unlock()
