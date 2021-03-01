@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
 )
 
@@ -50,17 +50,13 @@ func TestHeadersToAdd(t *testing.T) {
 				Key:   "foo",
 				Value: "bar",
 			},
-			Append: &wrappers.BoolValue{
-				Value: false,
-			},
+			Append: wrapperspb.Bool(false),
 		}, {
 			Header: &core.HeaderValue{
 				Key:   "baz",
 				Value: "lol",
 			},
-			Append: &wrappers.BoolValue{
-				Value: false,
-			},
+			Append: wrapperspb.Bool(false),
 		}},
 	}}
 

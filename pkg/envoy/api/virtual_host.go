@@ -20,8 +20,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // NewVirtualHost creates a new VirtualHost.
@@ -40,7 +39,7 @@ func NewVirtualHostWithExtAuthz(
 	domains []string,
 	routes []*route.Route) *route.VirtualHost {
 
-	filter, _ := ptypes.MarshalAny(&extAuthService.ExtAuthzPerRoute{
+	filter, _ := anypb.New(&extAuthService.ExtAuthzPerRoute{
 		Override: &extAuthService.ExtAuthzPerRoute_CheckSettings{
 			CheckSettings: &extAuthService.CheckSettings{
 				ContextExtensions: contextExtensions,
@@ -52,7 +51,7 @@ func NewVirtualHostWithExtAuthz(
 		Name:    name,
 		Domains: domains,
 		Routes:  routes,
-		TypedPerFilterConfig: map[string]*any.Any{
+		TypedPerFilterConfig: map[string]*anypb.Any{
 			wellknown.HTTPExternalAuthorization: filter,
 		},
 	}

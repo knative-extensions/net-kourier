@@ -20,8 +20,8 @@ import (
 	"time"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // NewRoute creates a new Route.
@@ -39,10 +39,10 @@ func NewRoute(name string,
 				Clusters: wrs,
 			},
 		},
-		Timeout: ptypes.DurationProto(routeTimeout),
+		Timeout: durationpb.New(routeTimeout),
 		UpgradeConfigs: []*route.RouteAction_UpgradeConfig{{
 			UpgradeType: "websocket",
-			Enabled:     &wrappers.BoolValue{Value: true},
+			Enabled:     wrapperspb.Bool(true),
 		}},
 	}
 

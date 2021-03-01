@@ -25,7 +25,7 @@ import (
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -68,7 +68,7 @@ func NewHTTPSListener(
 	}
 
 	tlsContext := createTLSContext(certificateChain, privateKey)
-	tlsAny, err := ptypes.MarshalAny(tlsContext)
+	tlsAny, err := anypb.New(tlsContext)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func createAddress(port uint32) *core.Address {
 }
 
 func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listener.Filter, error) {
-	managerAny, err := ptypes.MarshalAny(manager)
+	managerAny, err := anypb.New(manager)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 		}
 
 		tlsContext := createTLSContext(sniMatch.CertificateChain, sniMatch.PrivateKey)
-		tlsAny, err := ptypes.MarshalAny(tlsContext)
+		tlsAny, err := anypb.New(tlsContext)
 		if err != nil {
 			return nil, err
 		}
