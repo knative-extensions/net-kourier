@@ -26,7 +26,8 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 )
@@ -115,9 +116,7 @@ func getFilterChainByServerName(listener *envoy_api_v2.Listener, serverNames []s
 // Note: Returns an error when there are multiple certificates
 func getTLSCreds(filterChain *envoy_api_v2_listener.FilterChain) (certChain []byte, privateKey []byte, err error) {
 	downstreamTLSContext := &auth.DownstreamTlsContext{}
-	err = ptypes.UnmarshalAny(
-		filterChain.GetTransportSocket().GetTypedConfig(), downstreamTLSContext,
-	)
+	err = anypb.UnmarshalTo(filterChain.GetTransportSocket().GetTypedConfig(), downstreamTLSContext, proto.UnmarshalOptions{})
 	if err != nil {
 		return nil, nil, err
 	}

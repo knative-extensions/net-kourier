@@ -22,7 +22,7 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 // NewCluster generates a new v2.Cluster with the given settings.
@@ -38,7 +38,7 @@ func NewCluster(
 		ClusterDiscoveryType: &v2.Cluster_Type{
 			Type: discoveryType,
 		},
-		ConnectTimeout: ptypes.DurationProto(connectTimeout),
+		ConnectTimeout: durationpb.New(connectTimeout),
 		LoadAssignment: &v2.ClusterLoadAssignment{
 			ClusterName: name,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{

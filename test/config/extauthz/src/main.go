@@ -25,10 +25,10 @@ import (
 	"net"
 
 	authZ "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
-	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type Auth struct{}
@@ -48,7 +48,7 @@ func (ea Auth) Check(ctx context.Context, ar *authZ.CheckRequest) (*authZ.CheckR
 		Status: &status.Status{
 			Code:    int32(code.Code_PERMISSION_DENIED),
 			Message: "failed",
-			Details: []*any.Any{},
+			Details: []*anypb.Any{},
 		},
 	}, nil
 }

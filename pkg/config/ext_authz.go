@@ -29,8 +29,9 @@ import (
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/kelseyhightower/envconfig"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 const (
@@ -96,7 +97,7 @@ func extAuthzCluster(host string, port uint32) *v2.Cluster {
 			Type: v2.Cluster_STRICT_DNS,
 		},
 		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
-		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
+		ConnectTimeout:       durationpb.New(5 * time.Second),
 		LoadAssignment: &v2.ClusterLoadAssignment{
 			ClusterName: extAuthzClusterName,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
@@ -132,7 +133,7 @@ func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeA
 						ClusterName: clusterName,
 					},
 				},
-				Timeout: ptypes.DurationProto(timeout),
+				Timeout: durationpb.New(timeout),
 				InitialMetadata: []*core.HeaderValue{{
 					Key:   "client",
 					Value: "kourier",
@@ -147,7 +148,7 @@ func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeA
 		ClearRouteCache: false,
 	}
 
-	envoyConf, err := ptypes.MarshalAny(extAuthConfig)
+	envoyConf, err := anypb.New(extAuthConfig)
 	if err != nil {
 		panic(err)
 	}

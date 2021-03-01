@@ -18,7 +18,7 @@ package envoy
 
 import (
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // headersToAdd generates a list of HeaderValueOption from a map of headers.
@@ -34,11 +34,9 @@ func headersToAdd(headers map[string]string) []*core.HeaderValueOption {
 				Key:   headerName,
 				Value: headerVal,
 			},
-			Append: &wrappers.BoolValue{
-				// In Knative Serving, headers are set instead of appended.
-				// Ref: https://github.com/knative/serving/pull/6366
-				Value: false,
-			},
+			// In Knative Serving, headers are set instead of appended.
+			// Ref: https://github.com/knative/serving/pull/6366
+			Append: wrapperspb.Bool(false),
 		})
 	}
 
