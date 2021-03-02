@@ -58,7 +58,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 		return fmt.Errorf("failed to update ingress: %w", err)
 	}
 
-	if !ing.IsReady() {
+	if !ing.IsReady() || !isExpectedLoadBalancer(ing) {
 		ready, err := r.statusManager.IsReady(ctx, before)
 		if err != nil {
 			return fmt.Errorf("failed to probe Ingress: %w", err)
@@ -76,6 +76,20 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 	}
 
 	return nil
+}
+
+// isExpectedLoadBalancer verifies if expected Loadbalancer is set in status field.
+func isExpectedLoadBalancer(ing *v1alpha1.Ingress) bool {
+	external, internal := config.ServiceHostnames()
+	if ing.Status.PublicLoadBalancer == nil || len(ing.Status.PublicLoadBalancer.Ingress) < 1 ||
+		ing.Status.PublicLoadBalancer.Ingress[0].DomainInternal != external {
+		return false
+	}
+	if ing.Status.PrivateLoadBalancer == nil || len(ing.Status.PrivateLoadBalancer.Ingress) < 1 ||
+		ing.Status.PrivateLoadBalancer.Ingress[0].DomainInternal != internal {
+		return false
+	}
+	return true
 }
 
 func (r *Reconciler) ObserveKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
