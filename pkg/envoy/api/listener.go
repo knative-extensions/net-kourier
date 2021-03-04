@@ -169,6 +169,7 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTlsContext {
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
+			AlpnProtocols: []string{"h2", "http/1.1"},
 			TlsCertificates: []*auth.TlsCertificate{{
 				CertificateChain: &core.DataSource{
 					Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
