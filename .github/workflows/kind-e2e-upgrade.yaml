@@ -2,10 +2,10 @@ name: KinD e2e upgrade tests
 
 on:
   pull_request:
-    branches: [ 'master' ]
+    branches: [ 'main' ]
 
   push:
-    branches: [ 'master' ]
+    branches: [ 'main' ]
 
 defaults:
   run:
