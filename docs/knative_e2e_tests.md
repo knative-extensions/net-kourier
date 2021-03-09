@@ -29,7 +29,7 @@ export GATEWAY_NAMESPACE_OVERRIDE=kourier-system
   switch to the `v0.9.0` tag.
 
 - As stated in the Knative instructions, you'll need to
-  [build some test images](https://github.com/knative/serving/blob/master/test/README.md#test-images)
+  [build some test images](https://github.com/knative/serving/blob/main/test/README.md#test-images)
   and create some resources in your cluster:
 
 ```bash
