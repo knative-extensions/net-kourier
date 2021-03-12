@@ -29,7 +29,8 @@ $(dirname $0)/upload-test-images.sh
 echo ">> Setup test resources"
 ko apply -f test/config
 
-ip=$(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' | head -n1)
+# Exclude the control-plane node, which doesn't seem to expose the nodeport service.
+IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
 
 export "GATEWAY_OVERRIDE=kourier"
 export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
@@ -46,7 +47,7 @@ rm -f /tmp/prober-signal
 
 echo "Running prober test"
 go test -count=1 -timeout=20m -tags=probe ./test/upgrade/... \
-  --ingressendpoint="${ip}" \
+  --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev &
 PROBER_PID=$!
 echo "Prober PID is ${PROBER_PID}"
