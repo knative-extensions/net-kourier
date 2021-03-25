@@ -61,7 +61,7 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: ["/bin/sh","-c","sleep 15"]
+                command: ["/bin/sh","-c","curl -X POST --unix /tmp/envoy.admin http://localhost/healthcheck/fail; sleep 15"]
           readinessProbe:
             httpGet:
               httpHeaders:
