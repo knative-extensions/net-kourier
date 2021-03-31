@@ -194,10 +194,21 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	})
 
 	// Make sure trackers are deleted once the observers are removed.
+	// Also reconcile all ingresses in conflict once another ingress is removed to
+	// unwedge them.
 	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: isKourierIngress,
 		Handler: cache.ResourceEventHandlerFuncs{
-			DeleteFunc: tracker.OnDeletedObserver,
+			DeleteFunc: func(obj interface{}) {
+				tracker.OnDeletedObserver(obj)
+
+				impl.FilteredGlobalResync(func(obj interface{}) bool {
+					lbReady := obj.(*v1alpha1.Ingress).Status.GetCondition(v1alpha1.IngressConditionLoadBalancerReady).GetReason()
+					// Force reconcile all Kourier ingresses that are either not reconciled yet
+					// (and thus might end up in a conflict) or already in conflict.
+					return isKourierIngress(obj) && (lbReady == "" || lbReady == conflictReason)
+				}, ingressInformer.Informer())
+			},
 		},
 	})
 
