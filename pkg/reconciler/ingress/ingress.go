@@ -31,6 +31,8 @@ import (
 	"knative.dev/pkg/reconciler"
 )
 
+const conflictReason = "DomainConflict"
+
 type Reconciler struct {
 	xdsServer         *envoy.XdsServer
 	caches            *generator.Caches
@@ -52,7 +54,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 		// If we had an error due to a duplicated domain, we must mark the ingress as failed with a
 		// custom status. We don't want to return an error in this case as we want to update its status.
 		logging.FromContext(ctx).Info(err.Error())
-		ing.Status.MarkLoadBalancerFailed("DomainConflict", "Ingress rejected: "+err.Error())
+		ing.Status.MarkLoadBalancerFailed(conflictReason, "Ingress rejected: "+err.Error())
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to update ingress: %w", err)
