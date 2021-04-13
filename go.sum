@@ -1192,6 +1192,8 @@ knative.dev/networking v0.0.0-20210412065741-89774aa4adb9 h1:5OJBZTkDqqg/I422ndh
 knative.dev/networking v0.0.0-20210412065741-89774aa4adb9/go.mod h1:TZrPCHvjqjk4OfzFCKAiUTcMeBHy+XMOUC5vu8JNaP4=
 knative.dev/pkg v0.0.0-20210409203851-3a2ae6db7097 h1:QgAu9HFo/luVDNQPu5nhNsC0nj9/OsughUe2XYE9NoU=
 knative.dev/pkg v0.0.0-20210409203851-3a2ae6db7097/go.mod h1:V/yjYpwRpIoUCavOoF8plCw72kF7rMjWPms5v2QqxA4=
+knative.dev/pkg v0.0.0-20210412173742-b51994e3b312 h1:tE80vxKw9ENrLRe+U9BvLAcJ5UYpDc40r5hFoRFUXh0=
+knative.dev/pkg v0.0.0-20210412173742-b51994e3b312/go.mod h1:V/yjYpwRpIoUCavOoF8plCw72kF7rMjWPms5v2QqxA4=
 pgregory.net/rapid v0.3.3/go.mod h1:UYpPVyjFHzYBGHIxLFoupi8vwk6rXNzRY9OMvVxFIOU=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
