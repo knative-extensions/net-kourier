@@ -60,6 +60,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 		return fmt.Errorf("failed to update ingress: %w", err)
 	}
 
+	ing.Status.MarkNetworkConfigured()
 	if !ing.IsReady() || !isExpectedLoadBalancer(ing) {
 		ready, err := r.statusManager.IsReady(ctx, before)
 		if err != nil {
@@ -71,7 +72,6 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: external}},
 				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: internal}},
 			)
-			ing.Status.MarkNetworkConfigured()
 		} else {
 			ing.Status.MarkLoadBalancerNotReady()
 		}
