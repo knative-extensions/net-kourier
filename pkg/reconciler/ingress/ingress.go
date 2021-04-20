@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
@@ -44,7 +45,7 @@ type Reconciler struct {
 var _ ingress.Interface = (*Reconciler)(nil)
 var _ ingress.ReadOnlyInterface = (*Reconciler)(nil)
 var _ ingress.Finalizer = (*Reconciler)(nil)
-var _ ingress.ReadOnlyFinalizer = (*Reconciler)(nil)
+var _ reconciler.OnDeletionInterface = (*Reconciler)(nil)
 
 func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
 	ing.SetDefaults(ctx)
@@ -108,21 +109,22 @@ func (r *Reconciler) ObserveKind(ctx context.Context, ing *v1alpha1.Ingress) rec
 	return nil
 }
 
-func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
-	return r.ObserveFinalizeKind(ctx, ing)
-}
-
-func (r *Reconciler) ObserveFinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+func (r *Reconciler) ObserveDeletion(ctx context.Context, key types.NamespacedName) error {
 	logger := logging.FromContext(ctx)
-	logger.Infof("Deleting Ingress")
+	logger.Infof("Ingress deleted, updating config")
 
-	r.statusManager.CancelIngressProbing(ing)
+	r.statusManager.CancelIngressProbingByKey(key)
 
-	if err := r.caches.DeleteIngressInfo(ctx, ing.Name, ing.Namespace); err != nil {
+	if err := r.caches.DeleteIngressInfo(ctx, key.Name, key.Namespace); err != nil {
 		return err
 	}
 
 	return r.updateEnvoyConfig(ctx)
+}
+
+func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+	// Keeping this for now to keep finalizer based logic intact.
+	return nil
 }
 
 func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingress) error {
