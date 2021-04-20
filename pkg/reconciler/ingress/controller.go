@@ -30,7 +30,6 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
-	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	knativeclient "knative.dev/networking/pkg/client/injection/client"
@@ -45,7 +44,7 @@ import (
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
-	knativeReconciler "knative.dev/pkg/reconciler"
+	"knative.dev/pkg/reconciler"
 	"knative.dev/pkg/tracker"
 )
 
@@ -57,8 +56,8 @@ const (
 	managementPort = 18000
 )
 
-var isKourierIngress = knativeReconciler.AnnotationFilterFunc(
-	networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
+var isKourierIngress = reconciler.AnnotationFilterFunc(
+	v1alpha1ingress.ClassAnnotationKey, config.KourierIngressClassName, false,
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
@@ -247,7 +246,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	))
 
 	podInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: knativeReconciler.LabelFilterFunc(gatewayLabelKey, gatewayLabelValue, false),
+		FilterFunc: reconciler.LabelFilterFunc(gatewayLabelKey, gatewayLabelValue, false),
 		Handler: cache.ResourceEventHandlerFuncs{
 			// Cancel probing when a Pod is deleted
 			DeleteFunc: func(obj interface{}) {
