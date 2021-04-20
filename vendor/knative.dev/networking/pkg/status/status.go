@@ -313,6 +313,11 @@ func (m *Prober) CancelIngressProbing(obj interface{}) {
 	}
 
 	key := types.NamespacedName{Namespace: acc.GetNamespace(), Name: acc.GetName()}
+	m.CancelIngressProbingByKey(key)
+}
+
+// CancelIngressProbingByKey cancels probing of the Ingress identified by the provided key.
+func (m *Prober) CancelIngressProbingByKey(key types.NamespacedName) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if state, ok := m.ingressStates[key]; ok {
