@@ -40,6 +40,10 @@ type Reconciler struct {
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
 	extAuthz          bool
+
+	// resyncConflicts triggers a filtered global resync to reenqueue all ingresses in
+	// a "Conflict" state.
+	resyncConflicts func()
 }
 
 var _ ingress.Interface = (*Reconciler)(nil)
@@ -119,7 +123,12 @@ func (r *Reconciler) ObserveDeletion(ctx context.Context, key types.NamespacedNa
 		return err
 	}
 
-	return r.updateEnvoyConfig(ctx)
+	if err := r.updateEnvoyConfig(ctx); err != nil {
+		return fmt.Errorf("failed updating envoy config: %w", err)
+	}
+
+	r.resyncConflicts()
+	return nil
 }
 
 func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
