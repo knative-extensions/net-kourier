@@ -128,7 +128,6 @@ aliases:
   - evankanderson
   - fallback-notification-blocker
   - grantr
-  - isdal
   - knative-prow-releaser-robot
   - knative-prow-robot
   - knative-test-reporter-robot
@@ -183,7 +182,6 @@ aliases:
   net-istio-approvers:
   - JRBANCEL
   - ZhiminXiang
-  - mdemirhan
   - nak3
   - vagababov
   net-kourier-approvers:
@@ -221,10 +219,10 @@ aliases:
   - n3wscott
   steering-committee:
   - bsnchan
-  - isdal
   - mbehrendt
   - pmorie
   - thisisnotapril
+  - vaikas
   technical-oversight-committee:
   - evankanderson
   - fallback-notification-blocker
