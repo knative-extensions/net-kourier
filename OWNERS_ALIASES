@@ -54,6 +54,7 @@ aliases:
   eventing-kafka-approvers:
   - aliok
   - davyodom
+  - devguyio
   - lberk
   - matzew
   - phamilton
