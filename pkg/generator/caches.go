@@ -27,8 +27,8 @@ import (
 	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	cachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v2"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -209,8 +209,8 @@ func generateListenersAndRouteConfigs(
 	// That causes some "no_cluster" errors in Envoy and the "TestUpdate"
 	// in the Knative serving test suite fails sometimes.
 	// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
-	externalRouteConfig.ValidateClusters = &wrappers.BoolValue{Value: true}
-	internalRouteConfig.ValidateClusters = &wrappers.BoolValue{Value: true}
+	externalRouteConfig.ValidateClusters = wrapperspb.Bool(true)
+	internalRouteConfig.ValidateClusters = wrapperspb.Bool(true)
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
 	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name)

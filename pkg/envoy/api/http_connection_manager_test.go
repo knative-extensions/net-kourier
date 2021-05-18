@@ -23,8 +23,9 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/v3/assert"
 )
 
@@ -34,7 +35,7 @@ func TestNewHTTPConnectionManager(t *testing.T) {
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v2.AccessLog_TypedConfig).TypedConfig
 	fileAccesLog := &accesslog_v2.FileAccessLog{}
 
-	err := ptypes.UnmarshalAny(accessLogPathAny, fileAccesLog)
+	err := anypb.UnmarshalTo(accessLogPathAny, fileAccesLog, proto.UnmarshalOptions{})
 	if err != nil {
 		t.Error(err)
 	}

@@ -30,7 +30,6 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
-	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	knativeclient "knative.dev/networking/pkg/client/injection/client"
@@ -45,7 +44,7 @@ import (
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
-	knativeReconciler "knative.dev/pkg/reconciler"
+	"knative.dev/pkg/reconciler"
 	"knative.dev/pkg/tracker"
 )
 
@@ -57,8 +56,8 @@ const (
 	managementPort = 18000
 )
 
-var isKourierIngress = knativeReconciler.AnnotationFilterFunc(
-	networking.IngressClassAnnotationKey, config.KourierIngressClassName, false,
+var isKourierIngress = reconciler.AnnotationFilterFunc(
+	v1alpha1ingress.ClassAnnotationKey, config.KourierIngressClassName, false,
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
@@ -84,6 +83,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName)
+
+	r.resyncConflicts = func() {
+		impl.FilteredGlobalResync(func(obj interface{}) bool {
+			lbReady := obj.(*v1alpha1.Ingress).Status.GetCondition(v1alpha1.IngressConditionLoadBalancerReady).GetReason()
+			// Force reconcile all Kourier ingresses that are either not reconciled yet
+			// (and thus might end up in a conflict) or already in conflict.
+			return isKourierIngress(obj) && (lbReady == "" || lbReady == conflictReason)
+		}, ingressInformer.Informer())
+	}
 
 	envoyXdsServer := envoy.NewXdsServer(
 		managementPort,
@@ -194,6 +202,8 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	})
 
 	// Make sure trackers are deleted once the observers are removed.
+	// Also reconcile all ingresses in conflict once another ingress is removed to
+	// unwedge them.
 	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: isKourierIngress,
 		Handler: cache.ResourceEventHandlerFuncs{
@@ -236,7 +246,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	))
 
 	podInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: knativeReconciler.LabelFilterFunc(gatewayLabelKey, gatewayLabelValue, false),
+		FilterFunc: reconciler.LabelFilterFunc(gatewayLabelKey, gatewayLabelValue, false),
 		Handler: cache.ResourceEventHandlerFuncs{
 			// Cancel probing when a Pod is deleted
 			DeleteFunc: func(obj interface{}) {

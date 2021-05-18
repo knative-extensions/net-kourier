@@ -21,8 +21,8 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
 )
 
@@ -31,18 +31,14 @@ func TestNewWeightedCluster(t *testing.T) {
 		"foo": "bar",
 	})
 	want := &route.WeightedCluster_ClusterWeight{
-		Name: "test",
-		Weight: &wrappers.UInt32Value{
-			Value: 50,
-		},
+		Name:   "test",
+		Weight: wrapperspb.UInt32(50),
 		RequestHeadersToAdd: []*core.HeaderValueOption{{
 			Header: &core.HeaderValue{
 				Key:   "foo",
 				Value: "bar",
 			},
-			Append: &wrappers.BoolValue{
-				Value: false,
-			},
+			Append: wrapperspb.Bool(false),
 		}},
 	}
 

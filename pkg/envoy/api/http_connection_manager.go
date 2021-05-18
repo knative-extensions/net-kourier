@@ -17,6 +17,8 @@ limitations under the License.
 package envoy
 
 import (
+	"time"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -24,8 +26,9 @@ import (
 	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/duration"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
+
 	"knative.dev/net-kourier/pkg/config"
 )
 
@@ -44,7 +47,7 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 	})
 
 	// Write access logs to stdout by default.
-	accessLog, _ := ptypes.MarshalAny(&accesslog_v2.FileAccessLog{
+	accessLog, _ := anypb.New(&accesslog_v2.FileAccessLog{
 		Path: "/dev/stdout",
 	})
 
@@ -64,10 +67,7 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 					ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
 						Ads: &envoy_api_v2_core.AggregatedConfigSource{},
 					},
-					InitialFetchTimeout: &duration.Duration{
-						Seconds: 10,
-						Nanos:   0,
-					},
+					InitialFetchTimeout: durationpb.New(10 * time.Second),
 				},
 				RouteConfigName: routeConfigName,
 			},
