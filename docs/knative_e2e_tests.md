@@ -1,7 +1,7 @@
 # Knative end-to-end tests
 
 This document describes how to pass the Knative Serving end-to-end tests with
-Kourier.
+Kourier..
 
 Please note that this is a work in progress and we will try to simplify the
 steps detailed here.
