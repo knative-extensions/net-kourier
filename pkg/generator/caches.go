@@ -202,6 +202,9 @@ func generateListenersAndRouteConfigs(
 	sniMatches []*envoy.SNIMatch,
 	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, error) {
 
+	// This has to be "OrDefaults" because this path is called before the informers are
+	// running when booting the controller up and prefilling the config before making it
+	// ready.
 	cfg := rconfig.FromContextOrDefaults(ctx)
 
 	// First, we save the RouteConfigs with the proper name and all the virtualhosts etc. into the cache.
