@@ -18,11 +18,16 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source $(dirname $0)/../vendor/knative.dev/hack/library.sh
+source $(dirname $0)/../vendor/knative.dev/hack/codegen-library.sh
 
 group "Deepcopy Gen"
 
-# Depends on generate-groups.sh to install bin/deepcopy-gen
+# Broken out of code-generator scripts, since we don't need generate-groups.sh
+(
+    cd "${CODEGEN_PKG}"
+    go install ./cmd/deepcopy-gen
+)
+
 ${GOPATH}/bin/deepcopy-gen \
   -O zz_generated.deepcopy \
   --go-header-file "${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt" \
