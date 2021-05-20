@@ -34,7 +34,7 @@ import (
 
 // NewHTTPConnectionManager creates a new HttpConnectionManager that points to the given
 // RouteConfig for further configuration.
-func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.HttpConnectionManager {
+func NewHTTPConnectionManager(routeConfigName string, enableAccessLog bool) *httpconnectionmanagerv2.HttpConnectionManager {
 	filters := make([]*httpconnectionmanagerv2.HttpFilter, 0, 1)
 
 	if config.ExternalAuthz.Enabled {
@@ -46,21 +46,10 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 		Name: wellknown.Router,
 	})
 
-	// Write access logs to stdout by default.
-	accessLog, _ := anypb.New(&accesslog_v2.FileAccessLog{
-		Path: "/dev/stdout",
-	})
-
-	return &httpconnectionmanagerv2.HttpConnectionManager{
+	mgr := &httpconnectionmanagerv2.HttpConnectionManager{
 		CodecType:   httpconnectionmanagerv2.HttpConnectionManager_AUTO,
 		StatPrefix:  "ingress_http",
 		HttpFilters: filters,
-		AccessLog: []*envoy_accesslog_v2.AccessLog{{
-			Name: "envoy.file_access_log",
-			ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
-				TypedConfig: accessLog,
-			},
-		}},
 		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_Rds{
 			Rds: &httpconnectionmanagerv2.Rds{
 				ConfigSource: &envoy_api_v2_core.ConfigSource{
@@ -73,6 +62,22 @@ func NewHTTPConnectionManager(routeConfigName string) *httpconnectionmanagerv2.H
 			},
 		},
 	}
+
+	if enableAccessLog {
+		// Write access logs to stdout by default.
+		accessLog, _ := anypb.New(&accesslog_v2.FileAccessLog{
+			Path: "/dev/stdout",
+		})
+
+		mgr.AccessLog = []*envoy_accesslog_v2.AccessLog{{
+			Name: "envoy.file_access_log",
+			ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
+				TypedConfig: accessLog,
+			},
+		}}
+	}
+
+	return mgr
 }
 
 // NewRouteConfig create a new RouteConfiguration with the given name and hosts.

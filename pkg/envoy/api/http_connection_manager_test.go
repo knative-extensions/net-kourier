@@ -29,8 +29,13 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func TestNewHTTPConnectionManager(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test")
+func TestNewHTTPConnectionManagerWithoutAccessLog(t *testing.T) {
+	connManager := NewHTTPConnectionManager("test", false /*enableAccessLog*/)
+	assert.Check(t, len(connManager.AccessLog) == 0)
+}
+
+func TestNewHTTPConnectionManagerWithAccessLog(t *testing.T) {
+	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
 	accessLog := connManager.AccessLog[0]
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v2.AccessLog_TypedConfig).TypedConfig
 	fileAccesLog := &accesslog_v2.FileAccessLog{}
