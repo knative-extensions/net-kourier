@@ -30,7 +30,7 @@ const (
 	enableAccessLoggingKey = "enable-access-logging"
 )
 
-func defaultConfig() *Kourier {
+func DefaultConfig() *Kourier {
 	return &Kourier{
 		EnableAccessLogging: true, // true is the default for backwards-compat
 	}
@@ -38,7 +38,7 @@ func defaultConfig() *Kourier {
 
 // NewConfigFromMap creates a DeploymentConfig from the supplied Map.
 func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
-	nc := defaultConfig()
+	nc := DefaultConfig()
 
 	if err := cm.Parse(configMap,
 		cm.AsBool(enableAccessLoggingKey, &nc.EnableAccessLogging),

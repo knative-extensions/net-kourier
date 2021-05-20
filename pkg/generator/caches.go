@@ -35,6 +35,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
+	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
 )
 
 const (
@@ -201,6 +202,8 @@ func generateListenersAndRouteConfigs(
 	sniMatches []*envoy.SNIMatch,
 	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, error) {
 
+	cfg := rconfig.FromContextOrDefaults(ctx)
+
 	// First, we save the RouteConfigs with the proper name and all the virtualhosts etc. into the cache.
 	externalRouteConfig := envoy.NewRouteConfig(externalRouteConfigName, externalVirtualHosts)
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
@@ -213,8 +216,8 @@ func generateListenersAndRouteConfigs(
 	internalRouteConfig.ValidateClusters = wrapperspb.Bool(true)
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
-	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, true /*enableAccessLog*/)
-	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, true /*enableAccessLog*/)
+	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier.EnableAccessLogging)
+	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier.EnableAccessLogging)
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal)
 	if err != nil {
 		return nil, nil, err

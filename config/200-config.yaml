@@ -39,4 +39,4 @@ data:
 
     # Specifies whether requests reaching the Kourier gateway
     # should be logged.
-    enable-access-logs: true
+    enable-access-logging: true

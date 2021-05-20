@@ -33,7 +33,7 @@ func TestKourierConfig(t *testing.T) {
 		data    map[string]string
 	}{{
 		name: "default configuration",
-		want: defaultConfig(),
+		want: DefaultConfig(),
 		data: map[string]string{},
 	}, {
 		name: "disable logging",

@@ -35,6 +35,15 @@ func FromContext(ctx context.Context) *Config {
 	return ctx.Value(cfgKey{}).(*Config)
 }
 
+func FromContextOrDefaults(ctx context.Context) *Config {
+	if cfg, ok := ctx.Value(cfgKey{}).(*Config); ok {
+		return cfg
+	}
+	return &Config{
+		Kourier: config.DefaultConfig(),
+	}
+}
+
 // ToContext persists the configuration to the context.
 func ToContext(ctx context.Context, c *Config) context.Context {
 	return context.WithValue(ctx, cfgKey{}, c)
@@ -58,13 +67,6 @@ func NewStore(logger configmap.Logger, onAfterStore ...func(name string, value i
 		),
 	}
 	return store
-}
-
-// WatchConfigs uses the provided configmap.Watcher
-// to setup watches for the config names provided in the
-// Constructors map
-func (s *Store) WatchConfigs(cmw configmap.Watcher) {
-	s.UntypedStore.WatchConfigs(cmw)
 }
 
 // ToContext persists the config on the context.
