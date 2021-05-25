@@ -26,13 +26,14 @@ const (
 	// ConfigName is the name of config map for Kourier.
 	ConfigName = "config-kourier"
 
-	// enableAccessLoggingKey is the config map key for queue sidecar image.
-	enableAccessLoggingKey = "enable-access-logging"
+	// enableServiceAccessLoggingKey is the config map key for enabling service related
+	// access logging.
+	enableServiceAccessLoggingKey = "enable-service-access-logging"
 )
 
 func DefaultConfig() *Kourier {
 	return &Kourier{
-		EnableAccessLogging: true, // true is the default for backwards-compat
+		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 	}
 }
 
@@ -41,7 +42,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 	nc := DefaultConfig()
 
 	if err := cm.Parse(configMap,
-		cm.AsBool(enableAccessLoggingKey, &nc.EnableAccessLogging),
+		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
 	); err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func NewConfigFromConfigMap(config *corev1.ConfigMap) (*Kourier, error) {
 // Kourier includes the configuration for Kourier.
 // +k8s:deepcopy-gen=true
 type Kourier struct {
-	// EnableAccessLogging specifies whether requests reaching the Kourier gateway
+	// EnableServiceAccessLogging specifies whether requests reaching the Kourier gateway
 	// should be logged.
-	EnableAccessLogging bool
+	EnableServiceAccessLogging bool
 }

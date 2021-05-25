@@ -45,10 +45,10 @@ func TestStoreImmutableConfig(t *testing.T) {
 	store.OnConfigChanged(ConfigMapFromTestFile(t, config.ConfigName))
 	config := store.Load()
 
-	config.Kourier.EnableAccessLogging = false
+	config.Kourier.EnableServiceAccessLogging = false
 
 	newConfig := store.Load()
-	if newConfig.Kourier.EnableAccessLogging == false {
+	if newConfig.Kourier.EnableServiceAccessLogging == false {
 		t.Error("Kourier config is not immutable")
 	}
 }

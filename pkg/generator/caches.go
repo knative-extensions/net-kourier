@@ -219,8 +219,8 @@ func generateListenersAndRouteConfigs(
 	internalRouteConfig.ValidateClusters = wrapperspb.Bool(true)
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
-	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier.EnableAccessLogging)
-	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier.EnableAccessLogging)
+	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
+	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal)
 	if err != nil {
 		return nil, nil, err

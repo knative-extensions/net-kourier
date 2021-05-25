@@ -38,16 +38,16 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "disable logging",
 		want: &Kourier{
-			EnableAccessLogging: false,
+			EnableServiceAccessLogging: false,
 		},
 		data: map[string]string{
-			enableAccessLoggingKey: "false",
+			enableServiceAccessLoggingKey: "false",
 		},
 	}, {
 		name:    "not a bool for logging",
 		wantErr: true,
 		data: map[string]string{
-			enableAccessLoggingKey: "foo",
+			enableServiceAccessLoggingKey: "foo",
 		},
 	}}
 

@@ -38,5 +38,6 @@ data:
     # to actually change the configuration.
 
     # Specifies whether requests reaching the Kourier gateway
-    # should be logged.
-    enable-access-logging: true
+    # in the context of services should be logged. Readiness
+    # probes etc. must be configured via the bootstrap config.
+    enable-service-access-logging: "true"
