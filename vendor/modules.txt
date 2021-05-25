@@ -792,6 +792,7 @@ k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
 # k8s.io/code-generator v0.19.7
+## explicit
 k8s.io/code-generator
 k8s.io/code-generator/cmd/client-gen
 k8s.io/code-generator/cmd/client-gen/args
@@ -906,6 +907,7 @@ knative.dev/pkg/codegen/cmd/injection-gen/args
 knative.dev/pkg/codegen/cmd/injection-gen/generators
 knative.dev/pkg/configmap
 knative.dev/pkg/configmap/informer
+knative.dev/pkg/configmap/testing
 knative.dev/pkg/controller
 knative.dev/pkg/hack
 knative.dev/pkg/hash
