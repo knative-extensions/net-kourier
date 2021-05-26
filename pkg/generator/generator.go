@@ -24,8 +24,8 @@ import (
 	"knative.dev/networking/pkg/ingress"
 )
 
-// For now, when updating the info for an ingress we delete it, and then
-// regenerate it. We can optimize this later.
+// UpdateInfoForIngress translates an Ingress into envoy configuration and updates the
+// respective caches.
 func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, translator *IngressTranslator, extAuthzEnabled bool) error {
 	// Adds a header with the ingress Hash and a random value header to force the config reload.
 	if _, err := ingress.InsertProbe(ing); err != nil {

@@ -47,6 +47,7 @@ const (
 	internalRouteConfigName = "internal_services"
 )
 
+// ErrDomainConflict is an error produces when two ingresses have conflicting domains.
 var ErrDomainConflict = errors.New("ingress has a conflicting domain with another ingress")
 
 type Caches struct {
@@ -164,7 +165,8 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 	), nil
 }
 
-// Note: changes the snapshot version of the caches object
+// DeleteIngressInfo removes an ingress from the caches.
+//
 // Notice that the clusters are not deleted. That's handled with the expiration
 // time set in the "ClustersCache" struct.
 func (caches *Caches) DeleteIngressInfo(ctx context.Context, ingressName string, ingressNamespace string) error {
