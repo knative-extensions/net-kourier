@@ -40,10 +40,12 @@ const (
 	unixMaxPort = 65535
 )
 
+// ExternalAuthz is the configuration of external authorization.
 var ExternalAuthz = &ExternalAuthzConfig{
 	Enabled: false,
 }
 
+// ExternalAuthzConfig specifies parameters for external authorization configuration.
 type ExternalAuthzConfig struct {
 	Enabled    bool
 	Cluster    *v2.Cluster

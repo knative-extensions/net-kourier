@@ -24,19 +24,28 @@ import (
 )
 
 const (
+	// ControllerName is the name of the kourier controller.
 	ControllerName = "kourier"
 
+	// InternalServiceName is the name of the internal service.
 	InternalServiceName = "kourier-internal"
+	// ExternalServiceName is the name of the external service.
 	ExternalServiceName = "kourier"
 
-	HTTPPortExternal  = uint32(8080)
-	HTTPPortInternal  = uint32(8081)
+	// HTTPPortExternal is the port for external availability.
+	HTTPPortExternal = uint32(8080)
+	// HTTPPortInternal is the port for internal availability.
+	HTTPPortInternal = uint32(8081)
+	// HTTPSPortExternal is the port for external HTTPS availability.
 	HTTPSPortExternal = uint32(8443)
 
+	// InternalKourierDomain is an internal envoy endpoint.
 	InternalKourierDomain = "internalkourier"
 
+	// GatewayNamespaceEnv is an env variable specifying where the gateway is deployed.
 	GatewayNamespaceEnv = "KOURIER_GATEWAY_NAMESPACE"
 
+	// KourierIngressClassName is the class name to reconcile.
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
 )
 
@@ -48,6 +57,7 @@ func ServiceHostnames() (string, string) {
 		network.GetServiceHostname(InternalServiceName, GatewayNamespace())
 }
 
+// GatewayNamespace returns the namespace where the gateway is deployed.
 func GatewayNamespace() string {
 	namespace := os.Getenv(GatewayNamespaceEnv)
 	if namespace == "" {
