@@ -124,6 +124,7 @@ aliases:
   - rhuss
   knative-admin:
   - bsnchan
+  - dprotaso
   - evankanderson
   - fallback-notification-blocker
   - knative-prow-releaser-robot
@@ -131,10 +132,10 @@ aliases:
   - knative-prow-updater-robot
   - knative-test-reporter-robot
   - markusthoemmes
+  - matzew
   - mbehrendt
   - pmorie
   - rhuss
-  - tcnghia
   - thisisnotapril
   - vaikas
   knative-milestone-maintainers:
@@ -158,9 +159,9 @@ aliases:
   - vagababov
   - vaikas
   knative-release-leads:
+  - dprotaso
   - fallback-notification-blocker
-  - tcnghia
-  - vaikas
+  - matzew
   knative-robots:
   - knative-prow-releaser-robot
   - knative-prow-robot
