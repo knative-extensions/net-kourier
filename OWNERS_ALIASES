@@ -126,7 +126,7 @@ aliases:
   - bsnchan
   - dprotaso
   - evankanderson
-  - fallback-notification-blocker
+  - julz
   - knative-prow-releaser-robot
   - knative-prow-robot
   - knative-prow-updater-robot
@@ -144,8 +144,10 @@ aliases:
   - aslom
   - chaodaiG
   - csantanapr
+  - dprotaso
   - evankanderson
   - josephburnett
+  - julz
   - k4leung4
   - lionelvillard
   - markusthoemmes
@@ -160,7 +162,6 @@ aliases:
   - vaikas
   knative-release-leads:
   - dprotaso
-  - fallback-notification-blocker
   - matzew
   knative-robots:
   - knative-prow-releaser-robot
@@ -190,7 +191,6 @@ aliases:
   networking-wg-leads:
   - ZhiminXiang
   - nak3
-  - tcnghia
   operations-wg-leads:
   - houshengbo
   operations-writers:
@@ -212,7 +212,6 @@ aliases:
   - dprotaso
   - markusthoemmes
   - nak3
-  - tcnghia
   - vagababov
   source-wg-leads:
   - lionelvillard
@@ -224,8 +223,9 @@ aliases:
   - thisisnotapril
   - vaikas
   technical-oversight-committee:
+  - dprotaso
   - evankanderson
-  - fallback-notification-blocker
+  - julz
   - markusthoemmes
   - rhuss
   ux-wg-leads:
