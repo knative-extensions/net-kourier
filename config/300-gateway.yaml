@@ -15,7 +15,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: 3scale-kourier-gateway
+  name: net-kourier-gateway
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
@@ -23,11 +23,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: 3scale-kourier-gateway
+      app: net-kourier-gateway
   template:
     metadata:
       labels:
-        app: 3scale-kourier-gateway
+        app: net-kourier-gateway
     spec:
       containers:
         - args:
@@ -37,7 +37,7 @@ spec:
           command:
             - /usr/local/bin/envoy
           image: docker.io/envoyproxy/envoy:v1.16-latest
-          name: kourier-gateway
+          name: gateway
           ports:
             - name: http2-external
               containerPort: 8080
@@ -97,7 +97,7 @@ spec:
       protocol: TCP
       targetPort: 8443
   selector:
-    app: 3scale-kourier-gateway
+    app: net-kourier-gateway
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -115,5 +115,5 @@ spec:
       protocol: TCP
       targetPort: 8081
   selector:
-    app: 3scale-kourier-gateway
+    app: net-kourier-gateway
   type: ClusterIP

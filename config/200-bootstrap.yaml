@@ -34,7 +34,7 @@ data:
         ads: {}
     node:
       cluster: kourier-knative
-      id: 3scale-kourier-gateway
+      id: net-kourier-gateway
     static_resources:
       listeners:
         - name: stats_listener
@@ -87,7 +87,7 @@ data:
                 endpoint:
                   address:
                     socket_address:
-                      address: "kourier-control.knative-serving"
+                      address: "net-kourier-controller.knative-serving"
                       port_value: 18000
           http2_protocol_options: {}
           type: STRICT_DNS

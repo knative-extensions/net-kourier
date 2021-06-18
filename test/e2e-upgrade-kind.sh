@@ -39,8 +39,8 @@ echo "Install the old Kourier version"
 kubectl apply -f "https://github.com/knative-sandbox/net-kourier/releases/download/v0.19.1/release.yaml"
 
 echo "Wait for all deployments to be up"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/3scale-kourier-control
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/3scale-kourier-gateway
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/net-kourier-controller
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/net-kourier-gateway
 
 # Remove the following files in case we failed to clean them up in an earlier test.
 rm -f /tmp/prober-signal
@@ -63,8 +63,8 @@ ko resolve -f config | \
   kubectl apply -f -
 
 echo "Wait for the deployments to roll over"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/3scale-kourier-control
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/net-kourier-gateway
 
 echo "Wait for some more traffic to flow"
 sleep 10

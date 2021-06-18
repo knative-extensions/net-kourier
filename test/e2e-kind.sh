@@ -40,8 +40,8 @@ go test -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e
   --ingressClass=kourier.ingress.networking.knative.dev
 
 echo ">> Scale up components for HA tests"
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=2
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment 3scale-kourier-control --replicas=2
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment net-kourier-gateway --replicas=2
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controller --replicas=2
 
 echo ">> Running HA tests"
 go test -count=1 -timeout=15m -failfast -parallel=1 -tags=e2e ./test/ha -spoofinterval="10ms" \
@@ -49,13 +49,13 @@ go test -count=1 -timeout=15m -failfast -parallel=1 -tags=e2e ./test/ha -spoofin
   --ingressClass=kourier.ingress.networking.knative.dev
 
 echo ">> Scale down after HA tests"
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=1
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment 3scale-kourier-control --replicas=1
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment net-kourier-gateway --replicas=1
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controller --replicas=1
 
 echo ">> Setup ExtAuthz"
 ko apply -f test/config/extauthz
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/externalauthz
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment 3scale-kourier-control KOURIER_EXTAUTHZ_HOST=externalauthz.knative-serving:6000
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST=externalauthz.knative-serving:6000
 
 echo ">> Running ExtAuthz tests"
 go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \

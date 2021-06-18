@@ -36,7 +36,7 @@ import (
 
 const (
 	kourierControlNamespace  = "knative-serving"
-	kourierControlDeployment = "3scale-kourier-control"
+	kourierControlDeployment = "net-kourier-controller"
 )
 
 func TestKourierControlHA(t *testing.T) {
