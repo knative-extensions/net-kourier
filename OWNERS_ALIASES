@@ -54,6 +54,7 @@ aliases:
   - aliok
   - davyodom
   - devguyio
+  - eric-sap
   - lberk
   - matzew
   - phamilton
@@ -194,7 +195,9 @@ aliases:
   operations-wg-leads:
   - houshengbo
   operations-writers:
+  - dprotaso
   - houshengbo
+  - upodroid
   productivity-wg-leads:
   - chizhg
   - n3wscott
