@@ -35,7 +35,7 @@ import (
 const (
 	kourierGatewayDeployment = "net-kourier-gateway"
 	kourierGatewayNamespace  = "kourier-system"
-	kourierGatewayLabel      = "app=net-kourier-gateway"
+	kourierGatewayLabel      = "app=3scale-kourier-gateway"
 	kourierService           = "kourier"
 )
 
