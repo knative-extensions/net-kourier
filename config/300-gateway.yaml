@@ -23,11 +23,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: net-kourier-gateway
+      app: 3scale-kourier-gateway
   template:
     metadata:
       labels:
-        app: net-kourier-gateway
+        app: 3scale-kourier-gateway
     spec:
       containers:
         - args:
@@ -97,7 +97,7 @@ spec:
       protocol: TCP
       targetPort: 8443
   selector:
-    app: net-kourier-gateway
+    app: 3scale-kourier-gateway
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -115,5 +115,5 @@ spec:
       protocol: TCP
       targetPort: 8081
   selector:
-    app: net-kourier-gateway
+    app: 3scale-kourier-gateway
   type: ClusterIP
