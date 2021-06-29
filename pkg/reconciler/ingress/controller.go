@@ -51,7 +51,7 @@ import (
 
 const (
 	gatewayLabelKey   = "app"
-	gatewayLabelValue = "net-kourier-gateway"
+	gatewayLabelValue = "3scale-kourier-gateway"
 
 	nodeID         = "net-kourier-gateway"
 	managementPort = 18000
