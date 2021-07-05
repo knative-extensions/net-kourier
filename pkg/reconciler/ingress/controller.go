@@ -53,7 +53,7 @@ const (
 	gatewayLabelKey   = "app"
 	gatewayLabelValue = "3scale-kourier-gateway"
 
-	nodeID         = "net-kourier-gateway"
+	nodeID         = "3scale-kourier-gateway"
 	managementPort = 18000
 )
 

@@ -15,7 +15,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: net-kourier-gateway
+  name: 3scale-kourier-gateway
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
@@ -37,7 +37,7 @@ spec:
           command:
             - /usr/local/bin/envoy
           image: docker.io/envoyproxy/envoy:v1.16-latest
-          name: gateway
+          name: kourier-gateway
           ports:
             - name: http2-external
               containerPort: 8080

@@ -64,7 +64,7 @@ ko resolve -f config | \
 
 echo "Wait for the deployments to roll over"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/net-kourier-gateway
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway
 
 echo "Wait for some more traffic to flow"
 sleep 10

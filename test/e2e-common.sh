@@ -44,7 +44,7 @@ function test_setup() {
   ko resolve -f config | sed 's/--log-level info/--log-level debug/g' | ko apply -f - || return 1
 
   scale_deployment net-kourier-controller "${KOURIER_CONTROL_NAMESPACE}"
-  scale_deployment net-kourier-gateway "${GATEWAY_NAMESPACE_OVERRIDE}"
+  scale_deployment 3scale-kourier-gateway "${GATEWAY_NAMESPACE_OVERRIDE}"
 
   # Wait for pods to be running.
   echo ">> Waiting for Kourier components to be running..."

@@ -34,7 +34,7 @@ data:
         ads: {}
     node:
       cluster: kourier-knative
-      id: net-kourier-gateway
+      id: 3scale-kourier-gateway
     static_resources:
       listeners:
         - name: stats_listener

@@ -138,7 +138,7 @@ jobs:
         echo "GATEWAY_NAMESPACE_OVERRIDE=kourier-system" >> $GITHUB_ENV
 
         # Scale up components for HA tests
-        kubectl -n kourier-system  scale deployment net-kourier-gateway --replicas=2
+        kubectl -n kourier-system  scale deployment 3scale-kourier-gateway --replicas=2
         kubectl -n knative-serving scale deployment net-kourier-controller --replicas=2
 
     - name: Upload Test Images
@@ -177,7 +177,7 @@ jobs:
           --cluster-suffix=$CLUSTER_SUFFIX
 
         # Scale down components for ExtAuthz tests.
-        kubectl -n kourier-system  scale deployment net-kourier-gateway --replicas=1
+        kubectl -n kourier-system  scale deployment 3scale-kourier-gateway --replicas=1
         kubectl -n knative-serving scale deployment net-kourier-controller --replicas=1
 
         # Setup test service and point kourier-control to it.
