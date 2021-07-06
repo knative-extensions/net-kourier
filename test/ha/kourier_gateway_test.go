@@ -47,11 +47,14 @@ func TestKourierGatewayHA(t *testing.T) {
 	if err := pkgTest.WaitForDeploymentScale(ctx, clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
 		t.Fatalf("Deployment %s not scaled to %d: %v", kourierGatewayDeployment, haReplicas, err)
 	}
+	t.Logf("Gateway has %d pods", haReplicas)
 
+	t.Log("Creating a service")
 	svcName, svcPort, svcCancel := ingress.CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 	defer svcCancel()
 
 	// Create an Ingress that we will test while restarting Kourier gateway.
+	t.Log("Creating the ingress")
 	_, _, ingressCancel := ingress.CreateIngressReady(ctx, t, clients, createIngressSpec(svcName, svcPort))
 	defer ingressCancel()
 
@@ -70,6 +73,7 @@ func TestKourierGatewayHA(t *testing.T) {
 		t.Fatalf("Unable to get public endpoints for service %s: %v", kourierService, err)
 	}
 
+	t.Logf("Deleting gateway %s", gatewayPod)
 	if err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
 		metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
@@ -111,6 +115,7 @@ func TestKourierGatewayHA(t *testing.T) {
 		t.Fatalf("Unable to get public endpoints for service %s: %v", kourierService, err)
 	}
 
+	t.Logf("Deleting gateway %s", gatewayPod)
 	if err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
 		metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
