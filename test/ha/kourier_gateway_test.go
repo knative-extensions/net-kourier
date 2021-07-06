@@ -20,10 +20,12 @@ package ha
 
 import (
 	"context"
-	"sort"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/test"
 	"knative.dev/networking/test/conformance/ingress"
@@ -47,7 +49,6 @@ func TestKourierGatewayHA(t *testing.T) {
 	if err := pkgTest.WaitForDeploymentScale(ctx, clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
 		t.Fatalf("Deployment %s not scaled to %d: %v", kourierGatewayDeployment, haReplicas, err)
 	}
-	t.Logf("Gateway has %d pods", haReplicas)
 
 	t.Log("Creating a service")
 	svcName, svcPort, svcCancel := ingress.CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
@@ -66,67 +67,55 @@ func TestKourierGatewayHA(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to get Gateway pods:", err)
 	}
-	gatewayPod := pods.Items[0].Name
 
-	origEndpoints, err := pkgTest.GetEndpointAddresses(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace)
-	if err != nil {
-		t.Fatalf("Unable to get public endpoints for service %s: %v", kourierService, err)
+	for _, pod := range pods.Items {
+		t.Logf("Wait for a gateway deployment to be consistent")
+		if err := pkgTest.WaitForDeploymentScale(ctx, clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
+			t.Fatalf("Deployment %s not scaled to %d: %v", kourierGatewayDeployment, haReplicas, err)
+		}
+		if err := pkgTest.WaitForServiceEndpoints(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace, haReplicas); err != nil {
+			t.Fatalf("Deployment %s failed to scale up: %v", kourierGatewayDeployment, err)
+		}
+
+		t.Logf("Deleting gateway %s", pod.Name)
+		if err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, pod.Name,
+			metav1.DeleteOptions{
+				GracePeriodSeconds: ptr.Int64(0),
+			}); err != nil {
+			t.Fatalf("Failed to delete pod %s: %v", pod.Name, err)
+		}
+
+		// Wait for the killed gateway to disappear from the endpoints.
+		if err := waitForEndpointsState(clients.KubeClient, kourierService, kourierGatewayNamespace, readyEndpointsDoNotContain(pod.Status.PodIP)); err != nil {
+			t.Fatal("Failed to wait for the service to update its endpoints:", err)
+		}
+
+		assertIngressEventuallyWorks(ctx, t, clients, url.URL())
 	}
+}
 
-	t.Logf("Deleting gateway %s", gatewayPod)
-	if err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
-		metav1.DeleteOptions{
-			GracePeriodSeconds: ptr.Int64(0),
-		}); err != nil {
-		t.Fatalf("Failed to delete pod %s: %v", gatewayPod, err)
-	}
+func waitForEndpointsState(client kubernetes.Interface, svcName, svcNamespace string, inState func(*corev1.Endpoints) (bool, error)) error {
+	endpointsService := client.CoreV1().Endpoints(svcNamespace)
 
-	// Wait for the killed gateway to disappear from Kourier endpoints.
-	if err := pkgTest.WaitForChangedEndpoints(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace, origEndpoints); err != nil {
-		t.Fatal("Failed to wait for the service to update its endpoints:", err)
-	}
+	return wait.PollImmediate(test.PollInterval, test.PollTimeout, func() (bool, error) {
+		endpoint, err := endpointsService.Get(context.Background(), svcName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
 
-	assertIngressEventuallyWorks(ctx, t, clients, url.URL())
-
-	// Wait for the deployment to scale up again.
-	if err := pkgTest.WaitForDeploymentScale(ctx, clients.KubeClient, kourierGatewayDeployment, kourierGatewayNamespace, haReplicas); err != nil {
-		t.Fatalf("Deployment %s failed to scale up: %v", kourierGatewayDeployment, err)
-	}
-
-	if err := pkgTest.WaitForServiceEndpoints(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace, haReplicas); err != nil {
-		t.Fatalf("Failed to wait for %d endpoints for service %s: %v", haReplicas, kourierService, err)
-	}
-
-	pods, err = clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).List(ctx, metav1.ListOptions{
-		LabelSelector: kourierGatewayLabel,
+		return inState(endpoint)
 	})
-	if err != nil {
-		t.Fatal("Failed to get Gateway pods:", err)
+}
+
+func readyEndpointsDoNotContain(ip string) func(*corev1.Endpoints) (bool, error) {
+	return func(eps *corev1.Endpoints) (bool, error) {
+		for _, subset := range eps.Subsets {
+			for _, ready := range subset.Addresses {
+				if ready.IP == ip {
+					return false, nil
+				}
+			}
+		}
+		return true, nil
 	}
-
-	// Sort the pods according to creation timestamp so that we can kill the oldest one. We want to
-	// gradually kill both gateway pods.
-	sort.Slice(pods.Items, func(i, j int) bool { return pods.Items[i].CreationTimestamp.Before(&pods.Items[j].CreationTimestamp) })
-
-	gatewayPod = pods.Items[0].Name // Stop the oldest gateway pod remaining.
-
-	origEndpoints, err = pkgTest.GetEndpointAddresses(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace)
-	if err != nil {
-		t.Fatalf("Unable to get public endpoints for service %s: %v", kourierService, err)
-	}
-
-	t.Logf("Deleting gateway %s", gatewayPod)
-	if err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPod,
-		metav1.DeleteOptions{
-			GracePeriodSeconds: ptr.Int64(0),
-		}); err != nil {
-		t.Fatalf("Failed to delete pod %s: %v", gatewayPod, err)
-	}
-
-	// Wait for the killed pod to disappear from Kourier endpoints.
-	if err := pkgTest.WaitForChangedEndpoints(ctx, clients.KubeClient, kourierService, kourierGatewayNamespace, origEndpoints); err != nil {
-		t.Fatal("Failed to wait for the service to update its endpoints:", err)
-	}
-
-	assertIngressEventuallyWorks(ctx, t, clients, url.URL())
 }
