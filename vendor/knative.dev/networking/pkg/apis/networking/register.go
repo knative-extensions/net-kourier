@@ -74,10 +74,6 @@ const (
 	// Cert-Manager-based Certificate will reconcile into a Cert-Manager Certificate).
 	CertificateClassAnnotationKey = "networking.knative.dev/certificate.class"
 
-	// DeprecatedDisableWildcardCertLabelKey is the deprecated label key attached to a namespace to indicate that
-	// a wildcard certificate should be not created for it.
-	DeprecatedDisableWildcardCertLabelKey = GroupName + "/disableWildcardCert"
-
 	// DisableWildcardCertLabelKey is the label key attached to a namespace to indicate that
 	// a wildcard certificate should be not created for it.
 	DisableWildcardCertLabelKey = "networking.knative.dev/disableWildcardCert"
