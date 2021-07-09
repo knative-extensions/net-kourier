@@ -36,7 +36,7 @@ export "GATEWAY_OVERRIDE=kourier"
 export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 
 echo "Install the old Kourier version"
-kubectl apply -f "https://github.com/knative-sandbox/net-kourier/releases/download/v0.19.1/release.yaml"
+kubectl apply -f "https://github.com/knative-sandbox/net-kourier/releases/download/v0.23.0/release.yaml"
 
 echo "Wait for all deployments to be up"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/3scale-kourier-control
@@ -63,7 +63,7 @@ ko resolve -f config | \
   kubectl apply -f -
 
 echo "Wait for the deployments to roll over"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/3scale-kourier-control
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway
 
 echo "Wait for some more traffic to flow"

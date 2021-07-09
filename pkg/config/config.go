@@ -25,7 +25,7 @@ import (
 
 const (
 	// ControllerName is the name of the kourier controller.
-	ControllerName = "kourier"
+	ControllerName = "net-kourier-controller"
 
 	// InternalServiceName is the name of the internal service.
 	InternalServiceName = "kourier-internal"

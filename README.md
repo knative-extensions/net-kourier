@@ -117,7 +117,7 @@ CERTS_SECRET_NAME: ${CERT_NAME}
 ## External Authorization Configuration
 
 If you want to enable the external authorization support you can set these ENV
-vars in the `3scale-kourier-control` deployment:
+vars in the `net-kourier-controller` deployment:
 
 - `KOURIER_EXTAUTHZ_HOST*`: The external authorization service and port,
   my-auth:2222

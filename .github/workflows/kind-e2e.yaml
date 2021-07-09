@@ -139,7 +139,7 @@ jobs:
 
         # Scale up components for HA tests
         kubectl -n kourier-system  scale deployment 3scale-kourier-gateway --replicas=2
-        kubectl -n knative-serving scale deployment 3scale-kourier-control --replicas=2
+        kubectl -n knative-serving scale deployment net-kourier-controller --replicas=2
 
     - name: Upload Test Images
       run: |
@@ -178,12 +178,12 @@ jobs:
 
         # Scale down components for ExtAuthz tests.
         kubectl -n kourier-system  scale deployment 3scale-kourier-gateway --replicas=1
-        kubectl -n knative-serving scale deployment 3scale-kourier-control --replicas=1
+        kubectl -n knative-serving scale deployment net-kourier-controller --replicas=1
 
         # Setup test service and point kourier-control to it.
         ko apply -f test/config/extauthz
         kubectl -n knative-serving wait --timeout=300s --for=condition=Available deployment/externalauthz
-        kubectl -n knative-serving set env deployment 3scale-kourier-control KOURIER_EXTAUTHZ_HOST=externalauthz.knative-serving:6000
+        kubectl -n knative-serving set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST=externalauthz.knative-serving:6000
 
         # Exclude the control-plane node, which doesn't seem to expose the nodeport service.
         IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
