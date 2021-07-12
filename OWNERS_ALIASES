@@ -5,7 +5,7 @@ aliases:
   api-core-wg-leads:
   - dprotaso
   async-component-approvers:
-  - beemarie
+  - bvennam
   - julz
   - maximilien
   autoscaling-wg-leads:
@@ -21,11 +21,9 @@ aliases:
   - devguyio
   - lionelvillard
   - matzew
-  - slinkydeveloper
   - vaikas
   delivery-wg-leads:
   - matzew
-  - slinkydeveloper
   discovery-approvers:
   - lberk
   - n3wscott
@@ -63,7 +61,6 @@ aliases:
   - travis-minke-sap
   eventing-kafka-broker-approvers:
   - pierDipi
-  - slinkydeveloper
   eventing-kafka-mtsource-approvers:
   - steven0711dong
   eventing-natss-approvers:
@@ -87,7 +84,6 @@ aliases:
   - lionelvillard
   - matzew
   - n3wscott
-  - slinkydeveloper
   - vaikas
   homebrew-kn-plugins-approvers:
   - dsimansk
@@ -153,12 +149,12 @@ aliases:
   - k4leung4
   - lionelvillard
   - markusthoemmes
+  - matzew
   - mikehelmick
   - n3wscott
   - nak3
   - navidshaikh
   - rhuss
-  - slinkydeveloper
   - tcnghia
   - vagababov
   - vaikas
