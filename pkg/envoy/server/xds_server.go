@@ -26,6 +26,7 @@ import (
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v2"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v2"
 	"google.golang.org/grpc"
+	health "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 const (
@@ -52,6 +53,15 @@ func NewXdsServer(managementPort uint, callbacks xds.Callbacks) *XdsServer {
 	}
 }
 
+type healthServer struct {
+	health.UnimplementedHealthServer
+}
+
+// Check implements the HealthServer interface.
+func (healthServer) Check(context.Context, *health.HealthCheckRequest) (*health.HealthCheckResponse, error) {
+	return &health.HealthCheckResponse{Status: health.HealthCheckResponse_SERVING}, nil
+}
+
 // RunManagementServer starts an xDS server at the given Port.
 func (envoyXdsServer *XdsServer) RunManagementServer() error {
 	port := envoyXdsServer.managementPort
@@ -68,6 +78,7 @@ func (envoyXdsServer *XdsServer) RunManagementServer() error {
 	envoyv2.RegisterClusterDiscoveryServiceServer(grpcServer, server)
 	envoyv2.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	envoyv2.RegisterRouteDiscoveryServiceServer(grpcServer, server)
+	health.RegisterHealthServer(grpcServer, healthServer{})
 
 	errCh := make(chan error)
 	go func() {
