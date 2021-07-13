@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	go.uber.org/zap v1.17.0
+	go.uber.org/zap v1.18.1
 	google.golang.org/genproto v0.0.0-20210416161957-9910b6c460de
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.26.0
@@ -18,6 +18,6 @@ require (
 	k8s.io/client-go v0.20.7
 	k8s.io/code-generator v0.20.7
 	knative.dev/hack v0.0.0-20210622141627-e28525d8d260
-	knative.dev/networking v0.0.0-20210705111547-ca0a601fc900
-	knative.dev/pkg v0.0.0-20210706174620-fe90576475ca
+	knative.dev/networking v0.0.0-20210712134623-946273d749db
+	knative.dev/pkg v0.0.0-20210712150822-e8973c6acbf7
 )
