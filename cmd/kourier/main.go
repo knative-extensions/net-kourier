@@ -17,6 +17,9 @@ limitations under the License.
 package main
 
 import (
+	"flag"
+	"os"
+
 	"knative.dev/net-kourier/pkg/config"
 	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
 
@@ -24,6 +27,17 @@ import (
 	"knative.dev/pkg/injection/sharedmain"
 )
 
+var (
+	probeAddr = flag.String("probe-addr", "", "run this binary as a health check against the given address")
+)
+
 func main() {
+	flag.Parse()
+
+	// Run the binary as a health checker if the respective flag is given.
+	if *probeAddr != "" {
+		os.Exit(check(*probeAddr))
+	}
+
 	sharedmain.Main(config.ControllerName, kourierIngressController.NewController)
 }

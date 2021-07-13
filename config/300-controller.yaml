@@ -50,6 +50,9 @@ spec:
           - name: http2-xds
             containerPort: 18000
             protocol: TCP
+          readinessProbe:
+            exec:
+              command: ["/ko-app/kourier", "-probe-addr=:18000"]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
