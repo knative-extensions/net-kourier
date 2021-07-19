@@ -101,6 +101,11 @@ aliases:
   kn-plugin-event-approvers:
   - cardil
   - rhuss
+  kn-plugin-func-approvers:
+  - lance
+  - lkingland
+  - matejvasek
+  - zroubalik
   kn-plugin-migration-approvers:
   - maximilien
   - zhangtbj
