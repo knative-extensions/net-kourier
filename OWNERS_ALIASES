@@ -78,13 +78,11 @@ aliases:
   eventing-wg-leads:
   - devguyio
   - lionelvillard
-  - vaikas
   eventing-writers:
   - devguyio
   - lionelvillard
   - matzew
   - n3wscott
-  - vaikas
   homebrew-kn-plugins-approvers:
   - dsimansk
   - maximilien
@@ -109,6 +107,10 @@ aliases:
   kn-plugin-migration-approvers:
   - maximilien
   - zhangtbj
+  kn-plugin-quickstart-approvers:
+  - csantanapr
+  - omerbensaadon
+  - psschwei
   kn-plugin-sample-approvers:
   - maximilien
   - navidshaikh
