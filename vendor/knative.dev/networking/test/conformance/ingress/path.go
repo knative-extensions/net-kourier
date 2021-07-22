@@ -127,6 +127,7 @@ func TestPath(t *testing.T) {
 	}
 
 	for path, want := range tests {
+		path, want := path, want
 		t.Run(path, func(t *testing.T) {
 			t.Parallel()
 
