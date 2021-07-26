@@ -184,6 +184,7 @@ jobs:
         ko apply -f test/config/extauthz
         kubectl -n knative-serving wait --timeout=300s --for=condition=Available deployment/externalauthz
         kubectl -n knative-serving set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST=externalauthz.knative-serving:6000
+        kubectl -n knative-serving rollout status deployment/net-kourier-controller --timeout=300s
 
         # Exclude the control-plane node, which doesn't seem to expose the nodeport service.
         IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
