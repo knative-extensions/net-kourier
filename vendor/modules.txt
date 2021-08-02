@@ -791,7 +791,7 @@ k8s.io/utils/trace
 # knative.dev/hack v0.0.0-20210622141627-e28525d8d260
 ## explicit
 knative.dev/hack
-# knative.dev/networking v0.0.0-20210723170945-03e4c4360c07
+# knative.dev/networking v0.0.0-20210728163216-f3c57a05b7d8
 ## explicit
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -824,7 +824,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20210722223844-842df75f5c02
+# knative.dev/pkg v0.0.0-20210731072840-64ab22bbaab9
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
