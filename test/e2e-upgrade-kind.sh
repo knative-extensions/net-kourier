@@ -23,7 +23,6 @@ KOURIER_CONTROL_NAMESPACE=knative-serving
 TEST_NAMESPACE=serving-tests
 
 export KO_DOCKER_REPO=kind.local
-export KIND_CLUSTER_NAME="kourier-integration"
 $(dirname $0)/upload-test-images.sh
 
 echo ">> Setup test resources"
