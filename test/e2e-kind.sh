@@ -22,7 +22,6 @@ KOURIER_GATEWAY_NAMESPACE=kourier-system
 KOURIER_CONTROL_NAMESPACE=knative-serving
 CLUSTER_SUFFIX=${CLUSTER_SUFFIX:-cluster.local}
 
-export KO_DOCKER_REPO=kind.local
 $(dirname $0)/upload-test-images.sh
 
 echo ">> Setup test resources"
