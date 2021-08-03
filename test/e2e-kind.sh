@@ -20,15 +20,14 @@ set -euo pipefail
 
 KOURIER_GATEWAY_NAMESPACE=kourier-system
 KOURIER_CONTROL_NAMESPACE=knative-serving
+CLUSTER_SUFFIX=${CLUSTER_SUFFIX:-cluster.local}
 
-export KO_DOCKER_REPO=kind.local
-export KIND_CLUSTER_NAME="kourier-integration"
 $(dirname $0)/upload-test-images.sh
 
 echo ">> Setup test resources"
 ko apply -f test/config
 
-ip=$(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' | head -n1)
+IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
 
 export "GATEWAY_OVERRIDE=kourier"
 export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
@@ -36,8 +35,9 @@ export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 echo ">> Running conformance tests"
 go test -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e/... \
   --enable-alpha --enable-beta \
-  --ingressendpoint="${ip}" \
-  --ingressClass=kourier.ingress.networking.knative.dev
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
 
 echo ">> Scale up components for HA tests"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=2
@@ -45,8 +45,9 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controlle
 
 echo ">> Running HA tests"
 go test -count=1 -timeout=15m -failfast -parallel=1 -tags=e2e ./test/ha -spoofinterval="10ms" \
-  --ingressendpoint="${ip}" \
-  --ingressClass=kourier.ingress.networking.knative.dev
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
 
 echo ">> Scale down after HA tests"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=1
@@ -60,5 +61,6 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-
 
 echo ">> Running ExtAuthz tests"
 go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
-  --ingressendpoint="${ip}" \
-  --ingressClass=kourier.ingress.networking.knative.dev
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"

@@ -22,8 +22,6 @@ KOURIER_GATEWAY_NAMESPACE=kourier-system
 KOURIER_CONTROL_NAMESPACE=knative-serving
 TEST_NAMESPACE=serving-tests
 
-export KO_DOCKER_REPO=kind.local
-export KIND_CLUSTER_NAME="kourier-integration"
 $(dirname $0)/upload-test-images.sh
 
 echo ">> Setup test resources"
@@ -57,7 +55,6 @@ until [[ $(kubectl -n "${TEST_NAMESPACE}" get ingresses.networking.internal.knat
 kubectl -n "${TEST_NAMESPACE}" wait --timeout=300s --for=condition=Ready ingresses.networking.internal.knative.dev --all
 
 echo "Install the current Kourier version"
-export KO_DOCKER_REPO=kind.local
 ko resolve -f config | \
   sed 's/LoadBalancer/NodePort/g' | \
   kubectl apply -f -

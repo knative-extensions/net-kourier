@@ -133,67 +133,19 @@ jobs:
           sed "s|docker.io/envoyproxy/envoy:.*|${{ matrix.gateway }}|" | \
           kubectl apply -f -
 
-        # This tells the tests what namespace to look in for our kingress LB.
-        echo "GATEWAY_OVERRIDE=kourier" >> $GITHUB_ENV
-        echo "GATEWAY_NAMESPACE_OVERRIDE=kourier-system" >> $GITHUB_ENV
-
-        # Scale up components for HA tests
-        kubectl -n kourier-system  scale deployment 3scale-kourier-gateway --replicas=2
-        kubectl -n knative-serving scale deployment net-kourier-controller --replicas=2
-
-    - name: Upload Test Images
-      run: |
-        # Build and Publish our test images to the docker daemon.
-        ./test/upload-test-images.sh
-
     - name: Wait for Ready
       run: |
         echo Waiting for Pods to become ready.
         # # TODO: Find a good way to do this with chaos enabled.
         # kubectl wait pod --for=condition=Ready -n ${GATEWAY_NAMESPACE_OVERRIDE} -l '!job-name'
-        kubectl wait pod --for=condition=Ready -n knative-serving -l '!job-name'
+        kubectl wait pod --timeout 300s --for=condition=Ready -n knative-serving -l '!job-name'
 
         # For debugging.
         kubectl get pods --all-namespaces
 
     - name: Run e2e Tests
       run: |
-        set -x
-
-        # Exclude the control-plane node, which doesn't seem to expose the nodeport service.
-        IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
-
-        # Run conformance tests.
-        go test -race -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e/... \
-           --enable-alpha --enable-beta \
-           --ingressendpoint="${IPS[0]}" \
-           --ingressClass=kourier.ingress.networking.knative.dev \
-           --cluster-suffix=$CLUSTER_SUFFIX
-
-        # Run HA tests.
-        go test -count=1 -timeout=15m -failfast -parallel=1 -tags=e2e ./test/ha/... -spoofinterval="10ms" \
-          --ingressendpoint="${IPS[0]}" \
-          --ingressClass=kourier.ingress.networking.knative.dev \
-          --cluster-suffix=$CLUSTER_SUFFIX
-
-        # Scale down components for ExtAuthz tests.
-        kubectl -n kourier-system  scale deployment 3scale-kourier-gateway --replicas=1
-        kubectl -n knative-serving scale deployment net-kourier-controller --replicas=1
-
-        # Setup test service and point kourier-control to it.
-        ko apply -f test/config/extauthz
-        kubectl -n knative-serving wait --timeout=300s --for=condition=Available deployment/externalauthz
-        kubectl -n knative-serving set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST=externalauthz.knative-serving:6000
-        kubectl -n knative-serving rollout status deployment/net-kourier-controller --timeout=300s
-
-        # Exclude the control-plane node, which doesn't seem to expose the nodeport service.
-        IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
-
-        # Run the tests tagged as e2e on the KinD cluster.
-        go test -race -count=1 -short -timeout=20m -tags=e2e ./test/extauthz/... \
-          --ingressendpoint="${IPS[0]}" \
-          --ingressClass=kourier.ingress.networking.knative.dev \
-          --cluster-suffix=$CLUSTER_SUFFIX
+        ./test/e2e-kind.sh
 
     - name: Post failure notice to Slack
       uses: rtCamp/action-slack-notify@v2.1.0
