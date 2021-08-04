@@ -6,6 +6,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.9.9-0.20210512163311-63b5d3c536b0
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
+	github.com/grpc-ecosystem/grpc-gateway v1.14.8 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.18.1
@@ -18,8 +19,8 @@ require (
 	k8s.io/client-go v0.20.7
 	k8s.io/code-generator v0.20.7
 	knative.dev/hack v0.0.0-20210622141627-e28525d8d260
-	knative.dev/networking v0.0.0-20210802043343-0f2f50944c03
-	knative.dev/pkg v0.0.0-20210803032247-552bbc106170
+	knative.dev/networking v0.0.0-20210803181815-acdfd41c575c
+	knative.dev/pkg v0.0.0-20210803160015-21eb4c167cc5
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d
