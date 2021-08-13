@@ -48,10 +48,10 @@ jobs:
       KIND_CLUSTER_NAME: "kourier-integration"
 
     steps:
-    - name: Set up Go 1.15.x
+    - name: Set up Go 1.16.x
       uses: actions/setup-go@v2
       with:
-        go-version: 1.15.x
+        go-version: 1.16.x
 
     - name: Install Dependencies
       working-directory: ./
