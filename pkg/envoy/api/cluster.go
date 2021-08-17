@@ -19,27 +19,27 @@ package envoy
 import (
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	envoyCluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-// NewCluster generates a new v2.Cluster with the given settings.
+// NewCluster generates a new v3.Cluster with the given settings.
 func NewCluster(
 	name string,
 	connectTimeout time.Duration,
 	endpoints []*endpoint.LbEndpoint,
 	isHTTP2 bool,
-	discoveryType v2.Cluster_DiscoveryType) *v2.Cluster {
+	discoveryType envoyCluster.Cluster_DiscoveryType) *envoyCluster.Cluster {
 
-	cluster := &v2.Cluster{
+	cluster := &envoyCluster.Cluster{
 		Name: name,
-		ClusterDiscoveryType: &v2.Cluster_Type{
+		ClusterDiscoveryType: &envoyCluster.Cluster_Type{
 			Type: discoveryType,
 		},
 		ConnectTimeout: durationpb.New(connectTimeout),
-		LoadAssignment: &v2.ClusterLoadAssignment{
+		LoadAssignment: &endpoint.ClusterLoadAssignment{
 			ClusterName: name,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
 				LbEndpoints: endpoints,
@@ -48,6 +48,7 @@ func NewCluster(
 	}
 
 	if isHTTP2 {
+		//nolint: staticcheck // TODO: Http2ProtocolOptions is deprecated.
 		cluster.Http2ProtocolOptions = &core.Http2ProtocolOptions{}
 	}
 

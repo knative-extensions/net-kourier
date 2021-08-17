@@ -21,10 +21,9 @@ import (
 	"reflect"
 	"testing"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_api_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -91,7 +90,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[1])
 }
 
-func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v2.Listener, match *SNIMatch) {
+func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v3.Listener, match *SNIMatch) {
 	filterChainFirstSNIMatch := getFilterChainByServerName(listener, match.Hosts)
 	assert.Assert(t, filterChainFirstSNIMatch != nil)
 
@@ -101,7 +100,7 @@ func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v2.Li
 	assert.DeepEqual(t, match.PrivateKey, privateKey)
 }
 
-func getFilterChainByServerName(listener *envoy_api_v2.Listener, serverNames []string) *envoy_api_v2_listener.FilterChain {
+func getFilterChainByServerName(listener *envoy_api_v3.Listener, serverNames []string) *envoy_api_v3.FilterChain {
 	for _, filterChain := range listener.FilterChains {
 		filterChainMatch := filterChain.GetFilterChainMatch()
 
@@ -114,7 +113,7 @@ func getFilterChainByServerName(listener *envoy_api_v2.Listener, serverNames []s
 }
 
 // Note: Returns an error when there are multiple certificates
-func getTLSCreds(filterChain *envoy_api_v2_listener.FilterChain) (certChain []byte, privateKey []byte, err error) {
+func getTLSCreds(filterChain *envoy_api_v3.FilterChain) (certChain []byte, privateKey []byte, err error) {
 	downstreamTLSContext := &auth.DownstreamTlsContext{}
 	err = anypb.UnmarshalTo(filterChain.GetTransportSocket().GetTypedConfig(), downstreamTLSContext, proto.UnmarshalOptions{})
 	if err != nil {

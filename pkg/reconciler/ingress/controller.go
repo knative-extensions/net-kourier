@@ -19,8 +19,8 @@ package ingress
 import (
 	"context"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	xds "github.com/envoyproxy/go-control-plane/pkg/server/v2"
+	v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -104,7 +104,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	envoyXdsServer := envoy.NewXdsServer(
 		managementPort,
 		&xds.CallbackFuncs{
-			StreamRequestFunc: func(_ int64, req *v2.DiscoveryRequest) error {
+			StreamRequestFunc: func(_ int64, req *v3.DiscoveryRequest) error {
 				if req.ErrorDetail == nil {
 					return nil
 				}

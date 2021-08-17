@@ -19,8 +19,8 @@ package envoy
 import (
 	"testing"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_api_v2_endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	v3Endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"gotest.tools/v3/assert"
 )
 
@@ -30,7 +30,7 @@ func TestNewLBEndpoint(t *testing.T) {
 
 	endpoint := NewLBEndpoint(ip, port)
 
-	lbEndpoint := endpoint.GetHostIdentifier().(*envoy_api_v2_endpoint.LbEndpoint_Endpoint).Endpoint
+	lbEndpoint := endpoint.GetHostIdentifier().(*v3Endpoint.LbEndpoint_Endpoint).Endpoint
 	socketAddress := lbEndpoint.GetAddress().GetSocketAddress()
 	assert.Equal(t, ip, socketAddress.Address)
 	assert.Equal(t, port, socketAddress.PortSpecifier.(*core.SocketAddress_PortValue).PortValue)

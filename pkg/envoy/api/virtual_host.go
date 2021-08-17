@@ -17,8 +17,8 @@ limitations under the License.
 package envoy
 
 import (
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	extAuthService "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
 )

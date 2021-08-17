@@ -17,7 +17,7 @@ limitations under the License.
 package envoy
 
 import (
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 

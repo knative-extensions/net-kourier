@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
@@ -80,13 +80,13 @@ func TestIngressTranslator(t *testing.T) {
 					Name:      "simplename",
 				},
 				sniMatches: []*envoy.SNIMatch{},
-				clusters: []*v2.Cluster{
+				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
 						5*time.Second,
 						lbEndpoints,
 						false,
-						v2.Cluster_STATIC,
+						v3.Cluster_STATIC,
 					),
 				},
 				externalVirtualHosts: vHosts,
@@ -145,13 +145,13 @@ func TestIngressTranslator(t *testing.T) {
 					CertificateChain: cert,
 					PrivateKey:       privateKey,
 				}},
-				clusters: []*v2.Cluster{
+				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
 						5*time.Second,
 						lbEndpoints,
 						false,
-						v2.Cluster_STATIC,
+						v3.Cluster_STATIC,
 					),
 				},
 				externalVirtualHosts: vHosts,
@@ -221,27 +221,27 @@ func TestIngressTranslator(t *testing.T) {
 					Name:      "testname",
 				},
 				sniMatches: []*envoy.SNIMatch{},
-				clusters: []*v2.Cluster{
+				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
 						5*time.Second,
 						lbEndpoints,
 						false,
-						v2.Cluster_STATIC,
+						v3.Cluster_STATIC,
 					),
 					envoy.NewCluster(
 						"servicens2/servicename2",
 						5*time.Second,
 						lbEndpoints,
 						false,
-						v2.Cluster_STATIC,
+						v3.Cluster_STATIC,
 					),
 					envoy.NewCluster(
 						"servicens3/servicename3",
 						5*time.Second,
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,
-						v2.Cluster_LOGICAL_DNS,
+						v3.Cluster_LOGICAL_DNS,
 					),
 				},
 				externalVirtualHosts: vHosts,
@@ -287,13 +287,13 @@ func TestIngressTranslator(t *testing.T) {
 					Name:      "testname",
 				},
 				sniMatches: []*envoy.SNIMatch{},
-				clusters: []*v2.Cluster{
+				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
 						5*time.Second,
 						lbEndpoints,
 						false,
-						v2.Cluster_STATIC,
+						v3.Cluster_STATIC,
 					),
 				},
 				externalVirtualHosts: vHosts,
@@ -339,13 +339,13 @@ func TestIngressTranslator(t *testing.T) {
 					Name:      "testname",
 				},
 				sniMatches: []*envoy.SNIMatch{},
-				clusters: []*v2.Cluster{
+				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
 						5*time.Second,
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,
-						v2.Cluster_LOGICAL_DNS,
+						v3.Cluster_LOGICAL_DNS,
 					),
 				},
 				externalVirtualHosts: vHosts,

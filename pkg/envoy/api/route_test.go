@@ -19,7 +19,7 @@ package envoy
 import (
 	"testing"
 
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"gotest.tools/v3/assert"
 )
 
@@ -43,5 +43,5 @@ func TestNewRouteHostRewrite(t *testing.T) {
 	path := "/my_route"
 
 	r := NewRoute(name, nil, path, nil, 0, nil, "test.host")
-	assert.Equal(t, r.Action.(*route.Route_Route).Route.GetHostRewrite(), "test.host")
+	assert.Equal(t, r.Action.(*route.Route_Route).Route.GetHostRewriteLiteral(), "test.host")
 }
