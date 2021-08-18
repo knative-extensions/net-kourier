@@ -83,14 +83,6 @@ data:
         - name: xds_cluster
           connect_timeout: 1s
           type: strict_dns
-          #typed_extension_protocol_options:
-          #  envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
-          #    "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
-          #    explicit_http_config:
-          http2_protocol_options: {}
-                  #connection_keepalive:
-                  #  interval: 30s
-                  #  timeout: 5s
           upstream_connection_options:
             tcp_keepalive: {}
           load_assignment:
@@ -102,6 +94,7 @@ data:
                     socket_address:
                       address: "net-kourier-controller.knative-serving"
                       port_value: 18000
+          http2_protocol_options: {}
           type: STRICT_DNS
     admin:
       access_log_path: "/dev/stdout"
