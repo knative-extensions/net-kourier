@@ -83,8 +83,6 @@ data:
         - name: xds_cluster
           connect_timeout: 1s
           type: strict_dns
-          upstream_connection_options:
-            tcp_keepalive: {}
           load_assignment:
             cluster_name: xds_cluster
             endpoints:
