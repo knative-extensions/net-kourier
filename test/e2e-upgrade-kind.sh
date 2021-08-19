@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-source $(dirname $0)/../vendor/knative.dev/hack/library.sh
+source $(dirname $0)/e2e-common.sh
 
 KOURIER_GATEWAY_NAMESPACE=kourier-system
 KOURIER_CONTROL_NAMESPACE=knative-serving
@@ -77,7 +77,7 @@ echo "done" > /tmp/prober-signal
 wait ${PROBER_PID}
 
 # Run basic test to verify the new Ingress.
-go_test_e2e -timeout=5m -parallel=12 \
+go_test_e2e -count=1 -timeout=5m -parallel=12 \
   ./test/conformance \
   -run "TestIngressConformance/basics" \
   --ingressClass=kourier.ingress.networking.knative.dev || failed=1
