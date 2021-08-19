@@ -132,6 +132,7 @@ aliases:
   - nicolaferraro
   - rhuss
   knative-admin:
+  - ZhiminXiang
   - bsnchan
   - dprotaso
   - evankanderson
@@ -140,14 +141,12 @@ aliases:
   - knative-prow-robot
   - knative-prow-updater-robot
   - knative-test-reporter-robot
-  - lionelvillard
   - markusthoemmes
   - mbehrendt
   - pmorie
   - rhuss
   - thisisnotapril
   - vaikas
-  - yanweiguo
   knative-milestone-maintainers:
   - ZhiminXiang
   - akashrv
@@ -171,8 +170,8 @@ aliases:
   - vagababov
   - vaikas
   knative-release-leads:
-  - lionelvillard
-  - yanweiguo
+  - ZhiminXiang
+  - evankanderson
   knative-robots:
   - knative-prow-releaser-robot
   - knative-prow-robot
