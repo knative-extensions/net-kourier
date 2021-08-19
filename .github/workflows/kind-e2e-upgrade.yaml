@@ -66,6 +66,8 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: ./src/knative.dev/net-kourier
+        # Fetch all tags to determine the latest release version.
+        fetch-depth: 0
 
     - name: Install KinD
       run: |
