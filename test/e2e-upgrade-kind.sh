@@ -18,9 +18,12 @@
 
 set -euo pipefail
 
+source $(dirname $0)/../vendor/knative.dev/hack/library.sh
+
 KOURIER_GATEWAY_NAMESPACE=kourier-system
 KOURIER_CONTROL_NAMESPACE=knative-serving
 TEST_NAMESPACE=serving-tests
+LATEST_RELEASE_VERSION=$(latest_version)
 
 $(dirname $0)/upload-test-images.sh
 
@@ -33,8 +36,10 @@ IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpat
 export "GATEWAY_OVERRIDE=kourier"
 export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 
-echo "Install the old Kourier version"
-kubectl apply -f "https://github.com/knative-sandbox/net-kourier/releases/download/v0.23.0/release.yaml"
+echo "Install the latest release Kourier version ${LATEST_RELEASE_VERSION}"
+kubectl apply -f "https://github.com/knative-sandbox/net-kourier/releases/download/${LATEST_RELEASE_VERSION}/release.yaml" --dry-run=client -o yaml | \
+  sed 's/LoadBalancer/NodePort/g' | \
+  kubectl apply -f -
 
 echo "Wait for all deployments to be up"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/3scale-kourier-control
