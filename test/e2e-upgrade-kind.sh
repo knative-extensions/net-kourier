@@ -42,7 +42,7 @@ kubectl apply -f "https://github.com/knative-sandbox/net-kourier/releases/downlo
   kubectl apply -f -
 
 echo "Wait for all deployments to be up"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/3scale-kourier-control
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/net-kourier-controller
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/3scale-kourier-gateway
 
 # Remove the following files in case we failed to clean them up in an earlier test.
