@@ -76,8 +76,15 @@ echo "done" > /tmp/prober-signal
 
 wait ${PROBER_PID}
 
+failed=0
+
 # Run basic test to verify the new Ingress.
 go_test_e2e -count=1 -timeout=5m -parallel=12 \
   ./test/conformance \
   -run "TestIngressConformance/basics" \
   --ingressClass=kourier.ingress.networking.knative.dev || failed=1
+
+(( failed )) && dump_cluster_state
+(( failed )) && fail_test
+
+success
