@@ -28,7 +28,8 @@ spec:
     metadata:
       labels:
         app: 3scale-kourier-gateway
-        # v0.26 starts supporting envoy v3 API, so
+      annotations:
+        # v0.26 supports envoy v3 API, so
         # adding this label to restart pod.
         networking.knative.dev/poke: "v0.26"
     spec:
