@@ -87,6 +87,7 @@ failed=0
 go_test_e2e -count=1 -timeout=5m -parallel=12 \
   ./test/conformance \
   -run "TestIngressConformance/basics" \
+  --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev || failed=1
 
 (( failed )) && dump_cluster_state
