@@ -67,9 +67,6 @@ ko resolve -f config | \
 echo "Wait for the deployments to roll over"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
-echo "Restart Kourier Gateway to apply boot strap config."
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout restart deployment/3scale-kourier-gateway
-
 echo "Wait for the deployments to roll over"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway
 
