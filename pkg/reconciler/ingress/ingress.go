@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/types"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
@@ -40,6 +41,7 @@ type Reconciler struct {
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
 	extAuthz          bool
+	serviceLister     corev1listers.ServiceLister
 
 	// resyncConflicts triggers a filtered global resync to reenqueue all ingresses in
 	// a "Conflict" state.
@@ -73,10 +75,21 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 		}
 		if ready {
 			external, internal := config.ServiceHostnames()
-			ing.Status.MarkLoadBalancerReady(
-				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: external}},
-				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: internal}},
-			)
+
+			public := []v1alpha1.LoadBalancerIngressStatus{{DomainInternal: external}}
+			private := []v1alpha1.LoadBalancerIngressStatus{{DomainInternal: internal}}
+			ns := config.GatewayNamespace()
+
+			if svc, err := r.serviceLister.Services(ns).Get(config.ExternalServiceName); err == nil {
+				public[0].IP = svc.Spec.ClusterIP
+			}
+
+			if svc, err := r.serviceLister.Services(ns).Get(config.InternalServiceName); err == nil {
+				private[0].IP = svc.Spec.ClusterIP
+			}
+
+			ing.Status.MarkLoadBalancerReady(public, private)
+
 		} else {
 			ing.Status.MarkLoadBalancerNotReady()
 		}
