@@ -21,6 +21,11 @@ metadata:
     networking.knative.dev/ingress-provider: kourier
     serving.knative.dev/release: devel
 spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: 3scale-kourier-gateway
