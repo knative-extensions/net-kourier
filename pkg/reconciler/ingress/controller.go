@@ -46,7 +46,6 @@ import (
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
-	"knative.dev/pkg/tracker"
 )
 
 const (
@@ -89,7 +88,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		})
 		configStore := rconfig.NewStore(logger.Named("config-store"), resync)
 		configStore.WatchConfigs(cmw)
-		return controller.Options{ConfigStore: configStore}
+		return controller.Options{
+			ConfigStore:       configStore,
+			PromoteFilterFunc: isKourierIngress,
+		}
 	})
 
 	r.resyncConflicts = func() {
@@ -137,8 +139,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		impl.EnqueueKey(key)
 	})
 
-	tracker := tracker.New(impl.EnqueueKey, controller.GetTrackerLease(ctx))
-
 	ingressTranslator := generator.NewIngressTranslator(
 		func(ns, name string) (*corev1.Secret, error) {
 			return secretInformer.Lister().Secrets(ns).Get(name)
@@ -149,7 +149,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		func(ns, name string) (*corev1.Service, error) {
 			return serviceInformer.Lister().Services(ns).Get(name)
 		},
-		tracker)
+		impl.Tracker)
 	r.ingressTranslator = &ingressTranslator
 
 	// Initialize the Envoy snapshot.
@@ -181,7 +181,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		func(ns, name string) (*corev1.Service, error) {
 			return kubernetesClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
 		},
-		tracker)
+		impl.Tracker)
 
 	for _, ingress := range ingressesToSync {
 		if err := generator.UpdateInfoForIngress(
@@ -215,19 +215,19 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: isKourierIngress,
 		Handler: cache.ResourceEventHandlerFuncs{
-			DeleteFunc: tracker.OnDeletedObserver,
+			DeleteFunc: impl.Tracker.OnDeletedObserver,
 		},
 	})
 
 	serviceInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
-			tracker.OnChanged,
+			impl.Tracker.OnChanged,
 			corev1.SchemeGroupVersion.WithKind("Services"),
 		),
 	))
 
 	viaTracker := controller.EnsureTypeMeta(
-		tracker.OnChanged,
+		impl.Tracker.OnChanged,
 		corev1.SchemeGroupVersion.WithKind("Endpoints"))
 	endpointsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    viaTracker,
@@ -248,7 +248,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	secretInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
-			tracker.OnChanged,
+			impl.Tracker.OnChanged,
 			corev1.SchemeGroupVersion.WithKind("Secrets"),
 		),
 	))
