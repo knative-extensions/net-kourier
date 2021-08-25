@@ -20,7 +20,7 @@ require (
 	k8s.io/code-generator v0.20.7
 	knative.dev/hack v0.0.0-20210806075220-815cd312d65c
 	knative.dev/networking v0.0.0-20210824140523-51512a042e23
-	knative.dev/pkg v0.0.0-20210824120823-a94f5f07b3c3
+	knative.dev/pkg v0.0.0-20210825070025-a70bb26767b8
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d
