@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-source $(dirname $0)/../vendor/knative.dev/hack/library.sh
+source $(dirname $0)/e2e-common.sh
 
 KOURIER_GATEWAY_NAMESPACE=kourier-system
 KOURIER_CONTROL_NAMESPACE=knative-serving
@@ -66,6 +66,8 @@ ko resolve -f config | \
 
 echo "Wait for the deployments to roll over"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
+
+echo "Wait for the deployments to roll over"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway
 
 echo "Wait for some more traffic to flow"
@@ -75,3 +77,17 @@ sleep 10
 echo "done" > /tmp/prober-signal
 
 wait ${PROBER_PID}
+
+failed=0
+
+# Run basic test to verify the new Ingress.
+go_test_e2e -count=1 -timeout=5m -parallel=12 \
+  ./test/conformance \
+  -run "TestIngressConformance/basics" \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev || failed=1
+
+(( failed )) && dump_cluster_state
+(( failed )) && fail_test
+
+success

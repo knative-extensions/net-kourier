@@ -19,11 +19,10 @@ package envoy
 import (
 	"fmt"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	httpconnmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,13 +38,13 @@ type SNIMatch struct {
 }
 
 // NewHTTPListener creates a new Listener at the given port, backed by the given manager.
-func NewHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint32) (*v2.Listener, error) {
+func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32) (*listener.Listener, error) {
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
 	}
 
-	return &v2.Listener{
+	return &listener.Listener{
 		Name:    fmt.Sprintf("listener_%d", port),
 		Address: createAddress(port),
 		FilterChains: []*listener.FilterChain{{
@@ -57,10 +56,10 @@ func NewHTTPListener(manager *httpconnmanagerv2.HttpConnectionManager, port uint
 // NewHTTPSListener creates a new Listener at the given port, backed by the given manager
 // and serving the given certificate chain and key.
 func NewHTTPSListener(
-	manager *httpconnmanagerv2.HttpConnectionManager,
+	manager *hcm.HttpConnectionManager,
 	port uint32,
 	certificateChain []byte,
-	privateKey []byte) (*v2.Listener, error) {
+	privateKey []byte) (*listener.Listener, error) {
 
 	filters, err := createFilters(manager)
 	if err != nil {
@@ -73,13 +72,13 @@ func NewHTTPSListener(
 		return nil, err
 	}
 
-	return &v2.Listener{
+	return &listener.Listener{
 		Name:    fmt.Sprintf("listener_%d", port),
 		Address: createAddress(port),
 		FilterChains: []*listener.FilterChain{{
 			Filters: filters,
 			TransportSocket: &core.TransportSocket{
-				Name:       "tls",
+				Name:       wellknown.TransportSocketTls,
 				ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
 			},
 		}},
@@ -90,13 +89,13 @@ func NewHTTPSListener(
 // manager and applies a FilterChain with the given sniMatches.
 //
 // Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
-func NewHTTPSListenerWithSNI(manager *httpconnmanagerv2.HttpConnectionManager, port uint32, sniMatches []*SNIMatch) (*v2.Listener, error) {
+func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sniMatches []*SNIMatch) (*listener.Listener, error) {
 	filterChains, err := createFilterChainsForTLS(manager, sniMatches)
 	if err != nil {
 		return nil, err
 	}
 
-	return &v2.Listener{
+	return &listener.Listener{
 		Name:         fmt.Sprintf("listener_%d", port),
 		Address:      createAddress(port),
 		FilterChains: filterChains,
@@ -123,7 +122,7 @@ func createAddress(port uint32) *core.Address {
 	}
 }
 
-func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listener.Filter, error) {
+func createFilters(manager *hcm.HttpConnectionManager) ([]*listener.Filter, error) {
 	managerAny, err := anypb.New(manager)
 	if err != nil {
 		return nil, err
@@ -135,7 +134,7 @@ func createFilters(manager *httpconnmanagerv2.HttpConnectionManager) ([]*listene
 	}}, nil
 }
 
-func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, sniMatches []*SNIMatch) ([]*listener.FilterChain, error) {
+func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*SNIMatch) ([]*listener.FilterChain, error) {
 	res := make([]*listener.FilterChain, 0, len(sniMatches))
 	for _, sniMatch := range sniMatches {
 		filters, err := createFilters(manager)
@@ -154,7 +153,7 @@ func createFilterChainsForTLS(manager *httpconnmanagerv2.HttpConnectionManager, 
 				ServerNames: sniMatch.Hosts,
 			},
 			TransportSocket: &core.TransportSocket{
-				Name:       "tls",
+				Name:       wellknown.TransportSocketTls,
 				ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
 			},
 			Filters: filters,

@@ -24,13 +24,16 @@ data:
   envoy-bootstrap.yaml: |
     dynamic_resources:
       ads_config:
+        transport_api_version: V3
         api_type: GRPC
+        rate_limit_settings: {}
         grpc_services:
-          - envoy_grpc:
-              cluster_name: xds_cluster
+        - envoy_grpc: {cluster_name: xds_cluster}
       cds_config:
+        resource_api_version: V3
         ads: {}
       lds_config:
+        resource_api_version: V3
         ads: {}
     node:
       cluster: kourier-knative

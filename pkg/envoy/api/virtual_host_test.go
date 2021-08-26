@@ -19,7 +19,7 @@ package envoy
 import (
 	"testing"
 
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"

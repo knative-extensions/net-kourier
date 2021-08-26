@@ -24,19 +24,22 @@ import (
 	"log"
 	"net"
 
-	authZ "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
+	authZ_v2 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
+	authZ_v3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-type Auth struct{}
+type AuthV2 struct{}
 
-func (ea Auth) Check(ctx context.Context, ar *authZ.CheckRequest) (*authZ.CheckResponse, error) {
+type AuthV3 struct{}
+
+func (ea AuthV3) Check(ctx context.Context, ar *authZ_v3.CheckRequest) (*authZ_v3.CheckResponse, error) {
 	if ar.Attributes.Request.Http.Path == "/success" || ar.Attributes.Request.Http.Path == "/healthz" {
 		log.Print("TRUE")
-		return &authZ.CheckResponse{
+		return &authZ_v3.CheckResponse{
 			Status: &status.Status{
 				Code: int32(code.Code_OK),
 			},
@@ -44,7 +47,27 @@ func (ea Auth) Check(ctx context.Context, ar *authZ.CheckRequest) (*authZ.CheckR
 	}
 
 	log.Print("FAIL")
-	return &authZ.CheckResponse{
+	return &authZ_v3.CheckResponse{
+		Status: &status.Status{
+			Code:    int32(code.Code_PERMISSION_DENIED),
+			Message: "failed",
+			Details: []*anypb.Any{},
+		},
+	}, nil
+}
+
+func (ea AuthV2) Check(ctx context.Context, ar *authZ_v2.CheckRequest) (*authZ_v2.CheckResponse, error) {
+	if ar.Attributes.Request.Http.Path == "/success" || ar.Attributes.Request.Http.Path == "/healthz" {
+		log.Print("TRUE")
+		return &authZ_v2.CheckResponse{
+			Status: &status.Status{
+				Code: int32(code.Code_OK),
+			},
+		}, nil
+	}
+
+	log.Print("FAIL")
+	return &authZ_v2.CheckResponse{
 		Status: &status.Status{
 			Code:    int32(code.Code_PERMISSION_DENIED),
 			Message: "failed",
@@ -55,7 +78,9 @@ func (ea Auth) Check(ctx context.Context, ar *authZ.CheckRequest) (*authZ.CheckR
 
 func main() {
 	server := grpc.NewServer()
-	authZ.RegisterAuthorizationServer(server, Auth{})
+	authZ_v3.RegisterAuthorizationServer(server, AuthV3{})
+	// For old envoy version such as proxyv2-ubi8:2.0.x, register auth server v2.
+	authZ_v2.RegisterAuthorizationServer(server, AuthV2{})
 
 	//nolint: gosec // Test image, so it's fine to bind to everything.
 	lis, err := net.Listen("tcp", ":6000")

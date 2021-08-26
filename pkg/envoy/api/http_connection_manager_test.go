@@ -19,10 +19,9 @@ package envoy
 import (
 	"testing"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	envoy_config_filter_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	fileaccesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -37,8 +36,8 @@ func TestNewHTTPConnectionManagerWithoutAccessLog(t *testing.T) {
 func TestNewHTTPConnectionManagerWithAccessLog(t *testing.T) {
 	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
 	accessLog := connManager.AccessLog[0]
-	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v2.AccessLog_TypedConfig).TypedConfig
-	fileAccesLog := &accesslog_v2.FileAccessLog{}
+	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v3.AccessLog_TypedConfig).TypedConfig
+	fileAccesLog := &fileaccesslog.FileAccessLog{}
 
 	err := anypb.UnmarshalTo(accessLogPathAny, fileAccesLog, proto.UnmarshalOptions{})
 	if err != nil {
@@ -55,7 +54,7 @@ func TestNewRouteConfig(t *testing.T) {
 		[]*route.Route{{Name: "baz"}})
 
 	got := NewRouteConfig("test", []*route.VirtualHost{vhost})
-	want := &v2.RouteConfiguration{
+	want := &route.RouteConfiguration{
 		Name:         "test",
 		VirtualHosts: []*route.VirtualHost{vhost},
 	}

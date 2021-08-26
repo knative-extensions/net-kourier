@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,7 +37,7 @@ import (
 type translatedIngress struct {
 	name                 types.NamespacedName
 	sniMatches           []*envoy.SNIMatch
-	clusters             []*v2.Cluster
+	clusters             []*v3.Cluster
 	externalVirtualHosts []*route.VirtualHost
 	internalVirtualHosts []*route.VirtualHost
 }
@@ -89,7 +89,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 	internalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
 	externalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
-	clusters := make([]*v2.Cluster, 0, len(ingress.Spec.Rules))
+	clusters := make([]*v3.Cluster, 0, len(ingress.Spec.Rules))
 
 	for i, rule := range ingress.Spec.Rules {
 		ruleName := fmt.Sprintf("(%s/%s).Rules[%d]", ingress.Namespace, ingress.Name, i)
@@ -140,11 +140,11 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 				var (
 					publicLbEndpoints []*endpoint.LbEndpoint
-					typ               v2.Cluster_DiscoveryType
+					typ               v3.Cluster_DiscoveryType
 				)
 				if service.Spec.Type == corev1.ServiceTypeExternalName {
 					// If the service is of type ExternalName, we add a single endpoint.
-					typ = v2.Cluster_LOGICAL_DNS
+					typ = v3.Cluster_LOGICAL_DNS
 					publicLbEndpoints = []*endpoint.LbEndpoint{
 						envoy.NewLBEndpoint(service.Spec.ExternalName, uint32(externalPort)),
 					}
@@ -159,7 +159,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 						return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 					}
 
-					typ = v2.Cluster_STATIC
+					typ = v3.Cluster_STATIC
 					publicLbEndpoints = lbEndpointsForKubeEndpoints(endpoints, targetPort)
 				}
 

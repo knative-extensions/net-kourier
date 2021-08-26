@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	v3Cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 )
@@ -35,13 +35,15 @@ func TestNewCluster(t *testing.T) {
 	endpoints := []*endpoint.LbEndpoint{endpoint1, endpoint2}
 
 	// With HTTP2
-	c := NewCluster(name, connectTimeout, endpoints, true, v2.Cluster_STATIC)
+	c := NewCluster(name, connectTimeout, endpoints, true, v3Cluster.Cluster_STATIC)
 	assert.Equal(t, c.GetConnectTimeout().Seconds, int64(connectTimeout.Seconds()))
+	//nolint: staticcheck // TODO: GetHttp2ProtocolOptions() is deprecated.
 	assert.Assert(t, c.GetHttp2ProtocolOptions() != nil)
 	assert.Equal(t, c.GetName(), name)
 	assert.DeepEqual(t, c.LoadAssignment.Endpoints[0].LbEndpoints, endpoints, protocmp.Transform())
 
 	// Without HTTP2
-	c = NewCluster(name, connectTimeout, endpoints, false, v2.Cluster_STATIC)
+	c = NewCluster(name, connectTimeout, endpoints, false, v3Cluster.Cluster_STATIC)
+	//nolint: staticcheck // TODO: GetHttp2ProtocolOptions() is deprecated.
 	assert.Assert(t, c.GetHttp2ProtocolOptions() == nil)
 }

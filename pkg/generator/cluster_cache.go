@@ -40,7 +40,7 @@ import (
 	"strings"
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	cachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	gocache "github.com/patrickmn/go-cache"
 )
@@ -64,7 +64,7 @@ func newClustersCacheWithExpAndCleanupIntervals(expiration time.Duration, cleanu
 	return &ClustersCache{clusters: goCache, clusterExpiration: expiration}
 }
 
-func (cc *ClustersCache) set(cluster *v2.Cluster, ingressName string, ingressNamespace string) {
+func (cc *ClustersCache) set(cluster *v3.Cluster, ingressName string, ingressNamespace string) {
 	key := key(cluster.Name, ingressName, ingressNamespace)
 	cc.clusters.Set(key, cluster, gocache.NoExpiration)
 }

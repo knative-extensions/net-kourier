@@ -19,12 +19,12 @@ package envoy
 import (
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	envoy_api_v3_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	accesslog_file_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -34,27 +34,28 @@ import (
 
 // NewHTTPConnectionManager creates a new HttpConnectionManager that points to the given
 // RouteConfig for further configuration.
-func NewHTTPConnectionManager(routeConfigName string, enableAccessLog bool) *httpconnectionmanagerv2.HttpConnectionManager {
-	filters := make([]*httpconnectionmanagerv2.HttpFilter, 0, 1)
+func NewHTTPConnectionManager(routeConfigName string, enableAccessLog bool) *hcm.HttpConnectionManager {
+	filters := make([]*hcm.HttpFilter, 0, 1)
 
 	if config.ExternalAuthz.Enabled {
 		filters = append(filters, config.ExternalAuthz.HTTPFilter)
 	}
 
 	// Append the Router filter at the end.
-	filters = append(filters, &httpconnectionmanagerv2.HttpFilter{
+	filters = append(filters, &hcm.HttpFilter{
 		Name: wellknown.Router,
 	})
 
-	mgr := &httpconnectionmanagerv2.HttpConnectionManager{
-		CodecType:   httpconnectionmanagerv2.HttpConnectionManager_AUTO,
+	mgr := &hcm.HttpConnectionManager{
+		CodecType:   hcm.HttpConnectionManager_AUTO,
 		StatPrefix:  "ingress_http",
 		HttpFilters: filters,
-		RouteSpecifier: &httpconnectionmanagerv2.HttpConnectionManager_Rds{
-			Rds: &httpconnectionmanagerv2.Rds{
-				ConfigSource: &envoy_api_v2_core.ConfigSource{
-					ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-						Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
+			Rds: &hcm.Rds{
+				ConfigSource: &envoy_api_v3_core.ConfigSource{
+					ResourceApiVersion: resource.DefaultAPIVersion,
+					ConfigSourceSpecifier: &envoy_api_v3_core.ConfigSource_Ads{
+						Ads: &envoy_api_v3_core.AggregatedConfigSource{},
 					},
 					InitialFetchTimeout: durationpb.New(10 * time.Second),
 				},
@@ -65,13 +66,13 @@ func NewHTTPConnectionManager(routeConfigName string, enableAccessLog bool) *htt
 
 	if enableAccessLog {
 		// Write access logs to stdout by default.
-		accessLog, _ := anypb.New(&accesslog_v2.FileAccessLog{
+		accessLog, _ := anypb.New(&accesslog_file_v3.FileAccessLog{
 			Path: "/dev/stdout",
 		})
 
-		mgr.AccessLog = []*envoy_accesslog_v2.AccessLog{{
+		mgr.AccessLog = []*accesslog_v3.AccessLog{{
 			Name: "envoy.file_access_log",
-			ConfigType: &envoy_accesslog_v2.AccessLog_TypedConfig{
+			ConfigType: &accesslog_v3.AccessLog_TypedConfig{
 				TypedConfig: accessLog,
 			},
 		}}
@@ -81,8 +82,8 @@ func NewHTTPConnectionManager(routeConfigName string, enableAccessLog bool) *htt
 }
 
 // NewRouteConfig create a new RouteConfiguration with the given name and hosts.
-func NewRouteConfig(name string, virtualHosts []*route.VirtualHost) *v2.RouteConfiguration {
-	return &v2.RouteConfiguration{
+func NewRouteConfig(name string, virtualHosts []*route.VirtualHost) *route.RouteConfiguration {
+	return &route.RouteConfiguration{
 		Name:         name,
 		VirtualHosts: virtualHosts,
 	}

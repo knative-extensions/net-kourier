@@ -23,11 +23,11 @@ import (
 	"strconv"
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	extAuthService "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/ext_authz/v2"
-	httpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	v3Cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	extAuthService "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
+	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -48,8 +48,8 @@ var ExternalAuthz = &ExternalAuthzConfig{
 // ExternalAuthzConfig specifies parameters for external authorization configuration.
 type ExternalAuthzConfig struct {
 	Enabled    bool
-	Cluster    *v2.Cluster
-	HTTPFilter *httpconnectionmanagerv2.HttpFilter
+	Cluster    *v3Cluster.Cluster
+	HTTPFilter *hcm.HttpFilter
 }
 
 type config struct {
@@ -92,15 +92,16 @@ func init() {
 	}
 }
 
-func extAuthzCluster(host string, port uint32) *v2.Cluster {
-	return &v2.Cluster{
+func extAuthzCluster(host string, port uint32) *v3Cluster.Cluster {
+	return &v3Cluster.Cluster{
 		Name: extAuthzClusterName,
-		ClusterDiscoveryType: &v2.Cluster_Type{
-			Type: v2.Cluster_STRICT_DNS,
+		ClusterDiscoveryType: &v3Cluster.Cluster_Type{
+			Type: v3Cluster.Cluster_STRICT_DNS,
 		},
+		//nolint: staticcheck // TODO: Http2ProtocolOptions is deprecated.
 		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
 		ConnectTimeout:       durationpb.New(5 * time.Second),
-		LoadAssignment: &v2.ClusterLoadAssignment{
+		LoadAssignment: &endpoint.ClusterLoadAssignment{
 			ClusterName: extAuthzClusterName,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
 				LbEndpoints: []*endpoint.LbEndpoint{{
@@ -126,7 +127,7 @@ func extAuthzCluster(host string, port uint32) *v2.Cluster {
 	}
 }
 
-func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeAllow bool, maxRequestBytes uint32) *httpconnectionmanagerv2.HttpFilter {
+func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeAllow bool, maxRequestBytes uint32) *hcm.HttpFilter {
 	extAuthConfig := &extAuthService.ExtAuthz{
 		Services: &extAuthService.ExtAuthz_GrpcService{
 			GrpcService: &core.GrpcService{
@@ -142,7 +143,8 @@ func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeA
 				}},
 			},
 		},
-		FailureModeAllow: failureModeAllow,
+		TransportApiVersion: core.ApiVersion_V3,
+		FailureModeAllow:    failureModeAllow,
 		WithRequestBody: &extAuthService.BufferSettings{
 			MaxRequestBytes:     maxRequestBytes,
 			AllowPartialMessage: true,
@@ -155,9 +157,9 @@ func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeA
 		panic(err)
 	}
 
-	return &httpconnectionmanagerv2.HttpFilter{
+	return &hcm.HttpFilter{
 		Name: wellknown.HTTPExternalAuthorization,
-		ConfigType: &httpconnectionmanagerv2.HttpFilter_TypedConfig{
+		ConfigType: &hcm.HttpFilter_TypedConfig{
 			TypedConfig: envoyConf,
 		},
 	}

@@ -21,17 +21,17 @@ import (
 	"testing"
 	"time"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var testCluster1 = envoy_api_v2.Cluster{
+var testCluster1 = envoy_api_v3.Cluster{
 	Name: "test_cluster_1",
 }
 
-var testCluster2 = envoy_api_v2.Cluster{
+var testCluster2 = envoy_api_v3.Cluster{
 	Name: "test_cluster_2",
 }
 
@@ -42,7 +42,7 @@ func TestSetCluster(t *testing.T) {
 	list := cache.list()
 
 	assert.Assert(t, is.Len(list, 1))
-	assert.Equal(t, testCluster1.Name, list[0].(*envoy_api_v2.Cluster).Name)
+	assert.Equal(t, testCluster1.Name, list[0].(*envoy_api_v3.Cluster).Name)
 }
 
 func TestSetSeveralClusters(t *testing.T) {
@@ -53,7 +53,7 @@ func TestSetSeveralClusters(t *testing.T) {
 	list := cache.list()
 	names := make([]string, 0, len(list))
 	for _, cluster := range list {
-		names = append(names, cluster.(*envoy_api_v2.Cluster).Name)
+		names = append(names, cluster.(*envoy_api_v3.Cluster).Name)
 	}
 
 	// Could be returned in any order
