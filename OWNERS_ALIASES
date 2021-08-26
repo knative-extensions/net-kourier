@@ -67,13 +67,15 @@ aliases:
   - pierDipi
   eventing-kafka-mtsource-approvers:
   - steven0711dong
+  eventing-kogito-approvers:
+  - ricardozanini
   eventing-natss-approvers:
   - devguyio
   - zhaojizhuang
   eventing-prometheus-approvers:
   - lberk
   eventing-rabbitmq-approvers:
-  - n3wscott
+  - benmoss
   - sbawaska
   - vaikas
   eventing-redis-approvers:
@@ -86,7 +88,6 @@ aliases:
   - devguyio
   - lionelvillard
   - matzew
-  - n3wscott
   homebrew-kn-plugins-approvers:
   - dsimansk
   - maximilien
@@ -184,9 +185,9 @@ aliases:
   - ZhiminXiang
   net-contour-approvers:
   - dprotaso
-  net-http---approvers:
+  net-http01-approvers:
   - tcnghia
-  net-ingressv--approvers:
+  net-ingressv2-approvers:
   - markusthoemmes
   - nak3
   net-istio-approvers:
@@ -226,7 +227,6 @@ aliases:
   - vagababov
   source-wg-leads:
   - lionelvillard
-  - n3wscott
   steering-committee:
   - bsnchan
   - mbehrendt
