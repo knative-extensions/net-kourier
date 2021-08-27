@@ -35,11 +35,12 @@ import (
 )
 
 type translatedIngress struct {
-	name                 types.NamespacedName
-	sniMatches           []*envoy.SNIMatch
-	clusters             []*v3.Cluster
-	externalVirtualHosts []*route.VirtualHost
-	internalVirtualHosts []*route.VirtualHost
+	name                    types.NamespacedName
+	sniMatches              []*envoy.SNIMatch
+	clusters                []*v3.Cluster
+	externalVirtualHosts    []*route.VirtualHost
+	externalTLSVirtualHosts []*route.VirtualHost
+	internalVirtualHosts    []*route.VirtualHost
 }
 
 type IngressTranslator struct {
@@ -89,12 +90,14 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 	internalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
 	externalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
+	externalTLSHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
 	clusters := make([]*v3.Cluster, 0, len(ingress.Spec.Rules))
 
 	for i, rule := range ingress.Spec.Rules {
 		ruleName := fmt.Sprintf("(%s/%s).Rules[%d]", ingress.Namespace, ingress.Name, i)
 
 		routes := make([]*route.Route, 0, len(rule.HTTP.Paths))
+		tlsRoutes := make([]*route.Route, 0, len(rule.HTTP.Paths))
 		for _, httpPath := range rule.HTTP.Paths {
 			// Default the path to "/" if none is passed.
 			path := httpPath.Path
@@ -174,6 +177,8 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			if len(wrs) != 0 {
 				routes = append(routes, envoy.NewRoute(
 					pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
+				tlsRoutes = append(tlsRoutes, envoy.NewRoute(
+					pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
 			}
 		}
 
@@ -182,20 +187,23 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, nil
 		}
 
-		var virtualHost *route.VirtualHost
+		var virtualHost, virtualTLSHost *route.VirtualHost
 		if extAuthzEnabled {
 			contextExtensions := kmeta.UnionMaps(map[string]string{
 				"client":     "kourier",
 				"visibility": string(rule.Visibility),
 			}, ingress.GetLabels())
 			virtualHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), routes)
+			virtualTLSHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), tlsRoutes)
 		} else {
 			virtualHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), routes)
+			virtualTLSHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), tlsRoutes)
 		}
 
 		internalHosts = append(internalHosts, virtualHost)
 		if rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
 			externalHosts = append(externalHosts, virtualHost)
+			externalTLSHosts = append(externalTLSHosts, virtualTLSHost)
 		}
 	}
 
@@ -204,10 +212,11 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			Namespace: ingress.Namespace,
 			Name:      ingress.Name,
 		},
-		sniMatches:           sniMatches,
-		clusters:             clusters,
-		externalVirtualHosts: externalHosts,
-		internalVirtualHosts: internalHosts,
+		sniMatches:              sniMatches,
+		clusters:                clusters,
+		externalVirtualHosts:    externalHosts,
+		externalTLSVirtualHosts: externalTLSHosts,
+		internalVirtualHosts:    internalHosts,
 	}, nil
 }
 

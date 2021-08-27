@@ -39,12 +39,13 @@ import (
 )
 
 const (
-	envCertsSecretNamespace = "CERTS_SECRET_NAMESPACE"
-	envCertsSecretName      = "CERTS_SECRET_NAME"
-	certFieldInSecret       = "tls.crt"
-	keyFieldInSecret        = "tls.key"
-	externalRouteConfigName = "external_services"
-	internalRouteConfigName = "internal_services"
+	envCertsSecretNamespace    = "CERTS_SECRET_NAMESPACE"
+	envCertsSecretName         = "CERTS_SECRET_NAME"
+	certFieldInSecret          = "tls.crt"
+	keyFieldInSecret           = "tls.key"
+	externalRouteConfigName    = "external_services"
+	externalTLSRouteConfigName = "external_tls_services"
+	internalRouteConfigName    = "internal_services"
 )
 
 // ErrDomainConflict is an error produces when two ingresses have conflicting domains.
@@ -130,11 +131,13 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 
 	localVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses)+1)
 	externalVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
+	externalTLSVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
 	snis := sniMatches{}
 
 	for _, translatedIngress := range caches.translatedIngresses {
 		localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
 		externalVHosts = append(externalVHosts, translatedIngress.externalVirtualHosts...)
+		externalTLSVHosts = append(externalTLSVHosts, translatedIngress.externalTLSVirtualHosts...)
 
 		for _, match := range translatedIngress.sniMatches {
 			snis.consume(match)
@@ -146,6 +149,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 	listeners, routes, err := generateListenersAndRouteConfigs(
 		ctx,
 		externalVHosts,
+		externalTLSVHosts,
 		localVHosts,
 		snis.list(),
 		caches.kubeClient,
@@ -200,6 +204,7 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 func generateListenersAndRouteConfigs(
 	ctx context.Context,
 	externalVirtualHosts []*route.VirtualHost,
+	externalTLSVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	sniMatches []*envoy.SNIMatch,
 	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, error) {
@@ -211,6 +216,7 @@ func generateListenersAndRouteConfigs(
 
 	// First, we save the RouteConfigs with the proper name and all the virtualhosts etc. into the cache.
 	externalRouteConfig := envoy.NewRouteConfig(externalRouteConfigName, externalVirtualHosts)
+	externalTLSRouteConfig := envoy.NewRouteConfig(externalTLSRouteConfigName, externalTLSVirtualHosts)
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
 
 	// Without this we can generate routes that point to non-existing clusters
@@ -218,10 +224,12 @@ func generateListenersAndRouteConfigs(
 	// in the Knative serving test suite fails sometimes.
 	// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
 	externalRouteConfig.ValidateClusters = wrapperspb.Bool(true)
+	externalTLSRouteConfig.ValidateClusters = wrapperspb.Bool(true)
 	internalRouteConfig.ValidateClusters = wrapperspb.Bool(true)
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
 	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
+	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
 	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal)
 	if err != nil {
@@ -238,14 +246,14 @@ func generateListenersAndRouteConfigs(
 	// TLS field, that takes precedence. If there is not, TLS will be configured
 	// using a single cert for all the services if the creds are given via ENV.
 	if len(sniMatches) > 0 {
-		externalHTTPSEnvoyListener, err := envoy.NewHTTPSListenerWithSNI(externalManager, config.HTTPSPortExternal, sniMatches)
+		externalHTTPSEnvoyListener, err := envoy.NewHTTPSListenerWithSNI(externalTLSManager, config.HTTPSPortExternal, sniMatches)
 		if err != nil {
 			return nil, nil, err
 		}
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 	} else if useHTTPSListenerWithOneCert() {
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
-			ctx, externalManager, kubeclient,
+			ctx, externalTLSManager, kubeclient,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -253,6 +261,9 @@ func generateListenersAndRouteConfigs(
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 	}
 
+	if len(sniMatches) > 0 || useHTTPSListenerWithOneCert() {
+		return listeners, []cachetypes.Resource{externalRouteConfig, externalTLSRouteConfig, internalRouteConfig}, nil
+	}
 	return listeners, []cachetypes.Resource{externalRouteConfig, internalRouteConfig}, nil
 }
 
