@@ -25,7 +25,6 @@ go_test_e2e -timeout=20m -parallel=12 \
   ./test/conformance \
   ./test/e2e/ \
   --enable-alpha --enable-beta \
-  --skip-tests="httpoption" \
   --ingressClass=kourier.ingress.networking.knative.dev || failed=1
 
 # Give the controller time to sync with the rest of the system components.

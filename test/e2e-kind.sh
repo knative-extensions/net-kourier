@@ -35,7 +35,6 @@ export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 echo ">> Running conformance tests"
 go test -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e/... \
   --enable-alpha --enable-beta \
-  --skip-tests="httpoption" \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"

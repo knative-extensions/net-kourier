@@ -161,6 +161,158 @@ func TestIngressTranslator(t *testing.T) {
 			}
 		}(),
 	}, {
+		name: "tls redirect",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.TLS = []v1alpha1.IngressTLS{{
+				Hosts:           []string{"foo.example.com"},
+				SecretNamespace: "secretns",
+				SecretName:      "secretname",
+			}}
+			ing.Spec.HTTPOption = v1alpha1.HTTPOptionRedirected
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			secret("secretns", "secretname"),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(testspace/testname).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(testspace/testname).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+			vHostsRedirect := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(testspace/testname).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRedirectRoute(
+						"(testspace/testname).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{{
+					Hosts: []string{"foo.example.com"},
+					CertSource: types.NamespacedName{
+						Namespace: "secretns",
+						Name:      "secretname",
+					},
+					CertificateChain: cert,
+					PrivateKey:       privateKey,
+				}},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHostsRedirect,
+				externalTLSVirtualHosts: vHosts,
+				internalVirtualHosts:    vHostsRedirect,
+			}
+		}(),
+	}, {
+		// cluster local is not affected by HTTPOption.
+		name: "tls redirect cluster local",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.TLS = []v1alpha1.IngressTLS{{
+				Hosts:           []string{"foo.example.com"},
+				SecretNamespace: "secretns",
+				SecretName:      "secretname",
+			}}
+			ing.Spec.HTTPOption = v1alpha1.HTTPOptionRedirected
+			ing.Spec.Rules[0].Visibility = v1alpha1.IngressVisibilityClusterLocal
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			secret("secretns", "secretname"),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(testspace/testname).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(testspace/testname).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{{
+					Hosts: []string{"foo.example.com"},
+					CertSource: types.NamespacedName{
+						Namespace: "secretns",
+						Name:      "secretname",
+					},
+					CertificateChain: cert,
+					PrivateKey:       privateKey,
+				}},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    []*route.VirtualHost{},
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}, {
 		name: "split",
 		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
 			path := &ing.Spec.Rules[0].HTTP.Paths[0]

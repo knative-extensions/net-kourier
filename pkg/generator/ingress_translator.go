@@ -175,10 +175,16 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 
 			if len(wrs) != 0 {
-				routes = append(routes, envoy.NewRoute(
-					pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
+				if ingress.Spec.HTTPOption == v1alpha1.HTTPOptionRedirected && rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
+					routes = append(routes, envoy.NewRedirectRoute(
+						pathName, matchHeadersFromHTTPPath(httpPath), path))
+				} else {
+					routes = append(routes, envoy.NewRoute(
+						pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
+				}
 				if len(ingress.Spec.TLS) != 0 {
-					tlsRoutes = append(tlsRoutes, routes...)
+					tlsRoutes = append(tlsRoutes, envoy.NewRoute(
+						pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
 				}
 			}
 		}
