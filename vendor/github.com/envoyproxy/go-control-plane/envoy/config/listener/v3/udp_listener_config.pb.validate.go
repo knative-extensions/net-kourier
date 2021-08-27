@@ -41,21 +41,27 @@ func (m *UdpListenerConfig) Validate() error {
 		return nil
 	}
 
-	// no validation rules for UdpListenerName
-
-	switch m.ConfigType.(type) {
-
-	case *UdpListenerConfig_TypedConfig:
-
-		if v, ok := interface{}(m.GetTypedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return UdpListenerConfigValidationError{
-					field:  "TypedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
+	if v, ok := interface{}(m.GetDownstreamSocketConfig()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UdpListenerConfigValidationError{
+				field:  "DownstreamSocketConfig",
+				reason: "embedded message failed validation",
+				cause:  err,
 			}
 		}
+	}
+
+	if v, ok := interface{}(m.GetQuicOptions()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UdpListenerConfigValidationError{
+				field:  "QuicOptions",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	switch m.ConfigType.(type) {
 
 	case *UdpListenerConfig_HiddenEnvoyDeprecatedConfig:
 

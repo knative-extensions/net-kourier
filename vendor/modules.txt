@@ -23,15 +23,15 @@ github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1
 github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403
-github.com/cncf/udpa/go/udpa/annotations
-github.com/cncf/udpa/go/xds/core/v3
+# github.com/cncf/xds/go v0.0.0-20210312221358-fbca930ec8ed
+github.com/cncf/xds/go/udpa/annotations
+github.com/cncf/xds/go/xds/core/v3
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/emicklei/go-restful v2.9.5+incompatible
 github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
-# github.com/envoyproxy/go-control-plane v0.9.9-0.20210512163311-63b5d3c536b0 => github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d
+# github.com/envoyproxy/go-control-plane v0.9.9
 ## explicit
 github.com/envoyproxy/go-control-plane/envoy/annotations
 github.com/envoyproxy/go-control-plane/envoy/api/v2/core
@@ -56,6 +56,7 @@ github.com/envoyproxy/go-control-plane/envoy/service/route/v3
 github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3
 github.com/envoyproxy/go-control-plane/envoy/service/secret/v3
 github.com/envoyproxy/go-control-plane/envoy/type
+github.com/envoyproxy/go-control-plane/envoy/type/http/v3
 github.com/envoyproxy/go-control-plane/envoy/type/matcher
 github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3
 github.com/envoyproxy/go-control-plane/envoy/type/metadata/v3
@@ -65,8 +66,10 @@ github.com/envoyproxy/go-control-plane/pkg/cache/types
 github.com/envoyproxy/go-control-plane/pkg/cache/v3
 github.com/envoyproxy/go-control-plane/pkg/log
 github.com/envoyproxy/go-control-plane/pkg/resource/v3
+github.com/envoyproxy/go-control-plane/pkg/server/delta/v3
 github.com/envoyproxy/go-control-plane/pkg/server/rest/v3
 github.com/envoyproxy/go-control-plane/pkg/server/sotw/v3
+github.com/envoyproxy/go-control-plane/pkg/server/stream/v3
 github.com/envoyproxy/go-control-plane/pkg/server/v3
 github.com/envoyproxy/go-control-plane/pkg/ttl/v3
 github.com/envoyproxy/go-control-plane/pkg/wellknown
@@ -127,8 +130,7 @@ github.com/googleapis/gnostic/extensions
 github.com/googleapis/gnostic/openapiv2
 # github.com/gorilla/websocket v1.4.2
 github.com/gorilla/websocket
-# github.com/grpc-ecosystem/grpc-gateway v1.14.8
-## explicit
+# github.com/grpc-ecosystem/grpc-gateway v1.16.0
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
@@ -210,7 +212,7 @@ go.uber.org/automaxprocs/internal/runtime
 go.uber.org/automaxprocs/maxprocs
 # go.uber.org/multierr v1.6.0
 go.uber.org/multierr
-# go.uber.org/zap v1.18.1
+# go.uber.org/zap v1.19.0
 ## explicit
 go.uber.org/zap
 go.uber.org/zap/buffer
@@ -293,14 +295,14 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20210713002101-d411969a0d9a
+# google.golang.org/genproto v0.0.0-20210825212027-de86158e7fda
 ## explicit
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.39.0
+# google.golang.org/grpc v1.40.0
 ## explicit
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -889,4 +891,3 @@ knative.dev/pkg/webhook/certificates/resources
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
-# github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d
