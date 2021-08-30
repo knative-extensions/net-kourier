@@ -25,9 +25,9 @@ jobs:
         - v1.22.0
 
         gateway:
-        - docker.io/maistra/proxyv2-ubi8:2.0.2
+        - quay.io/maistra/proxyv2-ubi8:2.1.0
         - docker.io/envoyproxy/envoy:v1.17-latest
-        - docker.io/envoyproxy/envoy:v1.16-latest
+        - docker.io/envoyproxy/envoy:v1.18-latest
 
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
