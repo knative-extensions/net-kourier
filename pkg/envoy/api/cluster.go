@@ -20,6 +20,7 @@ import (
 	"time"
 
 	envoyCluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	httpOptions "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -50,9 +51,10 @@ func NewCluster(
 
 	if isHTTP2 {
 		opts, _ := anypb.New(&httpOptions.HttpProtocolOptions{
-			UpstreamProtocolOptions: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_{
-				ExplicitHttpConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig{
-					ProtocolConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
+			UpstreamProtocolOptions: &httpOptions.HttpProtocolOptions_UseDownstreamProtocolConfig{
+				UseDownstreamProtocolConfig: &httpOptions.HttpProtocolOptions_UseDownstreamHttpConfig{
+					HttpProtocolOptions:  &core.Http1ProtocolOptions{},
+					Http2ProtocolOptions: &core.Http2ProtocolOptions{},
 				},
 			},
 		})
