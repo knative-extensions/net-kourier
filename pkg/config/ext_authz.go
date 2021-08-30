@@ -28,6 +28,7 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	httpOptions "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -93,14 +94,23 @@ func init() {
 }
 
 func extAuthzCluster(host string, port uint32) *v3Cluster.Cluster {
+	opts, _ := anypb.New(&httpOptions.HttpProtocolOptions{
+		UpstreamProtocolOptions: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
+			},
+		},
+	})
+
 	return &v3Cluster.Cluster{
 		Name: extAuthzClusterName,
 		ClusterDiscoveryType: &v3Cluster.Cluster_Type{
 			Type: v3Cluster.Cluster_STRICT_DNS,
 		},
-		//nolint: staticcheck // TODO: Http2ProtocolOptions is deprecated.
-		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
-		ConnectTimeout:       durationpb.New(5 * time.Second),
+		TypedExtensionProtocolOptions: map[string]*anypb.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": opts,
+		},
+		ConnectTimeout: durationpb.New(5 * time.Second),
 		LoadAssignment: &endpoint.ClusterLoadAssignment{
 			ClusterName: extAuthzClusterName,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
