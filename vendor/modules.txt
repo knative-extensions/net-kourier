@@ -46,6 +46,7 @@ github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3
+github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3
 github.com/envoyproxy/go-control-plane/envoy/service/auth/v2
 github.com/envoyproxy/go-control-plane/envoy/service/auth/v3
 github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3

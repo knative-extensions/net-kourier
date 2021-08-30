@@ -20,8 +20,9 @@ import (
 	"time"
 
 	envoyCluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	httpOptions "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -48,8 +49,17 @@ func NewCluster(
 	}
 
 	if isHTTP2 {
-		//nolint: staticcheck // TODO: Http2ProtocolOptions is deprecated.
-		cluster.Http2ProtocolOptions = &core.Http2ProtocolOptions{}
+		opts, _ := anypb.New(&httpOptions.HttpProtocolOptions{
+			UpstreamProtocolOptions: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_{
+				ExplicitHttpConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig{
+					ProtocolConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
+				},
+			},
+		})
+
+		cluster.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": opts,
+		}
 	}
 
 	return cluster
