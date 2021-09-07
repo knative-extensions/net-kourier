@@ -206,7 +206,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		}
 
 		internalHosts = append(internalHosts, virtualHost)
-
 		if rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
 			externalHosts = append(externalHosts, virtualHost)
 			if virtualTLSHost != nil {
