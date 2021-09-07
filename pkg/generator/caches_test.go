@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/net-kourier/pkg/config"
+	envoy "knative.dev/net-kourier/pkg/envoy/api"
 )
 
 func TestDeleteIngressInfo(t *testing.T) {
@@ -48,6 +49,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
+		"external_tls_host_for_ingress_1",
 	)
 
 	// Add info for a different ingress
@@ -60,6 +62,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 		"cluster_for_ingress_2",
 		"internal_host_for_ingress_2",
 		"external_host_for_ingress_2",
+		"external_tls_host_for_ingress_2",
 	)
 
 	// Delete the first ingress
@@ -84,6 +87,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 
 	expectedNames := []string{
 		"internal_host_for_ingress_2",
+		"external_tls_host_for_ingress_2",
 		"external_host_for_ingress_2",
 		config.InternalKourierDomain,
 	}
@@ -111,6 +115,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
+		"external_tls_host_for_ingress_1",
 	)
 
 	snapshotBeforeDelete, err := caches.ToEnvoySnapshot(ctx)
@@ -154,16 +159,23 @@ func createTestDataForIngress(
 	ingressNamespace string,
 	clusterName string,
 	internalVHostName string,
-	externalVHostName string) {
+	externalVHostName string,
+	externalTLSVHostName string) {
 
 	translatedIngress := &translatedIngress{
 		name: types.NamespacedName{
 			Namespace: ingressNamespace,
 			Name:      ingressName,
 		},
-		clusters:             []*v3.Cluster{{Name: clusterName}},
-		externalVirtualHosts: []*route.VirtualHost{{Name: externalVHostName, Domains: []string{externalVHostName}}},
-		internalVirtualHosts: []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
+		clusters:                []*v3.Cluster{{Name: clusterName}},
+		externalVirtualHosts:    []*route.VirtualHost{{Name: externalVHostName, Domains: []string{externalVHostName}}},
+		externalTLSVirtualHosts: []*route.VirtualHost{{Name: externalTLSVHostName, Domains: []string{externalTLSVHostName}}},
+		internalVirtualHosts:    []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
+		sniMatches: []*envoy.SNIMatch{{
+			Hosts:            []string{"foo.example.com"},
+			CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname"},
+			CertificateChain: cert,
+			PrivateKey:       privateKey}},
 	}
 
 	caches.addTranslatedIngress(translatedIngress)
@@ -183,6 +195,7 @@ func TestValidateIngress(t *testing.T) {
 		"cluster_for_ingress_1",
 		"internal_host_for_ingress_1",
 		"external_host_for_ingress_1",
+		"external_tls_host_for_ingress_1",
 	)
 
 	translatedIngress := translatedIngress{
@@ -190,10 +203,16 @@ func TestValidateIngress(t *testing.T) {
 			Namespace: "ingress_2_namespace",
 			Name:      "ingress_2",
 		},
-		clusters:             []*v3.Cluster{{Name: "cluster_for_ingress_2"}},
-		externalVirtualHosts: []*route.VirtualHost{{Name: "external_host_for_ingress_2", Domains: []string{"external_host_for_ingress_2"}}},
+		clusters:                []*v3.Cluster{{Name: "cluster_for_ingress_2"}},
+		externalVirtualHosts:    []*route.VirtualHost{{Name: "external_host_for_ingress_2", Domains: []string{"external_host_for_ingress_2"}}},
+		externalTLSVirtualHosts: []*route.VirtualHost{{Name: "external_tls_host_for_ingress_2", Domains: []string{"external__tlshost_for_ingress_2"}}},
 		//This domain should clash with the cached ingress.
 		internalVirtualHosts: []*route.VirtualHost{{Name: "internal_host_for_ingress_2", Domains: []string{"internal_host_for_ingress_1"}}},
+		sniMatches: []*envoy.SNIMatch{{
+			Hosts:            []string{"foo.example.com"},
+			CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname"},
+			CertificateChain: cert,
+			PrivateKey:       privateKey}},
 	}
 
 	err = caches.validateIngress(&translatedIngress)

@@ -89,8 +89,9 @@ func TestIngressTranslator(t *testing.T) {
 						v3.Cluster_STATIC,
 					),
 				},
-				externalVirtualHosts: vHosts,
-				internalVirtualHosts: vHosts,
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
 			}
 		}(),
 	}, {
@@ -154,8 +155,9 @@ func TestIngressTranslator(t *testing.T) {
 						v3.Cluster_STATIC,
 					),
 				},
-				externalVirtualHosts: vHosts,
-				internalVirtualHosts: vHosts,
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: vHosts,
+				internalVirtualHosts:    vHosts,
 			}
 		}(),
 	}, {
@@ -244,8 +246,9 @@ func TestIngressTranslator(t *testing.T) {
 						v3.Cluster_LOGICAL_DNS,
 					),
 				},
-				externalVirtualHosts: vHosts,
-				internalVirtualHosts: vHosts,
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
 			}
 		}(),
 	}, {
@@ -296,8 +299,9 @@ func TestIngressTranslator(t *testing.T) {
 						v3.Cluster_STATIC,
 					),
 				},
-				externalVirtualHosts: vHosts,
-				internalVirtualHosts: vHosts,
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
 			}
 		}(),
 	}, {
@@ -348,8 +352,9 @@ func TestIngressTranslator(t *testing.T) {
 						v3.Cluster_LOGICAL_DNS,
 					),
 				},
-				externalVirtualHosts: vHosts,
-				internalVirtualHosts: vHosts,
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
 			}
 		}(),
 	}, {
