@@ -90,7 +90,7 @@ func TestIngressTranslator(t *testing.T) {
 					),
 				},
 				externalVirtualHosts:    vHosts,
-				externalTLSVirtualHosts: vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
 				internalVirtualHosts:    vHosts,
 			}
 		}(),
@@ -247,7 +247,7 @@ func TestIngressTranslator(t *testing.T) {
 					),
 				},
 				externalVirtualHosts:    vHosts,
-				externalTLSVirtualHosts: vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
 				internalVirtualHosts:    vHosts,
 			}
 		}(),
@@ -300,7 +300,7 @@ func TestIngressTranslator(t *testing.T) {
 					),
 				},
 				externalVirtualHosts:    vHosts,
-				externalTLSVirtualHosts: vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
 				internalVirtualHosts:    vHosts,
 			}
 		}(),
@@ -353,7 +353,7 @@ func TestIngressTranslator(t *testing.T) {
 					),
 				},
 				externalVirtualHosts:    vHosts,
-				externalTLSVirtualHosts: vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
 				internalVirtualHosts:    vHosts,
 			}
 		}(),

@@ -177,8 +177,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			if len(wrs) != 0 {
 				routes = append(routes, envoy.NewRoute(
 					pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
-				tlsRoutes = append(tlsRoutes, envoy.NewRoute(
-					pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
+				if len(ingress.Spec.TLS) != 0 {
+					tlsRoutes = append(tlsRoutes, routes...)
+				}
 			}
 		}
 
@@ -194,16 +195,23 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				"visibility": string(rule.Visibility),
 			}, ingress.GetLabels())
 			virtualHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), routes)
-			virtualTLSHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), tlsRoutes)
+			if len(tlsRoutes) != 0 {
+				virtualTLSHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), tlsRoutes)
+			}
 		} else {
 			virtualHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), routes)
-			virtualTLSHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), tlsRoutes)
+			if len(tlsRoutes) != 0 {
+				virtualTLSHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), tlsRoutes)
+			}
 		}
 
 		internalHosts = append(internalHosts, virtualHost)
+
 		if rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
 			externalHosts = append(externalHosts, virtualHost)
-			externalTLSHosts = append(externalTLSHosts, virtualTLSHost)
+			if virtualTLSHost != nil {
+				externalTLSHosts = append(externalTLSHosts, virtualTLSHost)
+			}
 		}
 	}
 
