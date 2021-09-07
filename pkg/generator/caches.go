@@ -241,6 +241,7 @@ func generateListenersAndRouteConfigs(
 	}
 
 	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
+	routes := []cachetypes.Resource{externalRouteConfig, internalRouteConfig}
 
 	// Configure TLS Listener. If there's at least one ingress that contains the
 	// TLS field, that takes precedence. If there is not, TLS will be configured
@@ -251,6 +252,7 @@ func generateListenersAndRouteConfigs(
 			return nil, nil, err
 		}
 		listeners = append(listeners, externalHTTPSEnvoyListener)
+		routes = append(routes, externalTLSRouteConfig)
 	} else if useHTTPSListenerWithOneCert() {
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
 			ctx, externalTLSManager, kubeclient,
@@ -259,12 +261,10 @@ func generateListenersAndRouteConfigs(
 			return nil, nil, err
 		}
 		listeners = append(listeners, externalHTTPSEnvoyListener)
+		routes = append(routes, externalTLSRouteConfig)
 	}
 
-	if len(sniMatches) > 0 || useHTTPSListenerWithOneCert() {
-		return listeners, []cachetypes.Resource{externalRouteConfig, externalTLSRouteConfig, internalRouteConfig}, nil
-	}
-	return listeners, []cachetypes.Resource{externalRouteConfig, internalRouteConfig}, nil
+	return listeners, routes, nil
 }
 
 // Returns true if we need to modify the HTTPS listener with just one cert
