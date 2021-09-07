@@ -66,3 +66,25 @@ func NewRoute(name string,
 		RequestHeadersToAdd: headersToAdd(headers),
 	}
 }
+
+func NewRedirectRoute(name string,
+	headersMatch []*route.HeaderMatcher,
+	path string,
+) *route.Route {
+	return &route.Route{
+		Name: name,
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Prefix{
+				Prefix: path,
+			},
+			Headers: headersMatch,
+		},
+		Action: &route.Route_Redirect{
+			Redirect: &route.RedirectAction{
+				SchemeRewriteSpecifier: &route.RedirectAction_HttpsRedirect{
+					HttpsRedirect: true,
+				},
+			},
+		},
+	}
+}
