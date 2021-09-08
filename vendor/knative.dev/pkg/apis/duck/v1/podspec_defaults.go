@@ -30,7 +30,7 @@ func (wp *WithPod) SetDefaults(ctx context.Context) {
 	}
 }
 
-// psvKey is used for associating a PodSpecDefaulter with a context.Context
+// psdKey is used for associating a PodSpecDefaulter with a context.Context
 type psdKey struct{}
 
 func WithPodSpecDefaulter(ctx context.Context, psd PodSpecDefaulter) context.Context {
@@ -44,4 +44,30 @@ func GetPodSpecDefaulter(ctx context.Context) PodSpecDefaulter {
 		return nil
 	}
 	return untyped.(PodSpecDefaulter)
+}
+
+// PodDefaulter is a callback to validate a Pod.
+type PodDefaulter func(context.Context, *Pod)
+
+// SetDefaults implements apis.Defaultable
+func (p *Pod) SetDefaults(ctx context.Context) {
+	if pd := GetPodDefaulter(ctx); pd != nil {
+		pd(ctx, p)
+	}
+}
+
+// pdKey is used for associating a PodDefaulter with a context.Context
+type pdKey struct{}
+
+func WithPodDefaulter(ctx context.Context, pd PodDefaulter) context.Context {
+	return context.WithValue(ctx, pdKey{}, pd)
+}
+
+// GetPodDefaulter extracts the PodDefaulter from the context.
+func GetPodDefaulter(ctx context.Context) PodDefaulter {
+	untyped := ctx.Value(pdKey{})
+	if untyped == nil {
+		return nil
+	}
+	return untyped.(PodDefaulter)
 }

@@ -48,3 +48,30 @@ func GetPodSpecValidator(ctx context.Context) PodSpecValidator {
 	}
 	return untyped.(PodSpecValidator)
 }
+
+// PodValidator is a callback to validate Pods.
+type PodValidator func(context.Context, *Pod) *apis.FieldError
+
+// Validate implements apis.Validatable
+func (p *Pod) Validate(ctx context.Context) *apis.FieldError {
+	if pv := GetPodValidator(ctx); pv != nil {
+		return pv(ctx, p)
+	}
+	return nil
+}
+
+// pvKey is used for associating a PodValidator with a context.Context
+type pvKey struct{}
+
+func WithPodValidator(ctx context.Context, pv PodValidator) context.Context {
+	return context.WithValue(ctx, pvKey{}, pv)
+}
+
+// GetPodValidator extracts the PodValidator from the context.
+func GetPodValidator(ctx context.Context) PodValidator {
+	untyped := ctx.Value(pvKey{})
+	if untyped == nil {
+		return nil
+	}
+	return untyped.(PodValidator)
+}
