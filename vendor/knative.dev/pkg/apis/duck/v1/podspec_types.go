@@ -45,6 +45,9 @@ type WithPod struct {
 	Spec WithPodSpec `json:"spec,omitempty"`
 }
 
+var _ apis.Validatable = (*WithPod)(nil)
+var _ apis.Defaultable = (*WithPod)(nil)
+
 // WithPodSpec is the shell around the PodSpecable within WithPod.
 type WithPodSpec struct {
 	Template PodSpecable `json:"template,omitempty"`
@@ -57,13 +60,13 @@ var (
 )
 
 // GetFullType implements duck.Implementable
-func (*PodSpecable) GetFullType() ducktypes.Populatable {
+func (wp *PodSpecable) GetFullType() ducktypes.Populatable {
 	return &WithPod{}
 }
 
 // Populate implements duck.Populatable
-func (t *WithPod) Populate() {
-	t.Spec.Template = PodSpecable{
+func (wp *WithPod) Populate() {
+	wp.Spec.Template = PodSpecable{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"foo": "bar",
@@ -79,7 +82,7 @@ func (t *WithPod) Populate() {
 }
 
 // GetListType implements apis.Listable
-func (*WithPod) GetListType() runtime.Object {
+func (wp *WithPod) GetListType() runtime.Object {
 	return &WithPodList{}
 }
 
