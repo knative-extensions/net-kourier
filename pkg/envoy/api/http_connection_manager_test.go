@@ -25,6 +25,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
 )
 
@@ -55,8 +56,9 @@ func TestNewRouteConfig(t *testing.T) {
 
 	got := NewRouteConfig("test", []*route.VirtualHost{vhost})
 	want := &route.RouteConfiguration{
-		Name:         "test",
-		VirtualHosts: []*route.VirtualHost{vhost},
+		Name:             "test",
+		VirtualHosts:     []*route.VirtualHost{vhost},
+		ValidateClusters: wrapperspb.Bool(true),
 	}
 
 	assert.DeepEqual(t, got, want, protocmp.Transform())

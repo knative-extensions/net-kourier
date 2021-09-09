@@ -28,6 +28,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"knative.dev/net-kourier/pkg/config"
 )
@@ -86,5 +87,10 @@ func NewRouteConfig(name string, virtualHosts []*route.VirtualHost) *route.Route
 	return &route.RouteConfiguration{
 		Name:         name,
 		VirtualHosts: virtualHosts,
+		// Without this validation we can generate routes that point to non-existing clusters
+		// That causes some "no_cluster" errors in Envoy and the "TestUpdate"
+		// in the Knative serving test suite fails sometimes.
+		// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
+		ValidateClusters: wrapperspb.Bool(true),
 	}
 }
