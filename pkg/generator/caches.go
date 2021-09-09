@@ -28,7 +28,6 @@ import (
 	cachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -218,14 +217,6 @@ func generateListenersAndRouteConfigs(
 	externalRouteConfig := envoy.NewRouteConfig(externalRouteConfigName, externalVirtualHosts)
 	externalTLSRouteConfig := envoy.NewRouteConfig(externalTLSRouteConfigName, externalTLSVirtualHosts)
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
-
-	// Without this we can generate routes that point to non-existing clusters
-	// That causes some "no_cluster" errors in Envoy and the "TestUpdate"
-	// in the Knative serving test suite fails sometimes.
-	// Ref: https://github.com/knative/serving/blob/f6da03e5dfed78593c4f239c3c7d67c5d7c55267/test/conformance/ingress/update_test.go#L37
-	externalRouteConfig.ValidateClusters = wrapperspb.Bool(true)
-	externalTLSRouteConfig.ValidateClusters = wrapperspb.Bool(true)
-	internalRouteConfig.ValidateClusters = wrapperspb.Bool(true)
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
 	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
