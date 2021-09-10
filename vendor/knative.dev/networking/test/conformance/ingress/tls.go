@@ -35,9 +35,9 @@ func TestIngressTLS(t *testing.T) {
 
 	hosts := []string{name + ".example.com"}
 
-	secretName, _ := CreateTLSSecret(ctx, t, clients, hosts)
+	secretName, tlsConfig, _ := CreateTLSSecret(ctx, t, clients, hosts)
 
-	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReadyWithTLS(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -58,7 +58,7 @@ func TestIngressTLS(t *testing.T) {
 			SecretName:      secretName,
 			SecretNamespace: test.ServingNamespace,
 		}},
-	})
+	}, tlsConfig)
 
 	// Check without TLS.
 	RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
