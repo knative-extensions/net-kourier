@@ -27,6 +27,14 @@ import (
 	"knative.dev/networking/test"
 )
 
+// testClient is a http client and expected status code to verify Ingress.
+// As CreateIngressReadyWithTLS creates TLS certs based on the hostname,
+// the client must be disinguished.
+type testClient struct {
+	code   int
+	client *http.Client
+}
+
 // TestHTTPOption verifies that the Ingress properly handles HTTPOption field.
 func TestHTTPOption(t *testing.T) {
 	t.Parallel()
@@ -43,19 +51,17 @@ func TestHTTPOption(t *testing.T) {
 		code:       http.StatusMovedPermanently,
 	}}
 
-	hostCode := make(map[string]int, len(tests))
-	var client *http.Client
+	hostCode := make(map[string]testClient, len(tests))
 	// Create multiple ingress with different HTTP option at the same time.
 	// This makes sure that each Ingress's HTTP option does not effect on globally.
 	for _, test := range tests {
-		var host string
-		host, client = create(ctx, t, clients, test.httpOption)
-		hostCode[host] = test.code
+		host, client := create(ctx, t, clients, test.httpOption)
+		hostCode[host] = testClient{code: test.code, client: client}
 	}
 
 	// Request to each Ingress.
-	for host, code := range hostCode {
-		checkHTTPOption(ctx, t, client, host, code)
+	for host, client := range hostCode {
+		checkHTTPOption(ctx, t, host, client)
 	}
 }
 
@@ -64,9 +70,9 @@ func create(ctx context.Context, t *testing.T, clients *test.Clients, httpOption
 
 	hosts := []string{name + ".example.com"}
 
-	secretName, _ := CreateTLSSecret(ctx, t, clients, hosts)
+	secretName, tlsConfig, _ := CreateTLSSecret(ctx, t, clients, hosts)
 
-	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
+	_, client, _ := CreateIngressReadyWithTLS(ctx, t, clients, v1alpha1.IngressSpec{
 		HTTPOption: httpOption,
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
@@ -88,27 +94,27 @@ func create(ctx context.Context, t *testing.T, clients *test.Clients, httpOption
 			SecretName:      secretName,
 			SecretNamespace: test.ServingNamespace,
 		}},
-	})
+	}, tlsConfig)
 	return hosts[0], client
 }
 
-func checkHTTPOption(ctx context.Context, t *testing.T, client *http.Client, hostname string, code int) {
+func checkHTTPOption(ctx context.Context, t *testing.T, hostname string, c testClient) {
 	// Check with TLS.
-	RuntimeRequest(ctx, t, client, "https://"+hostname)
+	RuntimeRequest(ctx, t, c.client, "https://"+hostname)
 
 	// Check without TLS.
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	c.client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		// Do not follow redirect.
 		return http.ErrUseLastResponse
 	}
-	resp, err := client.Get("http://" + hostname)
+	resp, err := c.client.Get("http://" + hostname)
 	if err != nil {
 		t.Fatal("Error making GET request:", err)
 	}
 
 	defer resp.Body.Close()
-	if resp.StatusCode != code {
-		t.Errorf("Unexpected status code: %d, wanted %v", resp.StatusCode, code)
+	if resp.StatusCode != c.code {
+		t.Errorf("Unexpected status code: %d, wanted %v", resp.StatusCode, c.code)
 		DumpResponse(ctx, t, resp)
 	}
 }

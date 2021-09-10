@@ -57,8 +57,6 @@ import (
 	"knative.dev/pkg/test/logging"
 )
 
-var rootCAs = x509.NewCertPool()
-
 var dialBackoff = wait.Backoff{
 	Duration: 50 * time.Millisecond,
 	Factor:   1.4,
@@ -742,19 +740,14 @@ func createIngressReadyDialContext(ctx context.Context, t *testing.T, clients *t
 }
 
 func CreateIngressReady(ctx context.Context, t *testing.T, clients *test.Clients, spec v1alpha1.IngressSpec) (*v1alpha1.Ingress, *http.Client, context.CancelFunc) {
+	return CreateIngressReadyWithTLS(ctx, t, clients, spec, nil)
+}
+
+func CreateIngressReadyWithTLS(ctx context.Context, t *testing.T, clients *test.Clients, spec v1alpha1.IngressSpec, tlsConfig *tls.Config) (*v1alpha1.Ingress, *http.Client, context.CancelFunc) {
 	t.Helper()
 
 	// Create a client with a dialer based on the Ingress' public load balancer.
 	ing, dialer, cancel := createIngressReadyDialContext(ctx, t, clients, spec)
-
-	// TODO(mattmoor): How to get ing?
-	var tlsConfig *tls.Config
-	if len(ing.Spec.TLS) > 0 {
-		// CAs are added to this as TLS secrets are created.
-		tlsConfig = &tls.Config{
-			RootCAs: rootCAs,
-		}
-	}
 
 	return ing, &http.Client{
 		Transport: &uaRoundTripper{
@@ -805,12 +798,7 @@ func UpdateIngressReady(ctx context.Context, t *testing.T, clients *test.Clients
 
 // CreateTLSSecret creates a secret with TLS certs in the serving namespace.
 // This is based on https://golang.org/src/crypto/tls/generate_cert.go
-func CreateTLSSecret(ctx context.Context, t *testing.T, clients *test.Clients, hosts []string) (string, context.CancelFunc) {
-	return CreateTLSSecretWithCertPool(ctx, t, clients, hosts, test.ServingNamespace, rootCAs)
-}
-
-// CreateTLSSecretWithCertPool creates TLS certificate with given CertPool.
-func CreateTLSSecretWithCertPool(ctx context.Context, t *testing.T, clients *test.Clients, hosts []string, ns string, cas *x509.CertPool) (string, context.CancelFunc) {
+func CreateTLSSecret(ctx context.Context, t *testing.T, clients *test.Clients, hosts []string) (string, *tls.Config, context.CancelFunc) {
 	t.Helper()
 
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), cryptorand.Reader)
@@ -851,9 +839,11 @@ func CreateTLSSecretWithCertPool(ctx context.Context, t *testing.T, clients *tes
 	if err != nil {
 		t.Fatal("ParseCertificate() =", err)
 	}
+
+	pool := x509.NewCertPool()
 	// Ideally we'd undo this in "cancel", but there doesn't
 	// seem to be a mechanism to remove things from a pool.
-	cas.AddCert(cert)
+	pool.AddCert(cert)
 
 	certPEM := &bytes.Buffer{}
 	if err := pem.Encode(certPEM, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
@@ -873,7 +863,7 @@ func CreateTLSSecretWithCertPool(ctx context.Context, t *testing.T, clients *tes
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: ns,
+			Namespace: test.ServingNamespace,
 			Labels: map[string]string{
 				"test-secret": name,
 			},
@@ -890,7 +880,7 @@ func CreateTLSSecretWithCertPool(ctx context.Context, t *testing.T, clients *tes
 	if _, err := clients.KubeClient.CoreV1().Secrets(secret.Namespace).Create(ctx, secret, metav1.CreateOptions{}); err != nil {
 		t.Fatal("Error creating Secret:", err)
 	}
-	return name, func() {
+	return name, &tls.Config{RootCAs: pool}, func() {
 		err := clients.KubeClient.CoreV1().Secrets(secret.Namespace).Delete(ctx, secret.Name, metav1.DeleteOptions{})
 		if err != nil {
 			t.Errorf("Error cleaning up Secret %s: %v", secret.Name, err)
