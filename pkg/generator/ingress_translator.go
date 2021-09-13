@@ -113,7 +113,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// same service are supposed to be deduplicated anyway.
 				splitName := fmt.Sprintf("%s/%s", split.ServiceNamespace, split.ServiceName)
 
-				if err := trackService(translator.tracker, split.ServiceName, ingress); err != nil {
+				if err := trackService(translator.tracker, split.ServiceNamespace, split.ServiceName, ingress); err != nil {
 					return nil, err
 				}
 
@@ -242,11 +242,11 @@ func trackSecret(t tracker.Interface, ns, name string, ingress *v1alpha1.Ingress
 	}, ingress)
 }
 
-func trackService(t tracker.Interface, svcName string, ingress *v1alpha1.Ingress) error {
+func trackService(t tracker.Interface, svcNs, svcName string, ingress *v1alpha1.Ingress) error {
 	if err := t.TrackReference(tracker.Reference{
 		Kind:       "Service",
 		APIVersion: "v1",
-		Namespace:  ingress.Namespace,
+		Namespace:  svcNs,
 		Name:       svcName,
 	}, ingress); err != nil {
 		return fmt.Errorf("could not track service reference: %w", err)
@@ -255,7 +255,7 @@ func trackService(t tracker.Interface, svcName string, ingress *v1alpha1.Ingress
 	if err := t.TrackReference(tracker.Reference{
 		Kind:       "Endpoints",
 		APIVersion: "v1",
-		Namespace:  ingress.Namespace,
+		Namespace:  svcNs,
 		Name:       svcName,
 	}, ingress); err != nil {
 		return fmt.Errorf("could not track endpoints reference: %w", err)
