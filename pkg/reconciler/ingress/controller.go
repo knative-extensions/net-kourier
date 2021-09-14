@@ -18,6 +18,7 @@ package ingress
 
 import (
 	"context"
+	"strings"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
@@ -54,6 +55,8 @@ const (
 
 	nodeID         = "3scale-kourier-gateway"
 	managementPort = 18000
+
+	unknownWeightedClusterPrefix = "route: unknown weighted cluster '"
 )
 
 var isKourierIngress = reconciler.AnnotationFilterFunc(
@@ -110,8 +113,33 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 				if req.ErrorDetail == nil {
 					return nil
 				}
+				logger.Warnf("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
 
-				logger.Infof("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
+				// We know we can handle this error without a global resync.
+				if strings.HasPrefix(req.ErrorDetail.Message, unknownWeightedClusterPrefix) {
+					// The error message contains the service name as referenced by the ingress.
+					svc := strings.TrimPrefix(strings.TrimSuffix(req.ErrorDetail.Message, "'"), unknownWeightedClusterPrefix)
+					ns, name, err := cache.SplitMetaNamespaceKey(svc)
+					if err != nil {
+						logger.Errorw("Failed to parse service name from error", zap.Error(err))
+						return nil
+					}
+
+					logger.Infof("Triggering reconcile for all ingresses referencing %q", svc)
+					impl.Tracker.OnChanged(&corev1.Service{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Service",
+							APIVersion: "v1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: ns,
+							Name:      name,
+						},
+					})
+					return nil
+				}
+
+				// Fallback to a global resync of non-ready ingresses for every other error.
 				impl.FilteredGlobalResync(func(obj interface{}) bool {
 					return isKourierIngress(obj) && !obj.(*v1alpha1.Ingress).IsReady()
 				}, ingressInformer.Informer())
