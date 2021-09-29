@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,7 +30,7 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 )
 
 // Validate checks the field values on AccessLog with the rules defined in the
@@ -60,18 +60,6 @@ func (m *AccessLog) Validate() error {
 			if err := v.Validate(); err != nil {
 				return AccessLogValidationError{
 					field:  "TypedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	case *AccessLog_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return AccessLogValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -1086,7 +1074,7 @@ func (m *ResponseFlagFilter) Validate() error {
 		if _, ok := _ResponseFlagFilter_Flags_InLookup[item]; !ok {
 			return ResponseFlagFilterValidationError{
 				field:  fmt.Sprintf("Flags[%v]", idx),
-				reason: "value must be in list [LH UH UT LR UR UF UC UO NR DI FI RL UAEX RLSE DC URX SI IH DPE UMSDR RFCF NFCF DT UPE NC]",
+				reason: "value must be in list [LH UH UT LR UR UF UC UO NR DI FI RL UAEX RLSE DC URX SI IH DPE UMSDR RFCF NFCF DT UPE NC OM]",
 			}
 		}
 
@@ -1177,6 +1165,7 @@ var _ResponseFlagFilter_Flags_InLookup = map[string]struct{}{
 	"DT":    {},
 	"UPE":   {},
 	"NC":    {},
+	"OM":    {},
 }
 
 // Validate checks the field values on GrpcStatusFilter with the rules defined
@@ -1361,18 +1350,6 @@ func (m *ExtensionFilter) Validate() error {
 			if err := v.Validate(); err != nil {
 				return ExtensionFilterValidationError{
 					field:  "TypedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	case *ExtensionFilter_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return ExtensionFilterValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

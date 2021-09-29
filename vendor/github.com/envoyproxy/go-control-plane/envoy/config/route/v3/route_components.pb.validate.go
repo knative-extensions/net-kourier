@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 )
@@ -32,11 +32,9 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 
 	_ = v3.RoutingPriority(0)
-
-	_ = v3.RequestMethod(0)
 )
 
 // Validate checks the field values on VirtualHost with the rules defined in
@@ -276,23 +274,6 @@ func (m *VirtualHost) Validate() error {
 				cause:  err,
 			}
 		}
-	}
-
-	for key, val := range m.GetHiddenEnvoyDeprecatedPerFilterConfig() {
-		_ = val
-
-		// no validation rules for HiddenEnvoyDeprecatedPerFilterConfig[key]
-
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return VirtualHostValidationError{
-					field:  fmt.Sprintf("HiddenEnvoyDeprecatedPerFilterConfig[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	}
 
 	return nil
@@ -596,23 +577,6 @@ func (m *Route) Validate() error {
 				cause:  err,
 			}
 		}
-	}
-
-	for key, val := range m.GetHiddenEnvoyDeprecatedPerFilterConfig() {
-		_ = val
-
-		// no validation rules for HiddenEnvoyDeprecatedPerFilterConfig[key]
-
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return RouteValidationError{
-					field:  fmt.Sprintf("HiddenEnvoyDeprecatedPerFilterConfig[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	}
 
 	switch m.Action.(type) {
@@ -923,6 +887,21 @@ func (m *RouteMatch) Validate() error {
 		}
 	}
 
+	for idx, item := range m.GetDynamicMetadata() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return RouteMatchValidationError{
+					field:  fmt.Sprintf("DynamicMetadata[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
 	switch m.PathSpecifier.(type) {
 
 	case *RouteMatch_Prefix:
@@ -959,15 +938,6 @@ func (m *RouteMatch) Validate() error {
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-			}
-		}
-
-	case *RouteMatch_HiddenEnvoyDeprecatedRegex:
-
-		if len(m.GetHiddenEnvoyDeprecatedRegex()) > 1024 {
-			return RouteMatchValidationError{
-				field:  "HiddenEnvoyDeprecatedRegex",
-				reason: "value length must be at most 1024 bytes",
 			}
 		}
 
@@ -1086,18 +1056,6 @@ func (m *CorsPolicy) Validate() error {
 		}
 	}
 
-	for idx, item := range m.GetHiddenEnvoyDeprecatedAllowOriginRegex() {
-		_, _ = idx, item
-
-		if len(item) > 1024 {
-			return CorsPolicyValidationError{
-				field:  fmt.Sprintf("HiddenEnvoyDeprecatedAllowOriginRegex[%v]", idx),
-				reason: "value length must be at most 1024 bytes",
-			}
-		}
-
-	}
-
 	switch m.EnabledSpecifier.(type) {
 
 	case *CorsPolicy_FilterEnabled:
@@ -1106,18 +1064,6 @@ func (m *CorsPolicy) Validate() error {
 			if err := v.Validate(); err != nil {
 				return CorsPolicyValidationError{
 					field:  "FilterEnabled",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	case *CorsPolicy_HiddenEnvoyDeprecatedEnabled:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedEnabled()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return CorsPolicyValidationError{
-					field:  "HiddenEnvoyDeprecatedEnabled",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -1414,16 +1360,6 @@ func (m *RouteAction) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedRequestMirrorPolicy()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return RouteActionValidationError{
-				field:  "HiddenEnvoyDeprecatedRequestMirrorPolicy",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
 	switch m.ClusterSpecifier.(type) {
 
 	case *RouteAction_Cluster:
@@ -1462,6 +1398,9 @@ func (m *RouteAction) Validate() error {
 				}
 			}
 		}
+
+	case *RouteAction_ClusterSpecifierPlugin:
+		// no validation rules for ClusterSpecifierPlugin
 
 	default:
 		return RouteActionValidationError{
@@ -1612,6 +1551,16 @@ func (m *RetryPolicy) Validate() error {
 		}
 	}
 
+	if v, ok := interface{}(m.GetPerTryIdleTimeout()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return RetryPolicyValidationError{
+				field:  "PerTryIdleTimeout",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if v, ok := interface{}(m.GetRetryPriority()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return RetryPolicyValidationError{
@@ -1629,6 +1578,21 @@ func (m *RetryPolicy) Validate() error {
 			if err := v.Validate(); err != nil {
 				return RetryPolicyValidationError{
 					field:  fmt.Sprintf("RetryHostPredicate[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	for idx, item := range m.GetRetryOptionsPredicates() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return RetryPolicyValidationError{
+					field:  fmt.Sprintf("RetryOptionsPredicates[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -2338,15 +2302,6 @@ func (m *VirtualCluster) Validate() error {
 		}
 	}
 
-	if len(m.GetHiddenEnvoyDeprecatedPattern()) > 1024 {
-		return VirtualClusterValidationError{
-			field:  "HiddenEnvoyDeprecatedPattern",
-			reason: "value length must be at most 1024 bytes",
-		}
-	}
-
-	// no validation rules for HiddenEnvoyDeprecatedMethod
-
 	return nil
 }
 
@@ -2596,12 +2551,15 @@ func (m *HeaderMatcher) Validate() error {
 			}
 		}
 
-	case *HeaderMatcher_HiddenEnvoyDeprecatedRegexMatch:
+	case *HeaderMatcher_StringMatch:
 
-		if len(m.GetHiddenEnvoyDeprecatedRegexMatch()) > 1024 {
-			return HeaderMatcherValidationError{
-				field:  "HiddenEnvoyDeprecatedRegexMatch",
-				reason: "value length must be at most 1024 bytes",
+		if v, ok := interface{}(m.GetStringMatch()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return HeaderMatcherValidationError{
+					field:  "StringMatch",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
 			}
 		}
 
@@ -2685,18 +2643,6 @@ func (m *QueryParameterMatcher) Validate() error {
 		return QueryParameterMatcherValidationError{
 			field:  "Name",
 			reason: "value length must be at most 1024 bytes",
-		}
-	}
-
-	// no validation rules for HiddenEnvoyDeprecatedValue
-
-	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedRegex()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return QueryParameterMatcherValidationError{
-				field:  "HiddenEnvoyDeprecatedRegex",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
 		}
 	}
 
@@ -2971,10 +2917,12 @@ func (m *WeightedCluster_ClusterWeight) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetName()) < 1 {
+	// no validation rules for Name
+
+	if !_WeightedCluster_ClusterWeight_ClusterHeader_Pattern.MatchString(m.GetClusterHeader()) {
 		return WeightedCluster_ClusterWeightValidationError{
-			field:  "Name",
-			reason: "value length must be at least 1 runes",
+			field:  "ClusterHeader",
+			reason: "value does not match regex pattern \"^[^\\x00\\n\\r]*$\"",
 		}
 	}
 
@@ -3083,18 +3031,14 @@ func (m *WeightedCluster_ClusterWeight) Validate() error {
 
 	}
 
-	for key, val := range m.GetHiddenEnvoyDeprecatedPerFilterConfig() {
-		_ = val
+	switch m.HostRewriteSpecifier.(type) {
 
-		// no validation rules for HiddenEnvoyDeprecatedPerFilterConfig[key]
+	case *WeightedCluster_ClusterWeight_HostRewriteLiteral:
 
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return WeightedCluster_ClusterWeightValidationError{
-					field:  fmt.Sprintf("HiddenEnvoyDeprecatedPerFilterConfig[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
+		if !_WeightedCluster_ClusterWeight_HostRewriteLiteral_Pattern.MatchString(m.GetHostRewriteLiteral()) {
+			return WeightedCluster_ClusterWeightValidationError{
+				field:  "HostRewriteLiteral",
+				reason: "value does not match regex pattern \"^[^\\x00\\n\\r]*$\"",
 			}
 		}
 
@@ -3160,9 +3104,13 @@ var _ interface {
 	ErrorName() string
 } = WeightedCluster_ClusterWeightValidationError{}
 
+var _WeightedCluster_ClusterWeight_ClusterHeader_Pattern = regexp.MustCompile("^[^\x00\n\r]*$")
+
 var _WeightedCluster_ClusterWeight_RequestHeadersToRemove_Pattern = regexp.MustCompile("^[^\x00\n\r]*$")
 
 var _WeightedCluster_ClusterWeight_ResponseHeadersToRemove_Pattern = regexp.MustCompile("^[^\x00\n\r]*$")
+
+var _WeightedCluster_ClusterWeight_HostRewriteLiteral_Pattern = regexp.MustCompile("^[^\x00\n\r]*$")
 
 // Validate checks the field values on RouteMatch_GrpcRouteMatchOptions with
 // the rules defined in the proto definition for this message. If any rules
@@ -3421,8 +3369,6 @@ func (m *RouteAction_RequestMirrorPolicy) Validate() error {
 			}
 		}
 	}
-
-	// no validation rules for HiddenEnvoyDeprecatedRuntimeKey
 
 	return nil
 }
@@ -4334,18 +4280,6 @@ func (m *RetryPolicy_RetryPriority) Validate() error {
 			}
 		}
 
-	case *RetryPolicy_RetryPriority_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return RetryPolicy_RetryPriorityValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	}
 
 	return nil
@@ -4436,18 +4370,6 @@ func (m *RetryPolicy_RetryHostPredicate) Validate() error {
 			}
 		}
 
-	case *RetryPolicy_RetryHostPredicate_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return RetryPolicy_RetryHostPredicateValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	}
 
 	return nil
@@ -4526,7 +4448,7 @@ func (m *RetryPolicy_RetryBackOff) Validate() error {
 	}
 
 	if d := m.GetBaseInterval(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
 			return RetryPolicy_RetryBackOffValidationError{
 				field:  "BaseInterval",
@@ -4547,7 +4469,7 @@ func (m *RetryPolicy_RetryBackOff) Validate() error {
 	}
 
 	if d := m.GetMaxInterval(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
 			return RetryPolicy_RetryBackOffValidationError{
 				field:  "MaxInterval",
@@ -4747,7 +4669,7 @@ func (m *RetryPolicy_RateLimitedRetryBackOff) Validate() error {
 	}
 
 	if d := m.GetMaxInterval(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
 			return RetryPolicy_RateLimitedRetryBackOffValidationError{
 				field:  "MaxInterval",

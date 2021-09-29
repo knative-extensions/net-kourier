@@ -35,6 +35,7 @@ func TestNewRouteHeaderMatch(t *testing.T) {
 
 	r := NewRoute(name, headerMatch, path, nil, 0, nil, "")
 	assert.Equal(t, r.Match.Headers[0].Name, "myHeader")
+	//nolint: staticcheck // TODO: GetExactMatch is deprecated.
 	assert.Equal(t, r.Match.Headers[0].GetExactMatch(), "strict")
 }
 

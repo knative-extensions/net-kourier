@@ -17,69 +17,10 @@ package cache
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 )
-
-// Resources is a versioned group of resources.
-type Resources struct {
-	// Version information.
-	Version string
-
-	// Items in the group indexed by name.
-	Items map[string]types.ResourceWithTtl
-}
-
-// DeltaResources is a versioned group of resources which also contains individual resource versions per the incremental xDS protocol
-type DeltaResources struct {
-	// Version information
-	SystemVersion string
-
-	// Items in the group indexed by name
-	Items resourceItems
-}
-
-// resourceItems contain the lower level versioned resource map
-type resourceItems struct {
-	Version string
-	Items   map[string]types.ResourceWithTtl
-}
-
-// IndexResourcesByName creates a map from the resource name to the resource.
-func IndexResourcesByName(items []types.ResourceWithTtl) map[string]types.ResourceWithTtl {
-	indexed := make(map[string]types.ResourceWithTtl)
-	for _, item := range items {
-		indexed[GetResourceName(item.Resource)] = item
-	}
-	return indexed
-}
-
-// IndexRawResourcesByName creates a map from the resource name to the resource.
-func IndexRawResourcesByName(items []types.Resource) map[string]types.Resource {
-	indexed := make(map[string]types.Resource)
-	for _, item := range items {
-		indexed[GetResourceName(item)] = item
-	}
-	return indexed
-}
-
-// NewResources creates a new resource group.
-func NewResources(version string, items []types.Resource) Resources {
-	itemsWithTtl := []types.ResourceWithTtl{}
-	for _, item := range items {
-		itemsWithTtl = append(itemsWithTtl, types.ResourceWithTtl{Resource: item})
-	}
-	return NewResourcesWithTtl(version, itemsWithTtl)
-}
-
-// NewResources creates a new resource group.
-func NewResourcesWithTtl(version string, items []types.ResourceWithTtl) Resources {
-	return Resources{
-		Version: version,
-		Items:   IndexResourcesByName(items),
-	}
-}
 
 // Snapshot is an internally consistent snapshot of xDS resources.
 // Consistency is important for the convergence as different resource types
@@ -95,68 +36,37 @@ type Snapshot struct {
 }
 
 // NewSnapshot creates a snapshot from response types and a version.
-func NewSnapshot(version string,
-	endpoints []types.Resource,
-	clusters []types.Resource,
-	routes []types.Resource,
-	listeners []types.Resource,
-	runtimes []types.Resource,
-	secrets []types.Resource) Snapshot {
-	return NewSnapshotWithResources(version, SnapshotResources{
-		Endpoints: endpoints,
-		Clusters:  clusters,
-		Routes:    routes,
-		Listeners: listeners,
-		Runtimes:  runtimes,
-		Secrets:   secrets,
-	})
-}
-
-// SnapshotResources contains the resources to construct a snapshot from.
-type SnapshotResources struct {
-	Endpoints        []types.Resource
-	Clusters         []types.Resource
-	Routes           []types.Resource
-	Listeners        []types.Resource
-	Runtimes         []types.Resource
-	Secrets          []types.Resource
-	ExtensionConfigs []types.Resource
-}
-
-// NewSnapshotWithResources creates a snapshot from response types and a version.
-func NewSnapshotWithResources(version string, resources SnapshotResources) Snapshot {
+// The resources map is keyed off the type URL of a resource, followed by the slice of resource objects.
+func NewSnapshot(version string, resources map[resource.Type][]types.Resource) (Snapshot, error) {
 	out := Snapshot{}
-	out.Resources[types.Endpoint] = NewResources(version, resources.Endpoints)
-	out.Resources[types.Cluster] = NewResources(version, resources.Clusters)
-	out.Resources[types.Route] = NewResources(version, resources.Routes)
-	out.Resources[types.Listener] = NewResources(version, resources.Listeners)
-	out.Resources[types.Runtime] = NewResources(version, resources.Runtimes)
-	out.Resources[types.Secret] = NewResources(version, resources.Secrets)
-	out.Resources[types.ExtensionConfig] = NewResources(version, resources.ExtensionConfigs)
 
-	return out
+	for typ, resource := range resources {
+		index := GetResponseType(typ)
+		if index == types.UnknownType {
+			return out, errors.New("unknown resource type: " + typ)
+		}
+
+		out.Resources[index] = NewResources(version, resource)
+	}
+
+	return out, nil
 }
 
-type ResourceWithTtl struct {
-	Resources []types.Resource
-	Ttl       *time.Duration
-}
-
-func NewSnapshotWithTtls(version string,
-	endpoints []types.ResourceWithTtl,
-	clusters []types.ResourceWithTtl,
-	routes []types.ResourceWithTtl,
-	listeners []types.ResourceWithTtl,
-	runtimes []types.ResourceWithTtl,
-	secrets []types.ResourceWithTtl) Snapshot {
+// NewSnapshotWithTTLs creates a snapshot of ResourceWithTTLs.
+// The resources map is keyed off the type URL of a resource, followed by the slice of resource objects.
+func NewSnapshotWithTTLs(version string, resources map[resource.Type][]types.ResourceWithTTL) (Snapshot, error) {
 	out := Snapshot{}
-	out.Resources[types.Endpoint] = NewResourcesWithTtl(version, endpoints)
-	out.Resources[types.Cluster] = NewResourcesWithTtl(version, clusters)
-	out.Resources[types.Route] = NewResourcesWithTtl(version, routes)
-	out.Resources[types.Listener] = NewResourcesWithTtl(version, listeners)
-	out.Resources[types.Runtime] = NewResourcesWithTtl(version, runtimes)
-	out.Resources[types.Secret] = NewResourcesWithTtl(version, secrets)
-	return out
+
+	for typ, resource := range resources {
+		index := GetResponseType(typ)
+		if index == types.UnknownType {
+			return out, errors.New("unknown resource type: " + typ)
+		}
+
+		out.Resources[index] = NewResourcesWithTTL(version, resource)
+	}
+
+	return out, nil
 }
 
 // Consistent check verifies that the dependent resources are exactly listed in the
@@ -187,23 +97,23 @@ func (s *Snapshot) Consistent() error {
 }
 
 // GetResources selects snapshot resources by type, returning the map of resources.
-func (s *Snapshot) GetResources(typeURL string) map[string]types.Resource {
-	resources := s.GetResourcesAndTtl(typeURL)
+func (s *Snapshot) GetResources(typeURL resource.Type) map[string]types.Resource {
+	resources := s.GetResourcesAndTTL(typeURL)
 	if resources == nil {
 		return nil
 	}
 
-	withoutTtl := make(map[string]types.Resource, len(resources))
+	withoutTTL := make(map[string]types.Resource, len(resources))
 
 	for k, v := range resources {
-		withoutTtl[k] = v.Resource
+		withoutTTL[k] = v.Resource
 	}
 
-	return withoutTtl
+	return withoutTTL
 }
 
-// GetResourcesAndTtl selects snapshot resources by type, returning the map of resources and the associated TTL.
-func (s *Snapshot) GetResourcesAndTtl(typeURL string) map[string]types.ResourceWithTtl {
+// GetResourcesAndTTL selects snapshot resources by type, returning the map of resources and the associated TTL.
+func (s *Snapshot) GetResourcesAndTTL(typeURL resource.Type) map[string]types.ResourceWithTTL {
 	if s == nil {
 		return nil
 	}
@@ -215,7 +125,7 @@ func (s *Snapshot) GetResourcesAndTtl(typeURL string) map[string]types.ResourceW
 }
 
 // GetVersion returns the version for a resource type.
-func (s *Snapshot) GetVersion(typeURL string) string {
+func (s *Snapshot) GetVersion(typeURL resource.Type) string {
 	if s == nil {
 		return ""
 	}
@@ -227,8 +137,8 @@ func (s *Snapshot) GetVersion(typeURL string) string {
 }
 
 // GetVersionMap will return the internal version map of the currently applied snapshot.
-func (s *Snapshot) GetVersionMap() map[string]map[string]string {
-	return s.VersionMap
+func (s *Snapshot) GetVersionMap(typeUrl string) map[string]string {
+	return s.VersionMap[typeUrl]
 }
 
 // ConstructVersionMap will construct a version map based on the current state of a snapshot
@@ -254,7 +164,7 @@ func (s *Snapshot) ConstructVersionMap() error {
 		}
 
 		for _, r := range resources.Items {
-			// hash our verison in here and build the version map
+			// Hash our version in here and build the version map.
 			marshaledResource, err := MarshalResource(r.Resource)
 			if err != nil {
 				return err

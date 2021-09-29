@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,7 +30,7 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 )
 
 // Validate checks the field values on HttpConnectionManager with the rules
@@ -144,6 +144,16 @@ func (m *HttpConnectionManager) Validate() error {
 		}
 	}
 
+	if v, ok := interface{}(m.GetSchemeHeaderTransformation()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return HttpConnectionManagerValidationError{
+				field:  "SchemeHeaderTransformation",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if wrapper := m.GetMaxRequestHeadersKb(); wrapper != nil {
 
 		if val := wrapper.GetValue(); val <= 0 || val > 8192 {
@@ -176,7 +186,7 @@ func (m *HttpConnectionManager) Validate() error {
 	}
 
 	if d := m.GetRequestHeadersTimeout(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
 			return HttpConnectionManagerValidationError{
 				field:  "RequestHeadersTimeout",
@@ -383,15 +393,7 @@ func (m *HttpConnectionManager) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedIdleTimeout()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return HttpConnectionManagerValidationError{
-				field:  "HiddenEnvoyDeprecatedIdleTimeout",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
+	// no validation rules for StripTrailingHostDot
 
 	switch m.RouteSpecifier.(type) {
 
@@ -1172,18 +1174,6 @@ func (m *HttpFilter) Validate() error {
 			}
 		}
 
-	case *HttpFilter_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return HttpFilterValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	}
 
 	return nil
@@ -1320,6 +1310,84 @@ var _ interface {
 	ErrorName() string
 } = RequestIDExtensionValidationError{}
 
+// Validate checks the field values on EnvoyMobileHttpConnectionManager with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, an error is returned.
+func (m *EnvoyMobileHttpConnectionManager) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return EnvoyMobileHttpConnectionManagerValidationError{
+				field:  "Config",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// EnvoyMobileHttpConnectionManagerValidationError is the validation error
+// returned by EnvoyMobileHttpConnectionManager.Validate if the designated
+// constraints aren't met.
+type EnvoyMobileHttpConnectionManagerValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e EnvoyMobileHttpConnectionManagerValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e EnvoyMobileHttpConnectionManagerValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e EnvoyMobileHttpConnectionManagerValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e EnvoyMobileHttpConnectionManagerValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e EnvoyMobileHttpConnectionManagerValidationError) ErrorName() string {
+	return "EnvoyMobileHttpConnectionManagerValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e EnvoyMobileHttpConnectionManagerValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sEnvoyMobileHttpConnectionManager.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = EnvoyMobileHttpConnectionManagerValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = EnvoyMobileHttpConnectionManagerValidationError{}
+
 // Validate checks the field values on HttpConnectionManager_Tracing with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, an error is returned.
@@ -1392,13 +1460,6 @@ func (m *HttpConnectionManager_Tracing) Validate() error {
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-		}
-	}
-
-	if _, ok := HttpConnectionManager_Tracing_OperationName_name[int32(m.GetHiddenEnvoyDeprecatedOperationName())]; !ok {
-		return HttpConnectionManager_TracingValidationError{
-			field:  "HiddenEnvoyDeprecatedOperationName",
-			reason: "value must be one of the defined enum values",
 		}
 	}
 
