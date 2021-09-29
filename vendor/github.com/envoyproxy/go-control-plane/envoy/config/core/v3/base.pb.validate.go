@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,7 +30,7 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 )
 
 // Validate checks the field values on Locality with the rules defined in the
@@ -349,8 +349,6 @@ func (m *Node) Validate() error {
 		}
 
 	}
-
-	// no validation rules for HiddenEnvoyDeprecatedBuildVersion
 
 	switch m.UserAgentVersionType.(type) {
 
@@ -986,6 +984,13 @@ func (m *HeaderValueOption) Validate() error {
 		}
 	}
 
+	if _, ok := HeaderValueOption_HeaderAppendAction_name[int32(m.GetAppendAction())]; !ok {
+		return HeaderValueOptionValidationError{
+			field:  "AppendAction",
+			reason: "value must be one of the defined enum values",
+		}
+	}
+
 	return nil
 }
 
@@ -1591,18 +1596,6 @@ func (m *TransportSocket) Validate() error {
 			if err := v.Validate(); err != nil {
 				return TransportSocketValidationError{
 					field:  "TypedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	case *TransportSocket_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return TransportSocketValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

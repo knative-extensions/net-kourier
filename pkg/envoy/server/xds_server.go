@@ -99,5 +99,5 @@ func (envoyXdsServer *XdsServer) RunManagementServer() error {
 }
 
 func (envoyXdsServer *XdsServer) SetSnapshot(nodeID string, snapshot cache.Snapshot) error {
-	return envoyXdsServer.snapshotCache.SetSnapshot(nodeID, snapshot)
+	return envoyXdsServer.snapshotCache.SetSnapshot(context.Background(), nodeID, snapshot)
 }

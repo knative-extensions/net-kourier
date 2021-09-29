@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,7 +30,7 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 )
 
 // Validate checks the field values on Filter with the rules defined in the
@@ -67,18 +67,6 @@ func (m *Filter) Validate() error {
 			if err := v.Validate(); err != nil {
 				return FilterValidationError{
 					field:  "ConfigDiscovery",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	case *Filter_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return FilterValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -188,6 +176,21 @@ func (m *FilterChainMatch) Validate() error {
 				cause:  err,
 			}
 		}
+	}
+
+	for idx, item := range m.GetDirectSourcePrefixRanges() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return FilterChainMatchValidationError{
+					field:  fmt.Sprintf("DirectSourcePrefixRanges[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	}
 
 	if _, ok := FilterChainMatch_ConnectionSourceType_name[int32(m.GetSourceType())]; !ok {
@@ -362,16 +365,6 @@ func (m *FilterChain) Validate() error {
 		if err := v.Validate(); err != nil {
 			return FilterChainValidationError{
 				field:  "OnDemandConfiguration",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedTlsContext()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return FilterChainValidationError{
-				field:  "HiddenEnvoyDeprecatedTlsContext",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -603,18 +596,6 @@ func (m *ListenerFilter) Validate() error {
 			if err := v.Validate(); err != nil {
 				return ListenerFilterValidationError{
 					field:  "TypedConfig",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	case *ListenerFilter_HiddenEnvoyDeprecatedConfig:
-
-		if v, ok := interface{}(m.GetHiddenEnvoyDeprecatedConfig()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return ListenerFilterValidationError{
-					field:  "HiddenEnvoyDeprecatedConfig",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 )
@@ -32,7 +32,7 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 
 	_ = v3.ApiVersion(0)
 )
@@ -109,7 +109,7 @@ func (m *ExtAuthz) Validate() error {
 
 	// no validation rules for StatPrefix
 
-	// no validation rules for HiddenEnvoyDeprecatedUseAlpha
+	// no validation rules for BootstrapMetadataLabelsKey
 
 	switch m.Services.(type) {
 
@@ -503,6 +503,16 @@ func (m *AuthorizationResponse) Validate() error {
 		if err := v.Validate(); err != nil {
 			return AuthorizationResponseValidationError{
 				field:  "AllowedClientHeadersOnSuccess",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetDynamicMetadataFromHeaders()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AuthorizationResponseValidationError{
+				field:  "DynamicMetadataFromHeaders",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

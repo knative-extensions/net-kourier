@@ -27,6 +27,7 @@ import (
 	httpconnmanagerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	cachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -159,13 +160,12 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 
 	return cache.NewSnapshot(
 		uuid.NewString(),
-		make([]cachetypes.Resource, 0),
-		caches.clusters.list(),
-		routes,
-		listeners,
-		make([]cachetypes.Resource, 0),
-		make([]cachetypes.Resource, 0),
-	), nil
+		map[resource.Type][]cachetypes.Resource{
+			resource.ClusterType:  caches.clusters.list(),
+			resource.RouteType:    routes,
+			resource.ListenerType: listeners,
+		},
+	)
 }
 
 // DeleteIngressInfo removes an ingress from the caches.
