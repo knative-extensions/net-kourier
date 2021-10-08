@@ -21,7 +21,7 @@ initialize "$@" --skip-istio-addon
 
 failed=0
 
-go_test_e2e -timeout=20m -parallel=12 \
+go_test_e2e -timeout=40m -parallel=12 \
   ./test/conformance \
   ./test/e2e/ \
   --enable-alpha --enable-beta \
