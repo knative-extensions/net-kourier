@@ -18,14 +18,14 @@ Kourier is passing the knative serving e2e and conformance tests:
 - Install Knative Serving, ideally without Istio:
 
 ```bash
-kubectl apply -f https://github.com/knative/serving/releases/download/v0.17.0/serving-crds.yaml
-kubectl apply -f https://github.com/knative/serving/releases/download/v0.17.0/serving-core.yaml
+kubectl apply -f https://github.com/knative/serving/releases/download/v0.26.0/serving-crds.yaml
+kubectl apply -f https://github.com/knative/serving/releases/download/v0.26.0/serving-core.yaml
 ```
 
 - Then install Kourier:
 
 ```bash
-kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.17.0/kourier.yaml
+kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.26.0/kourier.yaml
 ```
 
 - Configure Knative Serving to use the proper "ingress.class":
