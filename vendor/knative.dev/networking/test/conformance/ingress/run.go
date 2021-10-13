@@ -63,12 +63,15 @@ var alphaTests = map[string]func(t *testing.T){
 //
 // Depending on the options it may test alpha and beta features
 func RunConformance(t *testing.T) {
+	skipTests := skipTests()
 
 	for name, test := range stableTests {
+		if _, ok := skipTests[name]; ok {
+			t.Run(name, skipFunc)
+			continue
+		}
 		t.Run(name, test)
 	}
-
-	skipTests := skipTests()
 
 	// TODO(dprotaso) we'll need something more robust
 	// in the long term that lets downstream
