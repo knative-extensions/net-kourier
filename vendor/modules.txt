@@ -45,7 +45,9 @@ github.com/envoyproxy/go-control-plane/envoy/config/listener/v3
 github.com/envoyproxy/go-control-plane/envoy/config/route/v3
 github.com/envoyproxy/go-control-plane/envoy/config/trace/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3
+github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3
+github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3
 github.com/envoyproxy/go-control-plane/envoy/service/auth/v2
@@ -102,6 +104,7 @@ github.com/gogo/protobuf/sortkeys
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.5.2
+## explicit
 github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto

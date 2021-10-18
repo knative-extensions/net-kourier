@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/cncf/xds/go v0.0.0-20210922020428-25de7278fc84 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.10-0.20210928151155-81157c60e0e3
+	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
 	github.com/kelseyhightower/envconfig v1.4.0
