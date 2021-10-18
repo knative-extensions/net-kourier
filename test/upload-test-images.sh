@@ -28,13 +28,7 @@ function upload_test_images() {
       tag_option="--tags $docker_tag,latest"
     fi
 
-    for yaml in $(find ${image_dir} -name '*.yaml'); do
-      # Rewrite image reference to use vendor.
-      sed "s@knative.dev/networking@knative.dev/net-kourier/vendor/knative.dev/networking@g" $yaml \
-        `# ko resolve is being used for the side-effect of publishing images,` \
-        `# so the resulting yaml produced is ignored.` \
-        | ko resolve ${tag_option} -RBf- > /dev/null
-    done
+    ko resolve --jobs=4 ${tag_option} -RBf "${image_dir}" > /dev/null
   )
 }
 
