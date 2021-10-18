@@ -215,6 +215,9 @@ func generateListenersAndRouteConfigs(
 	// ready.
 	cfg := rconfig.FromContextOrDefaults(ctx)
 
+	// load local rate limit
+	config.LoadLocalRateLimit(cfg.Kourier.NumberRequestPerSecond)
+
 	// First, we save the RouteConfigs with the proper name and all the virtualhosts etc. into the cache.
 	externalRouteConfig := envoy.NewRouteConfig(externalRouteConfigName, externalVirtualHosts)
 	externalTLSRouteConfig := envoy.NewRouteConfig(externalTLSRouteConfigName, externalTLSVirtualHosts)

@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"errors"
 	corev1 "k8s.io/api/core/v1"
 
 	cm "knative.dev/pkg/configmap"
@@ -35,6 +36,10 @@ const (
 
 	// clusterCert is the config map key for kourier internal certificates
 	clusterCert = "cluster-cert-secret"
+
+	// numberRequestPerSecond is the config map key that specify the number of requests per second when
+	//local rate limit is enabled
+	numberRequestPerSecond = "requests-per-second"
 )
 
 func DefaultConfig() *Kourier {
@@ -42,6 +47,7 @@ func DefaultConfig() *Kourier {
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
+		NumberRequestPerSecond:     0,    // 0 is the default value, meaning local rate limit is not enabled
 	}
 }
 
@@ -53,8 +59,13 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
+		cm.AsFloat64(numberRequestPerSecond, &nc.NumberRequestPerSecond),
 	); err != nil {
 		return nil, err
+	}
+
+	if nc.NumberRequestPerSecond < 0 {
+		return nil, errors.New("requests-per-second param should not be a negative value")
 	}
 
 	return nc, nil
@@ -76,4 +87,6 @@ type Kourier struct {
 	// ClusterCertSecret specifies the secret name for the server certificates of
 	// Kourier Internal.
 	ClusterCertSecret string
+	// NumberRequestPerSecond specifies the permitted number of requests per second when local rate limit is enabled
+	NumberRequestPerSecond float64
 }

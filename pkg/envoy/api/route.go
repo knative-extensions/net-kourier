@@ -17,6 +17,7 @@ limitations under the License.
 package envoy
 
 import (
+	"knative.dev/net-kourier/pkg/config"
 	"time"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -56,7 +57,7 @@ func NewRoute(name string,
 		}
 	}
 
-	return &route.Route{
+	newRoute := &route.Route{
 		Name: name,
 		Match: &route.RouteMatch{
 			PathSpecifier: &route.RouteMatch_Prefix{
@@ -69,6 +70,13 @@ func NewRoute(name string,
 		},
 		RequestHeadersToAdd: headersToAdd(headers),
 	}
+
+	// add local rate limit spec if it's activated
+	if config.LocalRateLimit.Enabled && path != "/ready" {
+		newRoute.TypedPerFilterConfig = config.LocalRateLimit.FilterConfig
+	}
+
+	return newRoute
 }
 
 func NewRedirectRoute(name string,

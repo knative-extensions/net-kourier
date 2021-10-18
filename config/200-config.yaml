@@ -58,3 +58,8 @@ data:
     # NOTE: This flag is in an alpha state and is mostly here to enable internal testing
     #       for now. Use with caution.
     cluster-cert-secret: ""
+
+    # specifies the permitted number of requests per second when
+    # local rate limit is enabled, 0 means local rate limit is disabled
+    # NOTE THAT THIS IS AN EXPERIMENTAL / ALPHA FEATURE
+    requests-per-second: 0

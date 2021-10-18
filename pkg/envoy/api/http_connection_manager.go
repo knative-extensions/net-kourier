@@ -42,6 +42,10 @@ func NewHTTPConnectionManager(routeConfigName string, enableAccessLog, enablePro
 		filters = append(filters, config.ExternalAuthz.HTTPFilter)
 	}
 
+	if config.LocalRateLimit.Enabled {
+		filters = append(filters, config.LocalRateLimit.HTTPFilter)
+	}
+
 	// Append the Router filter at the end.
 	filters = append(filters, &hcm.HttpFilter{
 		Name: wellknown.Router,
