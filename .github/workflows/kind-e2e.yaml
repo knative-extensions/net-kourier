@@ -45,23 +45,22 @@ jobs:
 
     env:
       GOPATH: ${{ github.workspace }}
-      GO111MODULE: off
       KO_DOCKER_REPO: kind.local
       # Use a semi-random cluster suffix, but somewhat predictable
       # so reruns don't just give us a completely new value.
       CLUSTER_SUFFIX: c${{ github.run_id }}.local
 
     steps:
-    - name: Set up Go 1.16.x
+    - name: Set up Go 1.17.x
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16.x
+        go-version: 1.17.x
 
     - name: Install Dependencies
       working-directory: ./
       run: |
         echo '::group:: install ko'
-        curl -L https://github.com/google/ko/releases/download/v0.6.0/ko_0.6.0_Linux_x86_64.tar.gz | tar xzf - ko
+        curl -L https://github.com/google/ko/releases/download/v0.9.3/ko_0.9.3_Linux_x86_64.tar.gz | tar xzf - ko
         chmod +x ./ko
         sudo mv ko /usr/local/bin
         echo '::endgroup::'
@@ -124,8 +123,6 @@ jobs:
         set -o pipefail
 
         # Build and Publish our containers to the docker daemon (including test assets)
-        export GO111MODULE=on
-        export GOFLAGS=-mod=vendor
         ko resolve -f test/config/ -f config/ | \
           sed 's/LoadBalancer/NodePort/g' | \
           sed "s|docker.io/envoyproxy/envoy:.*|${{ matrix.gateway }}|" | \
