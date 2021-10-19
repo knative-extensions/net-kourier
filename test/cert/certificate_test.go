@@ -48,7 +48,7 @@ func TestOneTLScerts(t *testing.T) {
 		t.Fatal("Failed to add the certificate to the root CA")
 	}
 
-	tlsConfig := &tls.Config{RootCAs: rootCAs}
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS13, RootCAs: rootCAs}
 	_, client, _ := ingress.CreateIngressReadyWithTLS(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},

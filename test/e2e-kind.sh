@@ -53,6 +53,17 @@ echo ">> Scale down after HA tests"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=1
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controller --replicas=1
 
+echo ">> Setup one certificate"
+$(dirname $0)/generate-cert.sh
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+
+echo ">> Running OneTLSCert tests"
+go test -race -count=1 -timeout=20m -tags=e2e ./test/cert/... \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
+
 echo ">> Setup ExtAuthz"
 ko apply -f test/config/extauthz
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/externalauthz
@@ -65,13 +76,3 @@ go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"
 
-echo ">> Setup one certificate"
-$(dirname $0)/generate-cert.sh
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-
-echo ">> Running OneTLSCert tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/cert/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
