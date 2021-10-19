@@ -182,7 +182,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					routes = append(routes, envoy.NewRoute(
 						pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
 				}
-				if len(ingress.Spec.TLS) != 0 {
+				if len(ingress.Spec.TLS) != 0 || useHTTPSListenerWithOneCert() {
 					tlsRoutes = append(tlsRoutes, envoy.NewRoute(
 						pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
 				}
