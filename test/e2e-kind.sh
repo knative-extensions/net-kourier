@@ -75,4 +75,3 @@ go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"
-
