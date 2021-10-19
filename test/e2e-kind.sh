@@ -64,3 +64,14 @@ go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"
+
+echo ">> Setup one certificate"
+$(dirname $0)/generate-cert.sh
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+
+echo ">> Running OneTLSCert tests"
+go test -race -count=1 -timeout=20m -tags=e2e ./test/cert/... \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
