@@ -219,14 +219,14 @@ func generateListenersAndRouteConfigs(
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
-	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
-	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
-	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging)
-	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal)
+	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
+	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
+	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
+	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol)
 	if err != nil {
 		return nil, nil, err
 	}
-	internalEnvoyListener, err := envoy.NewHTTPListener(internalManager, config.HTTPPortInternal)
+	internalEnvoyListener, err := envoy.NewHTTPListener(internalManager, config.HTTPPortInternal, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -234,11 +234,30 @@ func generateListenersAndRouteConfigs(
 	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
 	routes := []cachetypes.Resource{externalRouteConfig, internalRouteConfig}
 
+	// create probe listeners
+	probHTTPListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortProb, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	listeners = append(listeners, probHTTPListener)
+
 	// Configure TLS Listener. If there's at least one ingress that contains the
 	// TLS field, that takes precedence. If there is not, TLS will be configured
 	// using a single cert for all the services if the creds are given via ENV.
 	if len(sniMatches) > 0 {
-		externalHTTPSEnvoyListener, err := envoy.NewHTTPSListenerWithSNI(externalTLSManager, config.HTTPSPortExternal, sniMatches)
+		externalHTTPSEnvoyListener, err := envoy.NewHTTPSListenerWithSNI(
+			externalTLSManager, config.HTTPSPortExternal,
+			sniMatches, cfg.Kourier.EnableProxyProtocol,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// create https prob listener with SNI
+		probHTTPSListener, err := envoy.NewHTTPSListenerWithSNI(
+			externalManager, config.HTTPSPortProb,
+			sniMatches, false,
+		)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -254,18 +273,28 @@ func generateListenersAndRouteConfigs(
 
 			externalHTTPSEnvoyListener.FilterChains = append(externalHTTPSEnvoyListener.FilterChains,
 				externalHTTPSEnvoyListenerWithOneCertFilterChain)
+			probHTTPSListener.FilterChains = append(probHTTPSListener.FilterChains,
+				externalHTTPSEnvoyListenerWithOneCertFilterChain)
 		}
 
-		listeners = append(listeners, externalHTTPSEnvoyListener)
+		listeners = append(listeners, externalHTTPSEnvoyListener, probHTTPSListener)
 		routes = append(routes, externalTLSRouteConfig)
 	} else if useHTTPSListenerWithOneCert() {
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
 			ctx, externalTLSManager, kubeclient,
+			cfg.Kourier.EnableProxyProtocol,
 		)
 		if err != nil {
 			return nil, nil, err
 		}
-		listeners = append(listeners, externalHTTPSEnvoyListener)
+
+		// create https prob listener
+		probHTTPSListener, err := envoy.NewHTTPSListener(config.HTTPSPortProb, externalHTTPSEnvoyListener.FilterChains, false)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		listeners = append(listeners, externalHTTPSEnvoyListener, probHTTPSListener)
 		routes = append(routes, externalTLSRouteConfig)
 	}
 
@@ -299,11 +328,11 @@ func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager
 	return envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey)
 }
 
-func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface) (*v3.Listener, error) {
+func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool) (*v3.Listener, error) {
 	filterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(ctx, manager, kubeClient)
 	if err != nil {
 		return nil, err
 	}
 
-	return envoy.NewHTTPSListener(config.HTTPSPortExternal, filterChain)
+	return envoy.NewHTTPSListener(config.HTTPSPortExternal, []*v3.FilterChain{filterChain}, enableProxyProtocol)
 }

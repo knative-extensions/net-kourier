@@ -32,9 +32,9 @@ import (
 )
 
 func TestNewHTTPListener(t *testing.T) {
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
 
-	l, err := NewHTTPListener(manager, 8080)
+	l, err := NewHTTPListener(manager, 8080, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
@@ -44,7 +44,7 @@ func TestNewHTTPListener(t *testing.T) {
 }
 
 func TestNewHTTPSListener(t *testing.T) {
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
 
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
@@ -52,7 +52,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey)
 	assert.NilError(t, err)
 
-	l, err := NewHTTPSListener(8081, filterChain)
+	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
@@ -78,8 +78,8 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		PrivateKey:       []byte("key2"),
 	}}
 
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
-	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches)
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
+	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, listener.Address.GetSocketAddress().Protocol)

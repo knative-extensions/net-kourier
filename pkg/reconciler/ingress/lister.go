@@ -75,10 +75,10 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 				PodIPs: ips,
 			}
 			if len(ing.Spec.TLS) != 0 {
-				target.PodPort = strconv.Itoa(int(config.HTTPSPortExternal))
+				target.PodPort = strconv.Itoa(int(config.HTTPSPortProb))
 				target.URLs = domainsToURL(domains, "https")
 			} else {
-				target.PodPort = strconv.Itoa(int(config.HTTPPortExternal))
+				target.PodPort = strconv.Itoa(int(config.HTTPPortProb))
 				target.URLs = domainsToURL(domains, scheme)
 			}
 		} else {

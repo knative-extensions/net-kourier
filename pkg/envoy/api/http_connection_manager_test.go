@@ -30,12 +30,12 @@ import (
 )
 
 func TestNewHTTPConnectionManagerWithoutAccessLog(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test", false /*enableAccessLog*/)
+	connManager := NewHTTPConnectionManager("test", false /*enableAccessLog*/, false /*enableProxyProtocol*/)
 	assert.Check(t, len(connManager.AccessLog) == 0)
 }
 
 func TestNewHTTPConnectionManagerWithAccessLog(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
+	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
 	accessLog := connManager.AccessLog[0]
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v3.AccessLog_TypedConfig).TypedConfig
 	fileAccesLog := &fileaccesslog.FileAccessLog{}
