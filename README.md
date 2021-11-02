@@ -1,5 +1,7 @@
 # Kourier
 
+**[This component is GA](https://github.com/knative/community/tree/main/mechanics/MATURITY-LEVELS.md)**
+
 Kourier is an Ingress for [Knative Serving](https://knative.dev/). Kourier is a
 lightweight alternative for the Istio ingress as its deployment consists only of
 an Envoy proxy and a control plane for it.
