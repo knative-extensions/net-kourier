@@ -23,7 +23,7 @@ source $(dirname $0)/e2e-common.sh
 KOURIER_GATEWAY_NAMESPACE=kourier-system
 KOURIER_CONTROL_NAMESPACE=knative-serving
 TEST_NAMESPACE=serving-tests
-LATEST_RELEASE_VERSION=$(latest_version)
+LATEST_RELEASE_VERSION="knative-v1.0.0"
 
 $(dirname $0)/upload-test-images.sh
 
