@@ -116,9 +116,10 @@ jobs:
         # Create a cluster!
         kind create cluster --config kind.yaml
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Run upgrade tests
       run: |
         ./test/e2e-upgrade-kind.sh
 
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
