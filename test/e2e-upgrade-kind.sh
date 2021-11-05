@@ -64,7 +64,8 @@ echo Latest version is $(latest_version)
   echo $tag
 
   # Get the latest patch release for the major minor
-  git tag -l "${tag}" | sort -r --version-sort | head -n1 | echo
+  git tag -l "${tag}" | sort -r --version-sort | head -n1
+
 # KOURIER_GATEWAY_NAMESPACE=kourier-system
 # KOURIER_CONTROL_NAMESPACE=knative-serving
 # TEST_NAMESPACE=serving-tests
