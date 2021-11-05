@@ -19,7 +19,7 @@
 set -euo pipefail
 
 source $(dirname $0)/e2e-common.sh
-echo $(last_version)
+echo $(latest_version)
 # KOURIER_GATEWAY_NAMESPACE=kourier-system
 # KOURIER_CONTROL_NAMESPACE=knative-serving
 # TEST_NAMESPACE=serving-tests
