@@ -866,14 +866,14 @@ function latest_version() {
 
   # Hardcode the jump back from 1.0
   if [ "$major_version" = "1" ] && [ "$minor_version" = "0" ]; then
-    tag='v0.26*'
+    local tag_filter='v0.26*'
   else
     # Adjust the minor down by one
-    tag="*v$major_version.$(( minor_version - 1 ))*"
+    local tag_filter="*v$major_version.$(( minor_version - 1 ))*"
   fi
 
   # Get the latest patch release for the major minor
-  git tag -l "${tag}" | sort -r --version-sort | head -n1
+  git tag -l "${tag_filter}" | sort -r --version-sort | head -n1
 }
 
 # Initializations that depend on previous functions.
