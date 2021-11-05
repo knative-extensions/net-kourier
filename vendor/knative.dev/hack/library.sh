@@ -845,15 +845,20 @@ function latest_version() {
     return
   fi
 
-  # Nearest tag with the `knative-` prefix
-  local tag=$(git describe --abbrev=0 --match "knative-v[0-9]*")
+  local tag=""
 
-  if [[ -n "${tag}" ]]; then
+  if [[ "$branch_name" == "release-"* ]]; then
+    # Infer major, minor version from the branch name
+    tag="${branch_name##release-}"
+  else
+    # Nearest tag with the `knative-` prefix
+    tag=$(git describe --abbrev=0 --match "knative-v[0-9]*")
+
+    # Fallback to older tag scheme vX.Y.Z
+    [[ -z "${tag}" ]] && tag=$(git describe --abbrev=0 --match "v[0-9]*")
+
     # Drop the prefix
     tag="${tag##knative-}"
-  else
-    # Fallback to older tag scheme vX.Y.Z
-    tag=$(git describe --abbrev=0 --match "v[0-9]*")
   fi
 
   local major_version="$(major_version ${tag})"
