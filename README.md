@@ -1,4 +1,4 @@
-# Kourier
+# Kourier 1
 
 **[This component is GA](https://github.com/knative/community/tree/main/mechanics/MATURITY-LEVELS.md)**
 
