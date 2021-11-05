@@ -16,10 +16,57 @@
 
 # This script runs e2e tests on a local kind environment.
 
-set -euo pipefail
+set -exuo pipefail
+
+last_version
 
 source $(dirname $0)/e2e-common.sh
 echo $(latest_version)
+
+  branch_name="$(current_branch)"
+  echo $branch_name
+
+  if [[ "$branch_name" == "main" ]] || [[ "$branch_name" == "master" ]]; then
+    # For everything else use the latest release
+    git tag -l "*$(git tag -l "*v[0-9]*" | cut -d '-' -f2 | sort -r --version-sort | head -n1)*"
+    exit 0
+  fi
+
+  tag=""
+
+  if [[ "$branch_name" == "release-"* ]]; then
+    # Infer major, minor version from the branch name
+    tag="${branch_name##release-}"
+  else
+    # Nearest tag with the `knative-` prefix
+    tag=$(git describe --abbrev=0 --match "knative-v[0-9]*")
+
+    # Fallback to older tag scheme vX.Y.Z
+    [[ -z "${tag}" ]] && tag=$(git describe --abbrev=0 --match "v[0-9]*")
+
+    # Drop the prefix
+    tag="${tag##knative-}"
+  fi
+
+  echo $tag
+
+  major_version="$(major_version ${tag})"
+  minor_version="$(minor_version ${tag})"
+  echo $major_version $minor_version
+
+
+  # Hardcode the jump back from 1.0
+  if [ "$major_version" = "1" ] && [ "$minor_version" = "0" ]; then
+    tag='v0.26*'
+  else
+    # Adjust the minor down by one
+    tag="*v$major_version.$(( minor_version - 1 ))*"
+  fi
+
+  echo $tag
+
+  # Get the latest patch release for the major minor
+  git tag -l "${tag}*" | sort -r --version-sort | head -n1
 # KOURIER_GATEWAY_NAMESPACE=kourier-system
 # KOURIER_CONTROL_NAMESPACE=knative-serving
 # TEST_NAMESPACE=serving-tests
