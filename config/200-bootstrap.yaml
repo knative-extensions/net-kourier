@@ -19,6 +19,7 @@ metadata:
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    app.kubernetes.io/name: kourier
     app.kubernetes.io/version: devel
     app.kubernetes.io/part-of: knative-serving
     serving.knative.dev/release: devel

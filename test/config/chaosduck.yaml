@@ -24,6 +24,7 @@ metadata:
   name: chaosduck
   namespace: kourier-system
   labels:
+    app.kubernetes.io/name: chaosduck
     app.kubernetes.io/version: devel
     app.kubernetes.io/part-of: knative-serving
     serving.knative.dev/release: devel
@@ -35,6 +36,7 @@ metadata:
   name: chaosduck
   namespace: kourier-system
   labels:
+    app.kubernetes.io/name: chaosduck
     app.kubernetes.io/version: devel
     app.kubernetes.io/part-of: knative-serving
     serving.knative.dev/release: devel
@@ -53,6 +55,7 @@ metadata:
   name: chaosduck
   namespace: kourier-system
   labels:
+    app.kubernetes.io/name: chaosduck
     app.kubernetes.io/version: devel
     app.kubernetes.io/part-of: knative-serving
     serving.knative.dev/release: devel
@@ -72,6 +75,7 @@ metadata:
   name: chaosduck
   namespace: kourier-system
   labels:
+    app.kubernetes.io/name: chaosduck
     app.kubernetes.io/version: devel
     app.kubernetes.io/part-of: knative-serving
     serving.knative.dev/release: devel
