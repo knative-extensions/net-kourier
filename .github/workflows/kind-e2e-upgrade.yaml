@@ -117,4 +117,5 @@ jobs:
 
     - name: Run upgrade tests
       run: |
+        set -x
         ./test/e2e-upgrade-kind.sh
