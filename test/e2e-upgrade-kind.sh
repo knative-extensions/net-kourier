@@ -18,8 +18,6 @@
 
 set -exuo pipefail
 
-last_version
-
 source $(dirname $0)/e2e-common.sh
 echo $(latest_version)
 
