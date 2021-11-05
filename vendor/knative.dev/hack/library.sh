@@ -873,7 +873,7 @@ function latest_version() {
   fi
 
   # Get the latest patch release for the major minor
-  git tag -l "${tag}*" | sort -r --version-sort | head -n1
+  git tag -l "${tag}" | sort -r --version-sort | head -n1
 }
 
 # Initializations that depend on previous functions.
