@@ -67,53 +67,53 @@ jobs:
       with:
         path: ./src/knative.dev/net-kourier
 
-    - name: Install KinD
-      run: |
-        set -x
+    # - name: Install KinD
+    #   run: |
+    #     set -x
 
-        # Disable swap otherwise memory enforcement doesn't work
-        # See: https://kubernetes.slack.com/archives/CEKK1KTN2/p1600009955324200
-        sudo swapoff -a
-        sudo rm -f /swapfile
+    #     # Disable swap otherwise memory enforcement doesn't work
+    #     # See: https://kubernetes.slack.com/archives/CEKK1KTN2/p1600009955324200
+    #     sudo swapoff -a
+    #     sudo rm -f /swapfile
 
-        curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/${{ matrix.kind-version }}/kind-$(uname)-amd64
-        chmod +x ./kind
-        sudo mv kind /usr/local/bin
+    #     curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/${{ matrix.kind-version }}/kind-$(uname)-amd64
+    #     chmod +x ./kind
+    #     sudo mv kind /usr/local/bin
 
-    - name: Create KinD Cluster
-      run: |
-        set -x
+    # - name: Create KinD Cluster
+    #   run: |
+    #     set -x
 
-        # KinD configuration.
-        cat > kind.yaml <<EOF
-        apiVersion: kind.x-k8s.io/v1alpha4
-        kind: Cluster
-        nodes:
-        - role: control-plane
-          image: kindest/node:${{ matrix.k8s-version }}@${{ matrix.kind-image-sha }}
-        - role: worker
-          image: kindest/node:${{ matrix.k8s-version }}@${{ matrix.kind-image-sha }}
+    #     # KinD configuration.
+    #     cat > kind.yaml <<EOF
+    #     apiVersion: kind.x-k8s.io/v1alpha4
+    #     kind: Cluster
+    #     nodes:
+    #     - role: control-plane
+    #       image: kindest/node:${{ matrix.k8s-version }}@${{ matrix.kind-image-sha }}
+    #     - role: worker
+    #       image: kindest/node:${{ matrix.k8s-version }}@${{ matrix.kind-image-sha }}
 
-        # This is needed in order to
-        # (1) support projected volumes with service account tokens. See
-        #     https://kubernetes.slack.com/archives/CEKK1KTN2/p1600268272383600
-        # (2) use a random cluster suffix
-        kubeadmConfigPatches:
-          - |
-            apiVersion: kubeadm.k8s.io/v1beta2
-            kind: ClusterConfiguration
-            metadata:
-              name: config
-            apiServer:
-              extraArgs:
-                "service-account-issuer": "kubernetes.default.svc"
-                "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
-            networking:
-              dnsDomain: "${CLUSTER_SUFFIX}"
-        EOF
+    #     # This is needed in order to
+    #     # (1) support projected volumes with service account tokens. See
+    #     #     https://kubernetes.slack.com/archives/CEKK1KTN2/p1600268272383600
+    #     # (2) use a random cluster suffix
+    #     kubeadmConfigPatches:
+    #       - |
+    #         apiVersion: kubeadm.k8s.io/v1beta2
+    #         kind: ClusterConfiguration
+    #         metadata:
+    #           name: config
+    #         apiServer:
+    #           extraArgs:
+    #             "service-account-issuer": "kubernetes.default.svc"
+    #             "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
+    #         networking:
+    #           dnsDomain: "${CLUSTER_SUFFIX}"
+    #     EOF
 
-        # Create a cluster!
-        kind create cluster --config kind.yaml
+    #     # Create a cluster!
+    #     kind create cluster --config kind.yaml
 
     - name: Run upgrade tests
       run: |
