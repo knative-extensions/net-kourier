@@ -37,13 +37,11 @@ func TestNewCluster(t *testing.T) {
 	// With HTTP2
 	c := NewCluster(name, connectTimeout, endpoints, true, v3Cluster.Cluster_STATIC)
 	assert.Equal(t, c.GetConnectTimeout().Seconds, int64(connectTimeout.Seconds()))
-	//nolint: staticcheck // TODO: GetHttp2ProtocolOptions() is deprecated.
-	assert.Assert(t, c.GetHttp2ProtocolOptions() != nil)
+	assert.Assert(t, c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] != nil)
 	assert.Equal(t, c.GetName(), name)
 	assert.DeepEqual(t, c.LoadAssignment.Endpoints[0].LbEndpoints, endpoints, protocmp.Transform())
 
 	// Without HTTP2
 	c = NewCluster(name, connectTimeout, endpoints, false, v3Cluster.Cluster_STATIC)
-	//nolint: staticcheck // TODO: GetHttp2ProtocolOptions() is deprecated.
-	assert.Assert(t, c.GetHttp2ProtocolOptions() == nil)
+	assert.Assert(t, c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] == nil)
 }
