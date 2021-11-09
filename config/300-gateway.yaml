@@ -19,6 +19,9 @@ metadata:
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    app.kubernetes.io/component: net-kourier
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-serving
     serving.knative.dev/release: devel
 spec:
   strategy:
@@ -94,6 +97,9 @@ metadata:
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    app.kubernetes.io/component: net-kourier
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-serving
     serving.knative.dev/release: devel
 spec:
   ports:
@@ -116,6 +122,9 @@ metadata:
   namespace: kourier-system
   labels:
     networking.knative.dev/ingress-provider: kourier
+    app.kubernetes.io/component: net-kourier
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-serving
     serving.knative.dev/release: devel
 spec:
   ports:
