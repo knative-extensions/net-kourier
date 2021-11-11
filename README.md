@@ -133,8 +133,6 @@ vars in the `net-kourier-controller` deployment:
 
 `*` Required
 
-- Run `make help` for the complete list of make targets available.
-
 ## License
 
 [Apache 2.0 License](LICENSE)
