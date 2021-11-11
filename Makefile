@@ -3,22 +3,10 @@
 SHELL = /bin/bash
 PROJECT_PATH := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-local-setup: ## Builds and deploys kourier locally in a "kind" cluster with knative, forwards the local 8080 to kourier/envoy
-	./utils/setup.sh
-
-.PHONY: test
-test: test-unit test-integration ## Runs all the tests
-
-test-unit: ## Runs unit tests
-	go test -race ./...
-
 test-unit-coverage: ## Runs unit tests and generates a coverage report
 	mkdir -p "$(PROJECT_PATH)/tests_output"
 	go test -race ./... -coverprofile="$(PROJECT_PATH)/tests_output/unit.cov"
 	go tool cover -html="$(PROJECT_PATH)/tests_output/unit.cov"
-
-test-integration: local-setup ## Runs integration tests
-	./test/e2e-kind.sh
 
 .PHONY: fmt
 fmt: ## Runs code formatting

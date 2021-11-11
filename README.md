@@ -20,14 +20,14 @@ Kourier is passing the knative serving e2e and conformance tests:
 - Install Knative Serving, ideally without Istio:
 
 ```bash
-kubectl apply -f https://github.com/knative/serving/releases/download/v0.26.0/serving-crds.yaml
-kubectl apply -f https://github.com/knative/serving/releases/download/v0.26.0/serving-core.yaml
+kubectl apply -f https://github.com/knative/serving/releases/latest/download/serving-crds.yaml
+kubectl apply -f https://github.com/knative/serving/releases/latest/download/serving-core.yaml
 ```
 
 - Then install Kourier:
 
 ```bash
-kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.26.0/kourier.yaml
+kubectl apply -f https://github.com/knative/net-kourier/releases/latest/download/kourier.yaml
 ```
 
 - Configure Knative Serving to use the proper "ingress.class":
@@ -132,29 +132,6 @@ vars in the `net-kourier-controller` deployment:
   Defaults to 2s.
 
 `*` Required
-
-## Development
-
-- Run the test suite:
-
-```bash
-make test
-```
-
-- Run only the unit or the integration tests:
-
-```bash
-make test-unit
-make test-integration
-```
-
-- Set up a local environment with Knative running on top of
-  [kind](https://kind.sigs.k8s.io/) (needs both kind and
-  [ko](https://github.com/google/ko) installed):
-
-```bash
-make local-setup
-```
 
 - Run `make help` for the complete list of make targets available.
 
