@@ -107,7 +107,7 @@ func TestIngressTranslator(t *testing.T) {
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
-			secret("secretname"),
+			secret,
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -174,7 +174,7 @@ func TestIngressTranslator(t *testing.T) {
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
-			secret("secretname"),
+			secret,
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -259,7 +259,7 @@ func TestIngressTranslator(t *testing.T) {
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
-			secret("secretname"),
+			secret,
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -567,7 +567,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
-			secret("secretns", "secretname"),
+			secret,
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -635,7 +635,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
-			secret("secretns", "secretname"),
+			secret,
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -822,20 +822,17 @@ var lbEndpoints = []*endpoint.LbEndpoint{
 	envoy.NewLBEndpoint("5.5.5.5", 8080),
 }
 
-func secret(name string) *corev1.Secret {
-	return &corev1.Secret{
+var (
+	cert       = []byte("cert")
+	privateKey = []byte("key")
+	secret     = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "secretns",
-			Name:      name,
+			Name:      "secretname",
 		},
 		Data: map[string][]byte{
 			"tls.crt": cert,
 			"tls.key": privateKey,
 		},
 	}
-}
-
-var (
-	cert       = []byte("cert")
-	privateKey = []byte("key")
 )
