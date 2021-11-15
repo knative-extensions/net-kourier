@@ -106,7 +106,7 @@ func TestIngressTranslator(t *testing.T) {
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
-			secret("secretns", "secretname"),
+			secret,
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -173,7 +173,7 @@ func TestIngressTranslator(t *testing.T) {
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
-			secret("secretns", "secretname"),
+			secret,
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -258,7 +258,7 @@ func TestIngressTranslator(t *testing.T) {
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
-			secret("secretns", "secretname"),
+			secret,
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -546,6 +546,179 @@ func TestIngressTranslator(t *testing.T) {
 	}
 }
 
+// TestIngressTranslatorWithHTTPOptionDisabled runs same redirect test in TestIngressTranslator with KOURIER_HTTPOPTION_DISABLED env value.
+func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
+	tests := []struct {
+		name  string
+		in    *v1alpha1.Ingress
+		state []runtime.Object
+		want  *translatedIngress
+	}{{
+		name: "tls redirect",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.TLS = []v1alpha1.IngressTLS{{
+				Hosts:           []string{"foo.example.com"},
+				SecretNamespace: "secretns",
+				SecretName:      "secretname",
+			}}
+			ing.Spec.HTTPOption = v1alpha1.HTTPOptionRedirected
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			secret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(testspace/testname).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(testspace/testname).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{{
+					Hosts: []string{"foo.example.com"},
+					CertSource: types.NamespacedName{
+						Namespace: "secretns",
+						Name:      "secretname",
+					},
+					CertificateChain: cert,
+					PrivateKey:       privateKey,
+				}},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: vHosts,
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}, {
+		// cluster local is not affected by HTTPOption.
+		name: "tls redirect cluster local",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.TLS = []v1alpha1.IngressTLS{{
+				Hosts:           []string{"foo.example.com"},
+				SecretNamespace: "secretns",
+				SecretName:      "secretname",
+			}}
+			ing.Spec.HTTPOption = v1alpha1.HTTPOptionRedirected
+			ing.Spec.Rules[0].Visibility = v1alpha1.IngressVisibilityClusterLocal
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			secret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(testspace/testname).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(testspace/testname).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{{
+					Hosts: []string{"foo.example.com"},
+					CertSource: types.NamespacedName{
+						Namespace: "secretns",
+						Name:      "secretname",
+					},
+					CertificateChain: cert,
+					PrivateKey:       privateKey,
+				}},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    []*route.VirtualHost{},
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("KOURIER_HTTPOPTION_DISABLED", "true")
+			ctx, _ := pkgtest.SetupFakeContext(t)
+			kubeclient := fake.NewSimpleClientset(test.state...)
+
+			translator := NewIngressTranslator(
+				func(ns, name string) (*corev1.Secret, error) {
+					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns, name string) (*corev1.Endpoints, error) {
+					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns, name string) (*corev1.Service, error) {
+					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				&pkgtest.FakeTracker{},
+			)
+
+			got, err := translator.translateIngress(ctx, test.in, false)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, test.want,
+				cmp.AllowUnexported(translatedIngress{}),
+				protocmp.Transform(),
+			)
+		})
+	}
+}
+
 func ing(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {
 	ingress := &v1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -647,20 +820,17 @@ var lbEndpoints = []*endpoint.LbEndpoint{
 	envoy.NewLBEndpoint("5.5.5.5", 8080),
 }
 
-func secret(ns, name string) *corev1.Secret {
-	return &corev1.Secret{
+var (
+	cert       = []byte("cert")
+	privateKey = []byte("key")
+	secret     = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns,
-			Name:      name,
+			Namespace: "secretns",
+			Name:      "secretname",
 		},
 		Data: map[string][]byte{
 			"tls.crt": cert,
 			"tls.key": privateKey,
 		},
 	}
-}
-
-var (
-	cert       = []byte("cert")
-	privateKey = []byte("key")
 )
