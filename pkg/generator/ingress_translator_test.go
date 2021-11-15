@@ -17,7 +17,6 @@ limitations under the License.
 package generator
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -693,7 +692,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			os.Setenv("KOURIER_HTTPOPTION_DISABLED", "true")
+			t.Setenv("KOURIER_HTTPOPTION_DISABLED", "true")
 			ctx, _ := pkgtest.SetupFakeContext(t)
 			kubeclient := fake.NewSimpleClientset(test.state...)
 
@@ -716,7 +715,6 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				cmp.AllowUnexported(translatedIngress{}),
 				protocmp.Transform(),
 			)
-			os.Unsetenv("KOURIER_HTTPOPTION_DISABLED")
 		})
 	}
 }
