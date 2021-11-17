@@ -74,10 +74,6 @@ const (
 	// Cert-Manager-based Certificate will reconcile into a Cert-Manager Certificate).
 	CertificateClassAnnotationKey = "networking.knative.dev/certificate.class"
 
-	// DisableWildcardCertLabelKey is the label key attached to a namespace to indicate that
-	// a wildcard certificate should be not created for it.
-	DisableWildcardCertLabelKey = "networking.knative.dev/disableWildcardCert"
-
 	// WildcardCertDomainLabelKey is the label key attached to a certificate to indicate the
 	// domain for which it was issued.
 	WildcardCertDomainLabelKey = "networking.knative.dev/wildcardDomain"
@@ -88,3 +84,19 @@ var (
 	// DefaultRetryCount will be set if Attempts not specified.
 	DefaultRetryCount = 3
 )
+
+func GetIngressClass(annotations map[string]string) (val string) {
+	return annotations[IngressClassAnnotationKey]
+}
+
+func GetCertificateClass(annotations map[string]string) (val string) {
+	return annotations[CertificateClassAnnotationKey]
+}
+
+func GetHTTPProtocol(annotations map[string]string) (val string) {
+	return annotations[HTTPOptionAnnotationKey]
+}
+
+func GetDisableAutoTLS(annotations map[string]string) (val string) {
+	return annotations[DisableAutoTLSAnnotationKey]
+}
