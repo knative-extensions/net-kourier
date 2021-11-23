@@ -1121,11 +1121,11 @@ k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7/go.mod h1:wXW5VT87nVfh/iL
 k8s.io/utils v0.0.0-20201110183641-67b214c5f920 h1:CbnUZsM497iRC5QMVkHwyl8s2tB3g7yaSHkYPkpgelw=
 k8s.io/utils v0.0.0-20201110183641-67b214c5f920/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 knative.dev/hack v0.0.0-20211112192837-128cf0150a69/go.mod h1:PHt8x8yX5Z9pPquBEfIj0X66f8iWkWfR0S/sarACJrI=
-knative.dev/hack v0.0.0-20211117134436-69a2295d54ce h1:dPARWsX/9nmWg9g09MtGnsn7nZUwjA0UWpKSUozgS6g=
 knative.dev/hack v0.0.0-20211117134436-69a2295d54ce/go.mod h1:PHt8x8yX5Z9pPquBEfIj0X66f8iWkWfR0S/sarACJrI=
-knative.dev/networking v0.0.0-20211119210323-bab26a807fa3 h1:gSLMDkmk6qi3vdE/4hVHNAOld0B3YTglxjhvkqzZfmM=
-knative.dev/networking v0.0.0-20211119210323-bab26a807fa3/go.mod h1:z4CZcjF4UrkUL0ULxAbXpjNlfYJYADCOFaO6+pK4L/I=
-knative.dev/pkg v0.0.0-20211117215328-5708c4c44232/go.mod h1:VqUp1KWJqpTDNoiSI/heaX3uMdubImslJE2tBkP+Bbw=
+knative.dev/hack v0.0.0-20211122162614-813559cefdda h1:WBfGcmu5pN+RCxDotKVYtWlJVI2V4Hvah+XD9mcSR/o=
+knative.dev/hack v0.0.0-20211122162614-813559cefdda/go.mod h1:PHt8x8yX5Z9pPquBEfIj0X66f8iWkWfR0S/sarACJrI=
+knative.dev/networking v0.0.0-20211122065314-75d86c5d4128 h1:OjKFwdWoQUNB7IlQeX7tSCjKTWx7kVH4nZhoeO5kgWM=
+knative.dev/networking v0.0.0-20211122065314-75d86c5d4128/go.mod h1:UCDjE4GxZJat8RJohbAwwxe+U3LjRJOU2Hb2LNiNMY0=
 knative.dev/pkg v0.0.0-20211120133512-d016976f2567 h1:IPQ6QKOvMIRX9/UI1cAtSl36+CbGv8HErSvID03CRr4=
 knative.dev/pkg v0.0.0-20211120133512-d016976f2567/go.mod h1:VqUp1KWJqpTDNoiSI/heaX3uMdubImslJE2tBkP+Bbw=
 pgregory.net/rapid v0.3.3/go.mod h1:UYpPVyjFHzYBGHIxLFoupi8vwk6rXNzRY9OMvVxFIOU=
