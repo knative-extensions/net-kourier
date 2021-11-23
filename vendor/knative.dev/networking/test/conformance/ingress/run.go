@@ -34,7 +34,7 @@ var stableTests = map[string]func(t *testing.T){
 	"hosts/multiple":               TestMultipleHosts,
 	"dispatch/path":                TestPath,
 	"dispatch/percentage":          TestPercentage,
-	"dispatch/path_and_percentage": TestPathAndPercentageSplit,
+	"dispatch/path-and-percentage": TestPathAndPercentageSplit,
 	"dispatch/rule":                TestRule,
 	"retry":                        TestRetry,
 	"timeout":                      TestTimeout,
@@ -50,8 +50,10 @@ var stableTests = map[string]func(t *testing.T){
 
 var betaTests = map[string]func(t *testing.T){
 	// Add your conformance test for beta features
-	"host-rewrite": TestRewriteHost,
-	"headers/tags": TestTagHeaders,
+	"host-rewrite/external-name":       TestRewriteHost_ExternalName,
+	"host-rewrite/headless-service":    TestRewriteHost_HeadlessWithEndpoint,
+	"host-rewrite/endpoint-slice-fqdn": TestRewriteHost_HeadlessWithEndpointSlice_FQDN,
+	"headers/tags":                     TestTagHeaders,
 }
 
 var alphaTests = map[string]func(t *testing.T){

@@ -41,6 +41,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
@@ -52,6 +53,7 @@ import (
 	"knative.dev/networking/test"
 	"knative.dev/networking/test/types"
 	"knative.dev/pkg/network"
+	"knative.dev/pkg/ptr"
 	"knative.dev/pkg/reconciler"
 	pkgTest "knative.dev/pkg/test"
 	"knative.dev/pkg/test/logging"
@@ -545,6 +547,51 @@ func createService(ctx context.Context, t *testing.T, clients *test.Clients, svc
 	}
 }
 
+func createEndpointSlice(ctx context.Context, t *testing.T, clients *test.Clients, ep *discoveryv1.EndpointSlice) {
+	t.Helper()
+
+	if err := reconciler.RetryTestErrors(func(attempts int) error {
+		if attempts > 0 {
+			t.Logf("Attempt %d creating service %s", attempts, ep.Name)
+		}
+		_, err := clients.KubeClient.DiscoveryV1().EndpointSlices(ep.Namespace).Create(ctx, ep, metav1.CreateOptions{})
+		if err != nil {
+			t.Logf("Attempt %d creating service failed with: %v", attempts, err)
+		}
+		return err
+	}); err != nil {
+
+		t.Fatalf("Error creating Service \"%s/%s\": %v", ep.Namespace, ep.Name, err)
+	}
+
+	t.Cleanup(func() {
+		clients.KubeClient.DiscoveryV1().EndpointSlices(ep.Namespace).Delete(ctx, ep.Name, metav1.DeleteOptions{})
+	})
+
+}
+func createEndpoint(ctx context.Context, t *testing.T, clients *test.Clients, ep *corev1.Endpoints) {
+	t.Helper()
+
+	if err := reconciler.RetryTestErrors(func(attempts int) error {
+		if attempts > 0 {
+			t.Logf("Attempt %d creating service %s", attempts, ep.Name)
+		}
+		_, err := clients.KubeClient.CoreV1().Endpoints(ep.Namespace).Create(ctx, ep, metav1.CreateOptions{})
+		if err != nil {
+			t.Logf("Attempt %d creating service failed with: %v", attempts, err)
+		}
+		return err
+	}); err != nil {
+
+		t.Fatalf("Error creating Service \"%s/%s\": %v", ep.Namespace, ep.Name, err)
+	}
+
+	t.Cleanup(func() {
+		clients.KubeClient.CoreV1().Services(ep.Namespace).Delete(ctx, ep.Name, metav1.DeleteOptions{})
+	})
+
+}
+
 func createExternalNameService(ctx context.Context, t *testing.T, clients *test.Clients, target, gatewayDomain string) context.CancelFunc {
 	t.Helper()
 
@@ -567,6 +614,87 @@ func createExternalNameService(ctx context.Context, t *testing.T, clients *test.
 	}
 
 	return createService(ctx, t, clients, externalNameSvc)
+}
+
+func createServiceWithEndpointSliceFQDN(ctx context.Context, t *testing.T, clients *test.Clients, target, gatewayDomain string) {
+	targetName := strings.SplitN(target, ".", 3)
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName[0],
+			Namespace: targetName[1],
+		},
+		Spec: corev1.ServiceSpec{
+			Type:            corev1.ServiceTypeClusterIP,
+			ClusterIP:       corev1.ClusterIPNone,
+			SessionAffinity: corev1.ServiceAffinityNone,
+			Ports: []corev1.ServicePort{{
+				Name:       networking.ServicePortNameH2C,
+				Port:       int32(80),
+				TargetPort: intstr.FromInt(80),
+			}},
+		},
+	}
+
+	es := &discoveryv1.EndpointSlice{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName[0],
+			Namespace: targetName[1],
+			Labels: map[string]string{
+				// EndpointsSlices are linked to their services using labels
+				// ie. kubernetes.io/service-name: helloworld
+				discoveryv1.LabelServiceName: targetName[0],
+			},
+		},
+		AddressType: discoveryv1.AddressTypeFQDN,
+		Ports: []discoveryv1.EndpointPort{{
+			Name: ptr.String(networking.ServicePortNameH2C),
+			Port: ptr.Int32(80),
+		}},
+		Endpoints: []discoveryv1.Endpoint{{
+			Addresses: []string{gatewayDomain},
+		}},
+	}
+
+	createService(ctx, t, clients, svc)
+	createEndpointSlice(ctx, t, clients, es)
+}
+
+func createServiceWithEndpointIP(ctx context.Context, t *testing.T, clients *test.Clients, target, gatewayIP string) {
+	t.Helper()
+
+	targetName := strings.SplitN(target, ".", 3)
+	externalNameSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName[0],
+			Namespace: targetName[1],
+		},
+		Spec: corev1.ServiceSpec{
+			Type:            corev1.ServiceTypeClusterIP,
+			ClusterIP:       corev1.ClusterIPNone,
+			SessionAffinity: corev1.ServiceAffinityNone,
+			Ports: []corev1.ServicePort{{
+				Name:       networking.ServicePortNameH2C,
+				Port:       int32(80),
+				TargetPort: intstr.FromInt(80),
+			}},
+		},
+	}
+
+	endpoint := &corev1.Endpoints{
+		ObjectMeta: externalNameSvc.ObjectMeta,
+		Subsets: []corev1.EndpointSubset{{
+			Addresses: []corev1.EndpointAddress{{
+				IP: gatewayIP,
+			}},
+			Ports: []corev1.EndpointPort{{
+				Name: networking.ServicePortNameH2C,
+				Port: int32(80),
+			}},
+		}},
+	}
+
+	createService(ctx, t, clients, externalNameSvc)
+	createEndpoint(ctx, t, clients, endpoint)
 }
 
 // createPodAndService is a helper for creating the pod and service resources, setting
@@ -962,6 +1090,36 @@ func CreateDialContext(ctx context.Context, t *testing.T, ing *v1alpha1.Ingress,
 		t.Fatal("Service does not have a supported shape (not type LoadBalancer? missing --ingressendpoint?).")
 		return nil // Unreachable
 	}
+}
+
+func getInternalIP(ctx context.Context, t *testing.T, ing *v1alpha1.Ingress, clients *test.Clients) string {
+	t.Helper()
+
+	if ing.Status.PrivateLoadBalancer == nil || len(ing.Status.PrivateLoadBalancer.Ingress) < 1 {
+		t.Fatal("Ingress does not have a private load balancer assigned.")
+	}
+
+	internalDomain := ing.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
+	parts := strings.SplitN(internalDomain, ".", 3)
+	if len(parts) < 3 {
+		t.Fatal("Too few parts in internal domain:", internalDomain)
+	}
+	name, namespace := parts[0], parts[1]
+
+	var svc *corev1.Service
+	err := reconciler.RetryTestErrors(func(attempts int) (err error) {
+		svc, err = clients.KubeClient.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+		return err
+	})
+	if err != nil {
+		t.Fatalf("Unable to retrieve Kubernetes service %s/%s: %v", namespace, name, err)
+	}
+	if svc.Spec.ClusterIP != "" {
+		return svc.Spec.ClusterIP
+	}
+
+	t.Fatal("unable to get IP for internal domain")
+	return ""
 }
 
 type RequestOption func(*http.Request)
