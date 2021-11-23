@@ -830,10 +830,10 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/hack v0.0.0-20211117134436-69a2295d54ce
+# knative.dev/hack v0.0.0-20211122162614-813559cefdda
 ## explicit
 knative.dev/hack
-# knative.dev/networking v0.0.0-20211119210323-bab26a807fa3
+# knative.dev/networking v0.0.0-20211122065314-75d86c5d4128
 ## explicit
 knative.dev/networking/config
 knative.dev/networking/pkg
