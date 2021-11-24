@@ -866,7 +866,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20211123074649-0fae0afc10ad
+# knative.dev/pkg v0.0.0-20211123135150-787aec59e70a
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
