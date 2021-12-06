@@ -18,6 +18,7 @@ package ingress
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -63,6 +64,8 @@ var isKourierIngress = reconciler.AnnotationFilterFunc(
 	v1alpha1ingress.ClassAnnotationKey, config.KourierIngressClassName, false,
 )
 
+var kourierChainFilter func(interface{}) bool
+
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	logger := logging.FromContext(ctx)
 
@@ -73,6 +76,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 	secretInformer := secretinformer.Get(ctx)
+
+	// Add namespace filter to be reconciled by this controller.
+	namespaceFilters := []func(interface{}) bool{}
+	for _, namespace := range strings.Split(os.Getenv("KOURIER_MEMBER_ROLL"), ",") {
+		namespaceFilters = append(namespaceFilters, reconciler.NamespaceFilterFunc(namespace))
+	}
+
+	kourierChainFilter = reconciler.ChainFilterFuncs(isKourierIngress, reconciler.Or(namespaceFilters...))
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
 	caches, err := generator.NewCaches(ctx, kubernetesClient, config.ExternalAuthz.Enabled)
@@ -87,13 +98,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
 		resync := configmap.TypeFilter(&config.Kourier{})(func(string, interface{}) {
-			impl.FilteredGlobalResync(isKourierIngress, ingressInformer.Informer())
+			impl.FilteredGlobalResync(kourierChainFilter, ingressInformer.Informer())
 		})
 		configStore := rconfig.NewStore(logger.Named("config-store"), resync)
 		configStore.WatchConfigs(cmw)
 		return controller.Options{
 			ConfigStore:       configStore,
-			PromoteFilterFunc: isKourierIngress,
+			PromoteFilterFunc: kourierChainFilter,
 		}
 	})
 
@@ -102,7 +113,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			lbReady := obj.(*v1alpha1.Ingress).Status.GetCondition(v1alpha1.IngressConditionLoadBalancerReady).GetReason()
 			// Force reconcile all Kourier ingresses that are either not reconciled yet
 			// (and thus might end up in a conflict) or already in conflict.
-			return isKourierIngress(obj) && (lbReady == "" || lbReady == conflictReason)
+			return kourierChainFilter(obj) && (lbReady == "" || lbReady == conflictReason)
 		}, ingressInformer.Informer())
 	}
 
@@ -141,7 +152,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 				// Fallback to a global resync of non-ready ingresses for every other error.
 				impl.FilteredGlobalResync(func(obj interface{}) bool {
-					return isKourierIngress(obj) && !obj.(*v1alpha1.Ingress).IsReady()
+					return kourierChainFilter(obj) && !obj.(*v1alpha1.Ingress).IsReady()
 				}, ingressInformer.Informer())
 
 				return nil
@@ -233,7 +244,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
 	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: isKourierIngress,
+		FilterFunc: kourierChainFilter,
 		Handler:    controller.HandleAll(impl.Enqueue),
 	})
 
@@ -241,7 +252,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// Also reconcile all ingresses in conflict once another ingress is removed to
 	// unwedge them.
 	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: isKourierIngress,
+		FilterFunc: kourierChainFilter,
 		Handler: cache.ResourceEventHandlerFuncs{
 			DeleteFunc: impl.Tracker.OnDeletedObserver,
 		},
@@ -305,7 +316,7 @@ func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.Ne
 	ingressesToWarm := make([]*v1alpha1.Ingress, 0, len(ingresses.Items))
 	for i := range ingresses.Items {
 		ingress := &ingresses.Items[i]
-		if isKourierIngress(ingress) &&
+		if kourierChainFilter(ingress) &&
 			ingress.GetDeletionTimestamp() == nil && // Ignore ingresses that are already marked for deletion.
 			ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
 			ingressesToWarm = append(ingressesToWarm, ingress)
