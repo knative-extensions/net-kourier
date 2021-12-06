@@ -1,4 +1,4 @@
-# cloud.google.com/go v0.97.0
+# cloud.google.com/go v0.98.0
 cloud.google.com/go/compute/metadata
 # contrib.go.opencensus.io/exporter/ocagent v0.7.1-0.20200907061046-05415f1de66d
 contrib.go.opencensus.io/exporter/ocagent
@@ -90,12 +90,16 @@ github.com/go-logfmt/logfmt
 # github.com/go-logr/logr v0.4.0
 github.com/go-logr/logr
 # github.com/go-openapi/jsonpointer v0.19.5
+## explicit
 github.com/go-openapi/jsonpointer
 # github.com/go-openapi/jsonreference v0.19.5
+## explicit
 github.com/go-openapi/jsonreference
 # github.com/go-openapi/spec v0.19.6
+## explicit
 github.com/go-openapi/spec
 # github.com/go-openapi/swag v0.19.15
+## explicit
 github.com/go-openapi/swag
 # github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
@@ -141,6 +145,7 @@ github.com/grpc-ecosystem/grpc-gateway/utilities
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/imdario/mergo v0.3.9
+## explicit
 github.com/imdario/mergo
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
@@ -150,6 +155,7 @@ github.com/json-iterator/go
 ## explicit
 github.com/kelseyhightower/envconfig
 # github.com/mailru/easyjson v0.7.7
+## explicit
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
@@ -225,10 +231,11 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zaptest
-# golang.org/x/mod v0.4.2
+# golang.org/x/mod v0.5.1
+golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20211101193420-4a448f8816b3
+# golang.org/x/net v0.0.0-20211205041911-012df41ee64c
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/http/httpguts
@@ -238,7 +245,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.0.0-20211028175245-ba495a64dcb5
+# golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
 golang.org/x/oauth2/google
@@ -250,7 +257,7 @@ golang.org/x/oauth2/jwt
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359
+# golang.org/x/sys v0.0.0-20211124211545-fe61309f8881
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -266,7 +273,7 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 golang.org/x/time/rate
-# golang.org/x/tools v0.1.7
+# golang.org/x/tools v0.1.8
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/imports
 golang.org/x/tools/internal/event
@@ -283,7 +290,7 @@ golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.2.0
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/api v0.60.0
+# google.golang.org/api v0.61.0
 google.golang.org/api/support/bundler
 # google.golang.org/appengine v1.6.7
 google.golang.org/appengine
@@ -296,7 +303,7 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1
+# google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12
 ## explicit
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
@@ -803,7 +810,7 @@ k8s.io/code-generator/cmd/set-gen
 k8s.io/code-generator/pkg/namer
 k8s.io/code-generator/pkg/util
 k8s.io/code-generator/third_party/forked/golang/reflect
-# k8s.io/gengo v0.0.0-20210915205010-39e73c8a59cd
+# k8s.io/gengo v0.0.0-20211129171323-c02415ce4185
 k8s.io/gengo/args
 k8s.io/gengo/examples/deepcopy-gen/generators
 k8s.io/gengo/examples/defaulter-gen/generators
@@ -830,10 +837,10 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/hack v0.0.0-20211122162614-813559cefdda
+# knative.dev/hack v0.0.0-20211203062838-e11ac125e707
 ## explicit
 knative.dev/hack
-# knative.dev/networking v0.0.0-20211126074453-0151d6b9c689
+# knative.dev/networking v0.0.0-20211206132128-6c8dbb6e4e49
 ## explicit
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -866,7 +873,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20211129195804-438776b3c87c
+# knative.dev/pkg v0.0.0-20211206113427-18589ac7627e
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
