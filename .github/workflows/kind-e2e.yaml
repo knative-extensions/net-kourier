@@ -123,7 +123,8 @@ jobs:
         set -o pipefail
 
         # Build and Publish our containers to the docker daemon (including test assets)
-        ko resolve -f test/config/ -f config/ | \
+        # ko resolve -f test/config/ -f config/ | \
+        ko resolve -f test/config/ -f config/ -f config-alt/ | \
           sed 's/LoadBalancer/NodePort/g' | \
           sed "s|docker.io/envoyproxy/envoy:.*|${{ matrix.gateway }}|" | \
           kubectl apply -f -
@@ -134,6 +135,7 @@ jobs:
         # # TODO: Find a good way to do this with chaos enabled.
         # kubectl wait pod --for=condition=Ready -n ${GATEWAY_NAMESPACE_OVERRIDE} -l '!job-name'
         kubectl wait pod --timeout 300s --for=condition=Ready -n knative-serving -l '!job-name'
+        kubectl wait pod --timeout 300s --for=condition=Ready -n kourier-system-alt -l '!job-name'
 
         # For debugging.
         kubectl get pods --all-namespaces

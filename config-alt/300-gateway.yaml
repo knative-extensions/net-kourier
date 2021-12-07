@@ -1,0 +1,137 @@
+# Copyright 2020 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: 3scale-kourier-gateway
+  namespace: kourier-system-alt
+  labels:
+    networking.knative.dev/ingress-provider: kourier
+    app.kubernetes.io/component: net-kourier
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-serving
+    serving.knative.dev/release: devel
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: 3scale-kourier-gateway
+  template:
+    metadata:
+      labels:
+        app: 3scale-kourier-gateway
+      annotations:
+        # v0.26 supports envoy v3 API, so
+        # adding this label to restart pod.
+        networking.knative.dev/poke: "v0.26"
+    spec:
+      containers:
+        - args:
+            - --base-id 1
+            - -c /tmp/config/envoy-bootstrap.yaml
+            - --log-level info
+          command:
+            - /usr/local/bin/envoy
+          image: docker.io/envoyproxy/envoy:v1.17-latest
+          name: kourier-gateway
+          ports:
+            - name: http2-external
+              containerPort: 8080
+              protocol: TCP
+            - name: http2-internal
+              containerPort: 8081
+              protocol: TCP
+            - name: https-external
+              containerPort: 8443
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            capabilities:
+              drop:
+                - all
+          volumeMounts:
+            - name: config-volume
+              mountPath: /tmp/config
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh","-c","curl -X POST --unix /tmp/envoy.admin http://localhost/healthcheck/fail; sleep 15"]
+          readinessProbe:
+            httpGet:
+              httpHeaders:
+                - name: Host
+                  value: internalkourier
+              path: /ready
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: config-volume
+          configMap:
+            name: kourier-bootstrap
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier
+  namespace: kourier-system-alt
+  labels:
+    networking.knative.dev/ingress-provider: kourier
+    app.kubernetes.io/component: net-kourier
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-serving
+    serving.knative.dev/release: devel
+spec:
+  ports:
+    - name: http2
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+  selector:
+    app: 3scale-kourier-gateway
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier-internal
+  namespace: kourier-system-alt
+  labels:
+    networking.knative.dev/ingress-provider: kourier
+    app.kubernetes.io/component: net-kourier
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-serving
+    serving.knative.dev/release: devel
+spec:
+  ports:
+    - name: http2
+      port: 80
+      protocol: TCP
+      targetPort: 8081
+  selector:
+    app: 3scale-kourier-gateway
+  type: ClusterIP

@@ -16,7 +16,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: net-kourier-controller
-  namespace: knative-serving
+  namespace: kourier-system-alt
   labels:
     networking.knative.dev/ingress-provider: kourier
     app.kubernetes.io/component: net-kourier
@@ -48,9 +48,9 @@ spec:
             - name: METRICS_DOMAIN
               value: "knative.dev/samples"
             - name: KOURIER_GATEWAY_NAMESPACE
-              value: "kourier-system"
+              value: "kourier-system-alt"
             - name: KOURIER_MEMBER_ROLL
-              value: "serving-tests"
+              value: "test-ns1,test-ns2"
           ports:
           - name: http2-xds
             containerPort: 18000
@@ -72,7 +72,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: net-kourier-controller
-  namespace: knative-serving
+  namespace: kourier-system-alt
   labels:
     networking.knative.dev/ingress-provider: kourier
     app.kubernetes.io/component: net-kourier

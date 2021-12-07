@@ -75,3 +75,18 @@ go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"
+
+echo ">> Running conformance tests with another Kourier controller"
+sed -i -e 's/serving-tests/test-ns1/g' ./vendor/knative.dev/networking/test/e2e_constants.go
+
+KOURIER_GATEWAY_NAMESPACE=kourier-system-alt
+KOURIER_CONTROL_NAMESPACE=kourier-system-alt
+
+export "GATEWAY_OVERRIDE=kourier"
+export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
+
+go test -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e/... \
+  --enable-alpha --enable-beta \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
