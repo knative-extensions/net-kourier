@@ -4,15 +4,9 @@ go 1.16
 
 require (
 	github.com/envoyproxy/go-control-plane v0.10.1
-	github.com/go-openapi/jsonpointer v0.19.5 // indirect
-	github.com/go-openapi/jsonreference v0.19.5 // indirect
-	github.com/go-openapi/spec v0.19.6 // indirect
-	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
-	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.19.1
 	google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12
