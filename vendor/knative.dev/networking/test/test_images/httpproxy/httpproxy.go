@@ -17,14 +17,17 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
+	"net"
 	"os"
 
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 
+	"github.com/rs/dnscache"
 	network "knative.dev/networking/pkg"
 	"knative.dev/networking/test"
 )
@@ -68,6 +71,7 @@ func main() {
 	}
 	log.Print("target is ", target)
 	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.Transport = newDNSCachingTransport()
 	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
 		log.Print("error reverse proxying request: ", err)
 		http.Error(w, err.Error(), http.StatusBadGateway)
@@ -86,4 +90,32 @@ func main() {
 	address := ":" + port
 	log.Print("Listening on address: ", address)
 	test.ListenAndServeGracefully(address, handler)
+}
+
+// newDNSCachingTransport caches DNS lookups locally to avoid issues like
+// dial tcp: lookup ingress-conformance-0-visibility-split-ijpryqql.serving-tests.svc.c1550209590.local on 10.96.0.10:53: dial udp 10.96.0.10:53: operation was canceled
+func newDNSCachingTransport() http.RoundTripper {
+	resolver := &dnscache.Resolver{}
+
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.DialContext = func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+		ips, err := resolver.LookupHost(ctx, host)
+		if err != nil {
+			return nil, err
+		}
+		var dialer net.Dialer
+		for _, ip := range ips {
+			conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
+			if err == nil {
+				break
+			}
+		}
+		return
+	}
+
+	return t
 }
