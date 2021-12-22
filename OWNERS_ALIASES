@@ -32,9 +32,13 @@ aliases:
   - lberk
   - n3wscott
   docs-wg-leads:
-  - abrennan89
+  - csantanapr
+  - snneji
   docs-writers:
   - abrennan89
+  - csantanapr
+  - psschwei
+  - snneji
   eventing-autoscaler-keda-approvers:
   - zroubalik
   eventing-awssqs-approvers:
@@ -170,16 +174,14 @@ aliases:
   - knative-prow-updater-robot
   - knative-test-reporter-robot
   - lance
-  - markusthoemmes
-  - matzew
-  - nak3
   - pmorie
+  - psschwei
   - rhuss
   - thisisnotapril
   - vaikas
   knative-release-leads:
-  - matzew
-  - nak3
+  - dprotaso
+  - psschwei
   knative-robots:
   - knative-prow-releaser-robot
   - knative-prow-robot
@@ -195,7 +197,6 @@ aliases:
   - dprotaso
   - tcnghia
   net-gateway-api-approvers:
-  - markusthoemmes
   - nak3
   - tcnghia
   net-http01-approvers:
@@ -246,7 +247,6 @@ aliases:
   - dprotaso
   - evankanderson
   - julz
-  - markusthoemmes
   - rhuss
   ux-wg-leads:
   - csantanapr
