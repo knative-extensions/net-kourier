@@ -263,7 +263,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
+# golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 golang.org/x/time/rate
 # golang.org/x/tools v0.1.8
 golang.org/x/tools/go/ast/astutil
@@ -829,10 +829,10 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/hack v0.0.0-20211203062838-e11ac125e707
+# knative.dev/hack v0.0.0-20211222071919-abd085fc43de
 ## explicit
 knative.dev/hack
-# knative.dev/networking v0.0.0-20211209101835-8ef631418fc0
+# knative.dev/networking v0.0.0-20211223134928-e40187c3026d
 ## explicit
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -865,7 +865,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20211206113427-18589ac7627e
+# knative.dev/pkg v0.0.0-20211216142117-79271798f696
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
