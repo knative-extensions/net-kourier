@@ -20,12 +20,18 @@ set -euo pipefail
 
 KOURIER_GATEWAY_NAMESPACE=kourier-system
 KOURIER_CONTROL_NAMESPACE=knative-serving
+TEST_NAMESPACE=serving-tests
 CLUSTER_SUFFIX=${CLUSTER_SUFFIX:-cluster.local}
 
 $(dirname $0)/upload-test-images.sh
 
 echo ">> Setup test resources"
 ko apply -f test/config
+if [[ $(kubectl get secret server-certs -n "${TEST_NAMESPACE}" -o name | wc -l) -eq 1 ]]; then
+  echo ">> Enable tls against upstream"
+  ko apply -f test/config/tls
+  export "UPSTREAM_TLS_CERT=server-certs"
+fi
 
 IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
 

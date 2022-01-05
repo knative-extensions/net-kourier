@@ -24,6 +24,11 @@ jobs:
         - v1.22.0
         - v1.23.0
 
+        upstream-traffic:
+        - plain
+        # TODO: Enable tls after 1.14 release.
+        # - tls
+
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
         # See: https://github.com/kubernetes-sigs/kind/releases
@@ -115,6 +120,13 @@ jobs:
 
         # Create a cluster!
         kind create cluster --config kind.yaml
+
+    - name: Deploy certificates for upstream traffic
+      if: matrix.upstream-traffic == 'tls'
+      run: |
+        set -o pipefail
+        echo ">> Deploy certificate for upstream traffic"
+        ./test/generate-upstream-cert.sh
 
     - name: Run upgrade tests
       run: |

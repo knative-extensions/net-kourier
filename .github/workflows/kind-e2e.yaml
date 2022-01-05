@@ -29,6 +29,10 @@ jobs:
         - docker.io/envoyproxy/envoy:v1.19-latest
         - docker.io/envoyproxy/envoy:v1.20-latest
 
+        upstream-tls:
+        - plain
+        - tls
+
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
         # See: https://github.com/kubernetes-sigs/kind/releases
@@ -117,6 +121,13 @@ jobs:
 
         # Create a cluster!
         kind create cluster --config kind.yaml
+
+    - name: Deploy certificates for upstream traffic
+      if: matrix.upstream-traffic == 'tls'
+      run: |
+        set -o pipefail
+        echo ">> Deploy certificate for upstream traffic"
+        ./test/generate-upstream-cert.sh
 
     - name: Install Knative net-kourier
       run: |

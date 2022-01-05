@@ -20,6 +20,8 @@ import (
 	"time"
 
 	envoyCluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	httpOptions "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -31,7 +33,7 @@ func NewCluster(
 	name string,
 	connectTimeout time.Duration,
 	endpoints []*endpoint.LbEndpoint,
-	isHTTP2 bool,
+	isHTTP2 bool, transportSocket *envoy_core_v3.TransportSocket,
 	discoveryType envoyCluster.Cluster_DiscoveryType) *envoyCluster.Cluster {
 
 	cluster := &envoyCluster.Cluster{
@@ -46,6 +48,7 @@ func NewCluster(
 				LbEndpoints: endpoints,
 			}},
 		},
+		TransportSocket: transportSocket,
 	}
 
 	if isHTTP2 {
