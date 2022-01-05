@@ -13,11 +13,11 @@ require (
 	google.golang.org/grpc v1.42.0
 	google.golang.org/protobuf v1.27.1
 	gotest.tools/v3 v3.0.3
-	k8s.io/api v0.21.4
-	k8s.io/apimachinery v0.21.4
-	k8s.io/client-go v0.21.4
-	k8s.io/code-generator v0.21.4
+	k8s.io/api v0.22.5
+	k8s.io/apimachinery v0.22.5
+	k8s.io/client-go v0.22.5
+	k8s.io/code-generator v0.22.5
 	knative.dev/hack v0.0.0-20211222071919-abd085fc43de
 	knative.dev/networking v0.0.0-20211223134928-e40187c3026d
-	knative.dev/pkg v0.0.0-20211216142117-79271798f696
+	knative.dev/pkg v0.0.0-20220104185830-52e42b760b54
 )

@@ -78,7 +78,7 @@ github.com/envoyproxy/go-control-plane/pkg/server/v3
 github.com/envoyproxy/go-control-plane/pkg/wellknown
 # github.com/envoyproxy/protoc-gen-validate v0.1.0
 github.com/envoyproxy/protoc-gen-validate/validate
-# github.com/evanphx/json-patch v4.9.0+incompatible
+# github.com/evanphx/json-patch v4.11.0+incompatible
 github.com/evanphx/json-patch
 # github.com/evanphx/json-patch/v5 v5.6.0
 github.com/evanphx/json-patch/v5
@@ -89,13 +89,11 @@ github.com/go-kit/log/level
 github.com/go-logfmt/logfmt
 # github.com/go-logr/logr v0.4.0
 github.com/go-logr/logr
-# github.com/go-openapi/jsonpointer v0.19.3
+# github.com/go-openapi/jsonpointer v0.19.5
 github.com/go-openapi/jsonpointer
-# github.com/go-openapi/jsonreference v0.19.3
+# github.com/go-openapi/jsonreference v0.19.5
 github.com/go-openapi/jsonreference
-# github.com/go-openapi/spec v0.19.5
-github.com/go-openapi/spec
-# github.com/go-openapi/swag v0.19.5
+# github.com/go-openapi/swag v0.19.15
 github.com/go-openapi/swag
 # github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
@@ -127,9 +125,10 @@ github.com/google/gofuzz/bytesource
 # github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
-# github.com/googleapis/gnostic v0.4.1
+# github.com/googleapis/gnostic v0.5.5
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
+github.com/googleapis/gnostic/jsonschema
 github.com/googleapis/gnostic/openapiv2
 # github.com/gorilla/websocket v1.4.2
 github.com/gorilla/websocket
@@ -142,12 +141,14 @@ github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/imdario/mergo v0.3.5
 github.com/imdario/mergo
+# github.com/josharian/intern v1.0.0
+github.com/josharian/intern
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
 # github.com/kelseyhightower/envconfig v1.4.0
 ## explicit
 github.com/kelseyhightower/envconfig
-# github.com/mailru/easyjson v0.7.0
+# github.com/mailru/easyjson v0.7.7
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
@@ -227,7 +228,7 @@ go.uber.org/zap/zaptest
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20211205041911-012df41ee64c
+# golang.org/x/net v0.0.0-20211209124913-491a49abca63
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/http/httpguts
@@ -394,6 +395,8 @@ google.golang.org/protobuf/types/known/wrapperspb
 gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+gopkg.in/yaml.v3
 # gotest.tools/v3 v3.0.3
 ## explicit
 gotest.tools/v3/assert
@@ -402,7 +405,7 @@ gotest.tools/v3/internal/assert
 gotest.tools/v3/internal/difflib
 gotest.tools/v3/internal/format
 gotest.tools/v3/internal/source
-# k8s.io/api v0.21.4
+# k8s.io/api v0.22.5
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admissionregistration/v1
@@ -448,10 +451,10 @@ k8s.io/api/scheduling/v1beta1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apiextensions-apiserver v0.21.4
+# k8s.io/apiextensions-apiserver v0.22.5
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
-# k8s.io/apimachinery v0.21.4
+# k8s.io/apimachinery v0.22.5
 ## explicit
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -500,7 +503,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/client-go v0.21.4
+# k8s.io/client-go v0.22.5
 ## explicit
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1beta1
@@ -734,6 +737,8 @@ k8s.io/client-go/listers/storage/v1
 k8s.io/client-go/listers/storage/v1alpha1
 k8s.io/client-go/listers/storage/v1beta1
 k8s.io/client-go/pkg/apis/clientauthentication
+k8s.io/client-go/pkg/apis/clientauthentication/install
+k8s.io/client-go/pkg/apis/clientauthentication/v1
 k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/pkg/version
@@ -767,7 +772,7 @@ k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/code-generator v0.21.4
+# k8s.io/code-generator v0.22.5
 ## explicit
 k8s.io/code-generator
 k8s.io/code-generator/cmd/client-gen
@@ -815,16 +820,17 @@ k8s.io/gengo/parser
 k8s.io/gengo/types
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# k8s.io/klog/v2 v2.8.0
+# k8s.io/klog/v2 v2.9.0
 k8s.io/klog/v2
-# k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
+# k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
 k8s.io/kube-openapi/cmd/openapi-gen/args
 k8s.io/kube-openapi/pkg/common
 k8s.io/kube-openapi/pkg/generators
 k8s.io/kube-openapi/pkg/generators/rules
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/util/sets
-# k8s.io/utils v0.0.0-20201110183641-67b214c5f920
+k8s.io/kube-openapi/pkg/validation/spec
+# k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
 k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
@@ -865,7 +871,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20211216142117-79271798f696
+# knative.dev/pkg v0.0.0-20220104185830-52e42b760b54
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
