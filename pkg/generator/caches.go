@@ -242,6 +242,19 @@ func generateListenersAndRouteConfigs(
 		if err != nil {
 			return nil, nil, err
 		}
+
+		if useHTTPSListenerWithOneCert() {
+			externalHTTPSEnvoyListenerWithOneCert, err := newExternalEnvoyListenerWithOneCert(
+				ctx, externalTLSManager, kubeclient,
+			)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			externalHTTPSEnvoyListener.FilterChains = append(externalHTTPSEnvoyListenerWithOneCert.FilterChains,
+				externalHTTPSEnvoyListener.FilterChains...)
+		}
+
 		listeners = append(listeners, externalHTTPSEnvoyListener)
 		routes = append(routes, externalTLSRouteConfig)
 	} else if useHTTPSListenerWithOneCert() {
