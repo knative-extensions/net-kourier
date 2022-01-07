@@ -243,6 +243,7 @@ func generateListenersAndRouteConfigs(
 			return nil, nil, err
 		}
 
+		// if a certificate is configured, add a new filter chain to TLS listener
 		if useHTTPSListenerWithOneCert() {
 			externalHTTPSEnvoyListenerWithOneCert, err := newExternalEnvoyListenerWithOneCert(
 				ctx, externalTLSManager, kubeclient,
