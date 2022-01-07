@@ -45,7 +45,7 @@ func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32) (*listener
 	}
 
 	return &listener.Listener{
-		Name:    fmt.Sprintf("listener_%d", port),
+		Name:    CreateListenerName(port),
 		Address: createAddress(port),
 		FilterChains: []*listener.FilterChain{{
 			Filters: filters,
@@ -73,7 +73,7 @@ func NewHTTPSListener(
 	}
 
 	return &listener.Listener{
-		Name:    fmt.Sprintf("listener_%d", port),
+		Name:    CreateListenerName(port),
 		Address: createAddress(port),
 		FilterChains: []*listener.FilterChain{{
 			Filters: filters,
@@ -96,7 +96,7 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 	}
 
 	return &listener.Listener{
-		Name:         fmt.Sprintf("listener_%d", port),
+		Name:         CreateListenerName(port),
 		Address:      createAddress(port),
 		FilterChains: filterChains,
 		ListenerFilters: []*listener.ListenerFilter{{
@@ -106,6 +106,11 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 			Name: wellknown.TlsInspector,
 		}},
 	}, nil
+}
+
+// CreateListenerName returns a listener name based on port
+func CreateListenerName(port uint32) string {
+	return fmt.Sprintf("listener_%d", port)
 }
 
 func createAddress(port uint32) *core.Address {
