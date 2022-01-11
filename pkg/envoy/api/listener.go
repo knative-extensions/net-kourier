@@ -53,13 +53,20 @@ func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32) (*listener
 	}, nil
 }
 
-// NewHTTPSListener creates a new Listener at the given port, backed by the given manager
-// and serving the given certificate chain and key.
-func NewHTTPSListener(
+// NewHTTPSListener creates a new Listener at the given port with a given filter chain
+func NewHTTPSListener(port uint32, filterChain *listener.FilterChain) (*listener.Listener, error) {
+	return &listener.Listener{
+		Name:         CreateListenerName(port),
+		Address:      createAddress(port),
+		FilterChains: []*listener.FilterChain{filterChain},
+	}, nil
+}
+
+// CreateFilterChainFromCertificateAndPrivateKey creates a new filter chain from a certificate and a private key
+func CreateFilterChainFromCertificateAndPrivateKey(
 	manager *hcm.HttpConnectionManager,
-	port uint32,
 	certificateChain []byte,
-	privateKey []byte) (*listener.Listener, error) {
+	privateKey []byte) (*listener.FilterChain, error) {
 
 	filters, err := createFilters(manager)
 	if err != nil {
@@ -72,16 +79,12 @@ func NewHTTPSListener(
 		return nil, err
 	}
 
-	return &listener.Listener{
-		Name:    CreateListenerName(port),
-		Address: createAddress(port),
-		FilterChains: []*listener.FilterChain{{
-			Filters: filters,
-			TransportSocket: &core.TransportSocket{
-				Name:       wellknown.TransportSocketTls,
-				ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
-			},
-		}},
+	return &listener.FilterChain{
+		Filters: filters,
+		TransportSocket: &core.TransportSocket{
+			Name:       wellknown.TransportSocketTls,
+			ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: tlsAny},
+		},
 	}, nil
 }
 

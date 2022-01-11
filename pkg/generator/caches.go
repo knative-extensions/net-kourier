@@ -245,15 +245,15 @@ func generateListenersAndRouteConfigs(
 
 		// if a certificate is configured, add a new filter chain to TLS listener
 		if useHTTPSListenerWithOneCert() {
-			externalHTTPSEnvoyListenerWithOneCert, err := newExternalEnvoyListenerWithOneCert(
+			externalHTTPSEnvoyListenerWithOneCertFilterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(
 				ctx, externalTLSManager, kubeclient,
 			)
 			if err != nil {
 				return nil, nil, err
 			}
 
-			externalHTTPSEnvoyListener.FilterChains = append(externalHTTPSEnvoyListenerWithOneCert.FilterChains,
-				externalHTTPSEnvoyListener.FilterChains...)
+			externalHTTPSEnvoyListener.FilterChains = append(externalHTTPSEnvoyListener.FilterChains,
+				externalHTTPSEnvoyListenerWithOneCertFilterChain)
 		}
 
 		listeners = append(listeners, externalHTTPSEnvoyListener)
@@ -288,7 +288,7 @@ func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamesp
 	return secret.Data[certFieldInSecret], secret.Data[keyFieldInSecret], nil
 }
 
-func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface) (*v3.Listener, error) {
+func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface) (*v3.FilterChain, error) {
 	certificateChain, privateKey, err := sslCreds(
 		ctx, kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
 	)
@@ -296,5 +296,14 @@ func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnm
 		return nil, err
 	}
 
-	return envoy.NewHTTPSListener(manager, config.HTTPSPortExternal, certificateChain, privateKey)
+	return envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey)
+}
+
+func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface) (*v3.Listener, error) {
+	filterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(ctx, manager, kubeClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return envoy.NewHTTPSListener(config.HTTPSPortExternal, filterChain)
 }
