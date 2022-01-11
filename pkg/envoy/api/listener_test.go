@@ -49,7 +49,10 @@ func TestNewHTTPSListener(t *testing.T) {
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
 
-	l, err := NewHTTPSListener(manager, 8081, certChain, privateKey)
+	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey)
+	assert.NilError(t, err)
+
+	l, err := NewHTTPSListener(8081, filterChain)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)

@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -149,6 +150,100 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	assert.DeepEqual(t, clustersBeforeDelete, clustersAfterDelete, protocmp.Transform())
 	assert.DeepEqual(t, routesBeforeDelete, routesAfterDelete, protocmp.Transform())
 	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete, protocmp.Transform())
+}
+
+func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
+	t.Setenv(envCertsSecretNamespace, "certns")
+	t.Setenv(envCertsSecretName, "secretname")
+
+	kubeClient := fake.Clientset{}
+	ctx := context.Background()
+
+	caches, err := NewCaches(ctx, &kubeClient, false)
+	assert.NilError(t, err)
+
+	fooSNIMatch := &envoy.SNIMatch{
+		Hosts:            []string{"foo.example.com"},
+		CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname1"},
+		CertificateChain: []byte("cert1"),
+		PrivateKey:       []byte("privateKey1"),
+	}
+	barSNIMatch := &envoy.SNIMatch{
+		Hosts:            []string{"bar.example.com"},
+		CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname2"},
+		CertificateChain: []byte("cert2"),
+		PrivateKey:       []byte("privateKey2"),
+	}
+
+	t.Run("without SNI matches", func(t *testing.T) {
+		translatedIngress := &translatedIngress{
+			sniMatches: nil,
+		}
+		err := caches.addTranslatedIngress(translatedIngress)
+		assert.NilError(t, err)
+
+		snapshot, err := caches.ToEnvoySnapshot(ctx)
+		assert.NilError(t, err)
+
+		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortExternal)].(*listener.Listener)
+		filterChains := tlsListener.FilterChains
+		assert.Assert(t, len(filterChains) == 1)
+	})
+
+	t.Run("with a single SNI match", func(t *testing.T) {
+		translatedIngress := &translatedIngress{
+			sniMatches: []*envoy.SNIMatch{fooSNIMatch},
+		}
+		err := caches.addTranslatedIngress(translatedIngress)
+		assert.NilError(t, err)
+
+		snapshot, err := caches.ToEnvoySnapshot(ctx)
+		assert.NilError(t, err)
+
+		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortExternal)].(*listener.Listener)
+		filterChains := tlsListener.FilterChains
+		assert.Assert(t, len(filterChains) == 2)
+
+		filterChainsByServerName := map[string]*listener.FilterChain{}
+		for _, filterChain := range filterChains {
+			var serverName string
+			if filterChain.FilterChainMatch != nil {
+				serverName = filterChain.FilterChainMatch.ServerNames[0]
+			}
+			filterChainsByServerName[serverName] = filterChain
+		}
+
+		assert.Check(t, filterChainsByServerName["foo.example.com"] != nil)
+		assert.Check(t, filterChainsByServerName[""] != nil) // filter chain without server name, "default" one
+	})
+
+	t.Run("with multiple SNI matches", func(t *testing.T) {
+		translatedIngress := &translatedIngress{
+			sniMatches: []*envoy.SNIMatch{fooSNIMatch, barSNIMatch},
+		}
+		err := caches.addTranslatedIngress(translatedIngress)
+		assert.NilError(t, err)
+
+		snapshot, err := caches.ToEnvoySnapshot(ctx)
+		assert.NilError(t, err)
+
+		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortExternal)].(*listener.Listener)
+		filterChains := tlsListener.FilterChains
+		assert.Assert(t, len(filterChains) == 3)
+
+		filterChainsByServerName := map[string]*listener.FilterChain{}
+		for _, filterChain := range filterChains {
+			var serverName string
+			if filterChain.FilterChainMatch != nil {
+				serverName = filterChain.FilterChainMatch.ServerNames[0]
+			}
+			filterChainsByServerName[serverName] = filterChain
+		}
+
+		assert.Check(t, filterChainsByServerName["foo.example.com"] != nil)
+		assert.Check(t, filterChainsByServerName["bar.example.com"] != nil)
+		assert.Check(t, filterChainsByServerName[""] != nil) // filter chain without server name, "default" one
+	})
 }
 
 // Creates an ingress translation and listeners from the given names an
