@@ -98,6 +98,10 @@ func newDNSCachingTransport() http.RoundTripper {
 	resolver := &dnscache.Resolver{}
 
 	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.DisableKeepAlives = false
+	t.MaxIdleConns = 1000
+	t.MaxIdleConnsPerHost = 100
+
 	t.DialContext = func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
 		host, port, err := net.SplitHostPort(addr)
 		if err != nil {
