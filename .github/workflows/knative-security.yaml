@@ -50,7 +50,7 @@ jobs:
       uses: github/codeql-action/analyze@v1
 
     - name: Find Unicode Control Characters
-      uses: pierdipi/unicode-control-characters-action@v0.1.0
+      uses: pierdipi/unicode-control-characters-action@v0.1.1
       with:
         args: -d .
 
