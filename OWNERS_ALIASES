@@ -99,6 +99,7 @@ aliases:
   - matzew
   eventing-rabbitmq-approvers:
   - benmoss
+  - chunyilyu
   - gabo1208
   - gvmw
   - ikvmw
@@ -169,6 +170,7 @@ aliases:
   - nicolaferraro
   - rhuss
   knative-admin:
+  - carlisia
   - csantanapr
   - dprotaso
   - evankanderson
@@ -179,13 +181,13 @@ aliases:
   - knative-test-reporter-robot
   - lance
   - pmorie
-  - psschwei
   - rhuss
   - thisisnotapril
   - vaikas
+  - xtreme-sameer-vohra
   knative-release-leads:
-  - dprotaso
-  - psschwei
+  - carlisia
+  - xtreme-sameer-vohra
   knative-robots:
   - knative-prow-releaser-robot
   - knative-prow-robot
@@ -229,7 +231,9 @@ aliases:
   productivity-wg-leads:
   - chizhg
   productivity-writers:
+  - cardil
   - chizhg
+  - psschwei
   security-wg-leads:
   - evankanderson
   - julz
