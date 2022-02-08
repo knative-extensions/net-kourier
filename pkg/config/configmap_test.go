@@ -49,6 +49,32 @@ func TestKourierConfig(t *testing.T) {
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "foo",
 		},
+	}, {
+		name: "enable proxy protocol and logging",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			EnableProxyProtocol:        true,
+		},
+		data: map[string]string{
+			enableServiceAccessLoggingKey: "true",
+			enableProxyProtocol:           "true",
+		},
+	}, {
+		name: "enable proxy protocol and disable logging",
+		want: &Kourier{
+			EnableServiceAccessLogging: false,
+			EnableProxyProtocol:        true,
+		},
+		data: map[string]string{
+			enableServiceAccessLoggingKey: "false",
+			enableProxyProtocol:           "true",
+		},
+	}, {
+		name:    "not a bool for proxy protocol",
+		wantErr: true,
+		data: map[string]string{
+			enableProxyProtocol: "foo",
+		},
 	}}
 
 	for _, tt := range configTests {
