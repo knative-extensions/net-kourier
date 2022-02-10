@@ -75,3 +75,16 @@ go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"
+
+echo ">> Setup Proxy Protocol"
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"enable-proxy-protocol":"true"}}'
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST=""
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout restart deployment/3scale-kourier-gateway
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway --timeout=300s
+
+echo ">> Running Proxy Protocol tests"
+go test -race -count=1 -timeout=20m -tags=e2e ./test/proxyprotocol/... \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
