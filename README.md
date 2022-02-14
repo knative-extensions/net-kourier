@@ -134,7 +134,7 @@ vars in the `net-kourier-controller` deployment:
 
 `*` Required
 
-## Proxy Protocol Configuration 
+## Proxy Protocol Configuration
 Note: this is an experimental/alpha feature.
 
 To enable proxy protocol feature, run the following command to patch `config-kourier` ConfigMap:
