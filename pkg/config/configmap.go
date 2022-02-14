@@ -37,7 +37,7 @@ const (
 func DefaultConfig() *Kourier {
 	return &Kourier{
 		EnableServiceAccessLogging: true,  // true is the default for backwards-compat
-		EnableProxyProtocol:        false, // false is the default
+		EnableProxyProtocol:        false,
 	}
 }
 

@@ -134,7 +134,9 @@ vars in the `net-kourier-controller` deployment:
 
 `*` Required
 
-## Proxy Protocol Configuration
+## Proxy Protocol Configuration 
+Note: this is an experimental/alpha feature.
+
 To enable proxy protocol feature, run the following command to patch `config-kourier` ConfigMap:
 ```
 kubectl patch configmap/config-kourier \
@@ -149,36 +151,12 @@ kubectl get configmap config-kourier --namespace knative-serving --output yaml
 ### LoadBalancer configuration:
 
 We need to:
-- Use your LB provider annotation to enable proxy-protocol, for instance:
-  - Scaleway annotation
-  ````
-  service.beta.kubernetes.io/scw-loadbalancer-proxy-protocol-v2: '*'
-  ````
-  - AWS annotation
-  ````
-  service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
-  ````
-  - DigitalOcean annotation
-  ````
-  service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
-  ````
-- If you are planning to enable autoTLS, use your LB provider annotation to specify a custom name to use for the Load balancer
-  - Scaleway annotation
-  ````
-  service.beta.kubernetes.io/scw-loadbalancer-use-hostname: "true"
-  ````
-  - AWS annotation
-  ````
-  service.beta.kubernetes.io/aws-load-balancer-name: "<custom-name>"
-  ````
-  - DigitalOcean annotation
-  ````
-  service.beta.kubernetes.io/do-loadbalancer-hostname: "<custom-name>"
-  ````
-  This is used to work around the issue of kube-proxy adding external LB address to node local iptables rule, which will break requests to an LB from in-cluster if the LB is expected to terminate SSL or proxy protocol
-  - Change the external Traffic Policy to `local` so the LB we'll preserve the client source IP and avoids a second hop for LoadBalancer
+- Use your LB provider annotation to enable proxy-protocol.
+- If you are planning to enable autoTLS, use your LB provider annotation to specify a custom name to use for the Load balancer,
+  This is used to work around the issue of kube-proxy adding external LB address to node local iptables rule, which will break requests to an LB from in-cluster if the LB is expected to terminate SSL or proxy protocol.
+- Change the external Traffic Policy to `local` so the LB we'll preserve the client source IP and avoids a second hop for LoadBalancer.
 
-Example:
+Example (Scaleway provider):
 ```
 apiVersion: v1
 kind: Service
@@ -206,8 +184,6 @@ spec:
   externalTrafficPolicy: Local
   type: LoadBalancer
 ```
-
-
 
 ## License
 

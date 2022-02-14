@@ -31,17 +31,16 @@ import (
 
 	"github.com/pires/go-proxyproto"
 	"gotest.tools/v3/assert"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"knative.dev/pkg/network"
-	"knative.dev/pkg/reconciler"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
 	"knative.dev/networking/test/conformance/ingress"
+	"knative.dev/pkg/network"
+	"knative.dev/pkg/reconciler"
 	pkgTest "knative.dev/pkg/test"
 )
 
@@ -88,6 +87,7 @@ func TestProxyProtocol(t *testing.T) {
 
 	resp, err = client.Do(req)
 	assert.Check(t, err == nil)
+	defer resp.Body.Close()
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 }
 
