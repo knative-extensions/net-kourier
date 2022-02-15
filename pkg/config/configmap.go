@@ -29,11 +29,15 @@ const (
 	// enableServiceAccessLoggingKey is the config map key for enabling service related
 	// access logging.
 	enableServiceAccessLoggingKey = "enable-service-access-logging"
+
+	// enableProxyProtocol is the config map key for enabling proxy protocol
+	enableProxyProtocol = "enable-proxy-protocol"
 )
 
 func DefaultConfig() *Kourier {
 	return &Kourier{
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
+		EnableProxyProtocol:        false,
 	}
 }
 
@@ -43,6 +47,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 
 	if err := cm.Parse(configMap,
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
+		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 	); err != nil {
 		return nil, err
 	}
@@ -61,4 +66,6 @@ type Kourier struct {
 	// EnableServiceAccessLogging specifies whether requests reaching the Kourier gateway
 	// should be logged.
 	EnableServiceAccessLogging bool
+	// EnableProxyProtocol specifies whether proxy protocol feature is enabled
+	EnableProxyProtocol bool
 }

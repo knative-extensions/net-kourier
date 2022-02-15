@@ -38,6 +38,10 @@ const (
 	HTTPPortInternal = uint32(8081)
 	// HTTPSPortExternal is the port for external HTTPS availability.
 	HTTPSPortExternal = uint32(8443)
+	// HTTPPortProb is the port for prob
+	HTTPPortProb = uint32(8090)
+	// HTTPSPortProb is the port for prob
+	HTTPSPortProb = uint32(9443)
 
 	// InternalKourierDomain is an internal envoy endpoint.
 	InternalKourierDomain = "internalkourier"

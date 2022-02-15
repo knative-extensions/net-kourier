@@ -60,6 +60,12 @@ spec:
             - name: https-external
               containerPort: 8443
               protocol: TCP
+            - name: http-probe
+              containerPort: 8090
+              protocol: TCP
+            - name: https-probe
+              containerPort: 9443
+              protocol: TCP
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false

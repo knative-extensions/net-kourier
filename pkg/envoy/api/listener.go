@@ -21,6 +21,7 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	prx "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/proxy_protocol/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -38,15 +39,25 @@ type SNIMatch struct {
 }
 
 // NewHTTPListener creates a new Listener at the given port, backed by the given manager.
-func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32) (*listener.Listener, error) {
+func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProxyProtocol bool) (*listener.Listener, error) {
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
 	}
 
+	var listenerFilter []*listener.ListenerFilter
+	if enableProxyProtocol {
+		proxyProtocolListenerFilter, err := createProxyProtocolListenerFilter()
+		if err != nil {
+			return nil, err
+		}
+		listenerFilter = append(listenerFilter, proxyProtocolListenerFilter)
+	}
+
 	return &listener.Listener{
-		Name:    CreateListenerName(port),
-		Address: createAddress(port),
+		Name:            CreateListenerName(port),
+		Address:         createAddress(port),
+		ListenerFilters: listenerFilter,
 		FilterChains: []*listener.FilterChain{{
 			Filters: filters,
 		}},
@@ -54,11 +65,21 @@ func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32) (*listener
 }
 
 // NewHTTPSListener creates a new Listener at the given port with a given filter chain
-func NewHTTPSListener(port uint32, filterChain *listener.FilterChain) (*listener.Listener, error) {
+func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enableProxyProtocol bool) (*listener.Listener, error) {
+	var listenerFilter []*listener.ListenerFilter
+	if enableProxyProtocol {
+		proxyProtocolListenerFilter, err := createProxyProtocolListenerFilter()
+		if err != nil {
+			return nil, err
+		}
+		listenerFilter = append(listenerFilter, proxyProtocolListenerFilter)
+	}
+
 	return &listener.Listener{
-		Name:         CreateListenerName(port),
-		Address:      createAddress(port),
-		FilterChains: []*listener.FilterChain{filterChain},
+		Name:            CreateListenerName(port),
+		Address:         createAddress(port),
+		ListenerFilters: listenerFilter,
+		FilterChains:    filterChain,
 	}, nil
 }
 
@@ -92,22 +113,34 @@ func CreateFilterChainFromCertificateAndPrivateKey(
 // manager and applies a FilterChain with the given sniMatches.
 //
 // Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
-func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sniMatches []*SNIMatch) (*listener.Listener, error) {
+func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sniMatches []*SNIMatch, enableProxyProtocol bool) (*listener.Listener, error) {
 	filterChains, err := createFilterChainsForTLS(manager, sniMatches)
 	if err != nil {
 		return nil, err
 	}
 
-	return &listener.Listener{
-		Name:         CreateListenerName(port),
-		Address:      createAddress(port),
-		FilterChains: filterChains,
-		ListenerFilters: []*listener.ListenerFilter{{
+	listenerFilter := []*listener.ListenerFilter{
+		{
 			// TLS Inspector listener filter must be configured in order to
 			// detect requested SNI.
 			// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
 			Name: wellknown.TlsInspector,
-		}},
+		},
+	}
+
+	if enableProxyProtocol {
+		proxyProtocolListenerFilter, err := createProxyProtocolListenerFilter()
+		if err != nil {
+			return nil, err
+		}
+		listenerFilter = append(listenerFilter, proxyProtocolListenerFilter)
+	}
+
+	return &listener.Listener{
+		Name:            CreateListenerName(port),
+		Address:         createAddress(port),
+		FilterChains:    filterChains,
+		ListenerFilters: listenerFilter,
 	}, nil
 }
 
@@ -187,4 +220,19 @@ func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTls
 			}},
 		},
 	}
+}
+
+// Ref: https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/listener_filters/proxy_protocol
+func createProxyProtocolListenerFilter() (listenerFilter *listener.ListenerFilter, err error) {
+	listenerFilterConfig, err := anypb.New(&prx.ProxyProtocol{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &listener.ListenerFilter{
+		Name: wellknown.ProxyProtocol,
+		ConfigType: &listener.ListenerFilter_TypedConfig{
+			TypedConfig: listenerFilterConfig,
+		},
+	}, nil
 }

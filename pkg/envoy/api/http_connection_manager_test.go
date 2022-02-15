@@ -29,13 +29,38 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func TestNewHTTPConnectionManagerWithoutAccessLog(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test", false /*enableAccessLog*/)
+func TestNewHTTPConnectionManagerWithoutAccessLogWithoutProxyProtocol(t *testing.T) {
+	connManager := NewHTTPConnectionManager("test", false /*enableAccessLog*/, false /*enableProxyProtocol*/)
 	assert.Check(t, len(connManager.AccessLog) == 0)
+	assert.Check(t, connManager.UseRemoteAddress == nil)
 }
 
-func TestNewHTTPConnectionManagerWithAccessLog(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
+func TestNewHTTPConnectionManagerWithAccessLogWithoutProxyProtocol(t *testing.T) {
+	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
+	assert.Check(t, connManager.UseRemoteAddress == nil)
+	accessLog := connManager.AccessLog[0]
+	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v3.AccessLog_TypedConfig).TypedConfig
+	fileAccesLog := &fileaccesslog.FileAccessLog{}
+
+	err := anypb.UnmarshalTo(accessLogPathAny, fileAccesLog, proto.UnmarshalOptions{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, "/dev/stdout", fileAccesLog.Path)
+}
+
+func TestNewHTTPConnectionManagerWithoutAccessLogWithProxyProtocol(t *testing.T) {
+	connManager := NewHTTPConnectionManager("test", false /*enableAccessLog*/, true /*enableProxyProtocol*/)
+	assert.Check(t, len(connManager.AccessLog) == 0)
+	assert.Check(t, connManager.UseRemoteAddress != nil)
+	assert.Check(t, connManager.UseRemoteAddress.Value)
+}
+
+func TestNewHTTPConnectionManagerWithAccessLogWithProxyProtocol(t *testing.T) {
+	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, true /*enableProxyProtocol*/)
+	assert.Check(t, connManager.UseRemoteAddress != nil)
+	assert.Check(t, connManager.UseRemoteAddress.Value)
 	accessLog := connManager.AccessLog[0]
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v3.AccessLog_TypedConfig).TypedConfig
 	fileAccesLog := &fileaccesslog.FileAccessLog{}

@@ -23,6 +23,7 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_api_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	prx "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/proxy_protocol/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/proto"
@@ -31,20 +32,40 @@ import (
 	is "gotest.tools/v3/assert/cmp"
 )
 
-func TestNewHTTPListener(t *testing.T) {
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
+const urlPrefix = "type.googleapis.com/"
 
-	l, err := NewHTTPListener(manager, 8080)
+func TestNewHTTPListener(t *testing.T) {
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
+
+	l, err := NewHTTPListener(manager, 8080, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
 	assert.Equal(t, uint32(8080), l.Address.GetSocketAddress().GetPortValue())
 	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) // TLS not configured
+
+	// check proxy protocol is not configured
+	assert.Check(t, len(l.ListenerFilters) == 0)
+}
+
+func TestNewHTTPListenerWithProxyProtocol(t *testing.T) {
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, true /*enableProxyProtocol*/)
+
+	l, err := NewHTTPListener(manager, 8080, true)
+	assert.NilError(t, err)
+
+	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
+	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
+	assert.Equal(t, uint32(8080), l.Address.GetSocketAddress().GetPortValue())
+	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) // TLS not configured
+
+	// check proxy protocol is configured
+	assertListenerHasProxyProtocolConfigured(t, l.ListenerFilters[0])
 }
 
 func TestNewHTTPSListener(t *testing.T) {
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
 
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
@@ -52,7 +73,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey)
 	assert.NilError(t, err)
 
-	l, err := NewHTTPSListener(8081, filterChain)
+	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
@@ -65,6 +86,36 @@ func TestNewHTTPSListener(t *testing.T) {
 
 	assert.DeepEqual(t, certChain, gotCertChain)
 	assert.DeepEqual(t, privateKey, gotPrivateKey)
+
+	// check proxy protocol is not configured
+	assert.Check(t, len(l.ListenerFilters) == 0)
+}
+
+func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, true /*enableProxyProtocol*/)
+
+	certChain := []byte("some_certificate_chain")
+	privateKey := []byte("some_private_key")
+
+	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey)
+	assert.NilError(t, err)
+
+	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, true)
+	assert.NilError(t, err)
+
+	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
+	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
+	assert.Equal(t, uint32(8081), l.Address.GetSocketAddress().GetPortValue())
+
+	// Check that TLS is configured
+	gotCertChain, gotPrivateKey, err := getTLSCreds(l.FilterChains[0])
+	assert.NilError(t, err)
+
+	assert.DeepEqual(t, certChain, gotCertChain)
+	assert.DeepEqual(t, privateKey, gotPrivateKey)
+
+	// check proxy protocol is configured
+	assertListenerHasProxyProtocolConfigured(t, l.ListenerFilters[0])
 }
 
 func TestNewHTTPSListenerWithSNI(t *testing.T) {
@@ -78,8 +129,8 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		PrivateKey:       []byte("key2"),
 	}}
 
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/)
-	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches)
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
+	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, listener.Address.GetSocketAddress().Protocol)
@@ -87,7 +138,36 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 	assert.Equal(t, uint32(8443), listener.Address.GetSocketAddress().GetPortValue())
 
 	// Listener Filter required for SNI
+	// we should only have one listener filter when proxy protocol is disabled
+	assert.Check(t, listener.ListenerFilters[0].Name != wellknown.ProxyProtocol)
 	assert.Equal(t, listener.ListenerFilters[0].Name, wellknown.TlsInspector)
+
+	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[0])
+	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[1])
+}
+
+func TestNewHTTPSListenerWithSNIWithProxyProtocol(t *testing.T) {
+	sniMatches := []*SNIMatch{{
+		Hosts:            []string{"some_host.com"},
+		CertificateChain: []byte("cert1"),
+		PrivateKey:       []byte("key1"),
+	}, {
+		Hosts:            []string{"another_host.com"},
+		CertificateChain: []byte("cert2"),
+		PrivateKey:       []byte("key2"),
+	}}
+
+	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, true /*enableProxyProtocol*/)
+	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, true)
+	assert.NilError(t, err)
+
+	assert.Equal(t, core.SocketAddress_TCP, listener.Address.GetSocketAddress().Protocol)
+	assert.Equal(t, "0.0.0.0", listener.Address.GetSocketAddress().Address)
+	assert.Equal(t, uint32(8443), listener.Address.GetSocketAddress().GetPortValue())
+
+	// check both tls inspector and proxy protocol are configured
+	assert.Equal(t, listener.ListenerFilters[0].Name, wellknown.TlsInspector)
+	assertListenerHasProxyProtocolConfigured(t, listener.ListenerFilters[1])
 
 	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[0])
 	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[1])
@@ -101,6 +181,12 @@ func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v3.Li
 	assert.NilError(t, err)
 	assert.DeepEqual(t, match.CertificateChain, certChain)
 	assert.DeepEqual(t, match.PrivateKey, privateKey)
+}
+
+func assertListenerHasProxyProtocolConfigured(t *testing.T, listenerFilter *envoy_api_v3.ListenerFilter) {
+	typeURL := urlPrefix + string((&prx.ProxyProtocol{}).ProtoReflect().Descriptor().FullName())
+	assert.Equal(t, wellknown.ProxyProtocol, listenerFilter.GetName())
+	assert.Equal(t, typeURL, listenerFilter.GetTypedConfig().GetTypeUrl())
 }
 
 func getFilterChainByServerName(listener *envoy_api_v3.Listener, serverNames []string) *envoy_api_v3.FilterChain {

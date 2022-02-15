@@ -100,6 +100,7 @@ To change the Kourier gateway namespace, you will need to:
 - Timeouts and retries.
 - TLS
 - External Authorization support.
+- Proxy Protocol (AN EXPERIMENTAL / ALPHA FEATURE)
 
 ## Setup TLS certificate
 
@@ -132,6 +133,57 @@ vars in the `net-kourier-controller` deployment:
   Defaults to 2s.
 
 `*` Required
+
+## Proxy Protocol Configuration
+Note: this is an experimental/alpha feature.
+
+To enable proxy protocol feature, run the following command to patch `config-kourier` ConfigMap:
+```
+kubectl patch configmap/config-kourier \
+  -n knative-serving \
+  --type merge \
+  -p '{"data":{"enable-proxy-protocol":"true"}}'
+```
+Ensure that the file was updated successfully:
+```
+kubectl get configmap config-kourier --namespace knative-serving --output yaml
+```
+### LoadBalancer configuration:
+
+We need to:
+- Use your LB provider annotation to enable proxy-protocol.
+- If you are planning to enable autoTLS, use your LB provider annotation to specify a custom name to use for the Load balancer,
+  This is used to work around the issue of kube-proxy adding external LB address to node local iptables rule, which will break requests to an LB from in-cluster if the LB is expected to terminate SSL or proxy protocol.
+- Change the external Traffic Policy to `local` so the LB we'll preserve the client source IP and avoids a second hop for LoadBalancer.
+
+Example (Scaleway provider):
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: kourier
+  namespace: kourier-system
+  annotations:
+    service.beta.kubernetes.io/scw-loadbalancer-proxy-protocol-v2: '*'
+    service.beta.kubernetes.io/scw-loadbalancer-use-hostname: "true"
+  labels:
+    networking.knative.dev/ingress-provider: kourier
+    serving.knative.dev/release: "v0.26.0"
+spec:
+  ports:
+    - name: http2
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+  selector:
+    app: 3scale-kourier-gateway
+  externalTrafficPolicy: Local
+  type: LoadBalancer
+```
 
 ## License
 

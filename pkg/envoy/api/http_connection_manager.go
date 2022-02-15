@@ -35,7 +35,7 @@ import (
 
 // NewHTTPConnectionManager creates a new HttpConnectionManager that points to the given
 // RouteConfig for further configuration.
-func NewHTTPConnectionManager(routeConfigName string, enableAccessLog bool) *hcm.HttpConnectionManager {
+func NewHTTPConnectionManager(routeConfigName string, enableAccessLog, enableProxyProtocol bool) *hcm.HttpConnectionManager {
 	filters := make([]*hcm.HttpFilter, 0, 1)
 
 	if config.ExternalAuthz.Enabled {
@@ -63,6 +63,11 @@ func NewHTTPConnectionManager(routeConfigName string, enableAccessLog bool) *hcm
 				RouteConfigName: routeConfigName,
 			},
 		},
+	}
+
+	if enableProxyProtocol {
+		//Force the connection manager to use the real remote address of the client connection.
+		mgr.UseRemoteAddress = &wrapperspb.BoolValue{Value: true}
 	}
 
 	if enableAccessLog {
