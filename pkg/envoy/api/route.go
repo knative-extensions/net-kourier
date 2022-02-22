@@ -20,6 +20,10 @@ import (
 	"time"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	extAuthService "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes/any"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -87,4 +91,25 @@ func NewRedirectRoute(name string,
 			},
 		},
 	}
+}
+
+func NewRouteExtAuthzDisabled(name string,
+	headersMatch []*route.HeaderMatcher,
+	path string,
+	wrs []*route.WeightedCluster_ClusterWeight,
+	routeTimeout time.Duration,
+	headers map[string]string,
+	hostRewrite string) *route.Route {
+
+	newRoute := NewRoute(name, headersMatch, path, wrs, routeTimeout, headers, hostRewrite)
+	extAuthzDisabled, _ := anypb.New(&extAuthService.ExtAuthzPerRoute{
+		Override: &extAuthService.ExtAuthzPerRoute_Disabled{
+			Disabled: true,
+		},
+	})
+	newRoute.TypedPerFilterConfig = map[string]*any.Any{
+		wellknown.HTTPExternalAuthorization: extAuthzDisabled,
+	}
+
+	return newRoute
 }
