@@ -719,7 +719,6 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 	}
 }
 
-// TestIngressTranslatorHTTP01Challenge
 func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 	test := struct {
 		name  string
@@ -730,8 +729,19 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 		name: "http01-challenge",
 		in:   ingHTTP01Challenge("simplens", "simplename"),
 		state: []runtime.Object{
-			svcHTTPO1Challenge("simplens", "cm-acme-http-solver"),
-			epsHTTP01Challenge("simplens", "cm-acme-http-solver"),
+			svc("simplens", "cm-acme-http-solver", func(service *corev1.Service) {
+				service.Spec.Ports = []corev1.ServicePort{{
+					Name:       "http01-challenge",
+					TargetPort: intstr.FromInt(8089),
+				}}
+			}),
+			eps("simplens", "cm-acme-http-solver", func(endpoint *corev1.Endpoints) {
+				endpoint.Subsets = []corev1.EndpointSubset{{
+					Addresses: []corev1.EndpointAddress{{
+						IP: "2.2.2.2",
+					}},
+				}}
+			}),
 		},
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
@@ -874,8 +884,8 @@ func svc(ns, name string, opts ...func(*corev1.Service)) *corev1.Service {
 	return service
 }
 
-func eps(ns, name string) *corev1.Endpoints {
-	return &corev1.Endpoints{
+func eps(ns, name string, opts ...func(endpoint *corev1.Endpoints)) *corev1.Endpoints {
+	serviceEndpoint := &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
 			Name:      name,
@@ -894,6 +904,12 @@ func eps(ns, name string) *corev1.Endpoints {
 			}},
 		}},
 	}
+
+	for _, opt := range opts {
+		opt(serviceEndpoint)
+	}
+
+	return serviceEndpoint
 }
 
 func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {
@@ -928,43 +944,6 @@ func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alp
 	}
 
 	return ingress
-}
-
-func svcHTTPO1Challenge(ns, name string, opts ...func(*corev1.Service)) *corev1.Service {
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns,
-			Name:      name,
-		},
-		Spec: corev1.ServiceSpec{
-			Type:      corev1.ServiceTypeClusterIP,
-			ClusterIP: "1.1.1.1",
-			Ports: []corev1.ServicePort{{
-				Name:       "http01-challenge",
-				TargetPort: intstr.FromInt(8089),
-			}},
-		},
-	}
-
-	for _, opt := range opts {
-		opt(service)
-	}
-
-	return service
-}
-
-func epsHTTP01Challenge(ns, name string) *corev1.Endpoints {
-	return &corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns,
-			Name:      name,
-		},
-		Subsets: []corev1.EndpointSubset{{
-			Addresses: []corev1.EndpointAddress{{
-				IP: "2.2.2.2",
-			}},
-		}},
-	}
 }
 
 var lbEndpoints = []*endpoint.LbEndpoint{
