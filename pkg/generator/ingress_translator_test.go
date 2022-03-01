@@ -740,15 +740,15 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 					map[string]string{"client": "kourier", "visibility": "ExternalIP"},
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{envoy.NewRouteExtAuthzDisabled(
-					"(simplens/simplename).Rules[0].Paths[/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE]",
-					nil,
-					"/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE",
-					[]*route.WeightedCluster_ClusterWeight{
-						envoy.NewWeightedCluster("simplens/cm-acme-http-solver", 100, nil),
-					},
-					0,
-					nil,
-					""),
+						"(simplens/simplename).Rules[0].Paths[/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE]",
+						nil,
+						"/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("simplens/cm-acme-http-solver", 100, nil),
+						},
+						0,
+						nil,
+						""),
 					},
 				),
 			}
@@ -974,7 +974,7 @@ var lbEndpoints = []*endpoint.LbEndpoint{
 	envoy.NewLBEndpoint("5.5.5.5", 8080),
 }
 
-var lbEndpointHTTP01Challenge =   []*endpoint.LbEndpoint{
+var lbEndpointHTTP01Challenge = []*endpoint.LbEndpoint{
 	envoy.NewLBEndpoint("2.2.2.2", 8089),
 }
 

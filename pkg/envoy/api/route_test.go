@@ -17,10 +17,10 @@ limitations under the License.
 package envoy
 
 import (
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"testing"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"gotest.tools/v3/assert"
 )
 
