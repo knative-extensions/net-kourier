@@ -719,6 +719,89 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 	}
 }
 
+// TestIngressTranslatorHTTP01Challenge
+func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
+	test := struct {
+		name  string
+		in    *v1alpha1.Ingress
+		state []runtime.Object
+		want  *translatedIngress
+	}{
+		name: "http01-challenge",
+		in:   ingHTTP01Challenge("simplens", "simplename"),
+		state: []runtime.Object{
+			svcHTTPO1Challenge("simplens", "cm-acme-http-solver"),
+			epsHTTP01Challenge("simplens", "cm-acme-http-solver"),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHostWithExtAuthz(
+					"(simplens/simplename).Rules[0]",
+					map[string]string{"client": "kourier", "visibility": "ExternalIP"},
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRouteExtAuthzDisabled(
+					"(simplens/simplename).Rules[0].Paths[/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE]",
+					nil,
+					"/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE",
+					[]*route.WeightedCluster_ClusterWeight{
+						envoy.NewWeightedCluster("simplens/cm-acme-http-solver", 100, nil),
+					},
+					0,
+					nil,
+					""),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"simplens/cm-acme-http-solver",
+						5*time.Second,
+						lbEndpointHTTP01Challenge,
+						false,
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}
+
+	t.Run(test.name, func(t *testing.T) {
+		ctx, _ := pkgtest.SetupFakeContext(t)
+		kubeclient := fake.NewSimpleClientset(test.state...)
+
+		translator := NewIngressTranslator(
+			func(ns, name string) (*corev1.Secret, error) {
+				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			func(ns, name string) (*corev1.Endpoints, error) {
+				return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			func(ns, name string) (*corev1.Service, error) {
+				return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			&pkgtest.FakeTracker{},
+		)
+
+		got, err := translator.translateIngress(ctx, test.in, true)
+
+		assert.NilError(t, err)
+		assert.DeepEqual(t, got, test.want,
+			cmp.AllowUnexported(translatedIngress{}),
+			protocmp.Transform(),
+		)
+	})
+}
+
 func ing(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {
 	ingress := &v1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -813,11 +896,86 @@ func eps(ns, name string) *corev1.Endpoints {
 	}
 }
 
+func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {
+	ingress := &v1alpha1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      name,
+		},
+		Spec: v1alpha1.IngressSpec{
+			Rules: []v1alpha1.IngressRule{{
+				Hosts:      []string{"foo.example.com"},
+				Visibility: v1alpha1.IngressVisibilityExternalIP,
+				HTTP: &v1alpha1.HTTPIngressRuleValue{
+					Paths: []v1alpha1.HTTPIngressPath{{
+						Path: "/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE",
+						Splits: []v1alpha1.IngressBackendSplit{{
+							Percent: 100,
+							IngressBackend: v1alpha1.IngressBackend{
+								ServiceNamespace: ns,
+								ServiceName:      "cm-acme-http-solver",
+								ServicePort:      intstr.FromString("http01-challenge"),
+							}},
+						},
+					}},
+				},
+			}},
+		},
+	}
+
+	for _, opt := range opts {
+		opt(ingress)
+	}
+
+	return ingress
+}
+
+func svcHTTPO1Challenge(ns, name string, opts ...func(*corev1.Service)) *corev1.Service {
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      name,
+		},
+		Spec: corev1.ServiceSpec{
+			Type:      corev1.ServiceTypeClusterIP,
+			ClusterIP: "1.1.1.1",
+			Ports: []corev1.ServicePort{{
+				Name:       "http01-challenge",
+				TargetPort: intstr.FromInt(8089),
+			}},
+		},
+	}
+
+	for _, opt := range opts {
+		opt(service)
+	}
+
+	return service
+}
+
+func epsHTTP01Challenge(ns, name string) *corev1.Endpoints {
+	return &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      name,
+		},
+		Subsets: []corev1.EndpointSubset{{
+			Addresses: []corev1.EndpointAddress{{
+				IP: "2.2.2.2",
+			}},
+		}},
+	}
+}
+
 var lbEndpoints = []*endpoint.LbEndpoint{
 	envoy.NewLBEndpoint("2.2.2.2", 8080),
 	envoy.NewLBEndpoint("3.3.3.3", 8080),
 	envoy.NewLBEndpoint("4.4.4.4", 8080),
 	envoy.NewLBEndpoint("5.5.5.5", 8080),
+}
+
+var lbEndpointHTTP01Challenge =   []*endpoint.LbEndpoint{
+	envoy.NewLBEndpoint("2.2.2.2", 8089),
 }
 
 var (
