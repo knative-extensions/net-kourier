@@ -107,5 +107,9 @@ func main() {
 
 	ping.RegisterPingServiceServer(g, &server{})
 
-	log.Fatal(s.ListenAndServe())
+	if cert, key := os.Getenv("CERT"), os.Getenv("KEY"); cert != "" && key != "" {
+		log.Fatal(s.ListenAndServeTLS(cert, key))
+	} else {
+		log.Fatal(s.ListenAndServe())
+	}
 }

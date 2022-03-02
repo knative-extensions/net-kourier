@@ -35,6 +35,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -52,9 +53,16 @@ import (
 	"knative.dev/networking/test"
 	"knative.dev/networking/test/types"
 	"knative.dev/pkg/network"
+	"knative.dev/pkg/ptr"
 	"knative.dev/pkg/reconciler"
 	pkgTest "knative.dev/pkg/test"
 	"knative.dev/pkg/test/logging"
+)
+
+const (
+	certDirectory = "/var/lib/knative/certs"
+	certPath      = certDirectory + "/tls.crt"
+	keyPath       = certDirectory + "/tls.key"
 )
 
 var dialBackoff = wait.Backoff{
@@ -128,6 +136,18 @@ func CreateRuntimeService(ctx context.Context, t *testing.T, clients *test.Clien
 		},
 	}
 
+	if secretName := os.Getenv("UPSTREAM_TLS_CERT"); secretName != "" {
+		pod = PodWithOption(pod,
+			WithReadinessSchemeHTTPS(),
+			WithEnv([]corev1.EnvVar{{Name: "CERT", Value: certPath}, {Name: "KEY", Value: keyPath}}...),
+			WithVolume("knative-certs", certDirectory, corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+					Optional:   ptr.Bool(false),
+				}}),
+		)
+	}
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -150,6 +170,49 @@ func CreateRuntimeService(ctx context.Context, t *testing.T, clients *test.Clien
 	}
 
 	return name, port, createPodAndService(ctx, t, clients, pod, svc)
+}
+
+// PodOption enables further configuration of a Pod.
+type PodOption func(*corev1.Pod)
+
+// WithVolume adds a volume to the pod.
+func WithVolume(name, mountPath string, volumeSource corev1.VolumeSource) PodOption {
+	return func(p *corev1.Pod) {
+		rt := &p.Spec
+
+		rt.Containers[0].VolumeMounts = append(rt.Containers[0].VolumeMounts,
+			corev1.VolumeMount{
+				Name:      name,
+				MountPath: mountPath,
+			})
+
+		rt.Volumes = append(rt.Volumes, corev1.Volume{
+			Name:         name,
+			VolumeSource: volumeSource,
+		})
+	}
+}
+
+// WithEnv configures the Service to use the provided environment variables.
+func WithEnv(evs ...corev1.EnvVar) PodOption {
+	return func(p *corev1.Pod) {
+		p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, evs...)
+	}
+}
+
+// WithReadinessSchemeHTTPS adds https scheme to readiness probe.
+func WithReadinessSchemeHTTPS() PodOption {
+	return func(p *corev1.Pod) {
+		p.Spec.Containers[0].ReadinessProbe.Handler.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	}
+}
+
+// PodWithOption modifies pod objects with PodOptions.
+func PodWithOption(pod *corev1.Pod, po ...PodOption) *corev1.Pod {
+	for _, opt := range po {
+		opt(pod)
+	}
+	return pod
 }
 
 // CreateProxyService creates a Kubernetes service that will forward requests to
@@ -192,6 +255,17 @@ func CreateProxyService(ctx context.Context, t *testing.T, clients *test.Clients
 				}},
 			}},
 		},
+	}
+
+	if secretName := os.Getenv("UPSTREAM_TLS_CERT"); secretName != "" {
+		pod = PodWithOption(pod,
+			WithEnv([]corev1.EnvVar{{Name: "CERT", Value: certPath}, {Name: "KEY", Value: keyPath}}...),
+			WithVolume("knative-certs", certDirectory, corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+					Optional:   ptr.Bool(false),
+				}}),
+		)
 	}
 
 	svc := &corev1.Service{
@@ -272,6 +346,18 @@ func CreateTimeoutService(ctx context.Context, t *testing.T, clients *test.Clien
 		},
 	}
 
+	if secretName := os.Getenv("UPSTREAM_TLS_CERT"); secretName != "" {
+		pod = PodWithOption(pod,
+			WithReadinessSchemeHTTPS(),
+			WithEnv([]corev1.EnvVar{{Name: "CERT", Value: certPath}, {Name: "KEY", Value: keyPath}}...),
+			WithVolume("knative-certs", certDirectory, corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+					Optional:   ptr.Bool(false),
+				}}),
+		)
+	}
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -345,6 +431,18 @@ func CreateWebsocketService(ctx context.Context, t *testing.T, clients *test.Cli
 				},
 			}},
 		},
+	}
+
+	if secretName := os.Getenv("UPSTREAM_TLS_CERT"); secretName != "" {
+		pod = PodWithOption(pod,
+			WithReadinessSchemeHTTPS(),
+			WithEnv([]corev1.EnvVar{{Name: "CERT", Value: certPath}, {Name: "KEY", Value: keyPath}}...),
+			WithVolume("knative-certs", certDirectory, corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+					Optional:   ptr.Bool(false),
+				}}),
+		)
 	}
 
 	svc := &corev1.Service{
@@ -421,6 +519,17 @@ func CreateGRPCService(ctx context.Context, t *testing.T, clients *test.Clients,
 		},
 	}
 
+	if secretName := os.Getenv("UPSTREAM_TLS_CERT"); secretName != "" {
+		pod = PodWithOption(pod,
+			WithEnv([]corev1.EnvVar{{Name: "CERT", Value: certPath}, {Name: "KEY", Value: keyPath}}...),
+			WithVolume("knative-certs", certDirectory, corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+					Optional:   ptr.Bool(false),
+				}}),
+		)
+	}
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -489,6 +598,17 @@ func CreateRetryService(ctx context.Context, t *testing.T, clients *test.Clients
 				},
 			}},
 		},
+	}
+
+	if secretName := os.Getenv("UPSTREAM_TLS_CERT"); secretName != "" {
+		pod = PodWithOption(pod,
+			WithEnv([]corev1.EnvVar{{Name: "CERT", Value: certPath}, {Name: "KEY", Value: keyPath}}...),
+			WithVolume("knative-certs", certDirectory, corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+					Optional:   ptr.Bool(false),
+				}}),
+		)
 	}
 
 	svc := &corev1.Service{

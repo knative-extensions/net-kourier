@@ -68,7 +68,7 @@ func Setup(t testing.TB) *Clients {
 // ObjectNameForTest generates a random object name based on the test name.
 var ObjectNameForTest = helpers.ObjectNameForTest
 
-// ListenAndServeGracefully calls into ListenAndServeGracefullyWithPattern
+// ListenAndServeGracefully calls into ListenAndServeGracefullyWithHandler
 // by passing handler to handle requests for "/"
 func ListenAndServeGracefully(addr string, handler func(w http.ResponseWriter, r *http.Request)) {
 	ListenAndServeGracefullyWithHandler(addr, http.HandlerFunc(handler))
@@ -80,6 +80,24 @@ func ListenAndServeGracefully(addr string, handler func(w http.ResponseWriter, r
 func ListenAndServeGracefullyWithHandler(addr string, handler http.Handler) {
 	server := pkgnet.NewServer(addr, handler)
 	go server.ListenAndServe()
+
+	<-signals.SetupSignalHandler()
+	server.Shutdown(context.Background())
+}
+
+// ListenAndServeTLSGracefully calls into ListenAndServeTLSGracefullyWithHandler
+// by passing handler to handle requests for "/"
+func ListenAndServeTLSGracefully(cert, key, addr string, handler func(w http.ResponseWriter, r *http.Request)) {
+	ListenAndServeTLSGracefullyWithHandler(cert, key, addr, http.HandlerFunc(handler))
+}
+
+//
+// ListenAndServeTLSGracefullyWithHandler creates an HTTPS server, listens on the defined address
+// and handles incoming requests with the given handler.
+// It blocks until SIGTERM is received and the underlying server has shutdown gracefully.
+func ListenAndServeTLSGracefullyWithHandler(cert, key, addr string, handler http.Handler) {
+	server := pkgnet.NewServer(addr, handler)
+	go server.ListenAndServeTLS(cert, key)
 
 	<-signals.SetupSignalHandler()
 	server.Shutdown(context.Background())

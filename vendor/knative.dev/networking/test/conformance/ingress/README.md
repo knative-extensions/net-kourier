@@ -124,6 +124,31 @@ If `INGRESS_CLASS` is already set, then you can simply `go test ingress_test.go`
 
 NOTE: You will need to run `go mod vendor` for every change you make.
 
-```
+### Running the tests with TLS server
 
-```
+Each test image can run the server with TLS. If you specified the secret name, which stores server certificate, via `UPSTREAM_TLS_CERT`
+env variable, the servers are running with TLS server.
+
+The following steps show how you can use it:
+
+1. Create server certificate with the name `server-certs` in `serving-tests` namespace.
+
+  ```shell
+  $ kubectl create -n serving-tests secret tls server-certs \
+      --key=tls.key --cert=tls.crt
+  ```
+
+1. Set env variable `UPSTREAM_TLS_CERT=server-certs` and run the tests.
+
+  ```shell
+  $ export UPSTREAM_TLS_CERT=server-certs
+  $ go test -race -count=1 -tags=e2e ./test/conformance/ -run "TestIngressConformance/basic"
+  ```
+
+1. The backend test server starts running with TLS.
+
+  ```shell
+  $ kubectl -n serving-tests logs ingress-conformance-basics-tfpnykaw
+  2022/01/27 11:54:14 Server starting on port with TLS 8047
+    ...
+  ```
