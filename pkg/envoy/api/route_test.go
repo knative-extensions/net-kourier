@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"gotest.tools/v3/assert"
 )
 
@@ -45,4 +46,20 @@ func TestNewRouteHostRewrite(t *testing.T) {
 
 	r := NewRoute(name, nil, path, nil, 0, nil, "test.host")
 	assert.Equal(t, r.Action.(*route.Route_Route).Route.GetHostRewriteLiteral(), "test.host")
+}
+
+func TestNewRouteExtAuthzDisabled(t *testing.T) {
+	name := "testRoute_HTTP01_challenge"
+	path := "/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE"
+	headerMatch := []*route.HeaderMatcher{{
+		Name: "myHeader",
+		HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+			ExactMatch: "strict",
+		},
+	}}
+
+	r := NewRouteExtAuthzDisabled(name, headerMatch, path, nil, 0, nil, "")
+	assert.Equal(t, r.Match.Headers[0].Name, "myHeader")
+	assert.Assert(t, len(r.TypedPerFilterConfig) != 0)
+	assert.Assert(t, r.TypedPerFilterConfig[wellknown.HTTPExternalAuthorization] != nil)
 }
