@@ -88,8 +88,15 @@ func main() {
 	handler = network.NewProbeHandler(handler).ServeHTTP
 
 	address := ":" + port
-	log.Print("Listening on address: ", address)
-	test.ListenAndServeGracefully(address, handler)
+
+	if cert, key := os.Getenv("CERT"), os.Getenv("KEY"); cert != "" && key != "" {
+		log.Print("Listening on address with TLS: ", address)
+		test.ListenAndServeTLSGracefullyWithHandler(cert, key, ":"+port, handler)
+	} else {
+		log.Print("Listening on address: ", address)
+		test.ListenAndServeGracefully(address, handler)
+	}
+
 }
 
 // newDNSCachingTransport caches DNS lookups locally to avoid issues like

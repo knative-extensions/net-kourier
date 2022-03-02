@@ -48,6 +48,11 @@ func main() {
 	mux := http.NewServeMux()
 	handlers.InitHandlers(mux)
 
-	log.Print("Server starting on port ", port)
-	test.ListenAndServeGracefullyWithHandler(":"+port, mux)
+	if cert, key := os.Getenv("CERT"), os.Getenv("KEY"); cert != "" && key != "" {
+		log.Print("Server starting on port with TLS ", port)
+		test.ListenAndServeTLSGracefullyWithHandler(cert, key, ":"+port, mux)
+	} else {
+		log.Print("Server starting on port ", port)
+		test.ListenAndServeGracefullyWithHandler(":"+port, mux)
+	}
 }

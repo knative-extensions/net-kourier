@@ -86,5 +86,12 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 	h := network.NewProbeHandler(http.HandlerFunc(handler))
-	test.ListenAndServeGracefully(":"+os.Getenv("PORT"), h.ServeHTTP)
+	port := os.Getenv("PORT")
+	if cert, key := os.Getenv("CERT"), os.Getenv("KEY"); cert != "" && key != "" {
+		log.Print("Server starting on port with TLS ", port)
+		test.ListenAndServeTLSGracefully(cert, key, ":"+port, h.ServeHTTP)
+	} else {
+		log.Print("Server starting on port ", port)
+		test.ListenAndServeGracefully(":"+port, h.ServeHTTP)
+	}
 }
