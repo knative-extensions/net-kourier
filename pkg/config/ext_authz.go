@@ -54,10 +54,10 @@ type ExternalAuthzConfig struct {
 }
 
 type config struct {
-	Host             string `split_words:"true"`
-	FailureModeAllow bool   `split_words:"true"`
-	MaxRequestBytes  uint32 `split_words:"true" default:"8192"`
-	Timeout          int    `split_words:"true" default:"2000"`
+	Host             string
+	FailureModeAllow bool
+	MaxRequestBytes  uint32 `default:"8192"`
+	Timeout          int    `default:"2000"`
 }
 
 func init() {
