@@ -32,7 +32,10 @@ import (
 	"knative.dev/pkg/reconciler"
 )
 
-const conflictReason = "DomainConflict"
+const (
+	conflictReason      = "DomainConflict"
+	notReconciledReason = "ReconcileIngressFailed"
+)
 
 type Reconciler struct {
 	xdsServer         *envoy.XdsServer
@@ -62,6 +65,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 		ing.Status.MarkLoadBalancerFailed(conflictReason, "Ingress rejected: "+err.Error())
 		return nil
 	} else if err != nil {
+		ing.Status.MarkIngressNotReady(notReconciledReason, err.Error())
 		return fmt.Errorf("failed to update ingress: %w", err)
 	}
 
