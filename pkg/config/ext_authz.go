@@ -53,11 +53,32 @@ type ExternalAuthzConfig struct {
 	HTTPFilter *hcm.HttpFilter
 }
 
+type extAuthzProtocol string
+
+const (
+	extAuthzProtocolGRPC  extAuthzProtocol = "grpc"
+	extAuthzProtocolHTTP  extAuthzProtocol = "http"
+	extAuthzProtocolHTTPS extAuthzProtocol = "https"
+)
+
+var extAuthzProtocols = map[extAuthzProtocol]struct{}{
+	extAuthzProtocolGRPC:  {},
+	extAuthzProtocolHTTP:  {},
+	extAuthzProtocolHTTPS: {},
+}
+
+func isValidExtAuthzProtocol(protocol extAuthzProtocol) bool {
+	_, ok := extAuthzProtocols[protocol]
+	return ok
+}
+
 type config struct {
 	Host             string
 	FailureModeAllow bool
-	MaxRequestBytes  uint32 `default:"8192"`
-	Timeout          int    `default:"2000"`
+	MaxRequestBytes  uint32           `default:"8192"`
+	Timeout          int              `default:"2000"`
+	Protocol         extAuthzProtocol `default:"grpc"`
+	PathPrefix       string
 }
 
 func init() {
@@ -68,6 +89,11 @@ func init() {
 
 	var env config
 	envconfig.MustProcess("KOURIER_EXTAUTHZ", &env)
+
+	if !isValidExtAuthzProtocol(env.Protocol) {
+		err := fmt.Errorf("protocol %s is invalid, must be in %+v", env.Protocol, extAuthzProtocols)
+		panic(err)
+	}
 
 	host, portStr, err := net.SplitHostPort(env.Host)
 	if err != nil {
@@ -84,21 +110,32 @@ func init() {
 		panic(fmt.Sprintf("port %d bigger than %d", port, unixMaxPort))
 	}
 
-	timeout := time.Duration(env.Timeout) * time.Millisecond
-
 	ExternalAuthz = &ExternalAuthzConfig{
 		Enabled:    true,
-		Cluster:    extAuthzCluster(host, uint32(port)),
-		HTTPFilter: externalAuthZFilter(extAuthzClusterName, timeout, env.FailureModeAllow, env.MaxRequestBytes),
+		Cluster:    extAuthzCluster(host, uint32(port), env.Protocol),
+		HTTPFilter: externalAuthZFilter(&env),
 	}
 }
 
-func extAuthzCluster(host string, port uint32) *v3Cluster.Cluster {
+const extAuthzClusterTypedExtensionProtocolOptionsHTTP = "envoy.extensions.upstreams.http.v3.HttpProtocolOptions"
+
+func extAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *v3Cluster.Cluster {
+	var explicitHTTPConfig *httpOptions.HttpProtocolOptions_ExplicitHttpConfig
+
+	switch protocol {
+	case extAuthzProtocolGRPC:
+		explicitHTTPConfig = &httpOptions.HttpProtocolOptions_ExplicitHttpConfig{
+			ProtocolConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
+		}
+	case extAuthzProtocolHTTP, extAuthzProtocolHTTPS:
+		explicitHTTPConfig = &httpOptions.HttpProtocolOptions_ExplicitHttpConfig{
+			ProtocolConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_HttpProtocolOptions{},
+		}
+	}
+
 	opts, _ := anypb.New(&httpOptions.HttpProtocolOptions{
 		UpstreamProtocolOptions: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_{
-			ExplicitHttpConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig{
-				ProtocolConfig: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
-			},
+			ExplicitHttpConfig: explicitHTTPConfig,
 		},
 	})
 
@@ -108,7 +145,7 @@ func extAuthzCluster(host string, port uint32) *v3Cluster.Cluster {
 			Type: v3Cluster.Cluster_STRICT_DNS,
 		},
 		TypedExtensionProtocolOptions: map[string]*anypb.Any{
-			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": opts,
+			extAuthzClusterTypedExtensionProtocolOptionsHTTP: opts,
 		},
 		ConnectTimeout: durationpb.New(5 * time.Second),
 		LoadAssignment: &endpoint.ClusterLoadAssignment{
@@ -137,29 +174,53 @@ func extAuthzCluster(host string, port uint32) *v3Cluster.Cluster {
 	}
 }
 
-func externalAuthZFilter(clusterName string, timeout time.Duration, failureModeAllow bool, maxRequestBytes uint32) *hcm.HttpFilter {
+func externalAuthZFilter(conf *config) *hcm.HttpFilter {
+	timeout := durationpb.New(time.Duration(conf.Timeout) * time.Millisecond)
+
 	extAuthConfig := &extAuthService.ExtAuthz{
-		Services: &extAuthService.ExtAuthz_GrpcService{
-			GrpcService: &core.GrpcService{
-				TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-					EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
-						ClusterName: clusterName,
-					},
-				},
-				Timeout: durationpb.New(timeout),
-				InitialMetadata: []*core.HeaderValue{{
-					Key:   "client",
-					Value: "kourier",
-				}},
-			},
-		},
 		TransportApiVersion: core.ApiVersion_V3,
-		FailureModeAllow:    failureModeAllow,
+		FailureModeAllow:    conf.FailureModeAllow,
 		WithRequestBody: &extAuthService.BufferSettings{
-			MaxRequestBytes:     maxRequestBytes,
+			MaxRequestBytes:     conf.MaxRequestBytes,
 			AllowPartialMessage: true,
 		},
 		ClearRouteCache: false,
+	}
+
+	headers := []*core.HeaderValue{{
+		Key:   "client",
+		Value: "kourier",
+	}}
+
+	switch conf.Protocol {
+	case extAuthzProtocolGRPC:
+		extAuthConfig.Services = &extAuthService.ExtAuthz_GrpcService{
+			GrpcService: &core.GrpcService{
+				TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
+					EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
+						ClusterName: extAuthzClusterName,
+					},
+				},
+				Timeout:         timeout,
+				InitialMetadata: headers,
+			},
+		}
+	case extAuthzProtocolHTTP, extAuthzProtocolHTTPS:
+		extAuthConfig.Services = &extAuthService.ExtAuthz_HttpService{
+			HttpService: &extAuthService.HttpService{
+				ServerUri: &core.HttpUri{
+					Uri: fmt.Sprintf("%s://%s", conf.Protocol, conf.Host),
+					HttpUpstreamType: &core.HttpUri_Cluster{
+						Cluster: extAuthzClusterName,
+					},
+					Timeout: timeout,
+				},
+				PathPrefix: conf.PathPrefix,
+				AuthorizationRequest: &extAuthService.AuthorizationRequest{
+					HeadersToAdd: headers,
+				},
+			},
+		}
 	}
 
 	envoyConf, err := anypb.New(extAuthConfig)
