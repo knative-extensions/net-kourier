@@ -170,7 +170,7 @@ github.com/patrickmn/go-cache
 github.com/pires/go-proxyproto
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
-# github.com/prometheus/client_golang v1.11.0
+# github.com/prometheus/client_golang v1.11.1
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
@@ -838,10 +838,10 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/hack v0.0.0-20220224013837-e1785985d364
+# knative.dev/hack v0.0.0-20220314052818-c9c3ea17a2e9
 ## explicit
 knative.dev/hack
-# knative.dev/networking v0.0.0-20220302134042-e8b2eb995165
+# knative.dev/networking v0.0.0-20220315020002-1890039ae107
 ## explicit
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -874,7 +874,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20220310195447-38af013b30ff
+# knative.dev/pkg v0.0.0-20220314170718-721abec0a377
 ## explicit
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
