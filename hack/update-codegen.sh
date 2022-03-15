@@ -31,7 +31,8 @@ group "Deepcopy Gen"
 ${GOPATH}/bin/deepcopy-gen \
   -O zz_generated.deepcopy \
   --go-header-file "${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt" \
-  -i knative.dev/net-kourier/pkg/config
+  -i knative.dev/net-kourier/pkg/config \
+  -i knative.dev/net-kourier/pkg/reconciler/ingress/config
 
 # Make sure our dependencies are up-to-date
 ${REPO_ROOT_DIR}/hack/update-deps.sh
