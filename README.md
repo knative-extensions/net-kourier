@@ -126,11 +126,17 @@ vars in the `net-kourier-controller` deployment:
   my-auth:2222
 - `KOURIER_EXTAUTHZ_FAILUREMODEALLOW*`: Allow traffic to go through if the ext
   auth service is down. Accepts true/false
+- `KOURIER_EXTAUTHZ_PROTOCOL`: The protocol used to query the ext auth
+  service. Can be one of : grpc, http, https. Defaults to grpc
 - `KOURIER_EXTAUTHZ_MAXREQUESTBYTES`: Max request bytes, if not set, defaults to
   8192 Bytes. More info
   [Envoy Docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html?highlight=max_request_bytes#extensions-filters-http-ext-authz-v3-buffersettings)
 - `KOURIER_EXTAUTHZ_TIMEOUT`: Max time in ms to wait for the ext authz service.
-  Defaults to 2s.
+  Defaults to 2s
+- `KOURIER_EXTAUTHZ_PATHPREFIX`: If `KOURIER_EXTAUTHZ_PROTOCOL` is equal to
+  http or https, path to query the ext auth service. Example : if set to
+  `/verify`, it will query `/verify/` (**notice the trailing `/`**).
+  If not set, it will query `/`.
 
 `*` Required
 
