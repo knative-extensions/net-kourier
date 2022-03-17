@@ -123,7 +123,7 @@ jobs:
         kind create cluster --config kind.yaml
 
     - name: Deploy certificates for upstream traffic
-      if: matrix.upstream-traffic == 'tls'
+      if: matrix.upstream-tls == 'tls'
       run: |
         set -o pipefail
         echo ">> Deploy certificate for upstream traffic"
