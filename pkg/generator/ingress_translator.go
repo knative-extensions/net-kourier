@@ -24,11 +24,11 @@ import (
 	"time"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoymatcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
@@ -181,7 +181,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 				connectTimeout := 5 * time.Second
 
-				var transportSocket *envoy_core_v3.TransportSocket
+				var transportSocket *envoycorev3.TransportSocket
 
 				// This has to be "OrDefaults" because this path is called before the informers are
 				// running when booting the controller up and prefilling the config before making it
@@ -204,7 +204,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 
 			if len(wrs) != 0 {
-				// disable ext_authz filter for HTTP01 challenge when the feature is enabled
+				// disable ext_tlsz filter for HTTP01 challenge when the feature is enabled
 				if extAuthzEnabled && strings.HasPrefix(path, "/.well-known/acme-challenge/") {
 					routes = append(routes, envoy.NewRouteExtAuthzDisabled(
 						pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
@@ -268,7 +268,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	}, nil
 }
 
-func (translator *IngressTranslator) createUpstreamTransportSocket(activatorCA, activatorSAN string, http2 bool) (*envoy_core_v3.TransportSocket, error) {
+func (translator *IngressTranslator) createUpstreamTransportSocket(activatorCA, activatorSAN string, http2 bool) (*envoycorev3.TransportSocket, error) {
 	caSecret, err := translator.secretGetter(system.Namespace(), activatorCA)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch activator CA secret: %w", err)
@@ -281,30 +281,30 @@ func (translator *IngressTranslator) createUpstreamTransportSocket(activatorCA, 
 	if err != nil {
 		return nil, err
 	}
-	return &envoy_core_v3.TransportSocket{
+	return &envoycorev3.TransportSocket{
 		Name: wellknown.TransportSocketTls,
-		ConfigType: &envoy_core_v3.TransportSocket_TypedConfig{
+		ConfigType: &envoycorev3.TransportSocket_TypedConfig{
 			TypedConfig: tlsAny,
 		},
 	}, nil
 }
 
-func createUpstreamTLSContext(caCertificate []byte, activatorSAN string, alpnProtocols ...string) *auth.UpstreamTlsContext {
-	return &auth.UpstreamTlsContext{
-		CommonTlsContext: &auth.CommonTlsContext{
+func createUpstreamTLSContext(caCertificate []byte, activatorSAN string, alpnProtocols ...string) *tls.UpstreamTlsContext {
+	return &tls.UpstreamTlsContext{
+		CommonTlsContext: &tls.CommonTlsContext{
 			AlpnProtocols: alpnProtocols,
-			TlsParams: &auth.TlsParameters{
-				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+			TlsParams: &tls.TlsParameters{
+				TlsMinimumProtocolVersion: tls.TlsParameters_TLSv1_2,
 			},
-			ValidationContextType: &auth.CommonTlsContext_ValidationContext{
-				ValidationContext: &auth.CertificateValidationContext{
-					TrustedCa: &envoy_core_v3.DataSource{
-						Specifier: &envoy_core_v3.DataSource_InlineBytes{
+			ValidationContextType: &tls.CommonTlsContext_ValidationContext{
+				ValidationContext: &tls.CertificateValidationContext{
+					TrustedCa: &envoycorev3.DataSource{
+						Specifier: &envoycorev3.DataSource_InlineBytes{
 							InlineBytes: caCertificate,
 						},
 					},
-					MatchSubjectAltNames: []*envoy_matcher_v3.StringMatcher{{
-						MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+					MatchSubjectAltNames: []*envoymatcherv3.StringMatcher{{
+						MatchPattern: &envoymatcherv3.StringMatcher_Exact{
 							Exact: activatorSAN,
 						}},
 					},
@@ -387,7 +387,7 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 // 	- sub-route_host.namespace.example.com
 // 	- sub-route_host.namespace.example.com:*
 //
-// Somehow envoy doesn't match properly gRPC authorities with ports.
+// Somehow envoy doesn't match properly gRPC tlsorities with ports.
 // The fix is to include ":*" in the domains.
 // This applies both for internal and external domains.
 // More info https://github.com/envoyproxy/envoy/issues/886

@@ -22,11 +22,11 @@ import (
 	"time"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	envoymatcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -816,7 +816,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
-						&envoy_core_v3.TransportSocket{
+						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
 							ConfigType: typedConfig(false /* http2 */),
 						},
@@ -879,7 +879,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						true, /* http2 */
-						&envoy_core_v3.TransportSocket{
+						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
 							ConfigType: typedConfig(true /* http2 */),
 						},
@@ -1186,7 +1186,7 @@ var (
 	}
 )
 
-func typedConfig(http2 bool) *envoy_core_v3.TransportSocket_TypedConfig {
+func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 	alpn := []string{""}
 	if http2 {
 		alpn = []string{"h2"}
@@ -1199,13 +1199,13 @@ func typedConfig(http2 bool) *envoy_core_v3.TransportSocket_TypedConfig {
 			},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContext{
 				ValidationContext: &auth.CertificateValidationContext{
-					TrustedCa: &envoy_core_v3.DataSource{
-						Specifier: &envoy_core_v3.DataSource_InlineBytes{
+					TrustedCa: &envoycorev3.DataSource{
+						Specifier: &envoycorev3.DataSource_InlineBytes{
 							InlineBytes: cert,
 						},
 					},
-					MatchSubjectAltNames: []*envoy_matcher_v3.StringMatcher{{
-						MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+					MatchSubjectAltNames: []*envoymatcherv3.StringMatcher{{
+						MatchPattern: &envoymatcherv3.StringMatcher_Exact{
 							Exact: "test-san",
 						}},
 					},
@@ -1213,7 +1213,7 @@ func typedConfig(http2 bool) *envoy_core_v3.TransportSocket_TypedConfig {
 			},
 		},
 	})
-	return &envoy_core_v3.TransportSocket_TypedConfig{
+	return &envoycorev3.TransportSocket_TypedConfig{
 		TypedConfig: tlsAny,
 	}
 }

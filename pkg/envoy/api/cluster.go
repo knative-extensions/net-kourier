@@ -19,8 +19,8 @@ package envoy
 import (
 	"time"
 
-	envoyCluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoyCore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	httpOptions "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
@@ -33,12 +33,12 @@ func NewCluster(
 	name string,
 	connectTimeout time.Duration,
 	endpoints []*endpoint.LbEndpoint,
-	isHTTP2 bool, transportSocket *envoyCore.TransportSocket,
-	discoveryType envoyCluster.Cluster_DiscoveryType) *envoyCluster.Cluster {
+	isHTTP2 bool, transportSocket *envoycorev3.TransportSocket,
+	discoveryType envoyclusterv3.Cluster_DiscoveryType) *envoyclusterv3.Cluster {
 
-	cluster := &envoyCluster.Cluster{
+	cluster := &envoyclusterv3.Cluster{
 		Name: name,
-		ClusterDiscoveryType: &envoyCluster.Cluster_Type{
+		ClusterDiscoveryType: &envoyclusterv3.Cluster_Type{
 			Type: discoveryType,
 		},
 		ConnectTimeout: durationpb.New(connectTimeout),
