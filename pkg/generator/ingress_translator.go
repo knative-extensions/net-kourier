@@ -204,7 +204,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 
 			if len(wrs) != 0 {
-				// disable ext_tlsz filter for HTTP01 challenge when the feature is enabled
+				// disable ext_authz filter for HTTP01 challenge when the feature is enabled
 				if extAuthzEnabled && strings.HasPrefix(path, "/.well-known/acme-challenge/") {
 					routes = append(routes, envoy.NewRouteExtAuthzDisabled(
 						pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
