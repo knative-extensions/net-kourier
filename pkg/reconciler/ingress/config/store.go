@@ -27,6 +27,7 @@ import (
 type cfgKey struct{}
 
 // Config contains the configmaps requires for revision reconciliation.
+// +k8s:deepcopy-gen=false
 type Config struct {
 	Kourier *config.Kourier
 	Network *network.Config
