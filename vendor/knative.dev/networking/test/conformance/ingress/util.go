@@ -125,7 +125,7 @@ func CreateRuntimeService(ctx context.Context, t *testing.T, clients *test.Clien
 					Value: strconv.Itoa(containerPort),
 				}},
 				ReadinessProbe: &corev1.Probe{
-					Handler: corev1.Handler{
+					ProbeHandler: corev1.ProbeHandler{
 						HTTPGet: &corev1.HTTPGetAction{
 							Path: "/healthz",
 							Port: intstr.FromInt(containerPort),
@@ -203,7 +203,7 @@ func WithEnv(evs ...corev1.EnvVar) PodOption {
 // WithReadinessSchemeHTTPS adds https scheme to readiness probe.
 func WithReadinessSchemeHTTPS() PodOption {
 	return func(p *corev1.Pod) {
-		p.Spec.Containers[0].ReadinessProbe.Handler.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		p.Spec.Containers[0].ReadinessProbe.ProbeHandler.HTTPGet.Scheme = corev1.URISchemeHTTPS
 	}
 }
 
@@ -336,7 +336,7 @@ func CreateTimeoutService(ctx context.Context, t *testing.T, clients *test.Clien
 					Value: strconv.Itoa(containerPort),
 				}},
 				ReadinessProbe: &corev1.Probe{
-					Handler: corev1.Handler{
+					ProbeHandler: corev1.ProbeHandler{
 						HTTPGet: &corev1.HTTPGetAction{
 							Port: intstr.FromInt(containerPort),
 						},
@@ -422,7 +422,7 @@ func CreateWebsocketService(ctx context.Context, t *testing.T, clients *test.Cli
 					Value: suffix,
 				}},
 				ReadinessProbe: &corev1.Probe{
-					Handler: corev1.Handler{
+					ProbeHandler: corev1.ProbeHandler{
 						HTTPGet: &corev1.HTTPGetAction{
 							Path: "/",
 							Port: intstr.FromInt(containerPort),
@@ -509,7 +509,7 @@ func CreateGRPCService(ctx context.Context, t *testing.T, clients *test.Clients,
 					Value: suffix,
 				}},
 				ReadinessProbe: &corev1.Probe{
-					Handler: corev1.Handler{
+					ProbeHandler: corev1.ProbeHandler{
 						TCPSocket: &corev1.TCPSocketAction{
 							Port: intstr.FromInt(containerPort),
 						},
@@ -590,7 +590,7 @@ func CreateRetryService(ctx context.Context, t *testing.T, clients *test.Clients
 					Value: strconv.Itoa(containerPort),
 				}},
 				ReadinessProbe: &corev1.Probe{
-					Handler: corev1.Handler{
+					ProbeHandler: corev1.ProbeHandler{
 						TCPSocket: &corev1.TCPSocketAction{
 							Port: intstr.FromInt(containerPort),
 						},
