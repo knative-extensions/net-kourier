@@ -13,6 +13,7 @@ coverage:
       default: false
 ignore:
   - "**/zz_generated*.go" # Ignore generated files.
+  - "**/zz_generated.deepcopy.go" # Ignore generated files.
   - "**/*.pb.go" # Ignore proto-generated files.
   - "hack"
   - "pkg/client"
