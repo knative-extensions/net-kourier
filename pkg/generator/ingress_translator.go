@@ -188,7 +188,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// ready.
 				cfg := config.FromContextOrDefaults(ctx)
 
-				// TODO: As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't need to enable TLS?
+				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
 				if activatorCA := cfg.Network.ActivatorCA; activatorCA != "" && httpPath.RewriteHost == "" {
 					var err error
 					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, config.FromContext(ctx).Network.ActivatorSAN, http2)
@@ -387,7 +387,7 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 // 	- sub-route_host.namespace.example.com
 // 	- sub-route_host.namespace.example.com:*
 //
-// Somehow envoy doesn't match properly gRPC tlsorities with ports.
+// Somehow envoy doesn't match properly gRPC authorities with ports.
 // The fix is to include ":*" in the domains.
 // This applies both for internal and external domains.
 // More info https://github.com/envoyproxy/envoy/issues/886
