@@ -190,6 +190,13 @@ spec:
   type: LoadBalancer
 ```
 
+## Tips
+Domain Mapping is configured to explicitly use `http2` protocol only. This behaviour can be disabled by adding the following annotation to the Domain Mapping resource
+```
+kubectl annotate domainmapping <domain_mapping_name> networking.knative.dev/disableHTTP2=true --namespace <namespace>
+```
+A good use case for this configuration is `DomainMapping with Websocket`
+
 ## License
 
 [Apache 2.0 License](LICENSE)
