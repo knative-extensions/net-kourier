@@ -17,14 +17,20 @@ limitations under the License.
 package generator
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoymatcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +39,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	network "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	pkgtest "knative.dev/pkg/reconciler/testing"
 )
@@ -86,6 +94,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 				},
@@ -152,6 +161,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 				},
@@ -235,6 +245,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 				},
@@ -304,6 +315,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 				},
@@ -381,6 +393,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 					envoy.NewCluster(
@@ -388,6 +401,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 					envoy.NewCluster(
@@ -395,6 +409,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,
+						nil,
 						v3.Cluster_LOGICAL_DNS,
 					),
 				},
@@ -448,6 +463,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 				},
@@ -501,6 +517,7 @@ func TestIngressTranslator(t *testing.T) {
 						5*time.Second,
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,
+						nil,
 						v3.Cluster_LOGICAL_DNS,
 					),
 				},
@@ -520,7 +537,9 @@ func TestIngressTranslator(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx, _ := pkgtest.SetupFakeContext(t)
+			cfg := defaultConfig.DeepCopy()
+			ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
+
 			kubeclient := fake.NewSimpleClientset(test.state...)
 
 			translator := NewIngressTranslator(
@@ -545,6 +564,29 @@ func TestIngressTranslator(t *testing.T) {
 		})
 	}
 }
+
+type testConfigStore struct {
+	config *config.Config
+}
+
+func (t *testConfigStore) ToContext(ctx context.Context) context.Context {
+	return config.ToContext(ctx, t.config)
+}
+
+var (
+	defaultConfig = &config.Config{
+		Network: &network.Config{
+			AutoTLS: false,
+		},
+	}
+	upstreamTLSConfig = &config.Config{
+		Network: &network.Config{
+			AutoTLS:      false,
+			ActivatorCA:  "test-ca",
+			ActivatorSAN: "test-san",
+		},
+	}
+)
 
 // TestIngressTranslatorWithHTTPOptionDisabled runs same redirect test in TestIngressTranslator with KOURIER_HTTPOPTION_DISABLED env value.
 func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
@@ -611,6 +653,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 				},
@@ -680,6 +723,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						5*time.Second,
 						lbEndpoints,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 				},
@@ -693,7 +737,167 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Setenv("KOURIER_HTTPOPTION_DISABLED", "true")
-			ctx, _ := pkgtest.SetupFakeContext(t)
+			cfg := defaultConfig.DeepCopy()
+			ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
+			kubeclient := fake.NewSimpleClientset(test.state...)
+
+			translator := NewIngressTranslator(
+				func(ns, name string) (*corev1.Secret, error) {
+					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns, name string) (*corev1.Endpoints, error) {
+					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns, name string) (*corev1.Service, error) {
+					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				&pkgtest.FakeTracker{},
+			)
+
+			got, err := translator.translateIngress(ctx, test.in, false)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, test.want,
+				cmp.AllowUnexported(translatedIngress{}),
+				protocmp.Transform(),
+			)
+		})
+	}
+}
+
+func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
+	tests := []struct {
+		name  string
+		in    *v1alpha1.Ingress
+		state []runtime.Object
+		want  *translatedIngress
+	}{{
+		name: "simple",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			caSecret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(simplens/simplename).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(simplens/simplename).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						""),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						&envoycorev3.TransportSocket{
+							Name:       wellknown.TransportSocketTls,
+							ConfigType: typedConfig(false /* http2 */),
+						},
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}, {
+		name: "http2",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename", func(service *corev1.Service) {
+				service.Spec.Ports = []corev1.ServicePort{{
+					Name:       "http2",
+					TargetPort: intstr.FromInt(8080),
+				}}
+			}),
+			eps("servicens", "servicename"),
+			caSecret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(simplens/simplename).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(simplens/simplename).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						""),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbEndpoints,
+						true, /* http2 */
+						&envoycorev3.TransportSocket{
+							Name:       wellknown.TransportSocketTls,
+							ConfigType: typedConfig(true /* http2 */),
+						},
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := upstreamTLSConfig.DeepCopy()
+			ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
+
 			kubeclient := fake.NewSimpleClientset(test.state...)
 
 			translator := NewIngressTranslator(
@@ -775,6 +979,7 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 						5*time.Second,
 						lbEndpointHTTP01Challenge,
 						false,
+						nil,
 						v3.Cluster_STATIC,
 					),
 				},
@@ -970,4 +1175,45 @@ var (
 			"tls.key": privateKey,
 		},
 	}
+	caSecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "knative-testing",
+			Name:      "test-ca",
+		},
+		Data: map[string][]byte{
+			caDataName: cert,
+		},
+	}
 )
+
+func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
+	alpn := []string{""}
+	if http2 {
+		alpn = []string{"h2"}
+	}
+	tlsAny, _ := anypb.New(&auth.UpstreamTlsContext{
+		CommonTlsContext: &auth.CommonTlsContext{
+			AlpnProtocols: alpn,
+			TlsParams: &auth.TlsParameters{
+				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+			},
+			ValidationContextType: &auth.CommonTlsContext_ValidationContext{
+				ValidationContext: &auth.CertificateValidationContext{
+					TrustedCa: &envoycorev3.DataSource{
+						Specifier: &envoycorev3.DataSource_InlineBytes{
+							InlineBytes: cert,
+						},
+					},
+					MatchSubjectAltNames: []*envoymatcherv3.StringMatcher{{
+						MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+							Exact: "test-san",
+						}},
+					},
+				},
+			},
+		},
+	})
+	return &envoycorev3.TransportSocket_TypedConfig{
+		TypedConfig: tlsAny,
+	}
+}

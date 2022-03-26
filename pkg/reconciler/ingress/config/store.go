@@ -20,14 +20,17 @@ import (
 	"context"
 
 	"knative.dev/net-kourier/pkg/config"
+	network "knative.dev/networking/pkg"
 	"knative.dev/pkg/configmap"
 )
 
 type cfgKey struct{}
 
 // Config contains the configmaps requires for revision reconciliation.
+// +k8s:deepcopy-gen=false
 type Config struct {
 	Kourier *config.Kourier
+	Network *network.Config
 }
 
 // FromContext loads the configuration from the context.
@@ -41,6 +44,14 @@ func FromContextOrDefaults(ctx context.Context) *Config {
 	}
 	return &Config{
 		Kourier: config.DefaultConfig(),
+		Network: defaultConfig(),
+	}
+}
+
+func defaultConfig() *network.Config {
+	return &network.Config{
+		ActivatorCA:  "",
+		ActivatorSAN: "",
 	}
 }
 
@@ -50,6 +61,7 @@ func ToContext(ctx context.Context, c *Config) context.Context {
 }
 
 // Store is a typed wrapper around configmap.UntypedStore to handle our configmaps.
+// +k8s:deepcopy-gen=false
 type Store struct {
 	*configmap.UntypedStore
 }
@@ -61,7 +73,8 @@ func NewStore(logger configmap.Logger, onAfterStore ...func(name string, value i
 			"kourier",
 			logger,
 			configmap.Constructors{
-				config.ConfigName: config.NewConfigFromConfigMap,
+				config.ConfigName:  config.NewConfigFromConfigMap,
+				network.ConfigName: network.NewConfigFromConfigMap,
 			},
 			onAfterStore...,
 		),
@@ -78,5 +91,6 @@ func (s *Store) ToContext(ctx context.Context) context.Context {
 func (s *Store) Load() *Config {
 	return &Config{
 		Kourier: s.UntypedLoad(config.ConfigName).(*config.Kourier).DeepCopy(),
+		Network: s.UntypedLoad(network.ConfigName).(*network.Config).DeepCopy(),
 	}
 }

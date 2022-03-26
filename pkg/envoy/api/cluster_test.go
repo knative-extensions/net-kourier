@@ -35,13 +35,13 @@ func TestNewCluster(t *testing.T) {
 	endpoints := []*endpoint.LbEndpoint{endpoint1, endpoint2}
 
 	// With HTTP2
-	c := NewCluster(name, connectTimeout, endpoints, true, v3Cluster.Cluster_STATIC)
+	c := NewCluster(name, connectTimeout, endpoints, true, nil, v3Cluster.Cluster_STATIC)
 	assert.Equal(t, c.GetConnectTimeout().Seconds, int64(connectTimeout.Seconds()))
 	assert.Assert(t, c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] != nil)
 	assert.Equal(t, c.GetName(), name)
 	assert.DeepEqual(t, c.LoadAssignment.Endpoints[0].LbEndpoints, endpoints, protocmp.Transform())
 
 	// Without HTTP2
-	c = NewCluster(name, connectTimeout, endpoints, false, v3Cluster.Cluster_STATIC)
+	c = NewCluster(name, connectTimeout, endpoints, false, nil, v3Cluster.Cluster_STATIC)
 	assert.Assert(t, c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] == nil)
 }

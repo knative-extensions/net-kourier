@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"knative.dev/net-kourier/pkg/config"
+	network "knative.dev/networking/pkg"
 	logtesting "knative.dev/pkg/logging/testing"
 
 	. "knative.dev/pkg/configmap/testing"
@@ -30,7 +31,9 @@ import (
 func TestStoreLoadWithContext(t *testing.T) {
 	store := NewStore(logtesting.TestLogger(t))
 	kourierConfig := ConfigMapFromTestFile(t, config.ConfigName)
+	networkConfig := ConfigMapFromTestFile(t, network.ConfigName)
 	store.OnConfigChanged(kourierConfig)
+	store.OnConfigChanged(networkConfig)
 
 	cfg := FromContext(store.ToContext(context.Background()))
 
@@ -40,9 +43,21 @@ func TestStoreLoadWithContext(t *testing.T) {
 	}
 }
 
+func TestStoreLoadWithDefaults(t *testing.T) {
+	cfg := FromContextOrDefaults(context.Background())
+
+	if diff := cmp.Diff(config.DefaultConfig(), cfg.Kourier); diff != "" {
+		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
+	}
+	if diff := cmp.Diff(defaultConfig(), cfg.Network); diff != "" {
+		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
+	}
+}
+
 func TestStoreImmutableConfig(t *testing.T) {
 	store := NewStore(logtesting.TestLogger(t))
 	store.OnConfigChanged(ConfigMapFromTestFile(t, config.ConfigName))
+	store.OnConfigChanged(ConfigMapFromTestFile(t, network.ConfigName))
 	config := store.Load()
 
 	config.Kourier.EnableServiceAccessLogging = false

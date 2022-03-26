@@ -24,16 +24,27 @@ import (
 	"time"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoymatcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
+	"knative.dev/pkg/system"
 	"knative.dev/pkg/tracker"
+)
+
+const (
+	caDataName = "ca.crt"
 )
 
 type translatedIngress struct {
@@ -169,7 +180,23 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				}
 
 				connectTimeout := 5 * time.Second
-				cluster := envoy.NewCluster(splitName, connectTimeout, publicLbEndpoints, http2, typ)
+
+				var transportSocket *envoycorev3.TransportSocket
+
+				// This has to be "OrDefaults" because this path is called before the informers are
+				// running when booting the controller up and prefilling the config before making it
+				// ready.
+				cfg := config.FromContextOrDefaults(ctx)
+
+				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
+				if activatorCA := cfg.Network.ActivatorCA; activatorCA != "" && httpPath.RewriteHost == "" {
+					var err error
+					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, config.FromContext(ctx).Network.ActivatorSAN, http2)
+					if err != nil {
+						return nil, err
+					}
+				}
+				cluster := envoy.NewCluster(splitName, connectTimeout, publicLbEndpoints, http2, transportSocket, typ)
 				clusters = append(clusters, cluster)
 
 				weightedCluster := envoy.NewWeightedCluster(splitName, uint32(split.Percent), split.AppendHeaders)
@@ -239,6 +266,52 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		externalTLSVirtualHosts: externalTLSHosts,
 		internalVirtualHosts:    internalHosts,
 	}, nil
+}
+
+func (translator *IngressTranslator) createUpstreamTransportSocket(activatorCA, activatorSAN string, http2 bool) (*envoycorev3.TransportSocket, error) {
+	caSecret, err := translator.secretGetter(system.Namespace(), activatorCA)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch activator CA secret: %w", err)
+	}
+	var alpnProtocols string
+	if http2 {
+		alpnProtocols = "h2"
+	}
+	tlsAny, err := anypb.New(createUpstreamTLSContext(caSecret.Data[caDataName], activatorSAN, alpnProtocols))
+	if err != nil {
+		return nil, err
+	}
+	return &envoycorev3.TransportSocket{
+		Name: wellknown.TransportSocketTls,
+		ConfigType: &envoycorev3.TransportSocket_TypedConfig{
+			TypedConfig: tlsAny,
+		},
+	}, nil
+}
+
+func createUpstreamTLSContext(caCertificate []byte, activatorSAN string, alpnProtocols ...string) *tls.UpstreamTlsContext {
+	return &tls.UpstreamTlsContext{
+		CommonTlsContext: &tls.CommonTlsContext{
+			AlpnProtocols: alpnProtocols,
+			TlsParams: &tls.TlsParameters{
+				TlsMinimumProtocolVersion: tls.TlsParameters_TLSv1_2,
+			},
+			ValidationContextType: &tls.CommonTlsContext_ValidationContext{
+				ValidationContext: &tls.CertificateValidationContext{
+					TrustedCa: &envoycorev3.DataSource{
+						Specifier: &envoycorev3.DataSource_InlineBytes{
+							InlineBytes: caCertificate,
+						},
+					},
+					MatchSubjectAltNames: []*envoymatcherv3.StringMatcher{{
+						MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+							Exact: activatorSAN,
+						}},
+					},
+				},
+			},
+		},
+	}
 }
 
 func trackSecret(t tracker.Interface, ns, name string, ingress *v1alpha1.Ingress) error {
