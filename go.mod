@@ -23,3 +23,5 @@ require (
 	knative.dev/networking v0.0.0-20220323170318-55757e9c20d6
 	knative.dev/pkg v0.0.0-20220318185521-e6e3cf03d765
 )
+
+replace knative.dev/networking => /home/knakayam/.go/src/knative.dev/networking

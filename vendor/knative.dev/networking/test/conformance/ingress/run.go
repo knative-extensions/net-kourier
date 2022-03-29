@@ -46,6 +46,8 @@ var stableTests = map[string]func(t *testing.T){
 	"ingressclass":                 TestIngressClass,
 	"websocket":                    TestWebsocket,
 	"websocket/split":              TestWebsocketSplit,
+	// TODO
+	"host-rewrite/websocket": TestRewriteHostWebsocket,
 }
 
 var betaTests = map[string]func(t *testing.T){
