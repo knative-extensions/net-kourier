@@ -113,7 +113,7 @@ func TestRewriteHostWebsocket(t *testing.T) {
 	privateHostName := privateServiceName + "." + test.ServingNamespace + ".svc." + test.NetworkingFlags.ClusterSuffix
 
 	// Create a simple Ingress over the Service.
-	ing, dialCtx, _ := createIngressReadyDialContext(ctx, t, clients, v1alpha1.IngressSpec{
+	ing, _, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Visibility: v1alpha1.IngressVisibilityClusterLocal,
 			Hosts:      []string{privateHostName},
@@ -131,12 +131,6 @@ func TestRewriteHostWebsocket(t *testing.T) {
 		}},
 	})
 
-	dialer := websocket.Dialer{
-		NetDialContext:   dialCtx,
-		Proxy:            http.ProxyFromEnvironment,
-		HandshakeTimeout: 45 * time.Second,
-	}
-
 	// Slap an ExternalName service in front of the kingress
 	loadbalancerAddress := ing.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
 	createExternalNameService(ctx, t, clients, privateHostName, loadbalancerAddress)
@@ -153,7 +147,7 @@ func TestRewriteHostWebsocket(t *testing.T) {
 	}
 
 	// Now create a RewriteHost ingress to point a custom Host at the Service
-	_, _, _ = CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
+	_, dialCtx, _ := createIngressReadyDialContext(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      hosts,
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -171,6 +165,12 @@ func TestRewriteHostWebsocket(t *testing.T) {
 			},
 		}},
 	})
+
+	dialer := websocket.Dialer{
+		NetDialContext:   dialCtx,
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: 45 * time.Second,
+	}
 
 	for _, host := range hosts {
 		u := url.URL{Scheme: "ws", Host: host, Path: "/"}
