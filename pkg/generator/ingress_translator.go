@@ -150,7 +150,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
 						externalPort = port.Port
 						targetPort = port.TargetPort.IntVal
-						http2 = port.Name == "http2" || port.Name == "h2c"
+					}
+					if port.Name == "http2" || port.Name == "h2c" {
+						http2 = true
 					}
 				}
 
