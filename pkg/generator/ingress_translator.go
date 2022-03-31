@@ -191,7 +191,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
 				if activatorCA := cfg.Network.ActivatorCA; activatorCA != "" && httpPath.RewriteHost == "" {
 					var err error
-					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, config.FromContext(ctx).Network.ActivatorSAN, http2)
+					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, cfg.Network.ActivatorSAN, http2)
 					if err != nil {
 						return nil, err
 					}
