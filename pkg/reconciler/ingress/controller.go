@@ -32,6 +32,7 @@ import (
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
 	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	network "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	knativeclient "knative.dev/networking/pkg/client/injection/client"
@@ -86,7 +87,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
-		resync := configmap.TypeFilter(&config.Kourier{})(func(string, interface{}) {
+		configsToResync := []interface{}{
+			&network.Config{},
+			&config.Kourier{},
+		}
+		resync := configmap.TypeFilter(configsToResync...)(func(string, interface{}) {
 			impl.FilteredGlobalResync(isKourierIngress, ingressInformer.Informer())
 		})
 		configStore := rconfig.NewStore(logger.Named("config-store"), resync)
