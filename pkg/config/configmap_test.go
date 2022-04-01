@@ -50,24 +50,28 @@ func TestKourierConfig(t *testing.T) {
 			enableServiceAccessLoggingKey: "foo",
 		},
 	}, {
-		name: "enable proxy protocol and logging",
+		name: "enable proxy protocol, logging and internal cert",
 		want: &Kourier{
 			EnableServiceAccessLogging: true,
 			EnableProxyProtocol:        true,
+			KourierInternalCertSecret:  "my-cert",
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "true",
 			enableProxyProtocol:           "true",
+			kourierInternalCertSecret:     "my-cert",
 		},
 	}, {
-		name: "enable proxy protocol and disable logging",
+		name: "enable proxy protocol and disable logging, empty internal cert",
 		want: &Kourier{
 			EnableServiceAccessLogging: false,
 			EnableProxyProtocol:        true,
+			KourierInternalCertSecret:  "",
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "false",
 			enableProxyProtocol:           "true",
+			kourierInternalCertSecret:     "",
 		},
 	}, {
 		name:    "not a bool for proxy protocol",
