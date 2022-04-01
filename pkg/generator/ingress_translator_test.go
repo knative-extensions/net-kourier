@@ -901,9 +901,11 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			svc("servicens", "servicename", func(service *corev1.Service) {
 				service.Spec.Ports = []corev1.ServicePort{{
 					Name:       "http",
+					Port:       80,
 					TargetPort: intstr.FromInt(8080),
 				}, {
 					Name:       "https",
+					Port:       443,
 					TargetPort: intstr.FromInt(443),
 				}}
 			}),
@@ -968,9 +970,11 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			svc("servicens", "servicename", func(service *corev1.Service) {
 				service.Spec.Ports = []corev1.ServicePort{{
 					Name:       "http2",
+					Port:       80,
 					TargetPort: intstr.FromInt(8080),
 				}, {
 					Name:       "https",
+					Port:       443,
 					TargetPort: intstr.FromInt(443),
 				}}
 			}),

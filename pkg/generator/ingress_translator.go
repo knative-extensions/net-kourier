@@ -146,6 +146,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					targetPort   int32
 					http2        bool
 				)
+
 				for _, port := range service.Spec.Ports {
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
 						externalPort = port.Port
