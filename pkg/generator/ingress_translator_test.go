@@ -892,6 +892,73 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			}
 		}(),
 	}, {
+		name: "http and https",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromString("https")
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename", func(service *corev1.Service) {
+				service.Spec.Ports = []corev1.ServicePort{{
+					Name:       "http",
+					TargetPort: intstr.FromInt(8080),
+				}, {
+					Name:       "https",
+					TargetPort: intstr.FromInt(443),
+				}}
+			}),
+			eps("servicens", "servicename"),
+			caSecret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(simplens/simplename).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(simplens/simplename).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						""),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbHTTPSEndpoints,
+						false, /* http2 */
+						&envoycorev3.TransportSocket{
+							Name:       wellknown.TransportSocketTls,
+							ConfigType: typedConfig(false /* http2 */),
+						},
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}, {
 		name: "http2 and https",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
