@@ -22,7 +22,6 @@ metadata:
     app.kubernetes.io/component: net-kourier
     app.kubernetes.io/version: devel
     app.kubernetes.io/name: knative-serving
-    serving.knative.dev/release: devel
 spec:
   strategy:
     type: RollingUpdate
@@ -106,7 +105,6 @@ metadata:
     app.kubernetes.io/component: net-kourier
     app.kubernetes.io/version: devel
     app.kubernetes.io/name: knative-serving
-    serving.knative.dev/release: devel
 spec:
   ports:
     - name: http2
@@ -131,7 +129,6 @@ metadata:
     app.kubernetes.io/component: net-kourier
     app.kubernetes.io/version: devel
     app.kubernetes.io/name: knative-serving
-    serving.knative.dev/release: devel
 spec:
   ports:
     - name: http2
