@@ -174,7 +174,6 @@ metadata:
     service.beta.kubernetes.io/scw-loadbalancer-use-hostname: "true"
   labels:
     networking.knative.dev/ingress-provider: kourier
-    serving.knative.dev/release: "v0.26.0"
 spec:
   ports:
     - name: http2
