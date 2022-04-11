@@ -53,13 +53,13 @@ const (
 	// KourierIngressClassName is the class name to reconcile.
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
 
-	// DisableHTTP2AnnotationKey is the annotation key attached to a Knative Domain Mapping
+	// disableHTTP2AnnotationKey is the annotation key attached to a Knative Domain Mapping
 	// to indicate that http2 should not be enabled for it.
-	DisableHTTP2AnnotationKey = "networking.knative.dev/disableHTTP2"
+	disableHTTP2AnnotationKey = "kourier.knative.dev/disable-http2"
 )
 
-var DisableHTTP2Annotation = kmap.KeyPriority{
-	DisableHTTP2AnnotationKey,
+var disableHTTP2Annotation = kmap.KeyPriority{
+	disableHTTP2AnnotationKey,
 }
 
 // ServiceHostnames returns the external and internal service's respective hostname.
@@ -81,5 +81,5 @@ func GatewayNamespace() string {
 
 // GetDisableHTTP2 specifies whether http2 is going to be disabled
 func GetDisableHTTP2(annotations map[string]string) (val string) {
-	return DisableHTTP2Annotation.Value(annotations)
+	return disableHTTP2Annotation.Value(annotations)
 }
