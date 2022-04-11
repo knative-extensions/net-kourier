@@ -23,8 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"knative.dev/net-kourier/pkg/config"
-
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -36,8 +34,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
-	IngressConfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
@@ -153,9 +152,14 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 						externalPort = port.Port
 						targetPort = port.TargetPort.IntVal
 					}
-					if !strings.EqualFold(config.GetDisableHTTP2(ingress.Annotations), "true") && (port.Name == "http2" || port.Name == "h2c") {
+					if port.Name == "http2" || port.Name == "h2c" {
 						http2 = true
 					}
+				}
+
+				// Disable HTTP2 if the annotation is specified.
+				if strings.EqualFold(pkgconfig.GetDisableHTTP2(ingress.Annotations), "true") {
+					http2 = false
 				}
 
 				var (
@@ -190,12 +194,12 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// This has to be "OrDefaults" because this path is called before the informers are
 				// running when booting the controller up and prefilling the config before making it
 				// ready.
-				cfg := IngressConfig.FromContextOrDefaults(ctx)
+				cfg := config.FromContextOrDefaults(ctx)
 
 				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
 				if activatorCA := cfg.Network.ActivatorCA; activatorCA != "" && httpPath.RewriteHost == "" {
 					var err error
-					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, IngressConfig.FromContext(ctx).Network.ActivatorSAN, http2)
+					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, config.FromContext(ctx).Network.ActivatorSAN, http2)
 					if err != nil {
 						return nil, err
 					}

@@ -1155,6 +1155,109 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 	})
 }
 
+func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
+	test := struct {
+		name  string
+		in    *v1alpha1.Ingress
+		state []runtime.Object
+		want  *translatedIngress
+	}{
+		name: "disable http2",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Annotations = map[string]string{"kourier.knative.dev/disable-http2": "true"}
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = "bar.default.svc.cluster.local"
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(80)
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename", func(service *corev1.Service) {
+				service.Spec.Type = corev1.ServiceTypeExternalName
+				service.Spec.ExternalName = "kourier-internal.kourier-system.svc.cluster.local"
+				service.Spec.Ports = []corev1.ServicePort{{
+					Name:       "http2",
+					Port:       int32(80),
+					TargetPort: intstr.FromInt(80),
+				}}
+			}),
+			eps("servicens", "servicename"),
+			caSecret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(simplens/simplename).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(simplens/simplename).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"bar.default.svc.cluster.local"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						[]*endpoint.LbEndpoint{
+							envoy.NewLBEndpoint("kourier-internal.kourier-system.svc.cluster.local", 80),
+						},
+						false, /* http2 */
+						nil,
+						v3.Cluster_LOGICAL_DNS,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}
+
+	t.Run(test.name, func(t *testing.T) {
+		cfg := upstreamTLSConfig.DeepCopy()
+		ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
+
+		kubeclient := fake.NewSimpleClientset(test.state...)
+
+		translator := NewIngressTranslator(
+			func(ns, name string) (*corev1.Secret, error) {
+				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			func(ns, name string) (*corev1.Endpoints, error) {
+				return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			func(ns, name string) (*corev1.Service, error) {
+				return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			&pkgtest.FakeTracker{},
+		)
+
+		got, err := translator.translateIngress(ctx, test.in, false)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, got, test.want,
+			cmp.AllowUnexported(translatedIngress{}),
+			protocmp.Transform(),
+		)
+	})
+}
+
 func ing(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {
 	ingress := &v1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
