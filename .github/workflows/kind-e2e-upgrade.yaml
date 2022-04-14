@@ -37,7 +37,7 @@ jobs:
           kind-image-sha: sha256:1dfd72d193bf7da64765fd2f2898f78663b9ba366c2aa74be1fd7498a1873166
 
         - k8s-version: v1.23.5
-          kind-version: v0.12.0
+          kind-version: v0.11.1
           kind-image-sha: sha256:a69c29d3d502635369a5fe92d8e503c09581fcd406ba6598acc5d80ff5ba81b1
 
     env:
