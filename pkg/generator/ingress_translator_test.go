@@ -527,6 +527,61 @@ func TestIngressTranslator(t *testing.T) {
 			}
 		}(),
 	}, {
+		name: "external service without service port",
+		in:   ing("testspace", "testname"),
+		state: []runtime.Object{
+			svc("servicens", "servicename", func(svc *corev1.Service) {
+				svc.Spec.Type = corev1.ServiceTypeExternalName
+				svc.Spec.ExternalName = "example.com"
+				svc.Spec.Ports = nil
+			}),
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(testspace/testname).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(testspace/testname).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
+						false,
+						nil,
+						v3.Cluster_LOGICAL_DNS,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}, {
 		name: "missing service",
 		in:   ing("testspace", "testname"),
 	}, {

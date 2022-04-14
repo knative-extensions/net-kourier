@@ -143,9 +143,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// Match the ingress' port with a port on the Service to find the target.
 				// Also find out if the target supports HTTP2.
 				var (
-					externalPort int32
-					targetPort   int32
-					http2        bool
+					externalPort = int32(80)
+					targetPort   = int32(80)
+					http2        = false
 				)
 				for _, port := range service.Spec.Ports {
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
