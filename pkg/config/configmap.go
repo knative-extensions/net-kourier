@@ -33,15 +33,15 @@ const (
 	// enableProxyProtocol is the config map key for enabling proxy protocol
 	enableProxyProtocol = "enable-proxy-protocol"
 
-	// kourierInternalCertSecret is the config map key for kourier internal certificates
-	kourierInternalCertSecret = "kourier-internal-cert-secret"
+	// clusterCertSecret is the config map key for kourier internal certificates
+	clusterCertSecret = "cluster-cert-secret"
 )
 
 func DefaultConfig() *Kourier {
 	return &Kourier{
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 		EnableProxyProtocol:        false,
-		KourierInternalCertSecret:  "",
+		ClusterCertSecret:          "",
 	}
 }
 
@@ -52,7 +52,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 	if err := cm.Parse(configMap,
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
-		cm.AsString(kourierInternalCertSecret, &nc.KourierInternalCertSecret),
+		cm.AsString(clusterCertSecret, &nc.ClusterCertSecret),
 	); err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ type Kourier struct {
 	EnableServiceAccessLogging bool
 	// EnableProxyProtocol specifies whether proxy protocol feature is enabled
 	EnableProxyProtocol bool
-	// KourierInternalCertSecret specifies the secret name for the server certificates of
+	// ClusterCertSecret specifies the secret name for the server certificates of
 	// Kourier Internal.
-	KourierInternalCertSecret string
+	ClusterCertSecret string
 }

@@ -251,12 +251,12 @@ func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
 }
 
 // TestTLSListenerWithInternalCertSecret verfies that
-// filter is added when secret name is specified by kourier-internal-cert-secret.
+// filter is added when secret name is specified by cluster-cert-secret.
 func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 	testConfig := &rconfig.Config{
 		Network: &network.Config{},
 		Kourier: &config.Kourier{
-			KourierInternalCertSecret: "test-ca",
+			ClusterCertSecret: "test-ca",
 		},
 	}
 

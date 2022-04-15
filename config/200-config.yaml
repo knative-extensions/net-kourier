@@ -51,9 +51,10 @@ data:
     enable-proxy-protocol: "false"
 
     # The server certificates to serve the internal TLS traffic for Kourier Gateway.
-    # It is specified by the secret name, which has the "tls.crt" and "tls.key" data field.
+    # It is specified by the secret name in controller namespace, which has
+    # the "tls.crt" and "tls.key" data field.
     # Use an empty value to disable the feature (default).
     #
     # NOTE: This flag is in an alpha state and is mostly here to enable internal testing
     #       for now. Use with caution.
-    kourier-internal-cert-secret: ""
+    cluster-cert-secret: ""

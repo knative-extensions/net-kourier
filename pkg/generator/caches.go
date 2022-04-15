@@ -244,14 +244,14 @@ func generateListenersAndRouteConfigs(
 	listeners = append(listeners, probHTTPListener)
 
 	// Add internal listeners and routes when internal cert secret is specified.
-	if cfg.Kourier.KourierInternalCertSecret != "" {
+	if cfg.Kourier.ClusterCertSecret != "" {
 		internalTLSRouteConfig := envoy.NewRouteConfig(internalTLSRouteConfigName, clusterLocalVirtualHosts)
 		internalTLSManager := envoy.NewHTTPConnectionManager(internalTLSRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
 
 		internalHTTPSEnvoyListener, err := newInternalEnvoyListenerWithOneCert(
 			ctx, internalTLSManager, kubeclient,
 			cfg.Kourier.EnableProxyProtocol,
-			cfg.Kourier.KourierInternalCertSecret,
+			cfg.Kourier.ClusterCertSecret,
 		)
 
 		if err != nil {
