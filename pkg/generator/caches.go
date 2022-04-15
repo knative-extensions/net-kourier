@@ -349,16 +349,6 @@ func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager
 	return envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey)
 }
 
-func newInternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, certSecretName string) (*v3.FilterChain, error) {
-	certificateChain, privateKey, err := sslCreds(
-		ctx, kubeClient, system.Namespace(), certSecretName,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey)
-}
-
 func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool) (*v3.Listener, error) {
 	filterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(ctx, manager, kubeClient)
 	if err != nil {
@@ -369,10 +359,13 @@ func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnm
 }
 
 func newInternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool, certSecretName string) (*v3.Listener, error) {
-	filterChain, err := newInternalEnvoyListenerWithOneCertFilterChain(ctx, manager, kubeClient, certSecretName)
+	certificateChain, privateKey, err := sslCreds(ctx, kubeClient, system.Namespace(), certSecretName)
 	if err != nil {
 		return nil, err
 	}
-
+	filterChain, err := envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey)
+	if err != nil {
+		return nil, err
+	}
 	return envoy.NewHTTPSListener(config.HTTPSPortInternal, []*v3.FilterChain{filterChain}, enableProxyProtocol)
 }

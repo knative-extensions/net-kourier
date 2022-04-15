@@ -25,6 +25,7 @@ import (
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -256,7 +257,8 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 	testConfig := &rconfig.Config{
 		Network: &network.Config{},
 		Kourier: &config.Kourier{
-			ClusterCertSecret: "test-ca",
+			ClusterCertSecret:   "test-ca",
+			EnableProxyProtocol: true,
 		},
 	}
 
@@ -290,8 +292,8 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 		assert.NilError(t, err)
 
 		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortInternal)].(*listener.Listener)
-		filterChains := tlsListener.FilterChains
-		assert.Assert(t, len(filterChains) == 1)
+		assert.Assert(t, len(tlsListener.ListenerFilters) == 1)
+		assert.Assert(t, (tlsListener.ListenerFilters[0]).Name == wellknown.ProxyProtocol)
 	})
 }
 
