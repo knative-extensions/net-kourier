@@ -36,6 +36,7 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/pkg/system"
 )
 
 const (
@@ -46,6 +47,7 @@ const (
 	externalRouteConfigName    = "external_services"
 	externalTLSRouteConfigName = "external_tls_services"
 	internalRouteConfigName    = "internal_services"
+	internalTLSRouteConfigName = "internal_tls_services"
 )
 
 // ErrDomainConflict is an error produces when two ingresses have conflicting domains.
@@ -241,6 +243,25 @@ func generateListenersAndRouteConfigs(
 	}
 	listeners = append(listeners, probHTTPListener)
 
+	// Add internal listeners and routes when internal cert secret is specified.
+	if cfg.Kourier.ClusterCertSecret != "" {
+		internalTLSRouteConfig := envoy.NewRouteConfig(internalTLSRouteConfigName, clusterLocalVirtualHosts)
+		internalTLSManager := envoy.NewHTTPConnectionManager(internalTLSRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
+
+		internalHTTPSEnvoyListener, err := newInternalEnvoyListenerWithOneCert(
+			ctx, internalTLSManager, kubeclient,
+			cfg.Kourier.EnableProxyProtocol,
+			cfg.Kourier.ClusterCertSecret,
+		)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		listeners = append(listeners, internalHTTPSEnvoyListener)
+		routes = append(routes, internalTLSRouteConfig)
+	}
+
 	// Configure TLS Listener. If there's at least one ingress that contains the
 	// TLS field, that takes precedence. If there is not, TLS will be configured
 	// using a single cert for all the services if the creds are given via ENV.
@@ -335,4 +356,16 @@ func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnm
 	}
 
 	return envoy.NewHTTPSListener(config.HTTPSPortExternal, []*v3.FilterChain{filterChain}, enableProxyProtocol)
+}
+
+func newInternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool, certSecretName string) (*v3.Listener, error) {
+	certificateChain, privateKey, err := sslCreds(ctx, kubeClient, system.Namespace(), certSecretName)
+	if err != nil {
+		return nil, err
+	}
+	filterChain, err := envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	return envoy.NewHTTPSListener(config.HTTPSPortInternal, []*v3.FilterChain{filterChain}, enableProxyProtocol)
 }

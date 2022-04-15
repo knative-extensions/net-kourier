@@ -35,12 +35,19 @@ const (
 
 	// HTTPPortExternal is the port for external availability.
 	HTTPPortExternal = uint32(8080)
+
 	// HTTPPortInternal is the port for internal availability.
 	HTTPPortInternal = uint32(8081)
+
+	// HTTPSPortInternal is the port for internal HTTPS availability.
+	HTTPSPortInternal = uint32(8444)
+
 	// HTTPSPortExternal is the port for external HTTPS availability.
 	HTTPSPortExternal = uint32(8443)
+
 	// HTTPPortProb is the port for prob
 	HTTPPortProb = uint32(8090)
+
 	// HTTPSPortProb is the port for prob
 	HTTPSPortProb = uint32(9443)
 

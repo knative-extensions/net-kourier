@@ -25,12 +25,17 @@ import (
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
+	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	network "knative.dev/networking/pkg"
 )
 
 func TestDeleteIngressInfo(t *testing.T) {
@@ -243,6 +248,52 @@ func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
 		assert.Check(t, filterChainsByServerName["foo.example.com"] != nil)
 		assert.Check(t, filterChainsByServerName["bar.example.com"] != nil)
 		assert.Check(t, filterChainsByServerName[""] != nil) // filter chain without server name, "default" one
+	})
+}
+
+// TestTLSListenerWithInternalCertSecret verfies that
+// filter is added when secret name is specified by cluster-cert-secret.
+func TestTLSListenerWithInternalCertSecret(t *testing.T) {
+	testConfig := &rconfig.Config{
+		Network: &network.Config{},
+		Kourier: &config.Kourier{
+			ClusterCertSecret:   "test-ca",
+			EnableProxyProtocol: true,
+		},
+	}
+
+	internalSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-ca",
+		},
+		Data: map[string][]byte{
+			caDataName: cert,
+		},
+	}
+
+	kubeClient := fake.Clientset{}
+	cfg := testConfig.DeepCopy()
+	ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
+
+	_, err := kubeClient.CoreV1().Secrets("knative-serving").Create(ctx, internalSecret, metav1.CreateOptions{})
+	assert.NilError(t, err)
+
+	caches, err := NewCaches(ctx, &kubeClient, false)
+	assert.NilError(t, err)
+
+	t.Run("without SNI matches", func(t *testing.T) {
+		translatedIngress := &translatedIngress{
+			sniMatches: nil,
+		}
+		err := caches.addTranslatedIngress(translatedIngress)
+		assert.NilError(t, err)
+
+		snapshot, err := caches.ToEnvoySnapshot(ctx)
+		assert.NilError(t, err)
+
+		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortInternal)].(*listener.Listener)
+		assert.Assert(t, len(tlsListener.ListenerFilters) == 1)
+		assert.Assert(t, (tlsListener.ListenerFilters[0]).Name == wellknown.ProxyProtocol)
 	})
 }
 
