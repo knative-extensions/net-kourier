@@ -59,7 +59,7 @@ func TestKourierConfig(t *testing.T) {
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "true",
 			enableProxyProtocol:           "true",
-			clusterCertSecret:             "my-cert",
+			clusterCert:                   "my-cert",
 		},
 	}, {
 		name: "enable proxy protocol and disable logging, empty internal cert",
@@ -71,7 +71,7 @@ func TestKourierConfig(t *testing.T) {
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "false",
 			enableProxyProtocol:           "true",
-			clusterCertSecret:             "",
+			clusterCert:                   "",
 		},
 	}, {
 		name:    "not a bool for proxy protocol",
