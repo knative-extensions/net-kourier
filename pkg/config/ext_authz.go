@@ -90,6 +90,8 @@ func init() {
 	var env config
 	envconfig.MustProcess("KOURIER_EXTAUTHZ", &env)
 
+  panic(env)
+
 	if !isValidExtAuthzProtocol(env.Protocol) {
 		err := fmt.Errorf("protocol %s is invalid, must be in %+v", env.Protocol, extAuthzProtocols)
 		panic(err)
