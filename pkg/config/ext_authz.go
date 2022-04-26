@@ -78,6 +78,7 @@ type config struct {
 	MaxRequestBytes  uint32           `default:"8192"`
 	Timeout          int              `default:"2000"`
 	Protocol         extAuthzProtocol `default:"grpc"`
+	PackAsBytes      bool             `default:"false"`
 	PathPrefix       string
 }
 
@@ -183,6 +184,7 @@ func externalAuthZFilter(conf *config) *hcm.HttpFilter {
 		WithRequestBody: &extAuthService.BufferSettings{
 			MaxRequestBytes:     conf.MaxRequestBytes,
 			AllowPartialMessage: true,
+			PackAsBytes: conf.PackAsBytes
 		},
 		ClearRouteCache: false,
 	}

@@ -137,6 +137,7 @@ vars in the `net-kourier-controller` deployment:
   http or https, path to query the ext auth service. Example : if set to
   `/verify`, it will query `/verify/` (**notice the trailing `/`**).
   If not set, it will query `/`.
+- `KOURIER_EXTAUTHZ_PACKASBYTES`: Sends the body as raw bytes instead of a UTF-8 string. Defaults to false. More info [Envoy Docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html?highlight=pack_as_bytes#extensions-filters-http-ext-authz-v3-buffersettings)
 
 `*` Required
 
