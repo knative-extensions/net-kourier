@@ -20,6 +20,6 @@ require (
 	k8s.io/client-go v0.23.5
 	k8s.io/code-generator v0.23.5
 	knative.dev/hack v0.0.0-20220427014036-5f473869d377
-	knative.dev/networking v0.0.0-20220427013817-4539925fb6b3
-	knative.dev/pkg v0.0.0-20220427013826-1f681e126af6
+	knative.dev/networking v0.0.0-20220427030951-700c5762af5b
+	knative.dev/pkg v0.0.0-20220427171752-2d552be030f6
 )
