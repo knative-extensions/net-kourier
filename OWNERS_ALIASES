@@ -9,8 +9,6 @@ aliases:
   - bvennam
   - julz
   - maximilien
-  autoscaling-wg-leads:
-  - julz
   client-wg-leads:
   - dsimansk
   - navidshaikh
@@ -256,10 +254,11 @@ aliases:
   security-writers:
   - evankanderson
   - julz
+  serving-wg-leads:
+  - dprotaso
   serving-writers:
   - ZhiminXiang
   - dprotaso
-  - julz
   - nak3
   - psschwei
   steering-committee:
