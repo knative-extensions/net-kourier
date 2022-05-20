@@ -22,7 +22,7 @@ package test
 import (
 	"flag"
 
-	network "knative.dev/networking/pkg"
+	"knative.dev/networking/pkg/config"
 )
 
 // NetworkingFlags holds the flags or defaults for knative/networking settings in the user's environment.
@@ -62,12 +62,12 @@ func initializeNetworkingFlags() *NetworkingEnvironmentFlags {
 
 	flag.StringVar(&f.IngressClass,
 		"ingressClass",
-		network.IstioIngressClassName,
+		config.IstioIngressClassName,
 		"Set this flag to the ingress class to test against.")
 
 	flag.StringVar(&f.CertificateClass,
 		"certificateClass",
-		network.CertManagerCertificateClassName,
+		config.CertManagerCertificateClassName,
 		"Set this flag to the certificate class to test against.")
 
 	flag.IntVar(&f.Buckets,

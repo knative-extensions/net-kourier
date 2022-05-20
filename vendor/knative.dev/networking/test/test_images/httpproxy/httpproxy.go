@@ -28,7 +28,7 @@ import (
 	"net/url"
 
 	"github.com/rs/dnscache"
-	network "knative.dev/networking/pkg"
+	"knative.dev/networking/pkg/http/probe"
 	"knative.dev/networking/test"
 )
 
@@ -85,7 +85,7 @@ func main() {
 		proxy.ServeHTTP(w, r)
 	})
 	// Handle forwarding requests which uses "K-Network-Hash" header.
-	handler = network.NewProbeHandler(handler).ServeHTTP
+	handler = probe.NewHandler(handler).ServeHTTP
 
 	address := ":" + port
 
