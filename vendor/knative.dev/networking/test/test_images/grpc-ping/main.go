@@ -28,7 +28,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	networkingpkg "knative.dev/networking/pkg"
+	"knative.dev/networking/pkg/http/probe"
 	ping "knative.dev/networking/test/test_images/grpc-ping/proto"
 	"knative.dev/pkg/network"
 )
@@ -82,7 +82,7 @@ func (s *server) PingStream(stream ping.PingService_PingStreamServer) error {
 }
 
 func httpWrapper(g *grpc.Server) http.Handler {
-	return networkingpkg.NewProbeHandler(
+	return probe.NewHandler(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.ProtoMajor == 2 && r.Header.Get("Content-Type") == "application/grpc" {
 				g.ServeHTTP(w, r)

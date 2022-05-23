@@ -25,9 +25,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
-	network "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	"knative.dev/networking/pkg/http/header"
 	"knative.dev/networking/pkg/ingress"
 	"knative.dev/networking/test"
 	"knative.dev/pkg/ptr"
@@ -70,7 +70,7 @@ func TestProbeHeaders(t *testing.T) {
 		want string
 	}{{
 		name: "kingress generates hash",
-		req:  network.HashHeaderValue,
+		req:  header.HashValueOverride,
 		want: fmt.Sprintf("%x", bytes),
 	}, {
 		name: "request overrides hash",
@@ -87,8 +87,8 @@ func TestProbeHeaders(t *testing.T) {
 
 			ros = append(ros, func(r *http.Request) {
 				// Add the header to indicate this is a probe request.
-				r.Header.Set(network.ProbeHeaderName, network.ProbeHeaderValue)
-				r.Header.Set(network.HashHeaderName, tt.req)
+				r.Header.Set(header.ProbeKey, header.ProbeValue)
+				r.Header.Set(header.HashKey, tt.req)
 			})
 
 			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com", ros...)
@@ -97,8 +97,8 @@ func TestProbeHeaders(t *testing.T) {
 				return
 			}
 
-			if got, want := ri.Request.Headers.Get(network.HashHeaderName), tt.want; got != want {
-				t.Errorf("Header[%q] = %q, wanted %q", network.HashHeaderName, got, want)
+			if got, want := ri.Request.Headers.Get(header.HashKey), tt.want; got != want {
+				t.Errorf("Header[%q] = %q, wanted %q", header.HashKey, got, want)
 			}
 		})
 	}
@@ -129,7 +129,7 @@ func TestTagHeaders(t *testing.T) {
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
 					Headers: map[string]v1alpha1.HeaderMatch{
-						network.TagHeaderName: {
+						header.RouteTagKey: {
 							Exact: tagName,
 						},
 					},
@@ -191,7 +191,7 @@ func TestTagHeaders(t *testing.T) {
 
 			if tt.TagHeader != nil {
 				ros = append(ros, func(r *http.Request) {
-					r.Header.Set(network.TagHeaderName, *tt.TagHeader)
+					r.Header.Set(header.RouteTagKey, *tt.TagHeader)
 				})
 			}
 
