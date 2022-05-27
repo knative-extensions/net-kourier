@@ -2,9 +2,9 @@
 
 This document explains how a local rate limit is implemented within envoy.
 
-The local rate limit filter applies a token bucket rate limit to incoming connections 
-that are processed by the filter’s filter chain. Each connection processed by the 
-filter utilizes a single token, and if no tokens are available, the connection will 
+The local rate limit filter applies a token bucket rate limit to incoming connections
+that are processed by the filter’s filter chain. Each connection processed by the
+filter utilizes a single token, and if no tokens are available, the connection will
 be immediately closed without further filter iteration.
 
 Basically, what we need to add comparing to the original envoy configuration:
@@ -32,11 +32,11 @@ available, the connection will be allowed. If no tokens are available, the conne
 closed:
 - `max_token` : The maximum tokens that the bucket can hold. This is also the number of tokens that the bucket initially contains.
 - `tokens_per_fill`: The number of tokens added to the bucket during each fill interval. If not specified, defaults to a single token.
-- `fill_interval`: The fill interval that tokens are added to the bucket. 
-                   During each fill interval tokens_per_fill are added to the bucket. 
+- `fill_interval`: The fill interval that tokens are added to the bucket.
+                   During each fill interval tokens_per_fill are added to the bucket.
                    The bucket will never contain more than `max_tokens` tokens.
 
-Optionally, we can add some other configuration to enforce 
+Optionally, we can add some other configuration to enforce
 
 ```
 filter_enabled:
@@ -48,7 +48,7 @@ filter_enforced:
     numerator: 100
     denominator: HUNDRED
 ```
-`filter_enabled`: % of requests that will check the local rate limit decision, but not enforce, for a given route_key specified in the 
+`filter_enabled`: % of requests that will check the local rate limit decision, but not enforce, for a given route_key specified in the
                   local rate limit configuration. Defaults to 0.
 `filter_enforced`: % of requests that will enforce the local rate limit decision for a given route_key specified in the local rate limit
                    configuration. Defaults to 0.

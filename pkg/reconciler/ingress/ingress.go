@@ -43,6 +43,7 @@ type Reconciler struct {
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
 	extAuthz          bool
+	localRateLimit    bool
 
 	// resyncConflicts triggers a filtered global resync to reenqueue all ingresses in
 	// a "Conflict" state.

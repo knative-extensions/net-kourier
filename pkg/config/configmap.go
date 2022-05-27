@@ -18,8 +18,8 @@ package config
 
 import (
 	"errors"
-	corev1 "k8s.io/api/core/v1"
 
+	corev1 "k8s.io/api/core/v1"
 	cm "knative.dev/pkg/configmap"
 )
 
@@ -47,7 +47,7 @@ func DefaultConfig() *Kourier {
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
-		NumberRequestPerSecond:     0,    // 0 is the default value, meaning local rate limit is not enabled
+		NumberRequestPerSecond:     0, // 0 is the default value, meaning local rate limit is not enabled
 	}
 }
 
@@ -87,6 +87,7 @@ type Kourier struct {
 	// ClusterCertSecret specifies the secret name for the server certificates of
 	// Kourier Internal.
 	ClusterCertSecret string
-	// NumberRequestPerSecond specifies the permitted number of requests per second when local rate limit is enabled
+	// NumberRequestPerSecond specifies the permitted number of requests per second
+	// when local rate limit is enabled
 	NumberRequestPerSecond float64
 }

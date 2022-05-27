@@ -30,7 +30,7 @@ import (
 const (
 	// name of the local rate limit filter
 	localRateLimitFilterName = "envoy.filters.http.local_ratelimit"
-	// he human-readable prefix to use when emitting stats.
+	// The human-readable prefix to use when emitting stats.
 	statePrefixName = "http_local_rate_limiter"
 	// The fill interval that tokens are added to the bucket
 	bucketFillInterval = 1

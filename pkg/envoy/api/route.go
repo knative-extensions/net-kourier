@@ -17,7 +17,6 @@ limitations under the License.
 package envoy
 
 import (
-	"knative.dev/net-kourier/pkg/config"
 	"time"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -27,6 +26,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"knative.dev/net-kourier/pkg/config"
 )
 
 // NewRoute creates a new Route.
