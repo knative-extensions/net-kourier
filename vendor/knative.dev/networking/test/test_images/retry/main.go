@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"os"
 
-	network "knative.dev/networking/pkg"
+	"knative.dev/networking/pkg/http/probe"
 	"knative.dev/networking/test"
 )
 
@@ -38,7 +38,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	h := network.NewProbeHandler(http.HandlerFunc(handler))
+	h := probe.NewHandler(http.HandlerFunc(handler))
 	port := os.Getenv("PORT")
 	if cert, key := os.Getenv("CERT"), os.Getenv("KEY"); cert != "" && key != "" {
 		log.Print("Server starting on port with TLS ", port)

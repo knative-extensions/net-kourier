@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -142,16 +143,23 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// Match the ingress' port with a port on the Service to find the target.
 				// Also find out if the target supports HTTP2.
 				var (
-					externalPort int32
-					targetPort   int32
-					http2        bool
+					externalPort = int32(80)
+					targetPort   = int32(80)
+					http2        = false
 				)
 				for _, port := range service.Spec.Ports {
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
 						externalPort = port.Port
 						targetPort = port.TargetPort.IntVal
-						http2 = port.Name == "http2" || port.Name == "h2c"
 					}
+					if port.Name == "http2" || port.Name == "h2c" {
+						http2 = true
+					}
+				}
+
+				// Disable HTTP2 if the annotation is specified.
+				if strings.EqualFold(pkgconfig.GetDisableHTTP2(ingress.Annotations), "true") {
+					http2 = false
 				}
 
 				var (
@@ -191,7 +199,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
 				if activatorCA := cfg.Network.ActivatorCA; activatorCA != "" && httpPath.RewriteHost == "" {
 					var err error
-					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, config.FromContext(ctx).Network.ActivatorSAN, http2)
+					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, cfg.Network.ActivatorSAN, http2)
 					if err != nil {
 						return nil, err
 					}

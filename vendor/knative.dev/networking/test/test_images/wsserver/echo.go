@@ -22,7 +22,8 @@ import (
 	"os"
 
 	"github.com/gorilla/websocket"
-	network "knative.dev/networking/pkg"
+	"knative.dev/networking/pkg/http/header"
+	"knative.dev/networking/pkg/http/probe"
 	"knative.dev/networking/test"
 )
 
@@ -45,7 +46,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	if network.IsKubeletProbe(r) {
+	if header.IsKubeletProbe(r) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -85,7 +86,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
-	h := network.NewProbeHandler(http.HandlerFunc(handler))
+	h := probe.NewHandler(http.HandlerFunc(handler))
 	port := os.Getenv("PORT")
 	if cert, key := os.Getenv("CERT"), os.Getenv("KEY"); cert != "" && key != "" {
 		log.Print("Server starting on port with TLS ", port)

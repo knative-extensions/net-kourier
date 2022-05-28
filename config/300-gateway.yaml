@@ -22,7 +22,6 @@ metadata:
     app.kubernetes.io/component: net-kourier
     app.kubernetes.io/version: devel
     app.kubernetes.io/name: knative-serving
-    serving.knative.dev/release: devel
 spec:
   strategy:
     type: RollingUpdate
@@ -48,7 +47,7 @@ spec:
             - --log-level info
           command:
             - /usr/local/bin/envoy
-          image: docker.io/envoyproxy/envoy:v1.19-latest
+          image: docker.io/envoyproxy/envoy:v1.20-latest
           name: kourier-gateway
           ports:
             - name: http2-external
@@ -106,7 +105,6 @@ metadata:
     app.kubernetes.io/component: net-kourier
     app.kubernetes.io/version: devel
     app.kubernetes.io/name: knative-serving
-    serving.knative.dev/release: devel
 spec:
   ports:
     - name: http2
@@ -131,13 +129,16 @@ metadata:
     app.kubernetes.io/component: net-kourier
     app.kubernetes.io/version: devel
     app.kubernetes.io/name: knative-serving
-    serving.knative.dev/release: devel
 spec:
   ports:
     - name: http2
       port: 80
       protocol: TCP
       targetPort: 8081
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 8444
   selector:
     app: 3scale-kourier-gateway
   type: ClusterIP

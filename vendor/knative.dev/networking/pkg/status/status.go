@@ -37,8 +37,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/workqueue"
 
-	network "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	nethttp "knative.dev/networking/pkg/http"
+	"knative.dev/networking/pkg/http/header"
 	"knative.dev/networking/pkg/ingress"
 	"knative.dev/networking/pkg/prober"
 	"knative.dev/pkg/kmeta"
@@ -376,7 +377,7 @@ func (m *Prober) processWorkItem() bool {
 	}
 
 	probeURL := deepCopy(item.url)
-	probeURL.Path = path.Join(probeURL.Path, network.ProbePath)
+	probeURL.Path = path.Join(probeURL.Path, nethttp.HealthCheckPath)
 
 	ctx, cancel := context.WithTimeout(item.context, probeTimeout)
 	defer cancel()
@@ -384,9 +385,9 @@ func (m *Prober) processWorkItem() bool {
 		ctx,
 		transport,
 		probeURL.String(),
-		prober.WithHeader(network.UserAgentKey, network.IngressReadinessUserAgent),
-		prober.WithHeader(network.ProbeHeaderName, network.ProbeHeaderValue),
-		prober.WithHeader(network.HashHeaderName, network.HashHeaderValue),
+		prober.WithHeader(header.UserAgentKey, header.IngressReadinessUserAgent),
+		prober.WithHeader(header.ProbeKey, header.ProbeValue),
+		prober.WithHeader(header.HashKey, header.HashValueOverride),
 		m.probeVerifier(item))
 
 	// In case of cancellation, drop the work item
@@ -452,11 +453,11 @@ func (m *Prober) probeVerifier(item *workItem) prober.Verifier {
 		// actually is Ready than never marking it as Ready. It is best effort.
 		switch r.StatusCode {
 		case http.StatusOK:
-			hash := r.Header.Get(network.HashHeaderName)
+			hash := r.Header.Get(header.HashKey)
 			switch hash {
 			case "":
 				item.logger.Errorf("Probing of %s abandoned, IP: %s:%s: the response doesn't contain the %q header",
-					item.url, item.podIP, item.podPort, network.HashHeaderName)
+					item.url, item.podIP, item.podPort, header.HashKey)
 				return true, nil
 			case item.ingressState.hash:
 				return true, nil

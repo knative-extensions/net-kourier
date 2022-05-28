@@ -35,8 +35,8 @@ readonly RELEASES
 function build_release() {
   # Update release labels if this is a tagged release
   if [[ -n "${TAG}" ]]; then
-    echo "Tagged release, updating release labels to serving.knative.dev/release: \"${TAG}\" and app.kubernetes.io/version: \"${TAG}\""
-    LABEL_YAML_CMD=(sed -e "s|serving.knative.dev/release: devel|serving.knative.dev/release: \"${TAG}\"|" -e "s|app.kubernetes.io/version: devel|app.kubernetes.io/version: \"${TAG:1}\"|")
+    echo "Tagged release, updating release labels app.kubernetes.io/version: \"${TAG}\""
+    LABEL_YAML_CMD=(sed -e "s|app.kubernetes.io/version: devel|app.kubernetes.io/version: \"${TAG:1}\"|")
   else
     echo "Untagged release, will NOT update release labels"
     LABEL_YAML_CMD=(cat)

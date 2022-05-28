@@ -19,6 +19,7 @@ package config
 import (
 	"os"
 
+	"knative.dev/pkg/kmap"
 	"knative.dev/pkg/network"
 	"knative.dev/pkg/system"
 )
@@ -34,12 +35,19 @@ const (
 
 	// HTTPPortExternal is the port for external availability.
 	HTTPPortExternal = uint32(8080)
+
 	// HTTPPortInternal is the port for internal availability.
 	HTTPPortInternal = uint32(8081)
+
+	// HTTPSPortInternal is the port for internal HTTPS availability.
+	HTTPSPortInternal = uint32(8444)
+
 	// HTTPSPortExternal is the port for external HTTPS availability.
 	HTTPSPortExternal = uint32(8443)
+
 	// HTTPPortProb is the port for prob
 	HTTPPortProb = uint32(8090)
+
 	// HTTPSPortProb is the port for prob
 	HTTPSPortProb = uint32(9443)
 
@@ -51,7 +59,15 @@ const (
 
 	// KourierIngressClassName is the class name to reconcile.
 	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
+
+	// disableHTTP2AnnotationKey is the annotation key attached to a Knative Domain Mapping
+	// to indicate that http2 should not be enabled for it.
+	disableHTTP2AnnotationKey = "kourier.knative.dev/disable-http2"
 )
+
+var disableHTTP2Annotation = kmap.KeyPriority{
+	disableHTTP2AnnotationKey,
+}
 
 // ServiceHostnames returns the external and internal service's respective hostname.
 //
@@ -68,4 +84,9 @@ func GatewayNamespace() string {
 		return system.Namespace()
 	}
 	return namespace
+}
+
+// GetDisableHTTP2 specifies whether http2 is going to be disabled
+func GetDisableHTTP2(annotations map[string]string) (val string) {
+	return disableHTTP2Annotation.Value(annotations)
 }

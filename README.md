@@ -174,7 +174,6 @@ metadata:
     service.beta.kubernetes.io/scw-loadbalancer-use-hostname: "true"
   labels:
     networking.knative.dev/ingress-provider: kourier
-    serving.knative.dev/release: "v0.26.0"
 spec:
   ports:
     - name: http2
@@ -190,6 +189,15 @@ spec:
   externalTrafficPolicy: Local
   type: LoadBalancer
 ```
+
+## Tips
+Domain Mapping is configured to explicitly use `http2` protocol only. This behaviour can be disabled by adding the following annotation to the Domain Mapping resource
+```
+kubectl annotate domainmapping <domain_mapping_name> kourier.knative.dev/disable-http2=true --namespace <namespace>
+```
+A good use case for this configuration is `DomainMapping with Websocket`
+
+Note: This annotation is an experimental/alpha feature. There is a known issue such as [issues/821](https://github.com/knative-sandbox/issues/821) and we may change the annotation name in the future.
 
 ## License
 
