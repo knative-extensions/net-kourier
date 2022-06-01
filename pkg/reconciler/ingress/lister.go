@@ -30,16 +30,18 @@ import (
 	"knative.dev/networking/pkg/status"
 )
 
-func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
+func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister, namespacesLister corev1listers.NamespaceLister) status.ProbeTargetLister {
 	return &gatewayPodTargetLister{
-		logger:          logger,
-		endpointsLister: endpointsLister,
+		logger:           logger,
+		endpointsLister:  endpointsLister,
+		namespacesLister: namespacesLister,
 	}
 }
 
 type gatewayPodTargetLister struct {
-	logger          *zap.SugaredLogger
-	endpointsLister corev1listers.EndpointsLister
+	logger           *zap.SugaredLogger
+	endpointsLister  corev1listers.EndpointsLister
+	namespacesLister corev1listers.NamespaceLister
 }
 
 func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
@@ -82,9 +84,21 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 				target.URLs = domainsToURL(domains, scheme)
 			}
 		} else {
+			ns, err := l.namespacesLister.Get(ing.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get the ingress namespace: %w", err)
+			}
+
+			portPort := strconv.Itoa(int(config.HTTPPortInternal))
+			if ns.Annotations != nil {
+				if value, ok := ns.Annotations[config.ListenerPortAnnotationKey]; ok {
+					portPort = value
+				}
+			}
+
 			target = status.ProbeTarget{
 				PodIPs:  ips,
-				PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
+				PodPort: portPort,
 				URLs:    domainsToURL(domains, scheme),
 			}
 		}

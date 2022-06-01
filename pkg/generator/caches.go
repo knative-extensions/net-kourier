@@ -63,6 +63,12 @@ type Caches struct {
 	kubeClient kubeclient.Interface
 }
 
+type portVHost struct {
+	port    uint32
+	tlsPort uint32
+	vhost   []*route.VirtualHost
+}
+
 func NewCaches(ctx context.Context, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
 	c := &Caches{
 		translatedIngresses: make(map[types.NamespacedName]*translatedIngress),
@@ -136,8 +142,21 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 	externalTLSVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
 	snis := sniMatches{}
 
+	localVHostsPerListener := make(map[string]portVHost)
+
 	for _, translatedIngress := range caches.translatedIngresses {
-		localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
+		if translatedIngress.listener != "" {
+			localVHostsForListener := localVHostsPerListener[translatedIngress.listener].vhost
+			localVHostsForListener = append(localVHostsForListener, translatedIngress.internalVirtualHosts...)
+			localVHostsPerListener[translatedIngress.listener] = portVHost{
+				port:    translatedIngress.port,
+				tlsPort: translatedIngress.tlsPort,
+				vhost:   localVHostsForListener,
+			}
+		} else {
+			localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
+		}
+
 		externalVHosts = append(externalVHosts, translatedIngress.externalVirtualHosts...)
 		externalTLSVHosts = append(externalTLSVHosts, translatedIngress.externalTLSVirtualHosts...)
 
@@ -153,6 +172,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 		externalVHosts,
 		externalTLSVHosts,
 		localVHosts,
+		localVHostsPerListener,
 		snis.list(),
 		caches.kubeClient,
 	)
@@ -207,6 +227,7 @@ func generateListenersAndRouteConfigs(
 	externalVirtualHosts []*route.VirtualHost,
 	externalTLSVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
+	clusterLocalVirtualHostsPerListener map[string]portVHost,
 	sniMatches []*envoy.SNIMatch,
 	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, error) {
 
@@ -220,10 +241,22 @@ func generateListenersAndRouteConfigs(
 	externalTLSRouteConfig := envoy.NewRouteConfig(externalTLSRouteConfigName, externalTLSVirtualHosts)
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
 
+	internalListenersRouteConfig := make(map[string]*route.RouteConfiguration)
+	for listener, portVhosts := range clusterLocalVirtualHostsPerListener {
+		routeName := internalRouteConfigName + "_" + listener
+		internalListenersRouteConfig[listener] = envoy.NewRouteConfig(routeName, portVhosts.vhost)
+	}
+
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
 	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier)
 	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier)
 	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier)
+
+	internalListenerManagers := make(map[string]*httpconnmanagerv3.HttpConnectionManager)
+	for listener, internalListenerRouteConfig := range internalListenersRouteConfig {
+		internalListenerManagers[listener] = envoy.NewHTTPConnectionManager(internalListenerRouteConfig.Name, cfg.Kourier)
+	}
+
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol)
 	if err != nil {
 		return nil, nil, err
@@ -235,6 +268,15 @@ func generateListenersAndRouteConfigs(
 
 	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
 	routes := []cachetypes.Resource{externalRouteConfig, internalRouteConfig}
+
+	for listener, portVhosts := range clusterLocalVirtualHostsPerListener {
+		envoyListener, err := envoy.NewHTTPListener(internalListenerManagers[listener], portVhosts.port, false)
+		if err != nil {
+			return nil, nil, err
+		}
+		listeners = append(listeners, envoyListener)
+		routes = append(routes, internalListenersRouteConfig[listener])
+	}
 
 	// create probe listeners
 	probHTTPListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortProb, false)

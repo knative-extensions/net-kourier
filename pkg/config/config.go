@@ -67,6 +67,16 @@ const (
 	// ServingNamespaceEnv is an env variable specifying where the serving is deployed.
 	// e.g. OpenShift deploys Kourier in different namespace so `system.Namespace()` does not work.
 	ServingNamespaceEnv = "SERVING_NAMESPACE"
+	// ListenerAnnotationKey is the annotation key for grouping/isolating ingresses.
+	ListenerAnnotationKey = "kourier.knative.dev/listener"
+
+	// ListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
+	// envoy listener port. Only applicable to internal services.
+	ListenerPortAnnotationKey = "kourier.knative.dev/listener-port"
+
+	// TLSListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
+	// envoy listener port for TLS connection. Only applicable to internal services.
+	TLSListenerPortAnnotationKey = "kourier.knative.dev/listener-tls-port"
 )
 
 var disableHTTP2Annotation = kmap.KeyPriority{
@@ -79,6 +89,10 @@ var disableHTTP2Annotation = kmap.KeyPriority{
 func ServiceHostnames() (string, string) {
 	return network.GetServiceHostname(ExternalServiceName, GatewayNamespace()),
 		network.GetServiceHostname(InternalServiceName, GatewayNamespace())
+}
+
+func ListenerServiceHostnames(listener string) string {
+	return network.GetServiceHostname(InternalServiceName+"-"+listener, GatewayNamespace())
 }
 
 // GatewayNamespace returns the namespace where the gateway is deployed.

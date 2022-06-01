@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,6 +48,9 @@ import (
 
 type translatedIngress struct {
 	name                    types.NamespacedName
+	listener                string
+	port                    uint32
+	tlsPort                 uint32
 	sniMatches              []*envoy.SNIMatch
 	clusters                []*v3.Cluster
 	externalVirtualHosts    []*route.VirtualHost
@@ -58,6 +62,7 @@ type IngressTranslator struct {
 	secretGetter    func(ns, name string) (*corev1.Secret, error)
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error)
 	serviceGetter   func(ns, name string) (*corev1.Service, error)
+	namespaceGetter func(name string) (*corev1.Namespace, error)
 	tracker         tracker.Interface
 }
 
@@ -65,11 +70,13 @@ func NewIngressTranslator(
 	secretGetter func(ns, name string) (*corev1.Secret, error),
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
+	namespaceGetter func(name string) (*corev1.Namespace, error),
 	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
 		secretGetter:    secretGetter,
 		endpointsGetter: endpointsGetter,
 		serviceGetter:   serviceGetter,
+		namespaceGetter: namespaceGetter,
 		tracker:         tracker,
 	}
 }
@@ -259,12 +266,46 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 		}
 	}
+	listener := ""
+	port := uint32(0)
+	tlsPort := uint32(0)
+
+	if config.FromContext(ctx).Kourier.TrafficIsolation == pkgconfig.IsolationIngressPort {
+		logger.Infof("Getting namespace %v\n", ingress.Namespace)
+		ns, err := translator.namespaceGetter(ingress.Namespace)
+		if err != nil {
+			return nil, err
+		}
+
+		if ns.Annotations != nil {
+			listener = ns.Annotations[pkgconfig.ListenerAnnotationKey]
+			if value, ok := ns.Annotations[pkgconfig.ListenerPortAnnotationKey]; ok {
+				p, err := strconv.ParseInt(value, 10, 32)
+				if err != nil {
+					return nil, err
+				}
+				port = uint32(p)
+			}
+			if value, ok := ns.Annotations[pkgconfig.TLSListenerPortAnnotationKey]; ok {
+				p, err := strconv.ParseInt(value, 10, 32)
+				if err != nil {
+					return nil, err
+				}
+				tlsPort = uint32(p)
+			}
+		}
+
+		// REVISIT: When neither annotations if found then default to the default behavior (no isolation)
+	}
 
 	return &translatedIngress{
 		name: types.NamespacedName{
 			Namespace: ingress.Namespace,
 			Name:      ingress.Name,
 		},
+		listener:                listener,
+		port:                    port,
+		tlsPort:                 tlsPort,
 		sniMatches:              sniMatches,
 		clusters:                clusters,
 		externalVirtualHosts:    externalHosts,
