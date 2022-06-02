@@ -35,7 +35,7 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
-	network "knative.dev/networking/pkg"
+	netconfig "knative.dev/networking/pkg/config"
 )
 
 func TestDeleteIngressInfo(t *testing.T) {
@@ -255,7 +255,7 @@ func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
 // filter is added when secret name is specified by cluster-cert-secret.
 func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 	testConfig := &rconfig.Config{
-		Network: &network.Config{},
+		Network: &netconfig.Config{},
 		Kourier: &config.Kourier{
 			ClusterCertSecret:   "test-ca",
 			EnableProxyProtocol: true,

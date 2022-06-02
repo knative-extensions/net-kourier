@@ -40,8 +40,8 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
-	network "knative.dev/networking/pkg"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	netconfig "knative.dev/networking/pkg/config"
 	pkgtest "knative.dev/pkg/reconciler/testing"
 )
 
@@ -630,12 +630,12 @@ func (t *testConfigStore) ToContext(ctx context.Context) context.Context {
 
 var (
 	defaultConfig = &config.Config{
-		Network: &network.Config{
+		Network: &netconfig.Config{
 			AutoTLS: false,
 		},
 	}
 	upstreamTLSConfig = &config.Config{
-		Network: &network.Config{
+		Network: &netconfig.Config{
 			AutoTLS:      false,
 			ActivatorCA:  "test-ca",
 			ActivatorSAN: "test-san",
