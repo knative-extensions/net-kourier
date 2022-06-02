@@ -229,7 +229,6 @@ aliases:
   - skonto
   - tcnghia
   networking-wg-leads:
-  - ZhiminXiang
   - nak3
   operations-wg-leads:
   - houshengbo
@@ -257,7 +256,6 @@ aliases:
   serving-wg-leads:
   - dprotaso
   serving-writers:
-  - ZhiminXiang
   - dprotaso
   - nak3
   - psschwei
