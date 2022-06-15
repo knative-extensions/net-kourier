@@ -17,7 +17,7 @@
 SERVING_SYSTEM_NAMESPACE=knative-serving
 TEST_NAMESPACE=serving-tests
 out_dir="$(mktemp -d /tmp/certs-XXX)"
-san="knative"
+san="data-plane.knative.dev"
 
 kubectl create ns $SERVING_SYSTEM_NAMESPACE
 kubectl create ns $TEST_NAMESPACE
@@ -32,8 +32,8 @@ openssl req -out "${out_dir}"/tls.csr -newkey rsa:2048 -nodes -keyout "${out_dir
 openssl x509 -req -extfile <(printf "subjectAltName=DNS:$san") -days 365 -in "${out_dir}"/tls.csr -CA "${out_dir}"/root.crt -CAkey "${out_dir}"/root.key -CAcreateserial -out "${out_dir}"/tls.crt
 
 # Create secret
-kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret generic serving-ca \
-    --from-file=ca.crt="${out_dir}"/root.crt --dry-run=client -o yaml | kubectl apply -f -
+kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret generic knative-serving-certs \
+    --from-file=ca-cert.pem="${out_dir}"/root.crt --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create -n ${TEST_NAMESPACE} secret tls server-certs \
     --key="${out_dir}"/tls.key \
