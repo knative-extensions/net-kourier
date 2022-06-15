@@ -26,7 +26,8 @@ jobs:
 
         upstream-traffic:
         - plain
-        - tls
+        # TODO: Enable tls after 1.16 release.
+        # - tls
 
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
