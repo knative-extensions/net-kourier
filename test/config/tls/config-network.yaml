@@ -22,5 +22,4 @@ metadata:
     app.kubernetes.io/component: networking
     app.kubernetes.io/version: devel
 data:
-  activator-ca: "serving-ca"
-  activator-san: "knative"
+  internal-encryption: "true"

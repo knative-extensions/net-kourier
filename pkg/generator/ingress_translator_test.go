@@ -38,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
+	"knative.dev/control-protocol/pkg/certificates"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -636,9 +637,8 @@ var (
 	}
 	upstreamTLSConfig = &config.Config{
 		Network: &netconfig.Config{
-			AutoTLS:      false,
-			ActivatorCA:  "test-ca",
-			ActivatorSAN: "test-san",
+			AutoTLS:            false,
+			InternalEncryption: true,
 		},
 	}
 )
@@ -1481,10 +1481,10 @@ var (
 	caSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "knative-testing",
-			Name:      "test-ca",
+			Name:      netconfig.ServingInternalCertName,
 		},
 		Data: map[string][]byte{
-			caDataName: cert,
+			certificates.SecretCaCertKey: cert,
 		},
 	}
 )
@@ -1509,7 +1509,7 @@ func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 					},
 					MatchSubjectAltNames: []*envoymatcherv3.StringMatcher{{
 						MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-							Exact: "test-san",
+							Exact: certificates.FakeDnsName,
 						}},
 					},
 				},

@@ -51,8 +51,7 @@ func FromContextOrDefaults(ctx context.Context) *Config {
 
 func defaultConfig() *netconfig.Config {
 	return &netconfig.Config{
-		ActivatorCA:  "",
-		ActivatorSAN: "",
+		InternalEncryption: false,
 	}
 }
 

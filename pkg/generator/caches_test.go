@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
+	"knative.dev/control-protocol/pkg/certificates"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
@@ -267,7 +268,7 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 			Name: "test-ca",
 		},
 		Data: map[string][]byte{
-			caDataName: cert,
+			certificates.SecretCaCertKey: cert,
 		},
 	}
 

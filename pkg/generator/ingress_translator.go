@@ -34,18 +34,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"knative.dev/control-protocol/pkg/certificates"
 	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	netconfig "knative.dev/networking/pkg/config"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/system"
 	"knative.dev/pkg/tracker"
-)
-
-const (
-	caDataName = "ca.crt"
 )
 
 type translatedIngress struct {
@@ -197,9 +194,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				cfg := config.FromContextOrDefaults(ctx)
 
 				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
-				if activatorCA := cfg.Network.ActivatorCA; activatorCA != "" && httpPath.RewriteHost == "" {
+				if cfg.Network.InternalEncryption && httpPath.RewriteHost == "" {
 					var err error
-					transportSocket, err = translator.createUpstreamTransportSocket(activatorCA, cfg.Network.ActivatorSAN, http2)
+					transportSocket, err = translator.createUpstreamTransportSocket(http2)
 					if err != nil {
 						return nil, err
 					}
@@ -276,8 +273,8 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	}, nil
 }
 
-func (translator *IngressTranslator) createUpstreamTransportSocket(activatorCA, activatorSAN string, http2 bool) (*envoycorev3.TransportSocket, error) {
-	caSecret, err := translator.secretGetter(system.Namespace(), activatorCA)
+func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool) (*envoycorev3.TransportSocket, error) {
+	caSecret, err := translator.secretGetter(pkgconfig.ServingNamespace(), netconfig.ServingInternalCertName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch activator CA secret: %w", err)
 	}
@@ -285,7 +282,7 @@ func (translator *IngressTranslator) createUpstreamTransportSocket(activatorCA, 
 	if http2 {
 		alpnProtocols = "h2"
 	}
-	tlsAny, err := anypb.New(createUpstreamTLSContext(caSecret.Data[caDataName], activatorSAN, alpnProtocols))
+	tlsAny, err := anypb.New(createUpstreamTLSContext(caSecret.Data[certificates.SecretCaCertKey], alpnProtocols))
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +294,7 @@ func (translator *IngressTranslator) createUpstreamTransportSocket(activatorCA, 
 	}, nil
 }
 
-func createUpstreamTLSContext(caCertificate []byte, activatorSAN string, alpnProtocols ...string) *tls.UpstreamTlsContext {
+func createUpstreamTLSContext(caCertificate []byte, alpnProtocols ...string) *tls.UpstreamTlsContext {
 	return &tls.UpstreamTlsContext{
 		CommonTlsContext: &tls.CommonTlsContext{
 			AlpnProtocols: alpnProtocols,
@@ -313,7 +310,7 @@ func createUpstreamTLSContext(caCertificate []byte, activatorSAN string, alpnPro
 					},
 					MatchSubjectAltNames: []*envoymatcherv3.StringMatcher{{
 						MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-							Exact: activatorSAN,
+							Exact: certificates.FakeDnsName,
 						}},
 					},
 				},
