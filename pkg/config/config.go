@@ -67,6 +67,7 @@ const (
 	// ServingNamespaceEnv is an env variable specifying where the serving is deployed.
 	// e.g. OpenShift deploys Kourier in different namespace so `system.Namespace()` does not work.
 	ServingNamespaceEnv = "SERVING_NAMESPACE"
+
 	// ListenerAnnotationKey is the annotation key for grouping/isolating ingresses.
 	ListenerAnnotationKey = "kourier.knative.dev/listener"
 
