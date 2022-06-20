@@ -64,9 +64,8 @@ type Caches struct {
 }
 
 type portVHost struct {
-	port    uint32
-	tlsPort uint32
-	vhost   []*route.VirtualHost
+	port  uint32
+	vhost []*route.VirtualHost
 }
 
 func NewCaches(ctx context.Context, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
