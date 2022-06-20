@@ -50,7 +50,6 @@ type translatedIngress struct {
 	name                    types.NamespacedName
 	listener                string
 	port                    uint32
-	tlsPort                 uint32
 	sniMatches              []*envoy.SNIMatch
 	clusters                []*v3.Cluster
 	externalVirtualHosts    []*route.VirtualHost
@@ -268,7 +267,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	}
 	listener := ""
 	port := uint32(0)
-	tlsPort := uint32(0)
 
 	if config.FromContext(ctx).Kourier.TrafficIsolation == pkgconfig.IsolationIngressPort {
 		logger.Infof("Getting namespace %v\n", ingress.Namespace)
@@ -286,13 +284,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				}
 				port = uint32(p)
 			}
-			if value, ok := ns.Annotations[pkgconfig.TLSListenerPortAnnotationKey]; ok {
-				p, err := strconv.ParseInt(value, 10, 32)
-				if err != nil {
-					return nil, err
-				}
-				tlsPort = uint32(p)
-			}
 		}
 
 		// REVISIT: When neither annotations if found then default to the default behavior (no isolation)
@@ -305,7 +296,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		},
 		listener:                listener,
 		port:                    port,
-		tlsPort:                 tlsPort,
 		sniMatches:              sniMatches,
 		clusters:                clusters,
 		externalVirtualHosts:    externalHosts,

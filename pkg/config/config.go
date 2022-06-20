@@ -73,10 +73,6 @@ const (
 	// ListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
 	// envoy listener port. Only applicable to internal services.
 	ListenerPortAnnotationKey = "kourier.knative.dev/listener-port"
-
-	// TLSListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
-	// envoy listener port for TLS connection. Only applicable to internal services.
-	TLSListenerPortAnnotationKey = "kourier.knative.dev/listener-tls-port"
 )
 
 var disableHTTP2Annotation = kmap.KeyPriority{

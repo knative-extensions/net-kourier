@@ -149,9 +149,8 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 			localVHostsForListener := localVHostsPerListener[translatedIngress.listener].vhost
 			localVHostsForListener = append(localVHostsForListener, translatedIngress.internalVirtualHosts...)
 			localVHostsPerListener[translatedIngress.listener] = portVHost{
-				port:    translatedIngress.port,
-				tlsPort: translatedIngress.tlsPort,
-				vhost:   localVHostsForListener,
+				port:  translatedIngress.port,
+				vhost: localVHostsForListener,
 			}
 		} else {
 			localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
