@@ -21,8 +21,9 @@ import (
 	"errors"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	v1 "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
@@ -45,7 +46,7 @@ type Reconciler struct {
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
 	extAuthz          bool
-	namespaceLister   v1.NamespaceLister
+	kubernetesClient  kubernetes.Interface
 
 	// resyncConflicts triggers a filtered global resync to reenqueue all ingresses in
 	// a "Conflict" state.
@@ -81,7 +82,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 		if ready {
 			external, internal := config.ServiceHostnames()
 
-			ns, err := r.namespaceLister.Get(ing.Namespace)
+			ns, err := r.kubernetesClient.CoreV1().Namespaces().Get(ctx, ing.Namespace, metav1.GetOptions{})
 			if err != nil {
 				return fmt.Errorf("failed to get namespace: %w", err)
 			}

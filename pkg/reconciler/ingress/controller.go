@@ -42,7 +42,6 @@ import (
 	"knative.dev/networking/pkg/status"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
-	nsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/namespace"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
 	secretfilteredinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret/filtered"
 	serviceinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/service"
@@ -86,9 +85,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	r := &Reconciler{
-		caches:          caches,
-		extAuthz:        config.ExternalAuthz.Enabled,
-		namespaceLister: nsInformer.Lister(),
+		caches:           caches,
+		extAuthz:         config.ExternalAuthz.Enabled,
+		kubernetesClient: kubernetesClient,
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
@@ -162,7 +161,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	statusProber := status.NewProber(
 		logger.Named("status-manager"),
-		NewProbeTargetLister(logger, endpointsInformer.Lister(), nsInformer.Lister()),
+		NewProbeTargetLister(logger, endpointsInformer.Lister(), kubernetesClient),
 		func(ing *v1alpha1.Ingress) {
 			logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
 			impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
@@ -188,7 +187,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			return serviceInformer.Lister().Services(ns).Get(name)
 		},
 		func(name string) (*corev1.Namespace, error) {
-			return nsInformer.Lister().Get(name)
+			return kubernetesClient.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 		},
 		impl.Tracker)
 	r.ingressTranslator = &ingressTranslator
