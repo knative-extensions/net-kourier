@@ -87,7 +87,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 				return fmt.Errorf("failed to get namespace: %w", err)
 			}
 
-			if ingressconfig.FromContext(ctx).Kourier.TrafficIsolation == config.IsolationIngressPort && ns.Annotations != nil {
+			if ingressconfig.FromContextOrDefaults(ctx).Kourier.TrafficIsolation == config.IsolationIngressPort && ns.Annotations != nil {
 				if listener, ok := ns.Annotations[config.ListenerAnnotationKey]; ok {
 					internal = config.ListenerServiceHostnames(listener)
 				}

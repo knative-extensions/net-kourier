@@ -69,13 +69,6 @@ ko resolve -f config | \
   sed 's/LoadBalancer/NodePort/g' | \
   kubectl apply -f -
 
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" get pods
-sleep 10
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" get pods
-kubectl logs -n "${KOURIER_CONTROL_NAMESPACE}" svc/net-kourier-controller
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" get events
-
-
 echo "Wait for the deployments to roll over"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
