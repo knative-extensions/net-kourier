@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	v1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
@@ -42,8 +43,10 @@ import (
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
-	secretinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret"
+	secretfilteredinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret/filtered"
 	serviceinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/service"
+	filteredFactory "knative.dev/pkg/client/injection/kube/informers/factory/filtered"
+
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
@@ -73,7 +76,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	endpointsInformer := endpointsinformer.Get(ctx)
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
-	secretInformer := secretinformer.Get(ctx)
+	secretInformer := getSecretInformer(ctx)
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
 	caches, err := generator.NewCaches(ctx, kubernetesClient, config.ExternalAuthz.Enabled)
@@ -337,4 +340,9 @@ func readyAddresses(eps *corev1.Endpoints) sets.String {
 	}
 
 	return ready
+}
+
+func getSecretInformer(ctx context.Context) v1.SecretInformer {
+	untyped := ctx.Value(filteredFactory.LabelKey{}) // This should always be not nil and have exactly one selector
+	return secretfilteredinformer.Get(ctx, untyped.([]string)[0])
 }
