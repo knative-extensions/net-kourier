@@ -187,7 +187,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			return serviceInformer.Lister().Services(ns).Get(name)
 		},
 		func(name string) (*corev1.Namespace, error) {
-			return kubernetesClient.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
+			return namespaceInformer.Lister().Get(name)
 		},
 		impl.Tracker)
 	r.ingressTranslator = &ingressTranslator
