@@ -936,13 +936,13 @@ k8s.io/utils/lru
 k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/control-protocol v0.0.0-20220610133426-4a1c8e84039f
+# knative.dev/control-protocol v0.0.0-20220701014037-ef4c10a9bc76
 ## explicit; go 1.17
 knative.dev/control-protocol/pkg/certificates
-# knative.dev/hack v0.0.0-20220610014127-dc6c287516dc
+# knative.dev/hack v0.0.0-20220701014203-65c463ac8c98
 ## explicit; go 1.14
 knative.dev/hack
-# knative.dev/networking v0.0.0-20220614203516-07c9d7614c61
+# knative.dev/networking v0.0.0-20220701023942-c3aef9ce275a
 ## explicit; go 1.17
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -982,7 +982,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20220621173822-9c5a7317fa9d
+# knative.dev/pkg v0.0.0-20220701013933-97eb1507655e
 ## explicit; go 1.17
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
