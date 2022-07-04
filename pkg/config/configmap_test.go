@@ -19,6 +19,8 @@ package config
 import (
 	"testing"
 
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 
@@ -39,6 +41,7 @@ func TestKourierConfig(t *testing.T) {
 		name: "disable logging",
 		want: &Kourier{
 			EnableServiceAccessLogging: false,
+			IdleTimeout:                300 * time.Second,
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "false",
@@ -55,6 +58,7 @@ func TestKourierConfig(t *testing.T) {
 			EnableServiceAccessLogging: true,
 			EnableProxyProtocol:        true,
 			ClusterCertSecret:          "my-cert",
+			IdleTimeout:                300 * time.Second,
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "true",
@@ -67,6 +71,7 @@ func TestKourierConfig(t *testing.T) {
 			EnableServiceAccessLogging: false,
 			EnableProxyProtocol:        true,
 			ClusterCertSecret:          "",
+			IdleTimeout:                300 * time.Second,
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "false",
@@ -78,6 +83,20 @@ func TestKourierConfig(t *testing.T) {
 		wantErr: true,
 		data: map[string]string{
 			enableProxyProtocol: "foo",
+		},
+	}, {
+		name: "set timeout to 200",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			EnableProxyProtocol:        false,
+			ClusterCertSecret:          "",
+			IdleTimeout:                200 * time.Second,
+		},
+		data: map[string]string{
+			enableServiceAccessLoggingKey: "true",
+			enableProxyProtocol:           "false",
+			clusterCert:                   "",
+			IdleTimeoutKey:                "200s",
 		},
 	}}
 

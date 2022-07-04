@@ -35,7 +35,7 @@ import (
 
 // NewHTTPConnectionManager creates a new HttpConnectionManager that points to the given
 // RouteConfig for further configuration.
-func NewHTTPConnectionManager(routeConfigName string, enableAccessLog, enableProxyProtocol bool) *hcm.HttpConnectionManager {
+func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kourier) *hcm.HttpConnectionManager {
 	filters := make([]*hcm.HttpFilter, 0, 1)
 
 	if config.ExternalAuthz.Enabled {
@@ -46,6 +46,9 @@ func NewHTTPConnectionManager(routeConfigName string, enableAccessLog, enablePro
 	filters = append(filters, &hcm.HttpFilter{
 		Name: wellknown.Router,
 	})
+	enableAccessLog := kourierConfig.EnableServiceAccessLogging
+	enableProxyProtocol := kourierConfig.EnableProxyProtocol
+	idleTimeout := kourierConfig.IdleTimeout
 
 	mgr := &hcm.HttpConnectionManager{
 		CodecType:   hcm.HttpConnectionManager_AUTO,
@@ -63,6 +66,7 @@ func NewHTTPConnectionManager(routeConfigName string, enableAccessLog, enablePro
 				RouteConfigName: routeConfigName,
 			},
 		},
+		StreamIdleTimeout: durationpb.New(idleTimeout),
 	}
 
 	if enableProxyProtocol {

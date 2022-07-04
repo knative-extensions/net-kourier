@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_api_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -30,12 +31,18 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
+	"knative.dev/net-kourier/pkg/config"
 )
 
 const urlPrefix = "type.googleapis.com/"
 
 func TestNewHTTPListener(t *testing.T) {
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        false,
+		IdleTimeout:                300 * time.Second,
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
 	l, err := NewHTTPListener(manager, 8080, false)
 	assert.NilError(t, err)
@@ -50,7 +57,12 @@ func TestNewHTTPListener(t *testing.T) {
 }
 
 func TestNewHTTPListenerWithProxyProtocol(t *testing.T) {
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, true /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        true,
+		IdleTimeout:                300 * time.Second,
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
 	l, err := NewHTTPListener(manager, 8080, true)
 	assert.NilError(t, err)
@@ -65,7 +77,12 @@ func TestNewHTTPListenerWithProxyProtocol(t *testing.T) {
 }
 
 func TestNewHTTPSListener(t *testing.T) {
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        false,
+		IdleTimeout:                300 * time.Second,
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
@@ -92,7 +109,12 @@ func TestNewHTTPSListener(t *testing.T) {
 }
 
 func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, true /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        true,
+		IdleTimeout:                300 * time.Second,
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
@@ -129,7 +151,12 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		PrivateKey:       []byte("key2"),
 	}}
 
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        false,
+		IdleTimeout:                300 * time.Second,
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
 	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, false)
 	assert.NilError(t, err)
 
@@ -156,8 +183,12 @@ func TestNewHTTPSListenerWithSNIWithProxyProtocol(t *testing.T) {
 		CertificateChain: []byte("cert2"),
 		PrivateKey:       []byte("key2"),
 	}}
-
-	manager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, true /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        true,
+		IdleTimeout:                300 * time.Second,
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
 	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, true)
 	assert.NilError(t, err)
 
