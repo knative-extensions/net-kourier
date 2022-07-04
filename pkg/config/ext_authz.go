@@ -184,7 +184,7 @@ func externalAuthZFilter(conf *config) *hcm.HttpFilter {
 		WithRequestBody: &extAuthService.BufferSettings{
 			MaxRequestBytes:     conf.MaxRequestBytes,
 			AllowPartialMessage: true,
-			PackAsBytes: conf.PackAsBytes
+			PackAsBytes: conf.PackAsBytes,
 		},
 		ClearRouteCache: false,
 	}
