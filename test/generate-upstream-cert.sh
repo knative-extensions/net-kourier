@@ -33,7 +33,8 @@ openssl x509 -req -extfile <(printf "subjectAltName=DNS:$san") -days 365 -in "${
 
 # Create secret
 kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret generic knative-serving-certs \
-    --from-file=ca-cert.pem="${out_dir}"/root.crt --dry-run=client -o yaml | kubectl apply -f -
+    --from-file=ca-cert.pem="${out_dir}"/root.crt --dry-run=client -o yaml |  \
+    sed  '/^metadata:/a\ \ labels: {"networking.internal.knative.dev/certificate-uid":"test-id"}' | kubectl apply -f -
 
 kubectl create -n ${TEST_NAMESPACE} secret tls server-certs \
     --key="${out_dir}"/tls.key \

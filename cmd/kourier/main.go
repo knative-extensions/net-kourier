@@ -21,7 +21,9 @@ import (
 	"os"
 
 	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
 	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
+	"knative.dev/pkg/signals"
 
 	// This defines the shared main for injected controllers.
 	"knative.dev/pkg/injection/sharedmain"
@@ -39,5 +41,6 @@ func main() {
 		os.Exit(check(*probeAddr))
 	}
 
-	sharedmain.Main(config.ControllerName, kourierIngressController.NewController)
+	ctx := informerfiltering.GetContextWithFilteringLabelSelector(signals.NewContext())
+	sharedmain.MainWithContext(ctx, config.ControllerName, kourierIngressController.NewController)
 }
