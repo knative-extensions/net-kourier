@@ -42,6 +42,7 @@ import (
 	"knative.dev/networking/pkg/status"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
+	nsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/namespace"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
 	secretfilteredinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret/filtered"
 	serviceinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/service"
@@ -76,7 +77,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 	secretInformer := getSecretInformer(ctx)
-	nsInformer := nsinformer.Get(ctx)
+	namespaceInformer := nsinformer.Get(ctx)
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
 	caches, err := generator.NewCaches(ctx, kubernetesClient, config.ExternalAuthz.Enabled)
