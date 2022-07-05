@@ -49,7 +49,7 @@ spec:
             - name: KOURIER_GATEWAY_NAMESPACE
               value: "kourier-system"
             - name: ENABLE_SECRET_INFORMER_FILTERING_BY_CERT_UID
-              value: "true"
+              value: "false"
           ports:
           - name: http2-xds
             containerPort: 18000
