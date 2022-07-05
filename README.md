@@ -101,6 +101,7 @@ To change the Kourier gateway namespace, you will need to:
 - TLS
 - External Authorization support.
 - Proxy Protocol (AN EXPERIMENTAL / ALPHA FEATURE)
+- Traffic Isolation (AN EXPERIMENTAL / ALPHA FEATURE)
 
 ## Setup TLS certificate
 
@@ -189,6 +190,32 @@ spec:
   externalTrafficPolicy: Local
   type: LoadBalancer
 ```
+
+
+## Traffic Isolation Configuration
+Note: this is an experimental/alpha feature.
+
+
+To enable the traffic isolation feature, run the following command to patch `config-kourier` ConfigMap:
+```
+kubectl patch configmap/config-kourier \
+  -n knative-serving \
+  --type merge \
+  -p '{"data":{"traffic-isolation":"port"}}'
+```
+
+Ensure that the file was updated successfully:
+```
+kubectl get configmap config-kourier --namespace knative-serving --output yaml
+```
+
+Traffic isolation works by telling the `net-kourier` controller which envoy listener to use for all ingresses
+in a given namespace. When reconciling an ingress, the controller looks for the following annotations on the 
+ingress namespace:
+
+- `kourier.knative.dev/listener`: the envoy listener suffix to use
+- `kourier.knative.dev/listener-port`: the envoy listener port
+
 
 ## Tips
 Domain Mapping is configured to explicitly use `http2` protocol only. This behaviour can be disabled by adding the following annotation to the Domain Mapping resource

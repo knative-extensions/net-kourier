@@ -23,27 +23,25 @@ import (
 	"strconv"
 
 	"go.uber.org/zap"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
 )
 
-func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister, kubeclient kubernetes.Interface) status.ProbeTargetLister {
+func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister, namespaceLister corev1listers.NamespaceLister) status.ProbeTargetLister {
 	return &gatewayPodTargetLister{
 		logger:          logger,
 		endpointsLister: endpointsLister,
-		kubeclient:      kubeclient,
+		namespaceLister: namespaceLister,
 	}
 }
 
 type gatewayPodTargetLister struct {
 	logger          *zap.SugaredLogger
 	endpointsLister corev1listers.EndpointsLister
-	kubeclient      kubernetes.Interface
+	namespaceLister corev1listers.NamespaceLister
 }
 
 func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
@@ -86,7 +84,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 				target.URLs = domainsToURL(domains, scheme)
 			}
 		} else {
-			ns, err := l.kubeclient.CoreV1().Namespaces().Get(context.TODO(), ing.Namespace, metav1.GetOptions{})
+			ns, err := l.namespaceLister.Get(ing.Namespace)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get the ingress namespace: %w", err)
 			}

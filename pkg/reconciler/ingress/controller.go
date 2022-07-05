@@ -162,7 +162,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	statusProber := status.NewProber(
 		logger.Named("status-manager"),
-		NewProbeTargetLister(logger, endpointsInformer.Lister(), kubernetesClient),
+		NewProbeTargetLister(logger, endpointsInformer.Lister(), namespaceInformer.Lister()),
 		func(ing *v1alpha1.Ingress) {
 			logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
 			impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
