@@ -86,9 +86,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	r := &Reconciler{
-		caches:           caches,
-		extAuthz:         config.ExternalAuthz.Enabled,
-		kubernetesClient: kubernetesClient,
+		caches:          caches,
+		extAuthz:        config.ExternalAuthz.Enabled,
+		namespaceLister: namespaceInformer.Lister(),
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
