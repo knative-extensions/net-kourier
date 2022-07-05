@@ -38,5 +38,4 @@ kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret generic knative-serving-cer
 
 kubectl create -n ${TEST_NAMESPACE} secret tls server-certs \
     --key="${out_dir}"/tls.key \
-    --cert="${out_dir}"/tls.crt --dry-run=client -o yaml | \
-    sed  '/^metadata:/a\ \ labels: {"networking.internal.knative.dev/certificate-uid":"test-id"}' | kubectl apply -f -
+    --cert="${out_dir}"/tls.crt --dry-run=client -o yaml | kubectl apply -f -
