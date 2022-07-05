@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/config"
+	ingressconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
 )
@@ -59,10 +60,10 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 	if len(readyIPs) == 0 {
 		return nil, fmt.Errorf("no gateway pods available")
 	}
-	return l.getIngressUrls(ing, readyIPs)
+	return l.getIngressUrls(ctx, ing, readyIPs)
 }
 
-func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
+func (l *gatewayPodTargetLister) getIngressUrls(ctx context.Context, ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
 	ips := sets.NewString(gatewayIps...)
 
 	targets := make([]status.ProbeTarget, 0, len(ing.Spec.Rules))
@@ -84,15 +85,18 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 				target.URLs = domainsToURL(domains, scheme)
 			}
 		} else {
-			ns, err := l.namespaceLister.Get(ing.Namespace)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get the ingress namespace: %w", err)
-			}
-
 			portPort := strconv.Itoa(int(config.HTTPPortInternal))
-			if ns.Annotations != nil {
-				if value, ok := ns.Annotations[config.ListenerPortAnnotationKey]; ok {
-					portPort = value
+
+			if ingressconfig.FromContextOrDefaults(ctx).Kourier.TrafficIsolation == config.IsolationIngressPort {
+				ns, err := l.namespaceLister.Get(ing.Namespace)
+				if err != nil {
+					return nil, fmt.Errorf("failed to get the ingress namespace: %w", err)
+				}
+
+				if ns.Annotations != nil {
+					if value, ok := ns.Annotations[config.ListenerPortAnnotationKey]; ok {
+						portPort = value
+					}
 				}
 			}
 
