@@ -269,7 +269,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	port := uint32(0)
 
 	if config.FromContextOrDefaults(ctx).Kourier.TrafficIsolation == pkgconfig.IsolationIngressPort {
-		logger.Infof("Getting namespace %v\n", ingress.Namespace)
 		ns, err := translator.namespaceGetter(ingress.Namespace)
 		if err != nil {
 			return nil, err
@@ -283,6 +282,8 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					return nil, err
 				}
 				port = uint32(p)
+
+				logger.Infof("mapping ingress %s/%s to port %d", ingress.Namespace, ingress.Name, port)
 			}
 		}
 
