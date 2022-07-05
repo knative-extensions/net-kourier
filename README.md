@@ -210,7 +210,7 @@ kubectl get configmap config-kourier --namespace knative-serving --output yaml
 ```
 
 Traffic isolation works by telling the `net-kourier` controller which envoy listener to use for all ingresses
-in a given namespace. When reconciling an ingress, the controller looks for the following annotations on the 
+in a given namespace. When reconciling an ingress, the controller looks for the following annotations on the
 ingress namespace:
 
 - `kourier.knative.dev/listener`: the envoy listener suffix to use
