@@ -166,8 +166,8 @@ func TestNewHTTPSListenerWithSNIWithProxyProtocol(t *testing.T) {
 	assert.Equal(t, uint32(8443), listener.Address.GetSocketAddress().GetPortValue())
 
 	// check both tls inspector and proxy protocol are configured
-	assert.Equal(t, listener.ListenerFilters[0].Name, wellknown.TlsInspector)
-	assertListenerHasProxyProtocolConfigured(t, listener.ListenerFilters[1])
+	assertListenerHasProxyProtocolConfigured(t, listener.ListenerFilters[0])
+	assert.Equal(t, listener.ListenerFilters[1].Name, wellknown.TlsInspector)
 
 	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[0])
 	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[1])
