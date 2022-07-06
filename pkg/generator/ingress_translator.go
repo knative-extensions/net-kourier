@@ -274,8 +274,8 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, err
 		}
 
-		if ns.Annotations != nil {
-			listener = ns.Annotations[pkgconfig.ListenerAnnotationKey]
+		if ns.Labels != nil {
+			listener = ns.Labels[pkgconfig.TenantNameLabelKey]
 			if value, ok := ns.Annotations[pkgconfig.ListenerPortAnnotationKey]; ok {
 				p, err := strconv.ParseInt(value, 10, 32)
 				if err != nil {
@@ -287,7 +287,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 		}
 
-		// REVISIT: When neither annotations if found then default to the default behavior (no isolation)
+		// REVISIT: When neither labels/annotations if found then default to the default behavior (no isolation)
 	}
 
 	return &translatedIngress{

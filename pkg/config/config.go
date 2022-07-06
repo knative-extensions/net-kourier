@@ -68,8 +68,8 @@ const (
 	// e.g. OpenShift deploys Kourier in different namespace so `system.Namespace()` does not work.
 	ServingNamespaceEnv = "SERVING_NAMESPACE"
 
-	// ListenerAnnotationKey is the annotation key for grouping/isolating ingresses.
-	ListenerAnnotationKey = "kourier.knative.dev/listener"
+	// TenantNameLabelKey is the annotation key for grouping/isolating ingresses by tenant
+	TenantNameLabelKey = "admin.knative.dev/tenant-name"
 
 	// ListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
 	// envoy listener port. Only applicable to internal services.
