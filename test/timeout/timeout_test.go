@@ -1,5 +1,8 @@
+//go:build e2e
+// +build e2e
+
 /*
-Copyright 2019 The Knative Authors
+Copyright 2020 The Knative Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ingress
+package e2e
 
 import (
 	"context"
@@ -26,16 +29,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
+	"knative.dev/networking/test/conformance/ingress"
 )
 
-// TestTimeout verifies that an Ingress implements "no timeout".
-func TestTimeout(t *testing.T) {
-	ctx, clients := context.Background(), test.Setup(t)
-
-	name, port, _ := CreateTimeoutService(ctx, t, clients)
+func TestIdleTimeout(t *testing.T) {
+	clients := test.Setup(t)
+	ctx := context.Background()
+	name, port, _ := ingress.CreateTimeoutService(ctx, t, clients)
 
 	// Create a simple Ingress over the Service.
-	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
+	_, client, _ := ingress.CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
@@ -53,34 +56,24 @@ func TestTimeout(t *testing.T) {
 		}},
 	})
 
-	const timeout = 10 * time.Second
+	const waitSecond = 100 * time.Second
 
-	tests := []struct {
+	test := struct {
 		name         string
 		code         int
 		initialDelay time.Duration
 		delay        time.Duration
-	}{{
-		name: "no delays is OK",
-		code: http.StatusOK,
-	}, {
-		name:         "large delay before headers is ok",
-		code:         http.StatusOK,
-		initialDelay: timeout,
-	}, {
-		name:  "large delay after headers is ok",
-		code:  http.StatusOK,
-		delay: timeout,
-	}}
-
-	for _, test := range tests {
-		test := test
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			checkTimeout(ctx, t, client, name, test.code, test.initialDelay, test.delay)
-		})
+	}{
+		name:  "100s delay before response",
+		code:  http.StatusRequestTimeout,
+		delay: waitSecond,
 	}
+
+	t.Run(test.name, func(t *testing.T) {
+		t.Parallel()
+		checkTimeout(ctx, t, client, name, test.code, test.initialDelay, test.delay)
+	})
+
 }
 
 func checkTimeout(ctx context.Context, t *testing.T, client *http.Client, name string, code int, initial time.Duration, timeout time.Duration) {
@@ -94,6 +87,6 @@ func checkTimeout(ctx context.Context, t *testing.T, client *http.Client, name s
 	defer resp.Body.Close()
 	if resp.StatusCode != code {
 		t.Errorf("Unexpected status code: %d, wanted %d", resp.StatusCode, code)
-		DumpResponse(ctx, t, resp)
+		ingress.DumpResponse(ctx, t, resp)
 	}
 }
