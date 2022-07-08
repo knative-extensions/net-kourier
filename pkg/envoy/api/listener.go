@@ -119,15 +119,13 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 		return nil, err
 	}
 
-	listenerFilter := []*listener.ListenerFilter{
-		{
-			// TLS Inspector listener filter must be configured in order to
-			// detect requested SNI.
-			// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
-			Name: wellknown.TlsInspector,
-		},
-	}
+	var listenerFilter []*listener.ListenerFilter
 
+	// proxy protocol listener filter should be executed before the TLS inspector listener filter.
+	// Since the proxy protocol adds bytes to the beginning of the connection,
+	// the SNI will not be parsed correctly if the proxy protocol listener filter is not executed first.
+	// Without SNI matching, you would get the wrong certificate, and traffic would drop.
+	// https://github.com/solo-io/gloo/issues/5116
 	if enableProxyProtocol {
 		proxyProtocolListenerFilter, err := createProxyProtocolListenerFilter()
 		if err != nil {
@@ -135,6 +133,15 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 		}
 		listenerFilter = append(listenerFilter, proxyProtocolListenerFilter)
 	}
+
+	listenerFilterForTLS := &listener.ListenerFilter{
+		// TLS Inspector listener filter must be configured in order to
+		// detect requested SNI.
+		// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
+		Name: wellknown.TlsInspector,
+	}
+
+	listenerFilter = append(listenerFilter, listenerFilterForTLS)
 
 	return &listener.Listener{
 		Name:            CreateListenerName(port),

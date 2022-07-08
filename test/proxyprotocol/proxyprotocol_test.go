@@ -33,6 +33,7 @@ import (
 	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"knative.dev/networking/pkg/apis/networking"
@@ -79,13 +80,89 @@ func TestProxyProtocol(t *testing.T) {
 	assert.Check(t, err != nil)
 
 	// testing with proxy protocol
-	client = &http.Client{
-		Transport: &http.Transport{
-			DialContext: createDialContextProxyProtocol(ctx, t, ing, clients),
-		},
+	client.Transport = &http.Transport{
+		DialContext: createDialContextProxyProtocol(ctx, t, ing, clients),
 	}
 
 	resp, err = client.Do(req)
+	assert.Check(t, err == nil)
+	defer resp.Body.Close()
+	assert.Equal(t, resp.StatusCode, http.StatusOK)
+}
+
+// TestProxyProtocolWithSNI verifies that the kourier is configured with proxy protocol and SNI.
+func TestProxyProtocolWithSNI(t *testing.T) {
+	ctx, clients := context.Background(), test.Setup(t)
+	name, port, _ := ingress.CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
+
+	privateServiceName := test.ObjectNameForTest(t)
+	privateHostName := privateServiceName + "." + test.ServingNamespace + ".svc." + test.NetworkingFlags.ClusterSuffix
+
+	privateIng, _, _ := ingress.CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
+		Rules: []v1alpha1.IngressRule{{
+			Hosts:      []string{privateHostName},
+			Visibility: v1alpha1.IngressVisibilityExternalIP,
+			HTTP: &v1alpha1.HTTPIngressRuleValue{
+				Paths: []v1alpha1.HTTPIngressPath{{
+					Splits: []v1alpha1.IngressBackendSplit{{
+						IngressBackend: v1alpha1.IngressBackend{
+							ServiceName:      name,
+							ServiceNamespace: test.ServingNamespace,
+							ServicePort:      intstr.FromInt(port),
+						},
+					}},
+				}},
+			},
+		}},
+	})
+
+	// Slap an ExternalName service in front of the kingress
+	loadbalancerAddress := privateIng.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
+	createExternalNameService(ctx, t, clients, privateHostName, loadbalancerAddress)
+
+	// Using fixed hostnames can lead to conflicts when -count=N>1
+	// so pseudo-randomize the hostnames to avoid conflicts.
+	publicHostname := name + ".toto.custom.domain.com"
+
+	secretName, tlsConfig, _ := ingress.CreateTLSSecret(ctx, t, clients, []string{publicHostname})
+	publicIng, client, _ := ingress.CreateIngressReadyWithTLS(ctx, t, clients, v1alpha1.IngressSpec{
+		Rules: []v1alpha1.IngressRule{{
+			Hosts:      []string{publicHostname},
+			Visibility: v1alpha1.IngressVisibilityExternalIP,
+			HTTP: &v1alpha1.HTTPIngressRuleValue{
+				Paths: []v1alpha1.HTTPIngressPath{{
+					RewriteHost: privateHostName,
+					Splits: []v1alpha1.IngressBackendSplit{{
+						AppendHeaders: map[string]string{
+							"K-Original-Host": publicHostname,
+						},
+						IngressBackend: v1alpha1.IngressBackend{
+							ServiceName:      privateServiceName,
+							ServiceNamespace: test.ServingNamespace,
+							ServicePort:      intstr.FromInt(80),
+						},
+					}},
+				}},
+			},
+		}},
+		TLS: []v1alpha1.IngressTLS{{
+			Hosts:           []string{publicHostname},
+			SecretName:      secretName,
+			SecretNamespace: test.ServingNamespace,
+		}},
+	}, tlsConfig)
+
+	client.Transport = &http.Transport{
+		DialContext:     createDialContextProxyProtocol(ctx, t, publicIng, clients),
+		TLSClientConfig: tlsConfig,
+	}
+
+	req, err := http.NewRequest("GET", "https://"+publicHostname, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.Do(req)
 	assert.Check(t, err == nil)
 	defer resp.Body.Close()
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
@@ -195,5 +272,59 @@ func createDialContextProxyProtocol(ctx context.Context, t *testing.T, ing *v1al
 	} else {
 		t.Fatal("Service does not have a supported shape (not type LoadBalancer? missing --ingressendpoint?).")
 		return nil // Unreachable
+	}
+}
+
+func createExternalNameService(ctx context.Context, t *testing.T, clients *test.Clients, target, gatewayDomain string) context.CancelFunc {
+	t.Helper()
+
+	targetName := strings.SplitN(target, ".", 3)
+	externalNameSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName[0],
+			Namespace: targetName[1],
+		},
+		Spec: corev1.ServiceSpec{
+			Type:            corev1.ServiceTypeExternalName,
+			ExternalName:    gatewayDomain,
+			SessionAffinity: corev1.ServiceAffinityNone,
+			Ports: []corev1.ServicePort{{
+				Name:       networking.ServicePortNameH2C,
+				Port:       int32(80),
+				TargetPort: intstr.FromInt(80),
+			}},
+		},
+	}
+
+	return createService(ctx, t, clients, externalNameSvc)
+}
+
+// createService is a helper for creating the service resource.
+func createService(ctx context.Context, t *testing.T, clients *test.Clients, svc *corev1.Service) context.CancelFunc {
+	t.Helper()
+
+	svcName := ktypes.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}
+
+	t.Cleanup(func() {
+		clients.KubeClient.CoreV1().Services(svc.Namespace).Delete(ctx, svc.Name, metav1.DeleteOptions{})
+	})
+	if err := reconciler.RetryTestErrors(func(attempts int) error {
+		if attempts > 0 {
+			t.Logf("Attempt %d creating service %s", attempts, svc.Name)
+		}
+		_, err := clients.KubeClient.CoreV1().Services(svc.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+		if err != nil {
+			t.Logf("Attempt %d creating service failed with: %v", attempts, err)
+		}
+		return err
+	}); err != nil {
+		t.Fatalf("Error creating Service %q: %v", svcName, err)
+	}
+
+	return func() {
+		err := clients.KubeClient.CoreV1().Services(svc.Namespace).Delete(ctx, svc.Name, metav1.DeleteOptions{})
+		if err != nil {
+			t.Errorf("Error cleaning up Service %q: %v", svcName, err)
+		}
 	}
 }
