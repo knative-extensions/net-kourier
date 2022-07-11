@@ -32,7 +32,7 @@ const (
 	InternalServiceName = "kourier-internal"
 
 	// IsolationServicePrefix is the prefix of the isolated services.
-	IsolationServicePrefix = "kourier-isolation"
+	IsolationServicePrefix = "kourier-isolation-"
 
 	// ExternalServiceName is the name of the external service.
 	ExternalServiceName = "kourier"
@@ -90,7 +90,7 @@ func ServiceHostnames() (string, string) {
 }
 
 func ListenerServiceHostnames(port string) string {
-	return network.GetServiceHostname(IsolationServicePrefix+"-"+port, GatewayNamespace())
+	return network.GetServiceHostname(IsolationServicePrefix+port, GatewayNamespace())
 }
 
 // GatewayNamespace returns the namespace where the gateway is deployed.
