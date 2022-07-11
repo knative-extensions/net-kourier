@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 
 	cm "knative.dev/pkg/configmap"
@@ -35,6 +37,10 @@ const (
 
 	// clusterCert is the config map key for kourier internal certificates
 	clusterCert = "cluster-cert-secret"
+
+	// IdleTimeoutKey is the config map key for the amount of time that Kourier waits
+	// for incoming requests. This value is set to "stream_idle_timeout" in Envoy.
+	IdleTimeoutKey = "stream-idle-timeout"
 )
 
 func DefaultConfig() *Kourier {
@@ -42,6 +48,7 @@ func DefaultConfig() *Kourier {
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
+		IdleTimeout:                300 * time.Second, // default value
 	}
 }
 
@@ -53,6 +60,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
+		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
 	); err != nil {
 		return nil, err
 	}
@@ -76,4 +84,10 @@ type Kourier struct {
 	// ClusterCertSecret specifies the secret name for the server certificates of
 	// Kourier Internal.
 	ClusterCertSecret string
+	// IdleTimeout specifies the amount of time that Kourier waits for incoming requests.
+	// The default value is 5 minutes. This will not interfere any smaller configured
+	// timeouts that may have existed in configurations prior to
+	// this option, for example, the "timeoutSeconds" specified in Knative service is still
+	// valid.
+	IdleTimeout time.Duration
 }

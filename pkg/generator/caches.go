@@ -221,9 +221,9 @@ func generateListenersAndRouteConfigs(
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
-	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
-	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
-	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
+	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier)
+	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier)
+	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier)
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol)
 	if err != nil {
 		return nil, nil, err
@@ -246,7 +246,7 @@ func generateListenersAndRouteConfigs(
 	// Add internal listeners and routes when internal cert secret is specified.
 	if cfg.Kourier.ClusterCertSecret != "" {
 		internalTLSRouteConfig := envoy.NewRouteConfig(internalTLSRouteConfigName, clusterLocalVirtualHosts)
-		internalTLSManager := envoy.NewHTTPConnectionManager(internalTLSRouteConfig.Name, cfg.Kourier.EnableServiceAccessLogging, cfg.Kourier.EnableProxyProtocol)
+		internalTLSManager := envoy.NewHTTPConnectionManager(internalTLSRouteConfig.Name, cfg.Kourier)
 
 		internalHTTPSEnvoyListener, err := newInternalEnvoyListenerWithOneCert(
 			ctx, internalTLSManager, kubeclient,

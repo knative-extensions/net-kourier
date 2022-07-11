@@ -18,6 +18,7 @@ package envoy
 
 import (
 	"testing"
+	"time"
 
 	envoy_config_filter_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -27,16 +28,27 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
+	"knative.dev/net-kourier/pkg/config"
 )
 
 func TestNewHTTPConnectionManagerWithoutAccessLogWithoutProxyProtocol(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test", false /*enableAccessLog*/, false /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: false,
+		EnableProxyProtocol:        false,
+		IdleTimeout:                300 * time.Second,
+	}
+	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, len(connManager.AccessLog) == 0)
 	assert.Check(t, connManager.UseRemoteAddress == nil)
 }
 
 func TestNewHTTPConnectionManagerWithAccessLogWithoutProxyProtocol(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, false /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        false,
+		IdleTimeout:                300 * time.Second,
+	}
+	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, connManager.UseRemoteAddress == nil)
 	accessLog := connManager.AccessLog[0]
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v3.AccessLog_TypedConfig).TypedConfig
@@ -51,14 +63,24 @@ func TestNewHTTPConnectionManagerWithAccessLogWithoutProxyProtocol(t *testing.T)
 }
 
 func TestNewHTTPConnectionManagerWithoutAccessLogWithProxyProtocol(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test", false /*enableAccessLog*/, true /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: false,
+		EnableProxyProtocol:        true,
+		IdleTimeout:                300 * time.Second,
+	}
+	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, len(connManager.AccessLog) == 0)
 	assert.Check(t, connManager.UseRemoteAddress != nil)
 	assert.Check(t, connManager.UseRemoteAddress.Value)
 }
 
 func TestNewHTTPConnectionManagerWithAccessLogWithProxyProtocol(t *testing.T) {
-	connManager := NewHTTPConnectionManager("test", true /*enableAccessLog*/, true /*enableProxyProtocol*/)
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        true,
+		IdleTimeout:                300 * time.Second,
+	}
+	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, connManager.UseRemoteAddress != nil)
 	assert.Check(t, connManager.UseRemoteAddress.Value)
 	accessLog := connManager.AccessLog[0]
