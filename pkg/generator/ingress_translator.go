@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -48,8 +47,7 @@ import (
 
 type translatedIngress struct {
 	name                    types.NamespacedName
-	listener                string
-	port                    uint32
+	listenerPort            string
 	sniMatches              []*envoy.SNIMatch
 	clusters                []*v3.Cluster
 	externalVirtualHosts    []*route.VirtualHost
@@ -265,8 +263,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 		}
 	}
-	listener := ""
-	port := uint32(0)
+	listenerPort := ""
 
 	if config.FromContextOrDefaults(ctx).Kourier.TrafficIsolation == pkgconfig.IsolationIngressPort {
 		ns, err := translator.namespaceGetter(ingress.Namespace)
@@ -276,15 +273,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 		if ns.Annotations != nil {
 			if value, ok := ns.Annotations[pkgconfig.ListenerPortAnnotationKey]; ok {
-				listener = pkgconfig.ListenerServiceHostnames(value)
+				listenerPort = value
 
-				p, err := strconv.ParseInt(value, 10, 32)
-				if err != nil {
-					return nil, err
-				}
-				port = uint32(p)
-
-				logger.Infof("mapping ingress %s/%s to port %d", ingress.Namespace, ingress.Name, port)
+				logger.Infof("mapping ingress %s/%s to port %v", ingress.Namespace, ingress.Name, listenerPort)
 			}
 		}
 
@@ -296,8 +287,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			Namespace: ingress.Namespace,
 			Name:      ingress.Name,
 		},
-		listener:                listener,
-		port:                    port,
+		listenerPort:            listenerPort,
 		sniMatches:              sniMatches,
 		clusters:                clusters,
 		externalVirtualHosts:    externalHosts,

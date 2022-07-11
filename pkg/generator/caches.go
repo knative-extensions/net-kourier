@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strconv"
 	"sync"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -47,6 +48,7 @@ const (
 	externalRouteConfigName    = "external_services"
 	externalTLSRouteConfigName = "external_tls_services"
 	internalRouteConfigName    = "internal_services"
+	isolationRouteConfigName   = "isolation_services"
 	internalTLSRouteConfigName = "internal_tls_services"
 )
 
@@ -64,7 +66,7 @@ type Caches struct {
 }
 
 type portVHost struct {
-	port  uint32
+	port  string
 	vhost []*route.VirtualHost
 }
 
@@ -144,10 +146,10 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 	localVHostsPerListener := make(map[string]portVHost)
 
 	for _, translatedIngress := range caches.translatedIngresses {
-		if translatedIngress.listener != "" {
-			localVHostsPerListener[translatedIngress.listener] = portVHost{
-				port:  translatedIngress.port, // Overrides any earlier declared ports, hope they are the same!
-				vhost: append(localVHostsPerListener[translatedIngress.listener].vhost, translatedIngress.internalVirtualHosts...),
+		if translatedIngress.listenerPort != "" {
+			localVHostsPerListener[translatedIngress.listenerPort] = portVHost{
+				port:  translatedIngress.listenerPort, // Overrides any earlier declared ports, hope they are the same!
+				vhost: append(localVHostsPerListener[translatedIngress.listenerPort].vhost, translatedIngress.internalVirtualHosts...),
 			}
 		} else {
 			localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
@@ -239,9 +241,9 @@ func generateListenersAndRouteConfigs(
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
 
 	internalListenersRouteConfig := make(map[string]*route.RouteConfiguration, len(clusterLocalVirtualHostsPerListener))
-	for listener, portVhosts := range clusterLocalVirtualHostsPerListener {
-		routeName := internalRouteConfigName + "_" + listener
-		internalListenersRouteConfig[listener] = envoy.NewRouteConfig(routeName, portVhosts.vhost)
+	for listenerPort, portVhosts := range clusterLocalVirtualHostsPerListener {
+		routeName := isolationRouteConfigName + "_" + listenerPort
+		internalListenersRouteConfig[listenerPort] = envoy.NewRouteConfig(routeName, portVhosts.vhost)
 	}
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
@@ -250,8 +252,8 @@ func generateListenersAndRouteConfigs(
 	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier)
 
 	internalListenerManagers := make(map[string]*httpconnmanagerv3.HttpConnectionManager, len(internalListenersRouteConfig))
-	for listener, internalListenerRouteConfig := range internalListenersRouteConfig {
-		internalListenerManagers[listener] = envoy.NewHTTPConnectionManager(internalListenerRouteConfig.Name, cfg.Kourier)
+	for listenerPort, internalListenerRouteConfig := range internalListenersRouteConfig {
+		internalListenerManagers[listenerPort] = envoy.NewHTTPConnectionManager(internalListenerRouteConfig.Name, cfg.Kourier)
 	}
 
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol)
@@ -266,13 +268,18 @@ func generateListenersAndRouteConfigs(
 	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
 	routes := []cachetypes.Resource{externalRouteConfig, internalRouteConfig}
 
-	for listener, portVhosts := range clusterLocalVirtualHostsPerListener {
-		envoyListener, err := envoy.NewHTTPListener(internalListenerManagers[listener], portVhosts.port, false)
+	for listenerPort, portVhosts := range clusterLocalVirtualHostsPerListener {
+		port, err := strconv.ParseInt(portVhosts.port, 10, 32)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		envoyListener, err := envoy.NewHTTPListener(internalListenerManagers[listenerPort], uint32(port), false)
 		if err != nil {
 			return nil, nil, err
 		}
 		listeners = append(listeners, envoyListener)
-		routes = append(routes, internalListenersRouteConfig[listener])
+		routes = append(routes, internalListenersRouteConfig[listenerPort])
 	}
 
 	// create probe listeners
