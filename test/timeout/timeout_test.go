@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"gotest.tools/v3/assert"
+
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
@@ -64,29 +66,26 @@ func TestIdleTimeout(t *testing.T) {
 		initialDelay time.Duration
 		delay        time.Duration
 	}{
-		name:  "100s delay before response",
-		code:  http.StatusRequestTimeout,
-		delay: waitSecond,
+		name:         "100s delay before response",
+		code:         http.StatusRequestTimeout,
+		initialDelay: waitSecond,
 	}
 
-	t.Run(test.name, func(t *testing.T) {
-		t.Parallel()
-		checkTimeout(ctx, t, client, name, test.code, test.initialDelay, test.delay)
-	})
+	checkTimeout(ctx, t, client, name, test.code, test.initialDelay, test.delay)
 
 }
 
 func checkTimeout(ctx context.Context, t *testing.T, client *http.Client, name string, code int, initial time.Duration, timeout time.Duration) {
-	t.Helper()
-
-	resp, err := client.Get(fmt.Sprintf("http://%s.example.com?initialTimeout=%d&timeout=%d",
-		name, initial.Milliseconds(), timeout.Milliseconds()))
+	req_url := fmt.Sprintf("http://%s.example.com?initialTimeout=%d&timeout=%d",
+		name, initial.Milliseconds(), timeout.Milliseconds())
+	req, err := http.NewRequest("GET", req_url, nil)
 	if err != nil {
 		t.Fatal("Error making GET request:", err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != code {
-		t.Errorf("Unexpected status code: %d, wanted %d", resp.StatusCode, code)
-		ingress.DumpResponse(ctx, t, resp)
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer resp.Body.Close()
+	assert.Equal(t, resp.StatusCode, code)
 }
