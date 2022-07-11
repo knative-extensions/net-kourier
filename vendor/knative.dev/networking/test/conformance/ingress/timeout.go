@@ -30,6 +30,7 @@ import (
 
 // TestTimeout verifies that an Ingress implements "no timeout".
 func TestTimeout(t *testing.T) {
+	t.Parallel()
 	ctx, clients := context.Background(), test.Setup(t)
 
 	name, port, _ := CreateTimeoutService(ctx, t, clients)

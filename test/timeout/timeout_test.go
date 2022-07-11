@@ -58,7 +58,7 @@ func TestIdleTimeout(t *testing.T) {
 		}},
 	})
 
-	const waitSecond = 100 * time.Second
+	const waitDuration = 100 * time.Second
 
 	test := struct {
 		name         string
@@ -68,17 +68,17 @@ func TestIdleTimeout(t *testing.T) {
 	}{
 		name:         "100s delay before response",
 		code:         http.StatusRequestTimeout,
-		initialDelay: waitSecond,
+		initialDelay: waitDuration,
 	}
 
-	checkTimeout(ctx, t, client, name, test.code, test.initialDelay, test.delay)
+	checkTimeout(t, client, name, test.code, test.initialDelay, test.delay)
 
 }
 
-func checkTimeout(ctx context.Context, t *testing.T, client *http.Client, name string, code int, initial time.Duration, timeout time.Duration) {
-	req_url := fmt.Sprintf("http://%s.example.com?initialTimeout=%d&timeout=%d",
+func checkTimeout(t *testing.T, client *http.Client, name string, code int, initial time.Duration, timeout time.Duration) {
+	reqURL := fmt.Sprintf("http://%s.example.com?initialTimeout=%d&timeout=%d",
 		name, initial.Milliseconds(), timeout.Milliseconds())
-	req, err := http.NewRequest("GET", req_url, nil)
+	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		t.Fatal("Error making GET request:", err)
 	}
