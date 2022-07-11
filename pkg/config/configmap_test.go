@@ -42,7 +42,7 @@ func TestKourierConfig(t *testing.T) {
 		want: &Kourier{
 			EnableServiceAccessLogging: false,
 			IdleTimeout:                300 * time.Second,
-			TrafficIsolation:           "none",
+			TrafficIsolation:           "",
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "false",
@@ -60,7 +60,7 @@ func TestKourierConfig(t *testing.T) {
 			EnableProxyProtocol:        true,
 			ClusterCertSecret:          "my-cert",
 			IdleTimeout:                300 * time.Second,
-			TrafficIsolation:           "none",
+			TrafficIsolation:           "",
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "true",
@@ -74,7 +74,7 @@ func TestKourierConfig(t *testing.T) {
 			EnableProxyProtocol:        true,
 			ClusterCertSecret:          "",
 			IdleTimeout:                300 * time.Second,
-			TrafficIsolation:           "none",
+			TrafficIsolation:           "",
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "false",

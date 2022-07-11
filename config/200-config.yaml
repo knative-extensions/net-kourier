@@ -64,11 +64,11 @@ data:
 
     # Control the desired level of incoming traffic isolation.
     #
-    # When set to "none" (the default), all incoming traffic flows through
+    # When set to an empty value (default), all incoming traffic flows through
     # a shared ingress and listeners.
     #
     # When set to "port", incoming traffic is isolated by using different
     # listener ports.
     #
     # NOTE: This flag is in an alpha state.
-    traffic-isolation: none
+    traffic-isolation: ""

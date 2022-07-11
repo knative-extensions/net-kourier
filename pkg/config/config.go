@@ -30,6 +30,10 @@ const (
 
 	// InternalServiceName is the name of the internal service.
 	InternalServiceName = "kourier-internal"
+
+	// IsolationServicePrefix is the prefix of the isolated services.
+	IsolationServicePrefix = "kourier-isolation"
+
 	// ExternalServiceName is the name of the external service.
 	ExternalServiceName = "kourier"
 
@@ -68,9 +72,6 @@ const (
 	// e.g. OpenShift deploys Kourier in different namespace so `system.Namespace()` does not work.
 	ServingNamespaceEnv = "SERVING_NAMESPACE"
 
-	// TenantNameLabelKey is the annotation key for grouping/isolating ingresses by tenant
-	TenantNameLabelKey = "admin.knative.dev/tenant-name"
-
 	// ListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
 	// envoy listener port. Only applicable to internal services.
 	ListenerPortAnnotationKey = "kourier.knative.dev/listener-port"
@@ -88,8 +89,8 @@ func ServiceHostnames() (string, string) {
 		network.GetServiceHostname(InternalServiceName, GatewayNamespace())
 }
 
-func ListenerServiceHostnames(listener string) string {
-	return network.GetServiceHostname(InternalServiceName+"-"+listener, GatewayNamespace())
+func ListenerServiceHostnames(port string) string {
+	return network.GetServiceHostname(IsolationServicePrefix+"-"+port, GatewayNamespace())
 }
 
 // GatewayNamespace returns the namespace where the gateway is deployed.

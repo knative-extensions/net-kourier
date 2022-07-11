@@ -274,9 +274,10 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, err
 		}
 
-		if ns.Labels != nil {
-			listener = ns.Labels[pkgconfig.TenantNameLabelKey]
+		if ns.Annotations != nil {
 			if value, ok := ns.Annotations[pkgconfig.ListenerPortAnnotationKey]; ok {
+				listener = pkgconfig.ListenerServiceHostnames(value)
+
 				p, err := strconv.ParseInt(value, 10, 32)
 				if err != nil {
 					return nil, err

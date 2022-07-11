@@ -55,7 +55,7 @@ func DefaultConfig() *Kourier {
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
 		IdleTimeout:                300 * time.Second, // default value
-		TrafficIsolation:           "none",
+		TrafficIsolation:           "",
 	}
 }
 

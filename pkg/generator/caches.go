@@ -145,11 +145,9 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 
 	for _, translatedIngress := range caches.translatedIngresses {
 		if translatedIngress.listener != "" {
-			localVHostsForListener := localVHostsPerListener[translatedIngress.listener].vhost
-			localVHostsForListener = append(localVHostsForListener, translatedIngress.internalVirtualHosts...)
 			localVHostsPerListener[translatedIngress.listener] = portVHost{
-				port:  translatedIngress.port,
-				vhost: localVHostsForListener,
+				port:  translatedIngress.port, // Overrides any earlier declared ports, hope they are the same!
+				vhost: append(localVHostsPerListener[translatedIngress.listener].vhost, translatedIngress.internalVirtualHosts...),
 			}
 		} else {
 			localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
@@ -162,6 +160,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 			snis.consume(match)
 		}
 	}
+
 	// Append the statusHost too.
 	localVHosts = append(localVHosts, caches.statusVirtualHost)
 
@@ -239,7 +238,7 @@ func generateListenersAndRouteConfigs(
 	externalTLSRouteConfig := envoy.NewRouteConfig(externalTLSRouteConfigName, externalTLSVirtualHosts)
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
 
-	internalListenersRouteConfig := make(map[string]*route.RouteConfiguration)
+	internalListenersRouteConfig := make(map[string]*route.RouteConfiguration, len(clusterLocalVirtualHostsPerListener))
 	for listener, portVhosts := range clusterLocalVirtualHostsPerListener {
 		routeName := internalRouteConfigName + "_" + listener
 		internalListenersRouteConfig[listener] = envoy.NewRouteConfig(routeName, portVhosts.vhost)
@@ -250,7 +249,7 @@ func generateListenersAndRouteConfigs(
 	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier)
 	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier)
 
-	internalListenerManagers := make(map[string]*httpconnmanagerv3.HttpConnectionManager)
+	internalListenerManagers := make(map[string]*httpconnmanagerv3.HttpConnectionManager, len(internalListenersRouteConfig))
 	for listener, internalListenerRouteConfig := range internalListenersRouteConfig {
 		internalListenerManagers[listener] = envoy.NewHTTPConnectionManager(internalListenerRouteConfig.Name, cfg.Kourier)
 	}

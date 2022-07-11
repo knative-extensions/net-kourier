@@ -85,7 +85,7 @@ func (l *gatewayPodTargetLister) getIngressUrls(ctx context.Context, ing *v1alph
 				target.URLs = domainsToURL(domains, scheme)
 			}
 		} else {
-			portPort := strconv.Itoa(int(config.HTTPPortInternal))
+			podPort := strconv.Itoa(int(config.HTTPPortInternal))
 
 			if ingressconfig.FromContextOrDefaults(ctx).Kourier.TrafficIsolation == config.IsolationIngressPort {
 				ns, err := l.namespaceLister.Get(ing.Namespace)
@@ -95,14 +95,14 @@ func (l *gatewayPodTargetLister) getIngressUrls(ctx context.Context, ing *v1alph
 
 				if ns.Annotations != nil {
 					if value, ok := ns.Annotations[config.ListenerPortAnnotationKey]; ok {
-						portPort = value
+						podPort = value
 					}
 				}
 			}
 
 			target = status.ProbeTarget{
 				PodIPs:  ips,
-				PodPort: portPort,
+				PodPort: podPort,
 				URLs:    domainsToURL(domains, scheme),
 			}
 		}
