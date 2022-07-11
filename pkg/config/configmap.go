@@ -24,6 +24,9 @@ import (
 	cm "knative.dev/pkg/configmap"
 )
 
+// TrafficIsolationType is the type for traffic isolation configuration
+type TrafficIsolationType string
+
 const (
 	// ConfigName is the name of config map for Kourier.
 	ConfigName = "config-kourier"
@@ -41,6 +44,12 @@ const (
 	// IdleTimeoutKey is the config map key for the amount of time that Kourier waits
 	// for incoming requests. This value is set to "stream_idle_timeout" in Envoy.
 	IdleTimeoutKey = "stream-idle-timeout"
+
+	// trafficIsolation is the config map key for controlling the desire level of incoming traffic isolation
+	trafficIsolation = "traffic-isolation"
+
+	// IsolationIngressPort if the config map value enabling port-level traffic isolation
+	IsolationIngressPort TrafficIsolationType = "port"
 )
 
 func DefaultConfig() *Kourier {
@@ -49,6 +58,7 @@ func DefaultConfig() *Kourier {
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
 		IdleTimeout:                300 * time.Second, // default value
+		TrafficIsolation:           "",
 	}
 }
 
@@ -61,6 +71,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
 		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
+		cm.AsString(trafficIsolation, (*string)(&nc.TrafficIsolation)),
 	); err != nil {
 		return nil, err
 	}
@@ -90,4 +101,6 @@ type Kourier struct {
 	// this option, for example, the "timeoutSeconds" specified in Knative service is still
 	// valid.
 	IdleTimeout time.Duration
+	// Desire level of incoming traffic isolation
+	TrafficIsolation TrafficIsolationType
 }

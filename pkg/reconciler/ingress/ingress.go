@@ -22,9 +22,11 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/types"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
+	ingressconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	"knative.dev/networking/pkg/status"
@@ -43,6 +45,7 @@ type Reconciler struct {
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
 	extAuthz          bool
+	namespaceLister   corev1listers.NamespaceLister
 
 	// resyncConflicts triggers a filtered global resync to reenqueue all ingresses in
 	// a "Conflict" state.
@@ -77,6 +80,20 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 		}
 		if ready {
 			external, internal := config.ServiceHostnames()
+
+			if ingressconfig.FromContextOrDefaults(ctx).Kourier.TrafficIsolation == config.IsolationIngressPort {
+				ns, err := r.namespaceLister.Get(ing.Namespace)
+				if err != nil {
+					return fmt.Errorf("failed to get namespace: %w", err)
+				}
+
+				if ns.Annotations != nil {
+					if port, ok := ns.Annotations[config.ListenerPortAnnotationKey]; ok {
+						internal = config.ListenerServiceHostnames(port)
+					}
+				}
+			}
+
 			ing.Status.MarkLoadBalancerReady(
 				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: external}},
 				[]v1alpha1.LoadBalancerIngressStatus{{DomainInternal: internal}},

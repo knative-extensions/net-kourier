@@ -39,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 	"knative.dev/control-protocol/pkg/certificates"
+	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -56,6 +57,7 @@ func TestIngressTranslator(t *testing.T) {
 		name: "simple",
 		in:   ing("simplens", "simplename"),
 		state: []runtime.Object{
+			ns("simplens"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 		},
@@ -114,6 +116,7 @@ func TestIngressTranslator(t *testing.T) {
 			}}
 		}),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 			secret,
@@ -182,6 +185,7 @@ func TestIngressTranslator(t *testing.T) {
 			ing.Spec.HTTPOption = v1alpha1.HTTPOptionRedirected
 		}),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 			secret,
@@ -268,6 +272,7 @@ func TestIngressTranslator(t *testing.T) {
 			ing.Spec.Rules[0].Visibility = v1alpha1.IngressVisibilityClusterLocal
 		}),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 			secret,
@@ -347,6 +352,7 @@ func TestIngressTranslator(t *testing.T) {
 			})
 		}),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 			svc("servicens2", "servicename2"),
@@ -425,6 +431,7 @@ func TestIngressTranslator(t *testing.T) {
 			ing.Spec.Rules[0].HTTP.Paths[0].Path = ""
 		}),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 		},
@@ -477,6 +484,7 @@ func TestIngressTranslator(t *testing.T) {
 		name: "external service",
 		in:   ing("testspace", "testname"),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename", func(svc *corev1.Service) {
 				svc.Spec.Type = corev1.ServiceTypeExternalName
 				svc.Spec.ExternalName = "example.com"
@@ -531,6 +539,7 @@ func TestIngressTranslator(t *testing.T) {
 		name: "external service without service port",
 		in:   ing("testspace", "testname"),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename", func(svc *corev1.Service) {
 				svc.Spec.Type = corev1.ServiceTypeExternalName
 				svc.Spec.ExternalName = "example.com"
@@ -608,6 +617,9 @@ func TestIngressTranslator(t *testing.T) {
 				func(ns, name string) (*corev1.Service, error) {
 					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
 				},
+				func(name string) (*corev1.Namespace, error) {
+					return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+				},
 				&pkgtest.FakeTracker{},
 			)
 
@@ -634,12 +646,14 @@ var (
 		Network: &netconfig.Config{
 			AutoTLS: false,
 		},
+		Kourier: pkgconfig.DefaultConfig(),
 	}
 	upstreamTLSConfig = &config.Config{
 		Network: &netconfig.Config{
 			AutoTLS:            false,
 			InternalEncryption: true,
 		},
+		Kourier: pkgconfig.DefaultConfig(),
 	}
 )
 
@@ -661,6 +675,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 			ing.Spec.HTTPOption = v1alpha1.HTTPOptionRedirected
 		}),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 			secret,
@@ -730,6 +745,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 			ing.Spec.Rules[0].Visibility = v1alpha1.IngressVisibilityClusterLocal
 		}),
 		state: []runtime.Object{
+			ns("testspace"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 			secret,
@@ -806,6 +822,9 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				func(ns, name string) (*corev1.Service, error) {
 					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
 				},
+				func(name string) (*corev1.Namespace, error) {
+					return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+				},
 				&pkgtest.FakeTracker{},
 			)
 
@@ -831,6 +850,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
 		}),
 		state: []runtime.Object{
+			ns("simplens"),
 			svc("servicens", "servicename"),
 			eps("servicens", "servicename"),
 			caSecret,
@@ -889,6 +909,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
 		}),
 		state: []runtime.Object{
+			ns("simplens"),
 			svc("servicens", "servicename", func(service *corev1.Service) {
 				service.Spec.Ports = []corev1.ServicePort{{
 					Name:       "http2",
@@ -953,6 +974,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromString("https")
 		}),
 		state: []runtime.Object{
+			ns("simplens"),
 			svc("servicens", "servicename", func(service *corev1.Service) {
 				service.Spec.Ports = []corev1.ServicePort{{
 					Name:       "http",
@@ -1022,6 +1044,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromString("https")
 		}),
 		state: []runtime.Object{
+			ns("simplens"),
 			svc("servicens", "servicename", func(service *corev1.Service) {
 				service.Spec.Ports = []corev1.ServicePort{{
 					Name:       "http2",
@@ -1103,6 +1126,9 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				func(ns, name string) (*corev1.Service, error) {
 					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
 				},
+				func(name string) (*corev1.Namespace, error) {
+					return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+				},
 				&pkgtest.FakeTracker{},
 			)
 
@@ -1126,6 +1152,7 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 		name: "http01-challenge",
 		in:   ingHTTP01Challenge("simplens", "simplename"),
 		state: []runtime.Object{
+			ns("simplens"),
 			svc("simplens", "cm-acme-http-solver", func(service *corev1.Service) {
 				service.Spec.Ports = []corev1.ServicePort{{
 					Name:       "http01-challenge",
@@ -1185,6 +1212,9 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 
 	t.Run(test.name, func(t *testing.T) {
 		ctx, _ := pkgtest.SetupFakeContext(t)
+		cfg := defaultConfig.DeepCopy()
+		ctx = (&testConfigStore{config: cfg}).ToContext(ctx)
+
 		kubeclient := fake.NewSimpleClientset(test.state...)
 
 		translator := NewIngressTranslator(
@@ -1196,6 +1226,9 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 			},
 			func(ns, name string) (*corev1.Service, error) {
 				return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			func(name string) (*corev1.Namespace, error) {
+				return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
 			},
 			&pkgtest.FakeTracker{},
 		)
@@ -1224,6 +1257,7 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(80)
 		}),
 		state: []runtime.Object{
+			ns("simplens"),
 			svc("servicens", "servicename", func(service *corev1.Service) {
 				service.Spec.Type = corev1.ServiceTypeExternalName
 				service.Spec.ExternalName = "kourier-internal.kourier-system.svc.cluster.local"
@@ -1300,6 +1334,9 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 			},
 			func(ns, name string) (*corev1.Service, error) {
 				return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			func(name string) (*corev1.Namespace, error) {
+				return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
 			},
 			&pkgtest.FakeTracker{},
 		)
@@ -1411,6 +1448,16 @@ func eps(ns, name string, opts ...func(endpoint *corev1.Endpoints)) *corev1.Endp
 	}
 
 	return serviceEndpoint
+}
+
+func ns(name string) *corev1.Namespace {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	return ns
 }
 
 func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {

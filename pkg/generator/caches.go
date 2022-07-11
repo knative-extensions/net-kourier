@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strconv"
 	"sync"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -47,6 +48,7 @@ const (
 	externalRouteConfigName    = "external_services"
 	externalTLSRouteConfigName = "external_tls_services"
 	internalRouteConfigName    = "internal_services"
+	isolationRouteConfigName   = "isolation_services"
 	internalTLSRouteConfigName = "internal_tls_services"
 )
 
@@ -61,6 +63,11 @@ type Caches struct {
 	statusVirtualHost   *route.VirtualHost
 
 	kubeClient kubeclient.Interface
+}
+
+type portVHost struct {
+	port  string
+	vhost []*route.VirtualHost
 }
 
 func NewCaches(ctx context.Context, kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
@@ -136,8 +143,18 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 	externalTLSVHosts := make([]*route.VirtualHost, 0, len(caches.translatedIngresses))
 	snis := sniMatches{}
 
+	localVHostsPerListener := make(map[string]portVHost)
+
 	for _, translatedIngress := range caches.translatedIngresses {
-		localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
+		if translatedIngress.listenerPort != "" {
+			localVHostsPerListener[translatedIngress.listenerPort] = portVHost{
+				port:  translatedIngress.listenerPort,
+				vhost: append(localVHostsPerListener[translatedIngress.listenerPort].vhost, translatedIngress.internalVirtualHosts...),
+			}
+		} else {
+			localVHosts = append(localVHosts, translatedIngress.internalVirtualHosts...)
+		}
+
 		externalVHosts = append(externalVHosts, translatedIngress.externalVirtualHosts...)
 		externalTLSVHosts = append(externalTLSVHosts, translatedIngress.externalTLSVirtualHosts...)
 
@@ -145,6 +162,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 			snis.consume(match)
 		}
 	}
+
 	// Append the statusHost too.
 	localVHosts = append(localVHosts, caches.statusVirtualHost)
 
@@ -153,6 +171,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 		externalVHosts,
 		externalTLSVHosts,
 		localVHosts,
+		localVHostsPerListener,
 		snis.list(),
 		caches.kubeClient,
 	)
@@ -207,6 +226,7 @@ func generateListenersAndRouteConfigs(
 	externalVirtualHosts []*route.VirtualHost,
 	externalTLSVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
+	clusterLocalVirtualHostsPerListener map[string]portVHost,
 	sniMatches []*envoy.SNIMatch,
 	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, error) {
 
@@ -220,10 +240,22 @@ func generateListenersAndRouteConfigs(
 	externalTLSRouteConfig := envoy.NewRouteConfig(externalTLSRouteConfigName, externalTLSVirtualHosts)
 	internalRouteConfig := envoy.NewRouteConfig(internalRouteConfigName, clusterLocalVirtualHosts)
 
+	internalListenersRouteConfig := make(map[string]*route.RouteConfiguration, len(clusterLocalVirtualHostsPerListener))
+	for listenerPort, portVhosts := range clusterLocalVirtualHostsPerListener {
+		routeName := isolationRouteConfigName + "_" + listenerPort
+		internalListenersRouteConfig[listenerPort] = envoy.NewRouteConfig(routeName, portVhosts.vhost)
+	}
+
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
 	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier)
 	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier)
 	internalManager := envoy.NewHTTPConnectionManager(internalRouteConfig.Name, cfg.Kourier)
+
+	internalListenerManagers := make(map[string]*httpconnmanagerv3.HttpConnectionManager, len(internalListenersRouteConfig))
+	for listenerPort, internalListenerRouteConfig := range internalListenersRouteConfig {
+		internalListenerManagers[listenerPort] = envoy.NewHTTPConnectionManager(internalListenerRouteConfig.Name, cfg.Kourier)
+	}
+
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol)
 	if err != nil {
 		return nil, nil, err
@@ -235,6 +267,20 @@ func generateListenersAndRouteConfigs(
 
 	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
 	routes := []cachetypes.Resource{externalRouteConfig, internalRouteConfig}
+
+	for listenerPort, portVhosts := range clusterLocalVirtualHostsPerListener {
+		port, err := strconv.ParseInt(portVhosts.port, 10, 32)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		envoyListener, err := envoy.NewHTTPListener(internalListenerManagers[listenerPort], uint32(port), false)
+		if err != nil {
+			return nil, nil, err
+		}
+		listeners = append(listeners, envoyListener)
+		routes = append(routes, internalListenersRouteConfig[listenerPort])
+	}
 
 	// create probe listeners
 	probHTTPListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortProb, false)

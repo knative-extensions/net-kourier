@@ -61,3 +61,14 @@ data:
 
     # Specifies the amount of time that Kourier waits for the incoming requests.
     stream-idle-timeout: "300s"
+
+    # Control the desired level of incoming traffic isolation.
+    #
+    # When set to an empty value (default), all incoming traffic flows through
+    # a shared ingress and listeners.
+    #
+    # When set to "port", incoming traffic is isolated by using different
+    # listener ports.
+    #
+    # NOTE: This flag is in an alpha state.
+    traffic-isolation: ""
