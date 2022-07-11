@@ -24,6 +24,9 @@ import (
 	cm "knative.dev/pkg/configmap"
 )
 
+// TrafficIsolationType is the type for traffic isolation configuration
+type TrafficIsolationType string
+
 const (
 	// ConfigName is the name of config map for Kourier.
 	ConfigName = "config-kourier"
@@ -46,7 +49,7 @@ const (
 	trafficIsolation = "traffic-isolation"
 
 	// IsolationIngressPort if the config map value enabling port-level traffic isolation
-	IsolationIngressPort = "port"
+	IsolationIngressPort TrafficIsolationType = "port"
 )
 
 func DefaultConfig() *Kourier {
@@ -68,7 +71,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
 		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
-		cm.AsString(trafficIsolation, &nc.TrafficIsolation),
+		cm.AsString(trafficIsolation, (*string)(&nc.TrafficIsolation)),
 	); err != nil {
 		return nil, err
 	}
@@ -99,5 +102,5 @@ type Kourier struct {
 	// valid.
 	IdleTimeout time.Duration
 	// Desire level of incoming traffic isolation
-	TrafficIsolation string
+	TrafficIsolation TrafficIsolationType
 }
