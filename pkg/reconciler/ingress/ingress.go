@@ -87,8 +87,10 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) r
 					return fmt.Errorf("failed to get namespace: %w", err)
 				}
 
-				if port, ok := ns.Labels[config.ListenerPortAnnotationKey]; ok {
-					internal = config.ListenerServiceHostnames(port)
+				if ns.Annotations != nil {
+					if port, ok := ns.Annotations[config.ListenerPortAnnotationKey]; ok {
+						internal = config.ListenerServiceHostnames(port)
+					}
 				}
 			}
 
