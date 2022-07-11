@@ -18,9 +18,6 @@ package generator
 
 import (
 	"context"
-	"testing"
-	"time"
-
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -44,6 +41,8 @@ import (
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	netconfig "knative.dev/networking/pkg/config"
 	pkgtest "knative.dev/pkg/reconciler/testing"
+	"testing"
+	"time"
 )
 
 func TestIngressTranslator(t *testing.T) {
@@ -92,7 +91,13 @@ func TestIngressTranslator(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -159,7 +164,13 @@ func TestIngressTranslator(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -243,7 +254,13 @@ func TestIngressTranslator(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -313,7 +330,13 @@ func TestIngressTranslator(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -391,7 +414,13 @@ func TestIngressTranslator(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -399,7 +428,13 @@ func TestIngressTranslator(t *testing.T) {
 					),
 					envoy.NewCluster(
 						"servicens2/servicename2",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -407,7 +442,13 @@ func TestIngressTranslator(t *testing.T) {
 					),
 					envoy.NewCluster(
 						"servicens3/servicename3",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,
 						nil,
@@ -461,7 +502,13 @@ func TestIngressTranslator(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -515,7 +562,13 @@ func TestIngressTranslator(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,
 						nil,
@@ -570,7 +623,13 @@ func TestIngressTranslator(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						[]*endpoint.LbEndpoint{envoy.NewLBEndpoint("example.com", 80)},
 						false,
 						nil,
@@ -705,7 +764,13 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -775,7 +840,13 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						nil,
@@ -868,7 +939,13 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						false,
 						&envoycorev3.TransportSocket{
@@ -931,7 +1008,13 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpoints,
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
@@ -1000,7 +1083,13 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbHTTPSEndpoints,
 						false, /* http2 */
 						&envoycorev3.TransportSocket{
@@ -1069,7 +1158,13 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbHTTPSEndpoints,
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
@@ -1169,7 +1264,13 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"simplens/cm-acme-http-solver",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						lbEndpointHTTP01Challenge,
 						false,
 						nil,
@@ -1269,7 +1370,13 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
-						5*time.Second,
+						envoy.ClusterConnectionOpts{
+							MaxConnections:     defaultMaxConnections,
+							MaxRequests:        defaultMaxConnections,
+							MaxPendingRequests: defaultMaxConnections,
+							MaxRetries:         defaultRetryCount,
+							ConnectTimeout:     5 * time.Second,
+						},
 						[]*endpoint.LbEndpoint{
 							envoy.NewLBEndpoint("kourier-internal.kourier-system.svc.cluster.local", 80),
 						},

@@ -17,6 +17,7 @@ limitations under the License.
 package envoy
 
 import (
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"time"
 
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -28,10 +29,18 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
+type ClusterConnectionOpts struct {
+	MaxConnections     uint32
+	MaxRequests        uint32
+	MaxPendingRequests uint32
+	MaxRetries         uint32
+	ConnectTimeout     time.Duration
+}
+
 // NewCluster generates a new v3.Cluster with the given settings.
 func NewCluster(
 	name string,
-	connectTimeout time.Duration,
+	connectOpts ClusterConnectionOpts,
 	endpoints []*endpoint.LbEndpoint,
 	isHTTP2 bool, transportSocket *envoycorev3.TransportSocket,
 	discoveryType envoyclusterv3.Cluster_DiscoveryType) *envoyclusterv3.Cluster {
@@ -41,7 +50,7 @@ func NewCluster(
 		ClusterDiscoveryType: &envoyclusterv3.Cluster_Type{
 			Type: discoveryType,
 		},
-		ConnectTimeout: durationpb.New(connectTimeout),
+		ConnectTimeout: durationpb.New(connectOpts.ConnectTimeout),
 		LoadAssignment: &endpoint.ClusterLoadAssignment{
 			ClusterName: name,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
@@ -63,6 +72,27 @@ func NewCluster(
 		cluster.TypedExtensionProtocolOptions = map[string]*anypb.Any{
 			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": opts,
 		}
+	}
+
+	// Add default connection settings to prevent unnecessary fuses
+	// 参考文档 https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/circuit_breaker.proto#envoy-v3-api-field-config-cluster-v3-circuitbreakers-thresholds-max-connections
+	// Istio has a similar action
+	defaultPriorityCircuitBreakersThresholds := envoyclusterv3.CircuitBreakers_Thresholds{
+		Priority:           envoycorev3.RoutingPriority_DEFAULT,
+		MaxConnections:     &wrappers.UInt32Value{Value: connectOpts.MaxConnections},
+		MaxRequests:        &wrappers.UInt32Value{Value: connectOpts.MaxRequests},
+		MaxPendingRequests: &wrappers.UInt32Value{Value: connectOpts.MaxPendingRequests},
+		MaxRetries:         &wrappers.UInt32Value{Value: connectOpts.MaxRetries},
+	} // default policy
+	highPriorityCircuitBreakersThresholds := envoyclusterv3.CircuitBreakers_Thresholds{
+		Priority:           envoycorev3.RoutingPriority_HIGH,
+		MaxConnections:     &wrappers.UInt32Value{Value: connectOpts.MaxConnections},
+		MaxRequests:        &wrappers.UInt32Value{Value: connectOpts.MaxRequests},
+		MaxPendingRequests: &wrappers.UInt32Value{Value: connectOpts.MaxPendingRequests},
+		MaxRetries:         &wrappers.UInt32Value{Value: connectOpts.MaxRetries},
+	} // high level policy
+	cluster.CircuitBreakers = &envoyclusterv3.CircuitBreakers{
+		Thresholds: []*envoyclusterv3.CircuitBreakers_Thresholds{&defaultPriorityCircuitBreakersThresholds, &highPriorityCircuitBreakersThresholds},
 	}
 
 	return cluster

@@ -19,7 +19,9 @@ package generator
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +45,16 @@ import (
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/tracker"
+)
+
+const (
+	defaultMaxConnections          = math.MaxUint32
+	defaultRetryCount              = 10
+	envoyClusterConnectTimeout     = "kourier.knative.dev/envoy/connect-timeout"
+	envoyClusterMaxConnections     = "kourier.knative.dev/envoy/max-connections"
+	envoyClusterMaxPendingRequests = "kourier.knative.dev/envoy/max-pending-requests"
+	envoyClusterMaxRequests        = "kourier.knative.dev/envoy/max-requests"
+	envoyClusterMaxRetries         = "kourier.knative.dev/envoy/max-retries"
 )
 
 type translatedIngress struct {
@@ -97,6 +109,54 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			CertSource:       secretRef,
 			CertificateChain: secret.Data[certFieldInSecret],
 			PrivateKey:       secret.Data[keyFieldInSecret]})
+	}
+
+	connectionOpts := envoy.ClusterConnectionOpts{
+		MaxConnections:     defaultMaxConnections,
+		MaxRequests:        defaultMaxConnections,
+		MaxPendingRequests: defaultMaxConnections,
+		MaxRetries:         defaultRetryCount,
+		ConnectTimeout:     5 * time.Second,
+	}
+
+	// The custom timeout period is matched
+	// This value is set to annotations in the Ingress resource
+	if ct, ok := ingress.Annotations[envoyClusterConnectTimeout]; ok {
+		if v, err := strconv.Atoi(ct); err == nil {
+			if v > 0 && v < math.MaxInt {
+				connectionOpts.ConnectTimeout = time.Duration(v) * time.Second
+			}
+		}
+	}
+
+	// Set connection default values
+	if mc, ok := ingress.Annotations[envoyClusterMaxConnections]; ok {
+		if v, err := strconv.Atoi(mc); err == nil {
+			if v > 0 && v < math.MaxUint32 {
+				connectionOpts.MaxConnections = uint32(v)
+			}
+		}
+	}
+	if mpr, ok := ingress.Annotations[envoyClusterMaxPendingRequests]; ok {
+		if v, err := strconv.Atoi(mpr); err == nil {
+			if v > 0 && v < math.MaxUint32 {
+				connectionOpts.MaxPendingRequests = uint32(v)
+			}
+		}
+	}
+	if mr, ok := ingress.Annotations[envoyClusterMaxRequests]; ok {
+		if v, err := strconv.Atoi(mr); err == nil {
+			if v > 0 && v < math.MaxUint32 {
+				connectionOpts.MaxRequests = uint32(v)
+			}
+		}
+	}
+	if mrt, ok := ingress.Annotations[envoyClusterMaxRetries]; ok {
+		if v, err := strconv.Atoi(mrt); err == nil {
+			if v > 0 && v < math.MaxUint32 {
+				connectionOpts.MaxRetries = uint32(v)
+			}
+		}
 	}
 
 	internalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
@@ -184,8 +244,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					publicLbEndpoints = lbEndpointsForKubeEndpoints(endpoints, targetPort)
 				}
 
-				connectTimeout := 5 * time.Second
-
 				var transportSocket *envoycorev3.TransportSocket
 
 				// This has to be "OrDefaults" because this path is called before the informers are
@@ -201,7 +259,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 						return nil, err
 					}
 				}
-				cluster := envoy.NewCluster(splitName, connectTimeout, publicLbEndpoints, http2, transportSocket, typ)
+				cluster := envoy.NewCluster(splitName, connectionOpts, publicLbEndpoints, http2, transportSocket, typ)
 				clusters = append(clusters, cluster)
 
 				weightedCluster := envoy.NewWeightedCluster(splitName, uint32(split.Percent), split.AppendHeaders)
