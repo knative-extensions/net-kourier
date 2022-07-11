@@ -20,10 +20,10 @@ require (
 	k8s.io/apimachinery v0.23.8
 	k8s.io/client-go v0.23.8
 	k8s.io/code-generator v0.23.8
-	knative.dev/control-protocol v0.0.0-20220701014037-ef4c10a9bc76
+	knative.dev/control-protocol v0.0.0-20220705161107-827b25dce9b8
 	knative.dev/hack v0.0.0-20220701014203-65c463ac8c98
-	knative.dev/networking v0.0.0-20220701023942-c3aef9ce275a
-	knative.dev/pkg v0.0.0-20220701013933-97eb1507655e
+	knative.dev/networking v0.0.0-20220705142707-f087178076e4
+	knative.dev/pkg v0.0.0-20220705130606-e60d250dc637
 )
 
 require (
