@@ -35,7 +35,7 @@ func TestNewHTTPConnectionManagerWithoutAccessLogWithoutProxyProtocol(t *testing
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: false,
 		EnableProxyProtocol:        false,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, len(connManager.AccessLog) == 0)
@@ -46,7 +46,7 @@ func TestNewHTTPConnectionManagerWithAccessLogWithoutProxyProtocol(t *testing.T)
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        false,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, connManager.UseRemoteAddress == nil)
@@ -66,7 +66,7 @@ func TestNewHTTPConnectionManagerWithoutAccessLogWithProxyProtocol(t *testing.T)
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: false,
 		EnableProxyProtocol:        true,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, len(connManager.AccessLog) == 0)
@@ -78,7 +78,7 @@ func TestNewHTTPConnectionManagerWithAccessLogWithProxyProtocol(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        true,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, connManager.UseRemoteAddress != nil)
