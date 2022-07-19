@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -71,7 +70,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
-		asKourierDuration(IdleTimeoutKey, &nc.IdleTimeout),
+		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
 		cm.AsString(trafficIsolation, (*string)(&nc.TrafficIsolation)),
 	); err != nil {
 		return nil, err
@@ -104,22 +103,4 @@ type Kourier struct {
 	IdleTimeout time.Duration
 	// Desire level of incoming traffic isolation
 	TrafficIsolation TrafficIsolationType
-}
-
-func asKourierDuration(key string, target *time.Duration) cm.ParseFunc {
-	return func(data map[string]string) error {
-		if raw, ok := data[key]; ok {
-			if raw == "infinity" {
-				notimeout := 0 * time.Second
-				*target = notimeout
-			} else {
-				timeout, err := time.ParseDuration(raw)
-				if err != nil {
-					return fmt.Errorf("failed to parse %q: %w", key, err)
-				}
-				*target = timeout
-			}
-		}
-		return nil
-	}
 }
