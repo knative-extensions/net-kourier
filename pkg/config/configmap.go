@@ -57,7 +57,7 @@ func DefaultConfig() *Kourier {
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
-		IdleTimeout:                300 * time.Second, // default value
+		IdleTimeout:                0 * time.Second, // default value
 		TrafficIsolation:           "",
 	}
 }

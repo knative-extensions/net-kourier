@@ -40,7 +40,7 @@ func TestNewHTTPListener(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        false,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
@@ -60,7 +60,7 @@ func TestNewHTTPListenerWithProxyProtocol(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        true,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
@@ -80,7 +80,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        false,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
@@ -112,7 +112,7 @@ func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        true,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
@@ -154,7 +154,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        false,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, false)
@@ -186,7 +186,7 @@ func TestNewHTTPSListenerWithSNIWithProxyProtocol(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        true,
-		IdleTimeout:                300 * time.Second,
+		IdleTimeout:                0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, true)
