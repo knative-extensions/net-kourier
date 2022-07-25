@@ -122,40 +122,30 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	// The custom timeout period is matched
 	// This value is set to annotations in the Ingress resource
 	if ct, ok := ingress.Annotations[envoyClusterConnectTimeout]; ok {
-		if v, err := strconv.Atoi(ct); err == nil {
-			if v > 0 && v < math.MaxInt {
-				connectionOpts.ConnectTimeout = time.Duration(v) * time.Second
-			}
+		if v, err := strconv.ParseUint(ct, 10, 32); err == nil {
+			connectionOpts.ConnectTimeout = time.Duration(v) * time.Second
 		}
 	}
 
 	// Set connection default values
 	if mc, ok := ingress.Annotations[envoyClusterMaxConnections]; ok {
-		if v, err := strconv.Atoi(mc); err == nil {
-			if v > 0 && v < math.MaxUint32 {
-				connectionOpts.MaxConnections = uint32(v)
-			}
+		if v, err := strconv.ParseUint(mc, 10, 32); err == nil {
+			connectionOpts.MaxConnections = uint32(v)
 		}
 	}
 	if mpr, ok := ingress.Annotations[envoyClusterMaxPendingRequests]; ok {
-		if v, err := strconv.Atoi(mpr); err == nil {
-			if v > 0 && v < math.MaxUint32 {
-				connectionOpts.MaxPendingRequests = uint32(v)
-			}
+		if v, err := strconv.ParseUint(mpr, 10, 32); err == nil {
+			connectionOpts.MaxPendingRequests = uint32(v)
 		}
 	}
 	if mr, ok := ingress.Annotations[envoyClusterMaxRequests]; ok {
-		if v, err := strconv.Atoi(mr); err == nil {
-			if v > 0 && v < math.MaxUint32 {
-				connectionOpts.MaxRequests = uint32(v)
-			}
+		if v, err := strconv.ParseUint(mr, 10, 32); err == nil {
+			connectionOpts.MaxRequests = uint32(v)
 		}
 	}
 	if mrt, ok := ingress.Annotations[envoyClusterMaxRetries]; ok {
-		if v, err := strconv.Atoi(mrt); err == nil {
-			if v > 0 && v < math.MaxUint32 {
-				connectionOpts.MaxRetries = uint32(v)
-			}
+		if v, err := strconv.ParseUint(mrt, 10, 32); err == nil {
+			connectionOpts.MaxRetries = uint32(v)
 		}
 	}
 
