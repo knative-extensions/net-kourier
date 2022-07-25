@@ -17,6 +17,7 @@ limitations under the License.
 package envoy
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -35,13 +36,25 @@ func TestNewCluster(t *testing.T) {
 	endpoints := []*endpoint.LbEndpoint{endpoint1, endpoint2}
 
 	// With HTTP2
-	c := NewCluster(name, connectTimeout, endpoints, true, nil, v3Cluster.Cluster_STATIC)
+	c := NewCluster(name, ClusterConnectionOpts{
+		MaxConnections:     math.MaxUint32,
+		MaxRequests:        math.MaxUint32,
+		MaxPendingRequests: math.MaxUint32,
+		MaxRetries:         10,
+		ConnectTimeout:     5 * time.Second,
+	}, endpoints, true, nil, v3Cluster.Cluster_STATIC)
 	assert.Equal(t, c.GetConnectTimeout().Seconds, int64(connectTimeout.Seconds()))
 	assert.Assert(t, c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] != nil)
 	assert.Equal(t, c.GetName(), name)
 	assert.DeepEqual(t, c.LoadAssignment.Endpoints[0].LbEndpoints, endpoints, protocmp.Transform())
 
 	// Without HTTP2
-	c = NewCluster(name, connectTimeout, endpoints, false, nil, v3Cluster.Cluster_STATIC)
+	c = NewCluster(name, ClusterConnectionOpts{
+		MaxConnections:     math.MaxUint32,
+		MaxRequests:        math.MaxUint32,
+		MaxPendingRequests: math.MaxUint32,
+		MaxRetries:         10,
+		ConnectTimeout:     5 * time.Second,
+	}, endpoints, false, nil, v3Cluster.Cluster_STATIC)
 	assert.Assert(t, c.TypedExtensionProtocolOptions["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] == nil)
 }
