@@ -22,11 +22,11 @@ import (
 	"math"
 	"testing"
 
+	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	"knative.dev/pkg/pool"
 )
 
 // TestPercentage verifies that an Ingress splitting over multiple backends respects
@@ -97,11 +97,12 @@ func TestPercentage(t *testing.T) {
 		// Allow the Ingress to be within 10% of the configured value.
 		margin = 10.0
 	)
-	wg := pool.NewWithCapacity(8, totalRequests)
+	var g errgroup.Group
+	g.SetLimit(8)
 	resultCh := make(chan string, totalRequests)
 
 	for i := 0.0; i < totalRequests; i++ {
-		wg.Go(func() error {
+		g.Go(func() error {
 			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
 			if ri == nil {
 				return errors.New("failed to request")
@@ -110,7 +111,7 @@ func TestPercentage(t *testing.T) {
 			return nil
 		})
 	}
-	if err := wg.Wait(); err != nil {
+	if err := g.Wait(); err != nil {
 		t.Error("Error while sending requests:", err)
 	}
 	close(resultCh)

@@ -20,10 +20,10 @@ require (
 	k8s.io/apimachinery v0.23.8
 	k8s.io/client-go v0.23.8
 	k8s.io/code-generator v0.23.8
-	knative.dev/control-protocol v0.0.0-20220711013913-b5a214695a24
-	knative.dev/hack v0.0.0-20220721014222-a6450400b5f1
-	knative.dev/networking v0.0.0-20220722153221-1f4c9ce38742
-	knative.dev/pkg v0.0.0-20220722152821-3764d73bf97e
+	knative.dev/control-protocol v0.0.0-20220728062837-75cf857da76a
+	knative.dev/hack v0.0.0-20220728013938-9dabf7cf62e3
+	knative.dev/networking v0.0.0-20220728135938-8baa0ac39a58
+	knative.dev/pkg v0.0.0-20220728013737-449f7e6dab63
 )
 
 require (
@@ -78,7 +78,7 @@ require (
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
