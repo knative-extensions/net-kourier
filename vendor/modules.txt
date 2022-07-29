@@ -948,7 +948,7 @@ knative.dev/control-protocol/pkg/certificates
 # knative.dev/hack v0.0.0-20220728013938-9dabf7cf62e3
 ## explicit; go 1.17
 knative.dev/hack
-# knative.dev/networking v0.0.0-20220728135938-8baa0ac39a58
+# knative.dev/networking v0.0.0-20220728142238-19a4157a1fcf
 ## explicit; go 1.17
 knative.dev/networking/config
 knative.dev/networking/pkg
