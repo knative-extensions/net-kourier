@@ -24,12 +24,12 @@ import (
 	"net/http"
 	"testing"
 
+	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	"knative.dev/pkg/pool"
 )
 
 func TestVisibility(t *testing.T) {
@@ -202,11 +202,12 @@ func TestVisibilitySplit(t *testing.T) {
 		// Allow the Ingress to be within 10% of the configured value.
 		margin = 10.0
 	)
-	wg := pool.NewWithCapacity(8, totalRequests)
+	var g errgroup.Group
+	g.SetLimit(8)
 	resultCh := make(chan string, totalRequests)
 
 	for i := 0.0; i < totalRequests; i++ {
-		wg.Go(func() error {
+		g.Go(func() error {
 			ri := RuntimeRequest(ctx, t, client, "http://"+publicHostName)
 			if ri == nil {
 				return errors.New("failed to request")
@@ -215,7 +216,7 @@ func TestVisibilitySplit(t *testing.T) {
 			return nil
 		})
 	}
-	if err := wg.Wait(); err != nil {
+	if err := g.Wait(); err != nil {
 		t.Error("Error while sending requests:", err)
 	}
 	close(resultCh)

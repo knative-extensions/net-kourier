@@ -22,12 +22,12 @@ import (
 	"math"
 	"testing"
 
+	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
-	"knative.dev/pkg/pool"
 )
 
 // TestPath verifies that an Ingress properly dispatches to backends based on the path of the URL.
@@ -212,10 +212,11 @@ func TestPathAndPercentageSplit(t *testing.T) {
 	wantKeys := sets.NewString(fooName, barName)
 	resultCh := make(chan string, total)
 
-	wg := pool.NewWithCapacity(8, total)
+	var g errgroup.Group
+	g.SetLimit(8)
 
 	for i := 0; i < total; i++ {
-		wg.Go(func() error {
+		g.Go(func() error {
 			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com/foo")
 			if ri == nil {
 				return errors.New("failed to request")
@@ -224,7 +225,7 @@ func TestPathAndPercentageSplit(t *testing.T) {
 			return nil
 		})
 	}
-	if err := wg.Wait(); err != nil {
+	if err := g.Wait(); err != nil {
 		t.Error("Error while sending requests:", err)
 	}
 	close(resultCh)

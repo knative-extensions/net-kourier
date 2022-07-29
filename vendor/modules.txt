@@ -303,7 +303,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+# golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
@@ -942,13 +942,13 @@ k8s.io/utils/lru
 k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/control-protocol v0.0.0-20220711013913-b5a214695a24
+# knative.dev/control-protocol v0.0.0-20220728062837-75cf857da76a
 ## explicit; go 1.17
 knative.dev/control-protocol/pkg/certificates
-# knative.dev/hack v0.0.0-20220721014222-a6450400b5f1
-## explicit; go 1.14
+# knative.dev/hack v0.0.0-20220728013938-9dabf7cf62e3
+## explicit; go 1.17
 knative.dev/hack
-# knative.dev/networking v0.0.0-20220722153221-1f4c9ce38742
+# knative.dev/networking v0.0.0-20220728135938-8baa0ac39a58
 ## explicit; go 1.17
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -988,7 +988,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20220722152821-3764d73bf97e
+# knative.dev/pkg v0.0.0-20220728013737-449f7e6dab63
 ## explicit; go 1.18
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
@@ -1030,7 +1030,6 @@ knative.dev/pkg/metrics
 knative.dev/pkg/metrics/metricskey
 knative.dev/pkg/network
 knative.dev/pkg/network/handlers
-knative.dev/pkg/pool
 knative.dev/pkg/profiling
 knative.dev/pkg/ptr
 knative.dev/pkg/reconciler
