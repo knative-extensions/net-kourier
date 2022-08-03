@@ -59,6 +59,7 @@ func DefaultConfig() *Kourier {
 		ClusterCertSecret:          "",
 		IdleTimeout:                0 * time.Second, // default value
 		TrafficIsolation:           "",
+		TrustedHopsCount:           0,
 	}
 }
 
@@ -72,6 +73,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
 		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
 		cm.AsString(trafficIsolation, (*string)(&nc.TrafficIsolation)),
+		cm.AsUint32(trustedHopsCount, &nc.TrustedHopsCount),
 	); err != nil {
 		return nil, err
 	}
@@ -103,4 +105,7 @@ type Kourier struct {
 	IdleTimeout time.Duration
 	// Desire level of incoming traffic isolation
 	TrafficIsolation TrafficIsolationType
+	// TrustedHopsCount Configure the number of additional ingress proxy hops from the
+	// right side of the x-forwarded-for HTTP header to trust.
+	TrustedHopsCount uint32
 }

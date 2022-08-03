@@ -75,6 +75,10 @@ const (
 	// ListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
 	// envoy listener port. Only applicable to internal services.
 	ListenerPortAnnotationKey = "kourier.knative.dev/listener-port"
+
+	// trustedHopsCount Configure the number of additional ingress proxy hops from the
+	// right side of the x-forwarded-for HTTP header to trust.
+	trustedHopsCount = "trusted-hops-count"
 )
 
 var disableHTTP2Annotation = kmap.KeyPriority{

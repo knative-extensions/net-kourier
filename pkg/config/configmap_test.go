@@ -110,7 +110,17 @@ func TestKourierConfig(t *testing.T) {
 		data: map[string]string{
 			trafficIsolation: "port",
 		},
-	}}
+	},
+		{
+			name: "add 3 trusted hops",
+			want: &Kourier{
+				TrustedHopsCount: 3,
+			},
+			data: map[string]string{
+				trustedHopsCount: "3",
+			},
+		},
+	}
 
 	for _, tt := range configTests {
 		t.Run(tt.name, func(t *testing.T) {
