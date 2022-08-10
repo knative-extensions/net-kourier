@@ -75,11 +75,16 @@ const (
 	// ListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
 	// envoy listener port. Only applicable to internal services.
 	ListenerPortAnnotationKey = "kourier.knative.dev/listener-port"
+
+	// DropRoutesAnnotationKey is the annotation key attached to a Knative Service
+	// to indicate which routes will be dropped without invoking the service
+	DropRoutesAnnotationKey = "kourier.knative.dev/drop-routes"
 )
 
-var disableHTTP2Annotation = kmap.KeyPriority{
-	disableHTTP2AnnotationKey,
-}
+var (
+	disableHTTP2Annotation = kmap.KeyPriority{disableHTTP2AnnotationKey}
+	dropRoutesAnnotation   = kmap.KeyPriority{DropRoutesAnnotationKey}
+)
 
 // ServiceHostnames returns the external and internal service's respective hostname.
 //
@@ -114,4 +119,9 @@ func ServingNamespace() string {
 // GetDisableHTTP2 specifies whether http2 is going to be disabled
 func GetDisableHTTP2(annotations map[string]string) (val string) {
 	return disableHTTP2Annotation.Value(annotations)
+}
+
+// GetRoutesToBeDropped specifies which routes will be dropped
+func GetRoutesToBeDropped(annotation map[string]string) (val string) {
+	return dropRoutesAnnotation.Value(annotation)
 }

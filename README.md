@@ -216,13 +216,22 @@ ingress namespace:
 - `kourier.knative.dev/listener-port`: the envoy listener port
 
 ## Tips
-Domain Mapping is configured to explicitly use `http2` protocol only. This behaviour can be disabled by adding the following annotation to the Domain Mapping resource
+1. Domain Mapping is configured to explicitly use `http2` protocol only. This behaviour can be disabled by adding the following annotation to the Domain Mapping resource
 ```
 kubectl annotate domainmapping <domain_mapping_name> kourier.knative.dev/disable-http2=true --namespace <namespace>
 ```
 A good use case for this configuration is `DomainMapping with Websocket`
 
 Note: This annotation is an experimental/alpha feature. There is a known issue such as [issues/821](https://github.com/knative-sandbox/issues/821) and we may change the annotation name in the future.
+
+2. You might want to drop a specific route, for example you want to prevent your browser from requesting `/favicon.ico` automatically.
+To do that, you will need to annotate your Knative Service as following:
+```
+kubectl annotate service.serving.knative.dev/<knative_service_name> kourier.knative.dev/drop-routes='{"routes":[{"path":"/favicon.ico"}]}'
+```
+Notice that the object `routes` in the annotation is a list of objects, so it's possible to add multiple paths following the same structure
+
+Note: This annotation is an experimental/alpha feature.
 
 ## License
 

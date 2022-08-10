@@ -17,6 +17,7 @@ limitations under the License.
 package envoy
 
 import (
+	"net/http"
 	"testing"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -62,4 +63,12 @@ func TestNewRouteExtAuthzDisabled(t *testing.T) {
 	assert.Equal(t, r.Match.Headers[0].Name, "myHeader")
 	assert.Assert(t, len(r.TypedPerFilterConfig) != 0)
 	assert.Assert(t, r.TypedPerFilterConfig[wellknown.HTTPExternalAuthorization] != nil)
+}
+
+func TestNewDropRoute(t *testing.T) {
+	name := "testRoute_drop_direct_action"
+	path := "/favicon.ico"
+
+	r := NewDropRoute(name, path)
+	assert.Equal(t, r.Action.(*route.Route_DirectResponse).DirectResponse.Status, uint32(http.StatusNotFound))
 }

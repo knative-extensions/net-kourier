@@ -17,6 +17,7 @@ limitations under the License.
 package envoy
 
 import (
+	"net/http"
 	"time"
 
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -112,4 +113,20 @@ func NewRouteExtAuthzDisabled(name string,
 	}
 
 	return newRoute
+}
+
+func NewDropRoute(name, path string) *route.Route {
+	return &route.Route{
+		Name: name,
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Prefix{
+				Prefix: path,
+			},
+		},
+		Action: &route.Route_DirectResponse{
+			DirectResponse: &route.DirectResponseAction{
+				Status: uint32(http.StatusNotFound),
+			},
+		},
+	}
 }

@@ -1350,6 +1350,223 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 	})
 }
 
+func TestIngressTranslatorDropRoutes(t *testing.T) {
+	tests := []struct {
+		name  string
+		in    *v1alpha1.Ingress
+		state []runtime.Object
+		want  *translatedIngress
+	}{
+		{
+			name: "dropping one path",
+			in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+				ing.Annotations = map[string]string{"kourier.knative.dev/drop-routes": `{"routes":[{"path":"/favicon.ico"}]}`}
+			}),
+			state: []runtime.Object{
+				ns("simplens"),
+				svc("servicens", "servicename"),
+				eps("servicens", "servicename"),
+			},
+			want: func() *translatedIngress {
+				vHosts := []*route.VirtualHost{
+					envoy.NewVirtualHost(
+						"(simplens/simplename).Rules[0]",
+						[]string{"foo.example.com", "foo.example.com:*"},
+						[]*route.Route{
+							envoy.NewRoute(
+								"(simplens/simplename).Rules[0].Paths[/test]",
+								[]*route.HeaderMatcher{{
+									Name: "testheader",
+									HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+										ExactMatch: "foo",
+									},
+								}},
+								"/test",
+								[]*route.WeightedCluster_ClusterWeight{
+									envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+								},
+								0,
+								map[string]string{"foo": "bar"},
+								"rewritten.example.com"),
+							envoy.NewDropRoute("(simplens/simplename).Rules[0].Paths[/test]", "/favicon.ico"),
+						},
+					),
+				}
+
+				return &translatedIngress{
+					name: types.NamespacedName{
+						Namespace: "simplens",
+						Name:      "simplename",
+					},
+					sniMatches: []*envoy.SNIMatch{},
+					clusters: []*v3.Cluster{
+						envoy.NewCluster(
+							"servicens/servicename",
+							5*time.Second,
+							lbEndpoints,
+							false,
+							nil,
+							v3.Cluster_STATIC,
+						),
+					},
+					externalVirtualHosts:    vHosts,
+					externalTLSVirtualHosts: []*route.VirtualHost{},
+					internalVirtualHosts:    vHosts,
+				}
+			}(),
+		},
+		{
+			name: "dropping multiple paths",
+			in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+				ing.Annotations = map[string]string{"kourier.knative.dev/drop-routes": `{"routes":[{"path":"/favicon.ico"},{"path":"/robots.txt"}]}`}
+			}),
+			state: []runtime.Object{
+				ns("simplens"),
+				svc("servicens", "servicename"),
+				eps("servicens", "servicename"),
+			},
+			want: func() *translatedIngress {
+				vHosts := []*route.VirtualHost{
+					envoy.NewVirtualHost(
+						"(simplens/simplename).Rules[0]",
+						[]string{"foo.example.com", "foo.example.com:*"},
+						[]*route.Route{
+							envoy.NewRoute(
+								"(simplens/simplename).Rules[0].Paths[/test]",
+								[]*route.HeaderMatcher{{
+									Name: "testheader",
+									HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+										ExactMatch: "foo",
+									},
+								}},
+								"/test",
+								[]*route.WeightedCluster_ClusterWeight{
+									envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+								},
+								0,
+								map[string]string{"foo": "bar"},
+								"rewritten.example.com"),
+							envoy.NewDropRoute("(simplens/simplename).Rules[0].Paths[/test]", "/favicon.ico"),
+							envoy.NewDropRoute("(simplens/simplename).Rules[0].Paths[/test]", "/robots.txt"),
+						},
+					),
+				}
+
+				return &translatedIngress{
+					name: types.NamespacedName{
+						Namespace: "simplens",
+						Name:      "simplename",
+					},
+					sniMatches: []*envoy.SNIMatch{},
+					clusters: []*v3.Cluster{
+						envoy.NewCluster(
+							"servicens/servicename",
+							5*time.Second,
+							lbEndpoints,
+							false,
+							nil,
+							v3.Cluster_STATIC,
+						),
+					},
+					externalVirtualHosts:    vHosts,
+					externalTLSVirtualHosts: []*route.VirtualHost{},
+					internalVirtualHosts:    vHosts,
+				}
+			}(),
+		},
+		{
+			name: "path without slash",
+			in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+				ing.Annotations = map[string]string{"kourier.knative.dev/drop-routes": `{"routes":[{"path":"favicon.ico"}]}`}
+			}),
+			state: []runtime.Object{
+				ns("simplens"),
+				svc("servicens", "servicename"),
+				eps("servicens", "servicename"),
+			},
+			want: func() *translatedIngress {
+				vHosts := []*route.VirtualHost{
+					envoy.NewVirtualHost(
+						"(simplens/simplename).Rules[0]",
+						[]string{"foo.example.com", "foo.example.com:*"},
+						[]*route.Route{
+							envoy.NewRoute(
+								"(simplens/simplename).Rules[0].Paths[/test]",
+								[]*route.HeaderMatcher{{
+									Name: "testheader",
+									HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+										ExactMatch: "foo",
+									},
+								}},
+								"/test",
+								[]*route.WeightedCluster_ClusterWeight{
+									envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+								},
+								0,
+								map[string]string{"foo": "bar"},
+								"rewritten.example.com"),
+							envoy.NewDropRoute("(simplens/simplename).Rules[0].Paths[/test]", "/favicon.ico"),
+						},
+					),
+				}
+
+				return &translatedIngress{
+					name: types.NamespacedName{
+						Namespace: "simplens",
+						Name:      "simplename",
+					},
+					sniMatches: []*envoy.SNIMatch{},
+					clusters: []*v3.Cluster{
+						envoy.NewCluster(
+							"servicens/servicename",
+							5*time.Second,
+							lbEndpoints,
+							false,
+							nil,
+							v3.Cluster_STATIC,
+						),
+					},
+					externalVirtualHosts:    vHosts,
+					externalTLSVirtualHosts: []*route.VirtualHost{},
+					internalVirtualHosts:    vHosts,
+				}
+			}(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := defaultConfig.DeepCopy()
+			ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
+
+			kubeclient := fake.NewSimpleClientset(test.state...)
+
+			translator := NewIngressTranslator(
+				func(ns, name string) (*corev1.Secret, error) {
+					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns, name string) (*corev1.Endpoints, error) {
+					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns, name string) (*corev1.Service, error) {
+					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+				},
+				func(name string) (*corev1.Namespace, error) {
+					return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+				},
+				&pkgtest.FakeTracker{},
+			)
+
+			got, err := translator.translateIngress(ctx, test.in, false)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, got, test.want,
+				cmp.AllowUnexported(translatedIngress{}),
+				protocmp.Transform(),
+			)
+		})
+	}
+}
+
 func ing(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {
 	ingress := &v1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{

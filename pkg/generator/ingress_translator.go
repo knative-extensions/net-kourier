@@ -18,6 +18,7 @@ package generator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -61,6 +62,16 @@ type IngressTranslator struct {
 	serviceGetter   func(ns, name string) (*corev1.Service, error)
 	namespaceGetter func(name string) (*corev1.Namespace, error)
 	tracker         tracker.Interface
+}
+
+type DropRouteConfig struct {
+	// Path that will be dropped
+	Path string `json:"path"`
+}
+
+type DropRoutes struct {
+	// Configurations of routes that will be dropped
+	Routes []DropRouteConfig `json:"routes"`
 }
 
 func NewIngressTranslator(
@@ -229,6 +240,24 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				if len(ingress.Spec.TLS) != 0 || useHTTPSListenerWithOneCert() {
 					tlsRoutes = append(tlsRoutes, envoy.NewRoute(
 						pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
+				}
+
+				// convert annotation data to a json object
+				routesConfiguration, err := deserializeDropRoutes(pkgconfig.GetRoutesToBeDropped(ingress.Annotations))
+				if err != nil {
+					return nil, fmt.Errorf("failed to fetch paths, %w", err)
+				}
+				// routesConfiguration.Routes is an empty array when no annotation was defined
+				for _, dropRouteConfig := range routesConfiguration.Routes {
+					// add slash at the beginning of the path if user didn't specify it
+					if !strings.HasPrefix(dropRouteConfig.Path, "/") {
+						dropRouteConfig.Path = "/" + dropRouteConfig.Path
+					}
+					droppedRoute := envoy.NewDropRoute(pathName, dropRouteConfig.Path)
+					routes = append(routes, droppedRoute)
+					if len(tlsRoutes) != 0 {
+						tlsRoutes = append(tlsRoutes, droppedRoute)
+					}
 				}
 			}
 		}
@@ -425,4 +454,20 @@ func domainsForRule(rule v1alpha1.IngressRule) []string {
 		domains = append(domains, host, host+":*")
 	}
 	return domains
+}
+
+func deserializeDropRoutes(dp string) (DropRoutes, error) {
+	empty := DropRoutes{
+		Routes: []DropRouteConfig{},
+	}
+	if dp == "" {
+		return empty, nil
+	}
+
+	var d *DropRoutes
+	if err := json.Unmarshal([]byte(dp), &d); err != nil {
+		return empty, err
+	}
+
+	return *d, nil
 }
