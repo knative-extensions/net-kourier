@@ -170,6 +170,9 @@ func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTls
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			AlpnProtocols: []string{"h2", "http/1.1"},
+			TlsParams: &auth.TlsParameters{
+				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+			},
 			TlsCertificates: []*auth.TlsCertificate{{
 				CertificateChain: &core.DataSource{
 					Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
