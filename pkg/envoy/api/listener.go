@@ -217,6 +217,7 @@ func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTls
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			AlpnProtocols: []string{"h2", "http/1.1"},
+			// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
 			TlsParams: &auth.TlsParameters{
 				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
 			},
