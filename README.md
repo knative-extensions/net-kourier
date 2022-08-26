@@ -72,7 +72,7 @@ EOF
   to Kourier from your machine:
 
 ```bash
-kubectl port-forward --namespace kourier-system $(kubectl get pod -n kourier-system -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}") 8080:8080 19000:19000 8443:8443
+kubectl port-forward --namespace kourier-system $(kubectl get pod -n kourier-system -l "app=3scale-kourier-gateway" --output=jsonpath="{.items[0].metadata.name}") 8080:8080 19000:9000 8443:8443
 
 curl -v -H "Host: helloworld-go.default.127.0.0.1.nip.io" http://localhost:8080
 ```
