@@ -270,9 +270,10 @@ func CreateProxyService(ctx context.Context, t *testing.T, clients *test.Clients
 		)
 	}
 
-	if caSecretName := os.Getenv("UPSTREAM_CA_CERT"); caSecretName != "" {
+	if caSecretName, serverName := os.Getenv("UPSTREAM_CA_CERT"), os.Getenv("SERVER_NAME");
+		caSecretName != "" && serverName != "" {
 		pod = PodWithOption(pod,
-			WithEnv([]corev1.EnvVar{{Name: "CA_CERT", Value: caCertPath}}...),
+			WithEnv([]corev1.EnvVar{{Name: "CA_CERT", Value: caCertPath},{Name: "SERVER_NAME", Value: serverName},}...),
 			WithVolume("ca-certs", caCertDirectory, corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: caSecretName,

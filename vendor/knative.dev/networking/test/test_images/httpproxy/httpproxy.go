@@ -135,13 +135,14 @@ func newDNSCachingTransport() http.RoundTripper {
 		return
 	}
 
-	if caCert := os.Getenv("CA_CERT"); caCert != "" {
+	if caCert, serverName := os.Getenv("CA_CERT"), os.Getenv("SERVER_NAME"); caCert != "" && serverName != "" {
 		rootCAs, err := createRootCAs(caCert)
 		if err != nil {
 			log.Fatal(err)
 		}
 		t.TLSClientConfig = &tls.Config{
 			RootCAs: rootCAs,
+			ServerName: serverName,
 		}
 	}
 
