@@ -18,11 +18,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
 
+	"crypto/tls"
+	"crypto/x509"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -128,5 +132,33 @@ func newDNSCachingTransport() http.RoundTripper {
 		return
 	}
 
+	if caCert := os.Getenv("CA_CERT"); caCert != "" {
+		rootCAs, err := createRootCAs(caCert)
+		if err != nil {
+			log.Fatal(err)
+		}
+		t.TLSClientConfig = &tls.Config{
+			RootCAs: rootCAs,
+		}
+	}
+
 	return t
+}
+
+func createRootCAs(caCertFile string) (*x509.CertPool, error) {
+	pemData, err := os.ReadFile(caCertFile)
+	if err != nil {
+		return nil, err
+	}
+	rootCAs, err := x509.SystemCertPool()
+	if rootCAs == nil || err != nil {
+		if err != nil {
+			log.Printf("Failed to load cert poll from system: %v. Will create a new cert pool.", err)
+		}
+		rootCAs = x509.NewCertPool()
+	}
+	if !rootCAs.AppendCertsFromPEM(pemData) {
+		return nil, errors.New("failed to add the certificate to the root CA")
+	}
+	return rootCAs, nil
 }

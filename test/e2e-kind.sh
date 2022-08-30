@@ -31,6 +31,7 @@ if [[ $(kubectl get secret server-certs -n "${TEST_NAMESPACE}" -o name | wc -l) 
   echo ">> Enable tls against upstream"
   ko apply -f test/config/tls
   export "UPSTREAM_TLS_CERT=server-certs"
+  export "UPSTREAM_CA_CERT=server-ca"
 fi
 
 IPS=( $(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}') )
