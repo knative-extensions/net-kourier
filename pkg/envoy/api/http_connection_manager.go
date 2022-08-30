@@ -45,6 +45,9 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 	// Append the Router filter at the end.
 	filters = append(filters, &hcm.HttpFilter{
 		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: &anypb.Any{
+			TypeUrl: "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router",
+		}},
 	})
 	enableAccessLog := kourierConfig.EnableServiceAccessLogging
 	enableProxyProtocol := kourierConfig.EnableProxyProtocol
