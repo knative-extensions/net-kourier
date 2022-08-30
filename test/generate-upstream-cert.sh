@@ -40,11 +40,9 @@ kubectl create -n ${TEST_NAMESPACE} secret tls server-certs \
     --key="${out_dir}"/tls.key \
     --cert="${out_dir}"/tls.crt --dry-run=client -o yaml | kubectl apply -f -
 
-openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Fake/CN=Fake' -keyout "${out_dir}"/fake.key -out "${out_dir}"/fake.crt
-
 # For testing encryption with Kourier local gateway
 kubectl create -n ${TEST_NAMESPACE} secret generic server-ca \
-    --from-file=ca.crt="${out_dir}"/fake.crt
+    --from-file=ca.crt="${out_dir}"/root.crt
 
 kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret tls server-certs \
     --key="${out_dir}"/tls.key \
