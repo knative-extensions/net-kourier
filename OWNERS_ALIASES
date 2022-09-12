@@ -142,6 +142,7 @@ aliases:
   - cardil
   - rhuss
   kn-plugin-func-approvers:
+  - jrangelramos
   - lance
   - lkingland
   - matejvasek
@@ -158,9 +159,10 @@ aliases:
   - omerbensaadon
   - rhuss
   kn-plugin-quickstart-approvers:
-  - csantanapr
-  - omerbensaadon
+  - dsimansk
+  - navidshaikh
   - psschwei
+  - rhuss
   kn-plugin-sample-approvers:
   - maximilien
   - navidshaikh
