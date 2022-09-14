@@ -570,7 +570,6 @@ k8s.io/apimachinery/pkg/runtime/serializer/versioning
 k8s.io/apimachinery/pkg/selection
 k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/util/cache
-k8s.io/apimachinery/pkg/util/clock
 k8s.io/apimachinery/pkg/util/diff
 k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/util/framer
@@ -955,13 +954,13 @@ k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
-# knative.dev/control-protocol v0.0.0-20220908141222-9d1dfb4c656c
+# knative.dev/control-protocol v0.0.0-20220914172006-64e2528e224a
 ## explicit; go 1.18
 knative.dev/control-protocol/pkg/certificates
-# knative.dev/hack v0.0.0-20220908170219-36b2b3c7a245
+# knative.dev/hack v0.0.0-20220914183605-d1317b08c0c3
 ## explicit; go 1.18
 knative.dev/hack
-# knative.dev/networking v0.0.0-20220909015323-aded181b1709
+# knative.dev/networking v0.0.0-20220914020748-cefed20d561c
 ## explicit; go 1.18
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -1001,7 +1000,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20220909150730-20aabd56be23
+# knative.dev/pkg v0.0.0-20220914154704-5f66ecf267fe
 ## explicit; go 1.18
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
