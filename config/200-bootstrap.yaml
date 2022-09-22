@@ -55,6 +55,8 @@ data:
                     stat_prefix: stats_server
                     http_filters:
                       - name: envoy.filters.http.router
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
                     route_config:
                       virtual_hosts:
                         - name: admin_interface
@@ -101,3 +103,8 @@ data:
       address:
         pipe:
           path: /tmp/envoy.admin
+    layered_runtime:
+      layers:
+        - name: static-layer
+          static_layer:
+            envoy.reloadable_features.override_request_timeout_by_gateway_timeout: false

@@ -139,6 +139,9 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 		// detect requested SNI.
 		// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
 		Name: wellknown.TlsInspector,
+		ConfigType: &listener.ListenerFilter_TypedConfig{TypedConfig: &anypb.Any{
+			TypeUrl: "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector",
+		}},
 	}
 
 	listenerFilter = append(listenerFilter, listenerFilterForTLS)
