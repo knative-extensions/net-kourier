@@ -71,7 +71,9 @@ spec:
             runAsNonRoot: false
             capabilities:
               drop:
-                - all
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           volumeMounts:
             - name: config-volume
               mountPath: /tmp/config
