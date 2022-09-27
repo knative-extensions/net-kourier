@@ -98,6 +98,6 @@ func (envoyXdsServer *XdsServer) RunManagementServer() error {
 	}
 }
 
-func (envoyXdsServer *XdsServer) SetSnapshot(nodeID string, snapshot cache.Snapshot) error {
+func (envoyXdsServer *XdsServer) SetSnapshot(nodeID string, snapshot cache.ResourceSnapshot) error {
 	return envoyXdsServer.snapshotCache.SetSnapshot(context.Background(), nodeID, snapshot)
 }
