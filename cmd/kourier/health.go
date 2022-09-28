@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
@@ -39,7 +40,7 @@ const (
 func check(addr string) int {
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), timeout)
 	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, addr, grpc.WithBlock(), grpc.WithInsecure())
+	conn, err := grpc.DialContext(dialCtx, addr, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Printf("failed to connect to service at %q: %+v", addr, err)
 		return connectionFailure
