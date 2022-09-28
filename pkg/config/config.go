@@ -75,10 +75,24 @@ const (
 	// ListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
 	// envoy listener port. Only applicable to internal services.
 	ListenerPortAnnotationKey = "kourier.knative.dev/listener-port"
+
+	// Load Balancing Policy annotation
+	lbPolicyAnnotationKey = "kourier.knative.dev/lb-policy"
+
+	// Hash Policy annotation
+	hashPolicyAnnotationKey = "kourier.knative.dev/hash-policy"
 )
 
 var disableHTTP2Annotation = kmap.KeyPriority{
 	disableHTTP2AnnotationKey,
+}
+
+var lbPolicyAnnotation = kmap.KeyPriority{
+	lbPolicyAnnotationKey,
+}
+
+var hashPolicyAnnotation = kmap.KeyPriority{
+	hashPolicyAnnotationKey,
 }
 
 // ServiceHostnames returns the external and internal service's respective hostname.
@@ -114,4 +128,14 @@ func ServingNamespace() string {
 // GetDisableHTTP2 specifies whether http2 is going to be disabled
 func GetDisableHTTP2(annotations map[string]string) (val string) {
 	return disableHTTP2Annotation.Value(annotations)
+}
+
+// GetLbPolicy specifies the load balancing policy
+func GetLbPolicy(annotations map[string]string) (val string) {
+	return lbPolicyAnnotation.Value(annotations)
+}
+
+// GetHashPolicy specifies the hash policy
+func GetHashPolicy(annotations map[string]string) (val string) {
+	return hashPolicyAnnotation.Value(annotations)
 }

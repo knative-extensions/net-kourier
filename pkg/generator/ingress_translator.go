@@ -18,6 +18,7 @@ package generator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -31,6 +32,7 @@ import (
 	envoymatcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -206,6 +208,10 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					}
 				}
 				cluster := envoy.NewCluster(splitName, connectTimeout, publicLbEndpoints, http2, transportSocket, typ)
+
+				// parse lb-policy annotation
+				cluster.LbPolicy = getLbPolicy(ctx, ingress)
+
 				clusters = append(clusters, cluster)
 
 				weightedCluster := envoy.NewWeightedCluster(splitName, uint32(split.Percent), split.AppendHeaders)
@@ -236,6 +242,14 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		if len(routes) == 0 {
 			// Return nothing if there are not routes to generate.
 			return nil, nil
+		}
+
+		// parse hash-policy annotation
+		hashPolicy := getHashPolicy(ctx, ingress)
+		if len(hashPolicy) > 0 {
+			for i := range routes {
+				routes[i].GetRoute().HashPolicy = hashPolicy
+			}
 		}
 
 		var virtualHost, virtualTLSHost *route.VirtualHost
@@ -425,4 +439,79 @@ func domainsForRule(rule v1alpha1.IngressRule) []string {
 		domains = append(domains, host, host+":*")
 	}
 	return domains
+}
+
+// helper struct types to parse hash-policy annotation
+type hashPolicyStruct struct {
+	Header         *headerStruct         `json:"header"`
+	QueryParameter *queryParameterStruct `json:"query_parameter"`
+	Cookie         *cookieStruct         `json:"cookie"`
+	// TODO: add alternative policies
+}
+
+type headerStruct struct {
+	HeaderName string `json:"header_name"`
+	// TODO: add missing fields
+}
+
+type queryParameterStruct struct {
+	Name string `json:"name"`
+}
+
+type cookieStruct struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+	TTL  string `json:"ttl"`
+}
+
+// parse lb-policy annotation
+func getLbPolicy(ctx context.Context, ingress *v1alpha1.Ingress) (val v3.Cluster_LbPolicy) {
+	logger := logging.FromContext(ctx)
+
+	annotation := pkgconfig.GetLbPolicy(ingress.Annotations)
+	if annotation == "" {
+		return
+	}
+	if strings.EqualFold(annotation, "ring_hash") {
+		return v3.Cluster_RING_HASH
+	}
+	// TODO add alternative policies
+	logger.Warnf("Ignoring invalid lb-policy annotation %s on ingress %s/%s", annotation, ingress.Namespace, ingress.Name)
+	return
+}
+
+// parse hash-policy annotation
+func getHashPolicy(ctx context.Context, ingress *v1alpha1.Ingress) (hp []*route.RouteAction_HashPolicy) {
+	logger := logging.FromContext(ctx)
+
+	annotation := pkgconfig.GetHashPolicy(ingress.Annotations)
+	if annotation == "" {
+		return
+	}
+	var s hashPolicyStruct
+	if err := json.Unmarshal([]byte(annotation), &s); err != nil {
+		logger.Warnf("Ignoring invalid hash-policy annotation %s on ingress %s/%s", annotation, ingress.Namespace, ingress.Name)
+		return
+	}
+	if s.Header != nil {
+		h := &route.RouteAction_HashPolicy_Header{HeaderName: s.Header.HeaderName}
+		ps := &route.RouteAction_HashPolicy_Header_{Header: h}
+		// TODO add missing fields
+		hp = append(hp, &route.RouteAction_HashPolicy{PolicySpecifier: ps})
+	}
+	if s.QueryParameter != nil {
+		qp := &route.RouteAction_HashPolicy_QueryParameter{Name: s.QueryParameter.Name}
+		ps := &route.RouteAction_HashPolicy_QueryParameter_{QueryParameter: qp}
+		hp = append(hp, &route.RouteAction_HashPolicy{PolicySpecifier: ps})
+	}
+	if s.Cookie != nil {
+		cp := &route.RouteAction_HashPolicy_Cookie{Name: s.Cookie.Name, Path: s.Cookie.Path}
+		if d, err := time.ParseDuration(s.Cookie.TTL); err == nil {
+			cp.Ttl = durationpb.New(d)
+		}
+		ps := &route.RouteAction_HashPolicy_Cookie_{Cookie: cp}
+		hp = append(hp, &route.RouteAction_HashPolicy{PolicySpecifier: ps})
+	}
+	// TODO add alternative policies
+	return
 }
