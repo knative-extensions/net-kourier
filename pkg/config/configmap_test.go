@@ -114,10 +114,12 @@ func TestKourierConfig(t *testing.T) {
 		{
 			name: "add 3 trusted hops",
 			want: &Kourier{
-				TrustedHopsCount: 3,
+				EnableServiceAccessLogging: false,
+				TrustedHopsCount:           3,
 			},
 			data: map[string]string{
-				trustedHopsCount: "3",
+				enableServiceAccessLoggingKey: "false",
+				trustedHopsCount:              "3",
 			},
 		},
 	}
