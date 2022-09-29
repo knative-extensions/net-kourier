@@ -55,6 +55,8 @@ data:
                     stat_prefix: stats_server
                     http_filters:
                       - name: envoy.filters.http.router
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
                     route_config:
                       virtual_hosts:
                         - name: admin_interface
@@ -83,8 +85,17 @@ data:
                     pipe:
                       path: /tmp/envoy.admin
         - name: xds_cluster
+          # This keepalive is recommended by envoy docs.
+          # https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
+          typed_extension_protocol_options:
+            envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+              "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+              explicit_http_config:
+                http2_protocol_options:
+                  connection_keepalive:
+                    interval: 30s
+                    timeout: 5s
           connect_timeout: 1s
-          type: strict_dns
           load_assignment:
             cluster_name: xds_cluster
             endpoints:
@@ -94,10 +105,14 @@ data:
                     socket_address:
                       address: "net-kourier-controller.knative-serving"
                       port_value: 18000
-          http2_protocol_options: {}
           type: STRICT_DNS
     admin:
       access_log_path: "/dev/stdout"
       address:
         pipe:
           path: /tmp/envoy.admin
+    layered_runtime:
+      layers:
+        - name: static-layer
+          static_layer:
+            envoy.reloadable_features.override_request_timeout_by_gateway_timeout: false

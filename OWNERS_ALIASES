@@ -25,10 +25,8 @@ aliases:
   - travis-minke-sap
   discovery-approvers:
   - lberk
-  - n3wscott
   docs-wg-leads:
   - abrennan89
-  - csantanapr
   - snneji
   docs-writers:
   - abrennan89
@@ -114,9 +112,18 @@ aliases:
   - lkingland
   - matejvasek
   - nainaz
-  - omerbensaadon
   - salaboy
   - zroubalik
+  func-writers:
+  - lance
+  - lkingland
+  - matejvasek
+  - nainaz
+  - salaboy
+  - zroubalik
+  functions-wg-leads:
+  - lance
+  - salaboy
   homebrew-kn-plugins-approvers:
   - dsimansk
   - maximilien
@@ -134,27 +141,27 @@ aliases:
   - cardil
   - rhuss
   kn-plugin-func-approvers:
+  - jrangelramos
   - lance
   - lkingland
   - matejvasek
   - nainaz
-  - omerbensaadon
   - salaboy
   - zroubalik
   kn-plugin-migration-approvers:
   - maximilien
   - zhangtbj
   kn-plugin-operator-approvers:
-  - csantanapr
   - dsimansk
   - houshengbo
   - maximilien
   - omerbensaadon
   - rhuss
   kn-plugin-quickstart-approvers:
-  - csantanapr
-  - omerbensaadon
+  - dsimansk
+  - navidshaikh
   - psschwei
+  - rhuss
   kn-plugin-sample-approvers:
   - maximilien
   - navidshaikh
@@ -184,16 +191,15 @@ aliases:
   - knative-test-reporter-robot
   - kvmware
   - lance
-  - n3wscott
+  - matzew
   - pmorie
-  - psschwei
   - thisisnotapril
   - upodroid
   - vaikas
   - zroubalik
   knative-release-leads:
-  - evankanderson
-  - psschwei
+  - dprotaso
+  - matzew
   knative-robots:
   - knative-automation
   - knative-prow-releaser-robot
@@ -201,6 +207,7 @@ aliases:
   - knative-prow-updater-robot
   - knative-test-reporter-robot
   kperf-approvers:
+  - chzhyang
   - maximilien
   - nader-ziada
   - psschwei
@@ -256,6 +263,11 @@ aliases:
   - kvmware
   - psschwei
   - upodroid
+  security-guard-approvers:
+  - davidhadas
+  - maximilien
+  - psschwei
+  - rhuss
   security-wg-leads:
   - evankanderson
   - julz
@@ -264,6 +276,7 @@ aliases:
   - julz
   serving-wg-leads:
   - dprotaso
+  - psschwei
   serving-writers:
   - dprotaso
   - nak3
@@ -279,13 +292,10 @@ aliases:
   - dprotaso
   - dsimansk
   - evankanderson
-  - n3wscott
   - zroubalik
   ux-wg-leads:
   - abrennan89
-  - csantanapr
   - snneji
   ux-writers:
   - abrennan89
-  - csantanapr
   - snneji

@@ -139,6 +139,9 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 		// detect requested SNI.
 		// Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
 		Name: wellknown.TlsInspector,
+		ConfigType: &listener.ListenerFilter_TypedConfig{TypedConfig: &anypb.Any{
+			TypeUrl: "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector",
+		}},
 	}
 
 	listenerFilter = append(listenerFilter, listenerFilterForTLS)
@@ -217,6 +220,10 @@ func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTls
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			AlpnProtocols: []string{"h2", "http/1.1"},
+			// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
+			TlsParams: &auth.TlsParameters{
+				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+			},
 			TlsCertificates: []*auth.TlsCertificate{{
 				CertificateChain: &core.DataSource{
 					Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},

@@ -134,7 +134,7 @@ func (caches *Caches) SetOnEvicted(f func(types.NamespacedName, interface{})) {
 	})
 }
 
-func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, error) {
+func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (*cache.Snapshot, error) {
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
 
@@ -176,7 +176,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (cache.Snapshot, erro
 		caches.kubeClient,
 	)
 	if err != nil {
-		return cache.Snapshot{}, err
+		return nil, err
 	}
 
 	return cache.NewSnapshot(

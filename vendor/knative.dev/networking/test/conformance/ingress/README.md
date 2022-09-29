@@ -138,17 +138,53 @@ The following steps show how you can use it:
       --key=tls.key --cert=tls.crt
   ```
 
-1. Set env variable `UPSTREAM_TLS_CERT=server-certs` and run the tests.
+2. Set env variable `UPSTREAM_TLS_CERT=server-certs` and run the tests.
 
   ```shell
   $ export UPSTREAM_TLS_CERT=server-certs
   $ go test -race -count=1 -tags=e2e ./test/conformance/ -run "TestIngressConformance/basic"
   ```
 
-1. The backend test server starts running with TLS.
+3. The backend test server starts running with TLS.
 
   ```shell
   $ kubectl -n serving-tests logs ingress-conformance-basics-tfpnykaw
   2022/01/27 11:54:14 Server starting on port with TLS 8047
     ...
   ```
+
+The httpproxy test image can also forward requests using TLS instead of plain HTTP
+and configure the CA certificate to verify the server connection. This might be used
+to test TLS with cluster-local services.
+
+Follow the steps to configure TLS for the httpproxy image:
+
+1. Create server CA certificate with the name `server-ca` in `serving-tests` namespace.
+   The root.crt includes the CA certificate that was used to sign the server certificate.
+   The target key in the Secret must be named ca.crt.
+
+   ```shell
+   $ kubectl -n serving-tests create secret generic server-ca \
+      --from-file=ca.crt=root.crt
+   ```
+
+2. Set env variable `UPSTREAM_CA_CERT` to point the httpproxy image to the CA certificate.
+
+   ```shell
+   $ export UPSTREAM_CA_CERT=server-ca
+   ```
+
+3. Optional: Set env variable `SERVER_NAME`.
+
+   ```shell
+   $ export SERVER_NAME=foo
+   ```
+
+   The server name must be equal to Subject Alternative Name (SAN) that was configured for the server
+   side certificate.
+
+4. Run tests with the httpproxy image.
+
+     ```shell
+     $ go test -race -count=1 -tags=e2e ./test/conformance/ -run "TestIngressConformance/visibility"
+     ```

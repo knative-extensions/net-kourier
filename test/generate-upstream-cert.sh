@@ -39,3 +39,11 @@ kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret generic knative-serving-cer
 kubectl create -n ${TEST_NAMESPACE} secret tls server-certs \
     --key="${out_dir}"/tls.key \
     --cert="${out_dir}"/tls.crt --dry-run=client -o yaml | kubectl apply -f -
+
+# For testing encryption with Kourier local gateway
+kubectl create -n ${TEST_NAMESPACE} secret generic server-ca \
+    --from-file=ca.crt="${out_dir}"/root.crt
+
+kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret tls server-certs \
+    --key="${out_dir}"/tls.key \
+    --cert="${out_dir}"/tls.crt --dry-run=client -o yaml | kubectl apply -f -
