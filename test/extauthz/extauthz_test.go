@@ -20,8 +20,10 @@ limitations under the License.
 package extauthz
 
 import (
+	"bytes"
 	"context"
 	"net/http"
+	"os"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -79,4 +81,23 @@ func TestExtAuthz(t *testing.T) {
 	}
 	defer resp.Body.Close()
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
+
+	// When POSTing binary data, without KOURIER_EXTAUTHZ_PACKASBYTES, the result is "Forbidden"
+	// Because data passed to ext-authz service cannot be serialized. See https://github.com/knative-sandbox/net-kourier/issues/830
+	// TODO: is this behavior expected? Should we keep this test or make KOURIER_EXTAUTHZ_PACKASBYTES the default behavior?
+	req, err = http.NewRequest("POST", "http://"+name+".example.com/success", bytes.NewReader([]byte{0x04, 0xf1}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if os.Getenv("KOURIER_EXTAUTHZ_PACKASBYTES_TEST") == "" {
+		assert.Equal(t, resp.StatusCode, http.StatusForbidden)
+	} else {
+		assert.Equal(t, resp.StatusCode, http.StatusOK)
+	}
 }
