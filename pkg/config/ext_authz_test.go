@@ -157,6 +157,37 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 			},
 		},
 	}, {
+		name: "grpc with pack as bytes option",
+		conf: &config{
+			Host:            "example.com:50051",
+			MaxRequestBytes: 8192,
+			Timeout:         2000,
+			Protocol:        "grpc",
+			PackAsBytes:     true,
+		},
+		extAuthzWanted: &extAuthService.ExtAuthz{
+			TransportApiVersion: core.ApiVersion_V3,
+			WithRequestBody: &extAuthService.BufferSettings{
+				MaxRequestBytes:     8192,
+				AllowPartialMessage: true,
+				PackAsBytes:         true,
+			},
+			Services: &extAuthService.ExtAuthz_GrpcService{
+				GrpcService: &core.GrpcService{
+					TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
+						EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
+							ClusterName: extAuthzClusterName,
+						},
+					},
+					Timeout: durationpb.New(time.Duration(2000) * time.Millisecond),
+					InitialMetadata: []*core.HeaderValue{{
+						Key:   "client",
+						Value: "kourier",
+					}},
+				},
+			},
+		},
+	}, {
 		name: "http",
 		conf: &config{
 			Host:            "example.com:8080",
@@ -202,6 +233,42 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 			WithRequestBody: &extAuthService.BufferSettings{
 				MaxRequestBytes:     8192,
 				AllowPartialMessage: true,
+			},
+			Services: &extAuthService.ExtAuthz_HttpService{
+				HttpService: &extAuthService.HttpService{
+					ServerUri: &core.HttpUri{
+						Uri: "http://example.com:8080",
+						HttpUpstreamType: &core.HttpUri_Cluster{
+							Cluster: extAuthzClusterName,
+						},
+						Timeout: durationpb.New(time.Duration(2000) * time.Millisecond),
+					},
+					PathPrefix: "/verify",
+					AuthorizationRequest: &extAuthService.AuthorizationRequest{
+						HeadersToAdd: []*core.HeaderValue{{
+							Key:   "client",
+							Value: "kourier",
+						}},
+					},
+				},
+			},
+		},
+	}, {
+		name: "http with path prefix",
+		conf: &config{
+			Host:            "example.com:8080",
+			MaxRequestBytes: 8192,
+			Timeout:         2000,
+			Protocol:        "http",
+			PathPrefix:      "/verify",
+			PackAsBytes:     true,
+		},
+		extAuthzWanted: &extAuthService.ExtAuthz{
+			TransportApiVersion: core.ApiVersion_V3,
+			WithRequestBody: &extAuthService.BufferSettings{
+				MaxRequestBytes:     8192,
+				AllowPartialMessage: true,
+				PackAsBytes:         true,
 			},
 			Services: &extAuthService.ExtAuthz_HttpService{
 				HttpService: &extAuthService.HttpService{
