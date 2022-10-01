@@ -254,7 +254,7 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 			},
 		},
 	}, {
-		name: "http with path prefix",
+		name: "http with pack as bytes option",
 		conf: &config{
 			Host:            "example.com:8080",
 			MaxRequestBytes: 8192,
@@ -268,7 +268,6 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 			WithRequestBody: &extAuthService.BufferSettings{
 				MaxRequestBytes:     8192,
 				AllowPartialMessage: true,
-				PackAsBytes:         true,
 			},
 			Services: &extAuthService.ExtAuthz_HttpService{
 				HttpService: &extAuthService.HttpService{
