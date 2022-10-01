@@ -184,9 +184,13 @@ func externalAuthZFilter(conf *config) *hcm.HttpFilter {
 		WithRequestBody: &extAuthService.BufferSettings{
 			MaxRequestBytes:     conf.MaxRequestBytes,
 			AllowPartialMessage: true,
-			PackAsBytes:         conf.PackAsBytes,
 		},
 		ClearRouteCache: false,
+	}
+
+	// Only set pack as bytes option if protocol is grpc
+	if conf.Protocol == extAuthzProtocolGRPC {
+		extAuthConfig.WithRequestBody.PackAsBytes = conf.PackAsBytes
 	}
 
 	headers := []*core.HeaderValue{{

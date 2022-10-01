@@ -82,8 +82,8 @@ func TestExtAuthz(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 
-	// When POSTing binary data, without KOURIER_EXTAUTHZ_PACKASBYTES, the result is "Forbidden"
-	// Because data passed to ext-authz service cannot be serialized. See https://github.com/knative-sandbox/net-kourier/issues/830
+	// When POSTing binary data with a gRPC ext-authz, without KOURIER_EXTAUTHZ_PACKASBYTES, the result is "Forbidden"
+	// Because data passed to ext-authz gRPC service cannot be serialized. See https://github.com/knative-sandbox/net-kourier/issues/830
 	// TODO: is this behavior expected? Should we keep this test or make KOURIER_EXTAUTHZ_PACKASBYTES the default behavior?
 	req, err = http.NewRequest("POST", "http://"+name+".example.com/success", bytes.NewReader([]byte{0x04, 0xf1}))
 	if err != nil {
@@ -95,7 +95,7 @@ func TestExtAuthz(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if os.Getenv("KOURIER_EXTAUTHZ_PACKASBYTES_TEST") == "" {
+	if os.Getenv("KOURIER_EXTAUTHZ_PROTOCOL") == "grpc" && os.Getenv("KOURIER_EXTAUTHZ_PACKASBYTES") == "" {
 		assert.Equal(t, resp.StatusCode, http.StatusForbidden)
 	} else {
 		assert.Equal(t, resp.StatusCode, http.StatusOK)
