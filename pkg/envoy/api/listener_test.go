@@ -87,7 +87,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
 
-	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey)
+	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey, "")
 	assert.NilError(t, err)
 
 	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false)
@@ -119,7 +119,7 @@ func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
 	certChain := []byte("some_certificate_chain")
 	privateKey := []byte("some_private_key")
 
-	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey)
+	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey, "")
 	assert.NilError(t, err)
 
 	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, true)

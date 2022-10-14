@@ -49,6 +49,7 @@ github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
 # github.com/envoyproxy/go-control-plane v0.10.3
 ## explicit; go 1.16
+github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/private_key_providers/cryptomb/v3alpha
 github.com/envoyproxy/go-control-plane/envoy/annotations
 github.com/envoyproxy/go-control-plane/envoy/api/v2/core
 github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3

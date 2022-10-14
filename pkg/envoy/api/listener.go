@@ -17,15 +17,21 @@ limitations under the License.
 package envoy
 
 import (
+	"errors"
 	"fmt"
+	"time"
 
+	cryptomb "github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/private_key_providers/cryptomb/v3alpha"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	prx "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/proxy_protocol/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -87,14 +93,18 @@ func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enablePr
 func CreateFilterChainFromCertificateAndPrivateKey(
 	manager *hcm.HttpConnectionManager,
 	certificateChain []byte,
-	privateKey []byte) (*listener.FilterChain, error) {
+	privateKey []byte,
+	privateKeyProvider string) (*listener.FilterChain, error) {
 
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
 	}
 
-	tlsContext := createTLSContext(certificateChain, privateKey)
+	tlsContext, err := createTLSContext(certificateChain, privateKey, privateKeyProvider)
+	if err != nil {
+		return nil, err
+	}
 	tlsAny, err := anypb.New(tlsContext)
 	if err != nil {
 		return nil, err
@@ -193,7 +203,7 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 			return nil, err
 		}
 
-		tlsContext := createTLSContext(sniMatch.CertificateChain, sniMatch.PrivateKey)
+		tlsContext, err := createTLSContext(sniMatch.CertificateChain, sniMatch.PrivateKey, "")
 		tlsAny, err := anypb.New(tlsContext)
 		if err != nil {
 			return nil, err
@@ -216,23 +226,87 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 	return res, nil
 }
 
-func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTlsContext {
-	return &auth.DownstreamTlsContext{
-		CommonTlsContext: &auth.CommonTlsContext{
-			AlpnProtocols: []string{"h2", "http/1.1"},
-			// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
-			TlsParams: &auth.TlsParameters{
-				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
-			},
-			TlsCertificates: []*auth.TlsCertificate{{
-				CertificateChain: &core.DataSource{
-					Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
-				},
+// MessageToAnyWithError converts from proto message to proto Any
+func MessageToAnyWithError(msg proto.Message) (*anypb.Any, error) {
+	b, err := proto.MarshalOptions{Deterministic: true}.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	return &anypb.Any{
+		// nolint: staticcheck
+		TypeUrl: "type.googleapis.com/" + string(msg.ProtoReflect().Descriptor().FullName()),
+		Value:   b,
+	}, nil
+}
+
+// MessageToAny converts from proto message to proto Any
+func MessageToAny(msg proto.Message) (*anypb.Any, error) {
+	out, err := MessageToAnyWithError(msg)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("error marshaling Any %s: %v", prototext.Format(msg), err))
+		return nil, err
+	}
+	return out, err
+}
+
+func createTLSContext(certificate []byte, privateKey []byte, privateKeyProvider string) (*auth.DownstreamTlsContext, error) {
+	if privateKeyProvider != "" {
+		if privateKeyProvider == "cryptomb" {
+			poll_delay := durationpb.New(time.Duration(10 * time.Millisecond))
+			config := cryptomb.CryptoMbPrivateKeyMethodConfig{
+				PollDelay: poll_delay,
 				PrivateKey: &core.DataSource{
-					Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: privateKey,
+					},
 				},
-			}},
-		},
+			}
+			msg, err := MessageToAny(&config)
+			if err != nil {
+				return nil, err
+			}
+			return &auth.DownstreamTlsContext{
+				CommonTlsContext: &auth.CommonTlsContext{
+					AlpnProtocols: []string{"h2", "http/1.1"},
+					// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
+					TlsParams: &auth.TlsParameters{
+						TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+					},
+					TlsCertificates: []*auth.TlsCertificate{{
+						CertificateChain: &core.DataSource{
+							Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
+						},
+						PrivateKeyProvider: &auth.PrivateKeyProvider{
+							ProviderName: "cryptomb",
+							ConfigType: &auth.PrivateKeyProvider_TypedConfig{
+								TypedConfig: msg,
+							},
+						},
+					}},
+				},
+			}, nil
+		} else {
+			err := errors.New("Unsupported private key provider: " + privateKeyProvider)
+			return nil, err
+		}
+	} else {
+		return &auth.DownstreamTlsContext{
+			CommonTlsContext: &auth.CommonTlsContext{
+				AlpnProtocols: []string{"h2", "http/1.1"},
+				// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
+				TlsParams: &auth.TlsParameters{
+					TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+				},
+				TlsCertificates: []*auth.TlsCertificate{{
+					CertificateChain: &core.DataSource{
+						Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
+					},
+					PrivateKey: &core.DataSource{
+						Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
+					},
+				}},
+			},
+		}, nil
 	}
 }
 

@@ -289,6 +289,10 @@ func generateListenersAndRouteConfigs(
 	}
 	listeners = append(listeners, probHTTPListener)
 
+	privateKeyProvider := ""
+	if cfg.Kourier.EnableCryptoMB {
+		privateKeyProvider = "cryptomb"
+	}
 	// Add internal listeners and routes when internal cert secret is specified.
 	if cfg.Kourier.ClusterCertSecret != "" {
 		internalTLSRouteConfig := envoy.NewRouteConfig(internalTLSRouteConfigName, clusterLocalVirtualHosts)
@@ -298,6 +302,7 @@ func generateListenersAndRouteConfigs(
 			ctx, internalTLSManager, kubeclient,
 			cfg.Kourier.EnableProxyProtocol,
 			cfg.Kourier.ClusterCertSecret,
+			privateKeyProvider,
 		)
 
 		if err != nil {
@@ -332,7 +337,7 @@ func generateListenersAndRouteConfigs(
 		// if a certificate is configured, add a new filter chain to TLS listener
 		if useHTTPSListenerWithOneCert() {
 			externalHTTPSEnvoyListenerWithOneCertFilterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(
-				ctx, externalTLSManager, kubeclient,
+				ctx, externalTLSManager, kubeclient, privateKeyProvider,
 			)
 			if err != nil {
 				return nil, nil, err
@@ -350,6 +355,7 @@ func generateListenersAndRouteConfigs(
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
 			ctx, externalTLSManager, kubeclient,
 			cfg.Kourier.EnableProxyProtocol,
+			privateKeyProvider,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -384,7 +390,7 @@ func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamesp
 	return secret.Data[certFieldInSecret], secret.Data[keyFieldInSecret], nil
 }
 
-func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface) (*v3.FilterChain, error) {
+func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, privateKeyProvider string) (*v3.FilterChain, error) {
 	certificateChain, privateKey, err := sslCreds(
 		ctx, kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
 	)
@@ -392,11 +398,11 @@ func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager
 		return nil, err
 	}
 
-	return envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey)
+	return envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey, privateKeyProvider)
 }
 
-func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool) (*v3.Listener, error) {
-	filterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(ctx, manager, kubeClient)
+func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool, privateKeyProvider string) (*v3.Listener, error) {
+	filterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(ctx, manager, kubeClient, privateKeyProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -404,12 +410,12 @@ func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnm
 	return envoy.NewHTTPSListener(config.HTTPSPortExternal, []*v3.FilterChain{filterChain}, enableProxyProtocol)
 }
 
-func newInternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool, certSecretName string) (*v3.Listener, error) {
+func newInternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool, certSecretName string, privateKeyProvider string) (*v3.Listener, error) {
 	certificateChain, privateKey, err := sslCreds(ctx, kubeClient, system.Namespace(), certSecretName)
 	if err != nil {
 		return nil, err
 	}
-	filterChain, err := envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey)
+	filterChain, err := envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey, privateKeyProvider)
 	if err != nil {
 		return nil, err
 	}
