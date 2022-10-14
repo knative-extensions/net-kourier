@@ -204,6 +204,9 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 		}
 
 		tlsContext, err := createTLSContext(sniMatch.CertificateChain, sniMatch.PrivateKey, "")
+		if err != nil {
+			return nil, err
+		}
 		tlsAny, err := anypb.New(tlsContext)
 		if err != nil {
 			return nil, err
@@ -243,7 +246,7 @@ func MessageToAnyWithError(msg proto.Message) (*anypb.Any, error) {
 func MessageToAny(msg proto.Message) (*anypb.Any, error) {
 	out, err := MessageToAnyWithError(msg)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("error marshaling Any %s: %v", prototext.Format(msg), err))
+		err = fmt.Errorf("error marshaling Any %s: %w", prototext.Format(msg), err)
 		return nil, err
 	}
 	return out, err
@@ -252,9 +255,9 @@ func MessageToAny(msg proto.Message) (*anypb.Any, error) {
 func createTLSContext(certificate []byte, privateKey []byte, privateKeyProvider string) (*auth.DownstreamTlsContext, error) {
 	if privateKeyProvider != "" {
 		if privateKeyProvider == "cryptomb" {
-			poll_delay := durationpb.New(time.Duration(10 * time.Millisecond))
+			pollDelay := durationpb.New(time.Duration(10 * time.Millisecond))
 			config := cryptomb.CryptoMbPrivateKeyMethodConfig{
-				PollDelay: poll_delay,
+				PollDelay: pollDelay,
 				PrivateKey: &core.DataSource{
 					Specifier: &core.DataSource_InlineBytes{
 						InlineBytes: privateKey,
@@ -289,25 +292,24 @@ func createTLSContext(certificate []byte, privateKey []byte, privateKeyProvider 
 			err := errors.New("Unsupported private key provider: " + privateKeyProvider)
 			return nil, err
 		}
-	} else {
-		return &auth.DownstreamTlsContext{
-			CommonTlsContext: &auth.CommonTlsContext{
-				AlpnProtocols: []string{"h2", "http/1.1"},
-				// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
-				TlsParams: &auth.TlsParameters{
-					TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
-				},
-				TlsCertificates: []*auth.TlsCertificate{{
-					CertificateChain: &core.DataSource{
-						Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
-					},
-					PrivateKey: &core.DataSource{
-						Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
-					},
-				}},
-			},
-		}, nil
 	}
+	return &auth.DownstreamTlsContext{
+		CommonTlsContext: &auth.CommonTlsContext{
+			AlpnProtocols: []string{"h2", "http/1.1"},
+			// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
+			TlsParams: &auth.TlsParameters{
+				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+			},
+			TlsCertificates: []*auth.TlsCertificate{{
+				CertificateChain: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
+				},
+				PrivateKey: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
+				},
+			}},
+		},
+	}, nil
 }
 
 // Ref: https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/listener_filters/proxy_protocol
