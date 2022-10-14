@@ -74,6 +74,6 @@ data:
     # NOTE: This flag is in an alpha state.
     traffic-isolation: ""
 
-    # TrustedHopsCount Configure the number of additional ingress proxy hops from the
+    # trusted-hops-count Configure the number of additional ingress proxy hops from the
     # right side of the x-forwarded-for HTTP header to trust.
     trusted-hops-count: "0"
