@@ -252,19 +252,24 @@ func MessageToAny(msg proto.Message) (*anypb.Any, error) {
 	return out, err
 }
 
+func createCryptoMbMessaage(privateKey []byte, pollDelay *durationpb.Duration) (*anypb.Any, error) {
+	config := cryptomb.CryptoMbPrivateKeyMethodConfig{
+		PollDelay: pollDelay,
+		PrivateKey: &core.DataSource{
+			Specifier: &core.DataSource_InlineBytes{
+				InlineBytes: privateKey,
+			},
+		},
+	}
+	return MessageToAny(&config)
+}
+
 func createTLSContext(certificate []byte, privateKey []byte, privateKeyProvider string) (*auth.DownstreamTlsContext, error) {
 	if privateKeyProvider != "" {
 		if privateKeyProvider == "cryptomb" {
-			pollDelay := durationpb.New(time.Duration(10 * time.Millisecond))
-			config := cryptomb.CryptoMbPrivateKeyMethodConfig{
-				PollDelay: pollDelay,
-				PrivateKey: &core.DataSource{
-					Specifier: &core.DataSource_InlineBytes{
-						InlineBytes: privateKey,
-					},
-				},
-			}
-			msg, err := MessageToAny(&config)
+			// Hardcoded to 10ms, it will be configurable in the future.
+			pollDelay := durationpb.New(10 * time.Millisecond)
+			msg, err := createCryptoMbMessaage(privateKey, pollDelay)
 			if err != nil {
 				return nil, err
 			}
@@ -288,10 +293,9 @@ func createTLSContext(certificate []byte, privateKey []byte, privateKeyProvider 
 					}},
 				},
 			}, nil
-		} else {
-			err := errors.New("Unsupported private key provider: " + privateKeyProvider)
-			return nil, err
 		}
+		err := errors.New("Unsupported private key provider: " + privateKeyProvider)
+		return nil, err
 	}
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{

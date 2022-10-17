@@ -29,6 +29,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"knative.dev/net-kourier/pkg/config"
@@ -98,7 +99,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	assert.Equal(t, uint32(8081), l.Address.GetSocketAddress().GetPortValue())
 
 	// Check that TLS is configured
-	gotCertChain, gotPrivateKey, err := getTLSCreds(l.FilterChains[0])
+	gotCertChain, gotPrivateKey, _, err := getTLSCreds(l.FilterChains[0])
 	assert.NilError(t, err)
 
 	assert.DeepEqual(t, certChain, gotCertChain)
@@ -108,6 +109,51 @@ func TestNewHTTPSListener(t *testing.T) {
 	assert.Check(t, len(l.ListenerFilters) == 0)
 }
 
+func TestNewHTTPSListenerWithPrivatekeyProvider(t *testing.T) {
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        false,
+		IdleTimeout:                0 * time.Second,
+		EnableCryptoMB:             true,
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
+
+	certChain := []byte("some_certificate_chain")
+	privateKey := []byte("some_private_key")
+	privateKeyProviderName := "cryptomb"
+
+	pollDelay := durationpb.New(10 * time.Millisecond)
+	msg, err := createCryptoMbMessaage(privateKey, pollDelay)
+	assert.NilError(t, err)
+
+	fakePrivateKeyProvider := &auth.PrivateKeyProvider{
+		ProviderName: "cryptomb",
+		ConfigType: &auth.PrivateKeyProvider_TypedConfig{
+			TypedConfig: msg,
+		},
+	}
+
+	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey, privateKeyProviderName)
+	assert.NilError(t, err)
+
+	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false)
+	assert.NilError(t, err)
+
+	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
+	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
+	assert.Equal(t, uint32(8081), l.Address.GetSocketAddress().GetPortValue())
+
+	// Check that TLS is configured
+	gotCertChain, gotPrivateKey, gotProvider, err := getTLSCreds(l.FilterChains[0])
+	assert.NilError(t, err)
+
+	assert.DeepEqual(t, certChain, gotCertChain)
+	assert.DeepEqual(t, []byte(nil), gotPrivateKey)
+	assert.DeepEqual(t, fakePrivateKeyProvider.String(), gotProvider.String())
+
+	// check proxy protocol is not configured
+	assert.Check(t, len(l.ListenerFilters) == 0)
+}
 func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
@@ -130,12 +176,11 @@ func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
 	assert.Equal(t, uint32(8081), l.Address.GetSocketAddress().GetPortValue())
 
 	// Check that TLS is configured
-	gotCertChain, gotPrivateKey, err := getTLSCreds(l.FilterChains[0])
+	gotCertChain, gotPrivateKey, _, err := getTLSCreds(l.FilterChains[0])
 	assert.NilError(t, err)
 
 	assert.DeepEqual(t, certChain, gotCertChain)
 	assert.DeepEqual(t, privateKey, gotPrivateKey)
-
 	// check proxy protocol is configured
 	assertListenerHasProxyProtocolConfigured(t, l.ListenerFilters[0])
 }
@@ -208,7 +253,7 @@ func assertListenerHasSNIMatchConfigured(t *testing.T, listener *envoy_api_v3.Li
 	filterChainFirstSNIMatch := getFilterChainByServerName(listener, match.Hosts)
 	assert.Assert(t, filterChainFirstSNIMatch != nil)
 
-	certChain, privateKey, err := getTLSCreds(filterChainFirstSNIMatch)
+	certChain, privateKey, _, err := getTLSCreds(filterChainFirstSNIMatch)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, match.CertificateChain, certChain)
 	assert.DeepEqual(t, match.PrivateKey, privateKey)
@@ -233,20 +278,21 @@ func getFilterChainByServerName(listener *envoy_api_v3.Listener, serverNames []s
 }
 
 // Note: Returns an error when there are multiple certificates
-func getTLSCreds(filterChain *envoy_api_v3.FilterChain) (certChain []byte, privateKey []byte, err error) {
+func getTLSCreds(filterChain *envoy_api_v3.FilterChain) (certChain []byte, privateKey []byte, privateKeyProvider *auth.PrivateKeyProvider, err error) {
 	downstreamTLSContext := &auth.DownstreamTlsContext{}
 	err = anypb.UnmarshalTo(filterChain.GetTransportSocket().GetTypedConfig(), downstreamTLSContext, proto.UnmarshalOptions{})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if len(downstreamTLSContext.CommonTlsContext.TlsCertificates) > 1 {
-		return nil, nil, fmt.Errorf("more than one certificate configured")
+		return nil, nil, nil, fmt.Errorf("more than one certificate configured")
 	}
 
 	certs := downstreamTLSContext.CommonTlsContext.TlsCertificates[0]
 	certChain = certs.CertificateChain.GetInlineBytes()
 	privateKey = certs.PrivateKey.GetInlineBytes()
+	privateKeyProvider = certs.PrivateKeyProvider
 
-	return certChain, privateKey, nil
+	return certChain, privateKey, privateKeyProvider, nil
 }
