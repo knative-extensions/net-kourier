@@ -411,8 +411,13 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 			Name: header,
 		}
 		if matchType.Exact != "" {
-			matchHeader.HeaderMatchSpecifier = &route.HeaderMatcher_ExactMatch{
-				ExactMatch: matchType.Exact,
+
+			matchHeader.HeaderMatchSpecifier = &route.HeaderMatcher_StringMatch{
+				StringMatch: &envoymatcherv3.StringMatcher{
+					MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+						Exact: matchType.Exact,
+					},
+				},
 			}
 		}
 		matchHeaders = append(matchHeaders, matchHeader)
