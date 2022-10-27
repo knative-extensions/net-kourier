@@ -342,11 +342,14 @@ func createUpstreamTLSContext(caCertificate []byte, alpnProtocols ...string) *tl
 							InlineBytes: caCertificate,
 						},
 					},
-					MatchSubjectAltNames: []*envoymatcherv3.StringMatcher{{
-						MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-							Exact: certificates.FakeDnsName,
-						}},
-					},
+					MatchTypedSubjectAltNames: []*tls.SubjectAltNameMatcher{{
+						SanType: tls.SubjectAltNameMatcher_DNS,
+						Matcher: &envoymatcherv3.StringMatcher{
+							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+								Exact: certificates.FakeDnsName,
+							},
+						},
+					}},
 				},
 			},
 		},
