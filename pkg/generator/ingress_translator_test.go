@@ -1531,7 +1531,7 @@ var (
 			Name:      netconfig.ServingInternalCertName,
 		},
 		Data: map[string][]byte{
-			certificates.SecretCaCertKey: cert,
+			certificates.CaCertName: cert,
 		},
 	}
 )

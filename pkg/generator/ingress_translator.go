@@ -305,7 +305,7 @@ func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool) (
 	if http2 {
 		alpnProtocols = "h2"
 	}
-	tlsAny, err := anypb.New(createUpstreamTLSContext(caSecret.Data[certificates.SecretCaCertKey], alpnProtocols))
+	tlsAny, err := anypb.New(createUpstreamTLSContext(caSecret.Data[certificates.CaCertName], alpnProtocols))
 	if err != nil {
 		return nil, err
 	}
