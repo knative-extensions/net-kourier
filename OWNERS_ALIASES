@@ -72,10 +72,8 @@ aliases:
   eventing-kafka-mtsource-approvers:
   - steven0711dong
   eventing-kafka-wg-leads:
-  - lionelvillard
   - travis-minke-sap
   eventing-kafka-writers:
-  - lionelvillard
   - travis-minke-sap
   eventing-kogito-approvers:
   - ricardozanini
@@ -99,7 +97,6 @@ aliases:
   - lionelvillard
   - matzew
   eventing-wg-leads:
-  - lionelvillard
   - pierDipi
   eventing-writers:
   - aliok
@@ -233,8 +230,7 @@ aliases:
   - jmprusi
   - skonto
   - tcnghia
-  networking-wg-leads:
-  - nak3
+  networking-wg-leads: []
   operations-wg-leads:
   - houshengbo
   operations-writers:
@@ -261,16 +257,13 @@ aliases:
   - rhuss
   security-wg-leads:
   - evankanderson
-  - julz
   security-writers:
   - evankanderson
-  - julz
   serving-wg-leads:
   - dprotaso
   - psschwei
   serving-writers:
   - dprotaso
-  - nak3
   - psschwei
   steering-committee:
   - csantanapr
