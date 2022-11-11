@@ -26,7 +26,6 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoymatcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/google/go-cmp/cmp"
@@ -1627,8 +1626,8 @@ func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 							InlineBytes: cert,
 						},
 					},
-					MatchTypedSubjectAltNames: []*tls.SubjectAltNameMatcher{{
-						SanType: tls.SubjectAltNameMatcher_DNS,
+					MatchTypedSubjectAltNames: []*auth.SubjectAltNameMatcher{{
+						SanType: auth.SubjectAltNameMatcher_DNS,
 						Matcher: &envoymatcherv3.StringMatcher{
 							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
 								Exact: certificates.FakeDnsName,
