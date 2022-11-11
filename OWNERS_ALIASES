@@ -250,6 +250,8 @@ aliases:
   - kvmware
   - psschwei
   - upodroid
+  scaling-group-approvers:
+  - jwcesign
   security-guard-approvers:
   - davidhadas
   - maximilien
