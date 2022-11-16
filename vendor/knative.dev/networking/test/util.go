@@ -91,7 +91,6 @@ func ListenAndServeTLSGracefully(cert, key, addr string, handler func(w http.Res
 	ListenAndServeTLSGracefullyWithHandler(cert, key, addr, http.HandlerFunc(handler))
 }
 
-//
 // ListenAndServeTLSGracefullyWithHandler creates an HTTPS server, listens on the defined address
 // and handles incoming requests with the given handler.
 // It blocks until SIGTERM is received and the underlying server has shutdown gracefully.
