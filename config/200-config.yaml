@@ -73,3 +73,10 @@ data:
     #
     # NOTE: This flag is in an alpha state.
     traffic-isolation: ""
+
+
+    # Specifies whether to use CryptoMB private key provider in order to
+    # acclerate the TLS handshake.
+    # NOTE THAT THIS IS AN EXPERIMENTAL / ALPHA FEATURE.
+    enable-cryptomb: "false"
+
