@@ -92,16 +92,14 @@ func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enablePr
 // CreateFilterChainFromCertificateAndPrivateKey creates a new filter chain from a certificate and a private key
 func CreateFilterChainFromCertificateAndPrivateKey(
 	manager *hcm.HttpConnectionManager,
-	certificateChain []byte,
-	privateKey []byte,
-	privateKeyProvider string) (*listener.FilterChain, error) {
+	cert *Certificate) (*listener.FilterChain, error) {
 
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
 	}
 
-	tlsContext, err := createTLSContext(certificateChain, privateKey, privateKeyProvider)
+	tlsContext, err := cert.createTLSContext()
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +201,9 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 			return nil, err
 		}
 
-		tlsContext, err := createTLSContext(sniMatch.CertificateChain, sniMatch.PrivateKey, "")
+		c := Certificate{Certificate: sniMatch.CertificateChain, PrivateKey: sniMatch.PrivateKey}
+
+		tlsContext, err := c.createTLSContext()
 		if err != nil {
 			return nil, err
 		}
@@ -229,10 +229,19 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 	return res, nil
 }
 
-// MessageToAnyWithError converts from proto message to proto Any
-func MessageToAnyWithError(msg proto.Message) (*anypb.Any, error) {
+// Certificate stores certificate data to generrate TLS context for downstream.
+type Certificate struct {
+	Certificate        []byte
+	PrivateKey         []byte
+	PrivateKeyProvider string
+	PollDelay          *durationpb.Duration
+}
+
+// messageToAny converts from proto message to proto Any
+func messageToAny(msg proto.Message) (*anypb.Any, error) {
 	b, err := proto.MarshalOptions{Deterministic: true}.Marshal(msg)
 	if err != nil {
+		err = fmt.Errorf("error marshaling message %s: %w", prototext.Format(msg), err)
 		return nil, err
 	}
 	return &anypb.Any{
@@ -242,61 +251,25 @@ func MessageToAnyWithError(msg proto.Message) (*anypb.Any, error) {
 	}, nil
 }
 
-// MessageToAny converts from proto message to proto Any
-func MessageToAny(msg proto.Message) (*anypb.Any, error) {
-	out, err := MessageToAnyWithError(msg)
-	if err != nil {
-		err = fmt.Errorf("error marshaling Any %s: %w", prototext.Format(msg), err)
-		return nil, err
-	}
-	return out, err
-}
-
-func createCryptoMbMessaage(privateKey []byte, pollDelay *durationpb.Duration) (*anypb.Any, error) {
+func (c Certificate) createCryptoMbMessaage() (*anypb.Any, error) {
 	config := cryptomb.CryptoMbPrivateKeyMethodConfig{
-		PollDelay: pollDelay,
+		// Hardcoded to 10ms, it will be configurable in the future.
+		PollDelay: durationpb.New(10 * time.Millisecond),
 		PrivateKey: &core.DataSource{
 			Specifier: &core.DataSource_InlineBytes{
-				InlineBytes: privateKey,
+				InlineBytes: c.PrivateKey,
 			},
 		},
 	}
-	return MessageToAny(&config)
+	return messageToAny(&config)
 }
 
-func createTLSContext(certificate []byte, privateKey []byte, privateKeyProvider string) (*auth.DownstreamTlsContext, error) {
-	if privateKeyProvider != "" {
-		if privateKeyProvider == "cryptomb" {
-			// Hardcoded to 10ms, it will be configurable in the future.
-			pollDelay := durationpb.New(10 * time.Millisecond)
-			msg, err := createCryptoMbMessaage(privateKey, pollDelay)
-			if err != nil {
-				return nil, err
-			}
-			return &auth.DownstreamTlsContext{
-				CommonTlsContext: &auth.CommonTlsContext{
-					AlpnProtocols: []string{"h2", "http/1.1"},
-					// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
-					TlsParams: &auth.TlsParameters{
-						TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
-					},
-					TlsCertificates: []*auth.TlsCertificate{{
-						CertificateChain: &core.DataSource{
-							Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
-						},
-						PrivateKeyProvider: &auth.PrivateKeyProvider{
-							ProviderName: "cryptomb",
-							ConfigType: &auth.PrivateKeyProvider_TypedConfig{
-								TypedConfig: msg,
-							},
-						},
-					}},
-				},
-			}, nil
-		}
-		err := errors.New("Unsupported private key provider: " + privateKeyProvider)
+func (c Certificate) createTLSContext() (*auth.DownstreamTlsContext, error) {
+	tlsCertificates, err := c.createTLScertificates()
+	if err != nil {
 		return nil, err
 	}
+
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			AlpnProtocols: []string{"h2", "http/1.1"},
@@ -304,16 +277,39 @@ func createTLSContext(certificate []byte, privateKey []byte, privateKeyProvider 
 			TlsParams: &auth.TlsParameters{
 				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
 			},
-			TlsCertificates: []*auth.TlsCertificate{{
-				CertificateChain: &core.DataSource{
-					Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
-				},
-				PrivateKey: &core.DataSource{
-					Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
-				},
-			}},
+			TlsCertificates: []*auth.TlsCertificate{tlsCertificates},
 		},
 	}, nil
+}
+
+func (c Certificate) createTLScertificates() (*auth.TlsCertificate, error) {
+	switch c.PrivateKeyProvider {
+	case "":
+		return &auth.TlsCertificate{
+			CertificateChain: &core.DataSource{
+				Specifier: &core.DataSource_InlineBytes{InlineBytes: c.Certificate},
+			},
+			PrivateKey: &core.DataSource{
+				Specifier: &core.DataSource_InlineBytes{InlineBytes: c.PrivateKey},
+			}}, nil
+	case "cryptomb":
+		msg, err := c.createCryptoMbMessaage()
+		if err != nil {
+			return nil, err
+		}
+		return &auth.TlsCertificate{
+			CertificateChain: &core.DataSource{
+				Specifier: &core.DataSource_InlineBytes{InlineBytes: c.Certificate},
+			},
+			PrivateKeyProvider: &auth.PrivateKeyProvider{
+				ProviderName: "cryptomb",
+				ConfigType: &auth.PrivateKeyProvider_TypedConfig{
+					TypedConfig: msg,
+				},
+			}}, nil
+	default:
+		return nil, errors.New("Unsupported private key provider: " + c.PrivateKeyProvider)
+	}
 }
 
 // Ref: https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/listener_filters/proxy_protocol

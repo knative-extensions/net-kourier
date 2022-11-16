@@ -77,6 +77,18 @@ func TestNewHTTPListenerWithProxyProtocol(t *testing.T) {
 	assertListenerHasProxyProtocolConfigured(t, l.ListenerFilters[0])
 }
 
+var c = Certificate{
+	Certificate: []byte("some_certificate_chain"),
+	PrivateKey:  []byte("some_private_key"),
+}
+
+var crypto = Certificate{
+	Certificate:        []byte("some_certificate_chain"),
+	PrivateKey:         []byte("some_private_key"),
+	PrivateKeyProvider: "cryptomb",
+	PollDelay:          durationpb.New(10 * time.Millisecond),
+}
+
 func TestNewHTTPSListener(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
@@ -85,10 +97,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
-	certChain := []byte("some_certificate_chain")
-	privateKey := []byte("some_private_key")
-
-	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey, "")
+	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, &c)
 	assert.NilError(t, err)
 
 	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false)
@@ -102,8 +111,8 @@ func TestNewHTTPSListener(t *testing.T) {
 	gotCertChain, gotPrivateKey, _, err := getTLSCreds(l.FilterChains[0])
 	assert.NilError(t, err)
 
-	assert.DeepEqual(t, certChain, gotCertChain)
-	assert.DeepEqual(t, privateKey, gotPrivateKey)
+	assert.DeepEqual(t, c.Certificate, gotCertChain)
+	assert.DeepEqual(t, c.PrivateKey, gotPrivateKey)
 
 	// check proxy protocol is not configured
 	assert.Check(t, len(l.ListenerFilters) == 0)
@@ -118,12 +127,7 @@ func TestNewHTTPSListenerWithPrivatekeyProvider(t *testing.T) {
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
-	certChain := []byte("some_certificate_chain")
-	privateKey := []byte("some_private_key")
-	privateKeyProviderName := "cryptomb"
-
-	pollDelay := durationpb.New(10 * time.Millisecond)
-	msg, err := createCryptoMbMessaage(privateKey, pollDelay)
+	msg, err := c.createCryptoMbMessaage()
 	assert.NilError(t, err)
 
 	fakePrivateKeyProvider := &auth.PrivateKeyProvider{
@@ -133,7 +137,7 @@ func TestNewHTTPSListenerWithPrivatekeyProvider(t *testing.T) {
 		},
 	}
 
-	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey, privateKeyProviderName)
+	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, &crypto)
 	assert.NilError(t, err)
 
 	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false)
@@ -147,7 +151,7 @@ func TestNewHTTPSListenerWithPrivatekeyProvider(t *testing.T) {
 	gotCertChain, gotPrivateKey, gotProvider, err := getTLSCreds(l.FilterChains[0])
 	assert.NilError(t, err)
 
-	assert.DeepEqual(t, certChain, gotCertChain)
+	assert.DeepEqual(t, c.Certificate, gotCertChain)
 	assert.DeepEqual(t, []byte(nil), gotPrivateKey)
 	assert.DeepEqual(t, fakePrivateKeyProvider.String(), gotProvider.String())
 
@@ -162,10 +166,7 @@ func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
-	certChain := []byte("some_certificate_chain")
-	privateKey := []byte("some_private_key")
-
-	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, certChain, privateKey, "")
+	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, &c)
 	assert.NilError(t, err)
 
 	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, true)
@@ -179,8 +180,8 @@ func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
 	gotCertChain, gotPrivateKey, _, err := getTLSCreds(l.FilterChains[0])
 	assert.NilError(t, err)
 
-	assert.DeepEqual(t, certChain, gotCertChain)
-	assert.DeepEqual(t, privateKey, gotPrivateKey)
+	assert.DeepEqual(t, c.Certificate, gotCertChain)
+	assert.DeepEqual(t, c.PrivateKey, gotPrivateKey)
 	// check proxy protocol is configured
 	assertListenerHasProxyProtocolConfigured(t, l.ListenerFilters[0])
 }

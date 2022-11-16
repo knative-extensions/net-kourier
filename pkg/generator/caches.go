@@ -289,10 +289,6 @@ func generateListenersAndRouteConfigs(
 	}
 	listeners = append(listeners, probHTTPListener)
 
-	privateKeyProvider := ""
-	if cfg.Kourier.EnableCryptoMB {
-		privateKeyProvider = "cryptomb"
-	}
 	// Add internal listeners and routes when internal cert secret is specified.
 	if cfg.Kourier.ClusterCertSecret != "" {
 		internalTLSRouteConfig := envoy.NewRouteConfig(internalTLSRouteConfigName, clusterLocalVirtualHosts)
@@ -300,9 +296,7 @@ func generateListenersAndRouteConfigs(
 
 		internalHTTPSEnvoyListener, err := newInternalEnvoyListenerWithOneCert(
 			ctx, internalTLSManager, kubeclient,
-			cfg.Kourier.EnableProxyProtocol,
-			cfg.Kourier.ClusterCertSecret,
-			privateKeyProvider,
+			cfg.Kourier,
 		)
 
 		if err != nil {
@@ -337,7 +331,7 @@ func generateListenersAndRouteConfigs(
 		// if a certificate is configured, add a new filter chain to TLS listener
 		if useHTTPSListenerWithOneCert() {
 			externalHTTPSEnvoyListenerWithOneCertFilterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(
-				ctx, externalTLSManager, kubeclient, privateKeyProvider,
+				ctx, externalTLSManager, kubeclient, cfg.Kourier,
 			)
 			if err != nil {
 				return nil, nil, err
@@ -354,8 +348,7 @@ func generateListenersAndRouteConfigs(
 	} else if useHTTPSListenerWithOneCert() {
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
 			ctx, externalTLSManager, kubeclient,
-			cfg.Kourier.EnableProxyProtocol,
-			privateKeyProvider,
+			cfg.Kourier,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -390,7 +383,7 @@ func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamesp
 	return secret.Data[certFieldInSecret], secret.Data[keyFieldInSecret], nil
 }
 
-func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, privateKeyProvider string) (*v3.FilterChain, error) {
+func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, cfg *config.Kourier) (*v3.FilterChain, error) {
 	certificateChain, privateKey, err := sslCreds(
 		ctx, kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
 	)
@@ -398,26 +391,41 @@ func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager
 		return nil, err
 	}
 
-	return envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey, privateKeyProvider)
+	return envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, &envoy.Certificate{
+		Certificate:        certificateChain,
+		PrivateKey:         privateKey,
+		PrivateKeyProvider: privateKeyProvider(cfg.EnableCryptoMB),
+	})
 }
 
-func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool, privateKeyProvider string) (*v3.Listener, error) {
-	filterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(ctx, manager, kubeClient, privateKeyProvider)
+func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, cfg *config.Kourier) (*v3.Listener, error) {
+	filterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(ctx, manager, kubeClient, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return envoy.NewHTTPSListener(config.HTTPSPortExternal, []*v3.FilterChain{filterChain}, enableProxyProtocol)
+	return envoy.NewHTTPSListener(config.HTTPSPortExternal, []*v3.FilterChain{filterChain}, cfg.EnableProxyProtocol)
 }
 
-func newInternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, enableProxyProtocol bool, certSecretName string, privateKeyProvider string) (*v3.Listener, error) {
-	certificateChain, privateKey, err := sslCreds(ctx, kubeClient, system.Namespace(), certSecretName)
+func newInternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, cfg *config.Kourier) (*v3.Listener, error) {
+	certificateChain, privateKey, err := sslCreds(ctx, kubeClient, system.Namespace(), cfg.ClusterCertSecret)
 	if err != nil {
 		return nil, err
 	}
-	filterChain, err := envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, certificateChain, privateKey, privateKeyProvider)
+	filterChain, err := envoy.CreateFilterChainFromCertificateAndPrivateKey(manager, &envoy.Certificate{
+		Certificate:        certificateChain,
+		PrivateKey:         privateKey,
+		PrivateKeyProvider: privateKeyProvider(cfg.EnableCryptoMB),
+	})
 	if err != nil {
 		return nil, err
 	}
-	return envoy.NewHTTPSListener(config.HTTPSPortInternal, []*v3.FilterChain{filterChain}, enableProxyProtocol)
+	return envoy.NewHTTPSListener(config.HTTPSPortInternal, []*v3.FilterChain{filterChain}, cfg.EnableProxyProtocol)
+}
+
+func privateKeyProvider(mbEnabled bool) string {
+	if mbEnabled {
+		return "cryptomb"
+	}
+	return ""
 }
