@@ -74,6 +74,13 @@ data:
     # NOTE: This flag is in an alpha state.
     traffic-isolation: ""
 
+
+    # Specifies whether to use CryptoMB private key provider in order to
+    # acclerate the TLS handshake.
+    # NOTE THAT THIS IS AN EXPERIMENTAL / ALPHA FEATURE.
+    enable-cryptomb: "false"
+
+
     # trusted-hops-count Configure the number of additional ingress proxy hops from the
     # right side of the x-forwarded-for HTTP header to trust.
     trusted-hops-count: "0"

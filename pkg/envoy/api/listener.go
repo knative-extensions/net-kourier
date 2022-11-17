@@ -17,15 +17,21 @@ limitations under the License.
 package envoy
 
 import (
+	"errors"
 	"fmt"
+	"time"
 
+	cryptomb "github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/private_key_providers/cryptomb/v3alpha"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	prx "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/proxy_protocol/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -86,15 +92,17 @@ func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enablePr
 // CreateFilterChainFromCertificateAndPrivateKey creates a new filter chain from a certificate and a private key
 func CreateFilterChainFromCertificateAndPrivateKey(
 	manager *hcm.HttpConnectionManager,
-	certificateChain []byte,
-	privateKey []byte) (*listener.FilterChain, error) {
+	cert *Certificate) (*listener.FilterChain, error) {
 
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
 	}
 
-	tlsContext := createTLSContext(certificateChain, privateKey)
+	tlsContext, err := cert.createTLSContext()
+	if err != nil {
+		return nil, err
+	}
 	tlsAny, err := anypb.New(tlsContext)
 	if err != nil {
 		return nil, err
@@ -193,7 +201,12 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 			return nil, err
 		}
 
-		tlsContext := createTLSContext(sniMatch.CertificateChain, sniMatch.PrivateKey)
+		c := Certificate{Certificate: sniMatch.CertificateChain, PrivateKey: sniMatch.PrivateKey}
+
+		tlsContext, err := c.createTLSContext()
+		if err != nil {
+			return nil, err
+		}
 		tlsAny, err := anypb.New(tlsContext)
 		if err != nil {
 			return nil, err
@@ -216,7 +229,47 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 	return res, nil
 }
 
-func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTlsContext {
+// Certificate stores certificate data to generrate TLS context for downstream.
+type Certificate struct {
+	Certificate        []byte
+	PrivateKey         []byte
+	PrivateKeyProvider string
+	PollDelay          *durationpb.Duration
+}
+
+// messageToAny converts from proto message to proto Any
+func messageToAny(msg proto.Message) (*anypb.Any, error) {
+	b, err := proto.MarshalOptions{Deterministic: true}.Marshal(msg)
+	if err != nil {
+		err = fmt.Errorf("error marshaling message %s: %w", prototext.Format(msg), err)
+		return nil, err
+	}
+	return &anypb.Any{
+		// nolint: staticcheck
+		TypeUrl: "type.googleapis.com/" + string(msg.ProtoReflect().Descriptor().FullName()),
+		Value:   b,
+	}, nil
+}
+
+func (c Certificate) createCryptoMbMessaage() (*anypb.Any, error) {
+	config := cryptomb.CryptoMbPrivateKeyMethodConfig{
+		// Hardcoded to 10ms, it will be configurable in the future.
+		PollDelay: durationpb.New(10 * time.Millisecond),
+		PrivateKey: &core.DataSource{
+			Specifier: &core.DataSource_InlineBytes{
+				InlineBytes: c.PrivateKey,
+			},
+		},
+	}
+	return messageToAny(&config)
+}
+
+func (c Certificate) createTLSContext() (*auth.DownstreamTlsContext, error) {
+	tlsCertificates, err := c.createTLScertificates()
+	if err != nil {
+		return nil, err
+	}
+
 	return &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			AlpnProtocols: []string{"h2", "http/1.1"},
@@ -224,15 +277,38 @@ func createTLSContext(certificate []byte, privateKey []byte) *auth.DownstreamTls
 			TlsParams: &auth.TlsParameters{
 				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
 			},
-			TlsCertificates: []*auth.TlsCertificate{{
-				CertificateChain: &core.DataSource{
-					Specifier: &core.DataSource_InlineBytes{InlineBytes: certificate},
-				},
-				PrivateKey: &core.DataSource{
-					Specifier: &core.DataSource_InlineBytes{InlineBytes: privateKey},
-				},
-			}},
+			TlsCertificates: []*auth.TlsCertificate{tlsCertificates},
 		},
+	}, nil
+}
+
+func (c Certificate) createTLScertificates() (*auth.TlsCertificate, error) {
+	switch c.PrivateKeyProvider {
+	case "":
+		return &auth.TlsCertificate{
+			CertificateChain: &core.DataSource{
+				Specifier: &core.DataSource_InlineBytes{InlineBytes: c.Certificate},
+			},
+			PrivateKey: &core.DataSource{
+				Specifier: &core.DataSource_InlineBytes{InlineBytes: c.PrivateKey},
+			}}, nil
+	case "cryptomb":
+		msg, err := c.createCryptoMbMessaage()
+		if err != nil {
+			return nil, err
+		}
+		return &auth.TlsCertificate{
+			CertificateChain: &core.DataSource{
+				Specifier: &core.DataSource_InlineBytes{InlineBytes: c.Certificate},
+			},
+			PrivateKeyProvider: &auth.PrivateKeyProvider{
+				ProviderName: "cryptomb",
+				ConfigType: &auth.PrivateKeyProvider_TypedConfig{
+					TypedConfig: msg,
+				},
+			}}, nil
+	default:
+		return nil, errors.New("Unsupported private key provider: " + c.PrivateKeyProvider)
 	}
 }
 
