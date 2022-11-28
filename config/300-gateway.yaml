@@ -74,8 +74,6 @@ spec:
             capabilities:
               drop:
                 - ALL
-            seccompProfile:
-              type: RuntimeDefault
           volumeMounts:
             - name: config-volume
               mountPath: /tmp/config
