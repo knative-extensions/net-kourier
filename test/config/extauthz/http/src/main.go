@@ -43,6 +43,7 @@ func main() {
 	http.HandleFunc(fmt.Sprintf("%s/", pathPrefix), check)
 
 	log.Printf("Running the External Authz service.")
+	//nolint:gosec
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}
