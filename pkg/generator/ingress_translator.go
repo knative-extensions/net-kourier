@@ -144,9 +144,10 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// Match the ingress' port with a port on the Service to find the target.
 				// Also find out if the target supports HTTP2.
 				var (
-					externalPort = int32(80)
-					targetPort   = int32(80)
-					http2        = false
+					externalPort       = int32(80)
+					targetPort         = int32(80)
+					http2              = false
+					internalEncryption = false
 				)
 				for _, port := range service.Spec.Ports {
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
@@ -155,6 +156,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					}
 					if port.Name == "http2" || port.Name == "h2c" {
 						http2 = true
+					}
+					if port.Port == split.ServicePort.IntVal && port.Name == "https" {
+						internalEncryption = true
 					}
 				}
 
@@ -192,13 +196,17 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 				var transportSocket *envoycorev3.TransportSocket
 
-				// This has to be "OrDefaults" because this path is called before the informers are
+				// This has to be "OrDefaults" because this path could be called before the informers are
 				// running when booting the controller up and prefilling the config before making it
 				// ready.
+				//
+				// TODO: Drop this configmap check - issues/968.
+				// We can determin whether internal-encryption is enabled or disabled via `internalEncryption` only,
+				// but all conformance tests need to be updated to have the port name so check the configmap as well.
 				cfg := config.FromContextOrDefaults(ctx)
 
 				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
-				if cfg.Network.InternalEncryption && httpPath.RewriteHost == "" {
+				if (cfg.Network.InternalEncryption || internalEncryption) && httpPath.RewriteHost == "" {
 					var err error
 					transportSocket, err = translator.createUpstreamTransportSocket(http2)
 					if err != nil {

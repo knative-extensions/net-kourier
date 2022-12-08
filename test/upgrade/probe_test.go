@@ -26,14 +26,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"syscall"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
+	"knative.dev/networking/pkg/config"
 	"knative.dev/networking/test"
 	"knative.dev/networking/test/conformance/ingress"
+	"knative.dev/pkg/system"
 )
 
 const probePipe = "/tmp/prober-signal"
@@ -53,7 +57,20 @@ func TestProbe(t *testing.T) {
 	clients := test.Setup(t)
 	ctx := context.Background()
 
-	name, port, _ := ingress.CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
+	portName := networking.ServicePortNameHTTP1
+
+	// Set "https" to the port name when internal-encryption is enabled.
+	// Controller determines the internal-encryption is enabled or not by the port instead of configmap.
+	// ConfigMap does not work during the upgrade test - issues/968.
+	cm, err := clients.KubeClient.CoreV1().ConfigMaps(system.Namespace()).Get(ctx, "config-network", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal("Failed to fetch configmap:", err)
+	}
+	if strings.EqualFold(cm.Data[config.InternalEncryptionKey], "true") {
+		portName = networking.ServicePortNameHTTPS
+	}
+
+	name, port, _ := ingress.CreateRuntimeService(ctx, t, clients, portName)
 	_, client, _ := ingress.CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{name + ".example.com"},
