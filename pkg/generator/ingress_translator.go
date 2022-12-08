@@ -412,8 +412,8 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 // domainsForRule returns all domains for the given rule.
 //
 // For example, external domains returns domains with the following formats:
-// 	- sub-route_host.namespace.example.com
-// 	- sub-route_host.namespace.example.com:*
+//   - sub-route_host.namespace.example.com
+//   - sub-route_host.namespace.example.com:*
 //
 // Somehow envoy doesn't match properly gRPC authorities with ports.
 // The fix is to include ":*" in the domains.
