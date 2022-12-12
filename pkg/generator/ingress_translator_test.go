@@ -972,6 +972,146 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				internalVirtualHosts:    vHosts,
 			}
 		}(),
+	}, {
+		name: "http and https",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+		}),
+		state: []runtime.Object{
+			ns("simplens"),
+			svc("servicens", "servicename", func(service *corev1.Service) {
+				service.Spec.Ports = []corev1.ServicePort{{
+					Name:       "http",
+					Port:       80,
+					TargetPort: intstr.FromInt(8080),
+				}, {
+					Name:       "https",
+					Port:       443,
+					TargetPort: intstr.FromInt(8443),
+				}}
+			}),
+			eps("servicens", "servicename"),
+			caSecret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(simplens/simplename).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(simplens/simplename).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						""),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbHTTPSEndpoints,
+						false, /* http2 */
+						&envoycorev3.TransportSocket{
+							Name:       wellknown.TransportSocketTls,
+							ConfigType: typedConfig(false /* http2 */),
+						},
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
+	}, {
+		name: "http2 and https",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+		}),
+		state: []runtime.Object{
+			ns("simplens"),
+			svc("servicens", "servicename", func(service *corev1.Service) {
+				service.Spec.Ports = []corev1.ServicePort{{
+					Name:       "http2",
+					Port:       80,
+					TargetPort: intstr.FromInt(8080),
+				}, {
+					Name:       "https",
+					Port:       443,
+					TargetPort: intstr.FromInt(8443),
+				}}
+			}),
+			eps("servicens", "servicename"),
+			caSecret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(simplens/simplename).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(simplens/simplename).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
+								ExactMatch: "foo",
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						""),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				sniMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbHTTPSEndpoints,
+						true, /* http2 */
+						&envoycorev3.TransportSocket{
+							Name:       wellknown.TransportSocketTls,
+							ConfigType: typedConfig(true /* http2 */),
+						},
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				internalVirtualHosts:    vHosts,
+			}
+		}(),
 	}}
 
 	for _, test := range tests {
