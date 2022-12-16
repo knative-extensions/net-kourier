@@ -23,6 +23,11 @@ metadata:
     app.kubernetes.io/version: devel
     app.kubernetes.io/name: knative-serving
 spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 100%
   replicas: 1
   selector:
     matchLabels:
