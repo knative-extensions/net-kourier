@@ -118,6 +118,20 @@ aliases:
   - nainaz
   - salaboy
   - zroubalik
+  function-runtime-approvers:
+  - lance
+  - lkingland
+  - matejvasek
+  - nainaz
+  - salaboy
+  - zroubalik
+  function-runtime-writers:
+  - lance
+  - lkingland
+  - matejvasek
+  - nainaz
+  - salaboy
+  - zroubalik
   homebrew-kn-plugins-approvers:
   - dsimansk
   - maximilien
@@ -177,11 +191,10 @@ aliases:
   - knative-test-reporter-robot
   - kvmware
   - lance
-  - pmorie
+  - nainaz
   - psschwei
-  - thisisnotapril
+  - salaboy
   - upodroid
-  - vaikas
   - zroubalik
   knative-release-leads:
   - evankanderson
@@ -269,9 +282,8 @@ aliases:
   - csantanapr
   - itsmurugappan
   - lance
-  - pmorie
-  - thisisnotapril
-  - vaikas
+  - nainaz
+  - salaboy
   technical-oversight-committee:
   - dprotaso
   - dsimansk
