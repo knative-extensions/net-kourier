@@ -200,9 +200,12 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// running when booting the controller up and prefilling the config before making it
 				// ready.
 				//
-				// TODO: Drop this configmap check - issues/968.
+				// TODO:
+				// Drop this configmap check - issues/968
 				// We can determin whether internal-encryption is enabled or disabled via `internalEncryption` only,
 				// but all conformance tests need to be updated to have the port name so check the configmap as well.
+				//
+				// TODO: Or fetch configmap before the loop as per https://github.com/knative-sandbox/net-kourier/pull/959#discussion_r1048441513
 				cfg := config.FromContextOrDefaults(ctx)
 
 				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
