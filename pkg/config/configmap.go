@@ -110,7 +110,7 @@ type Kourier struct {
 	IdleTimeout time.Duration
 	// Desire level of incoming traffic isolation
 	TrafficIsolation TrafficIsolationType
-	// TrustedHopsCount Configure the number of additional ingress proxy hops from the
+	// TrustedHopsCount configures the number of additional ingress proxy hops from the
 	// right side of the x-forwarded-for HTTP header to trust.
 	TrustedHopsCount uint32
 	// EnableCryptoMB specifies whether Kourier enable CryptoMB private provider to accelerate
