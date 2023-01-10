@@ -81,6 +81,6 @@ data:
     enable-cryptomb: "false"
 
 
-    # trusted-hops-count Configure the number of additional ingress proxy hops from the
+    # Configures the number of additional ingress proxy hops from the
     # right side of the x-forwarded-for HTTP header to trust.
     trusted-hops-count: "0"
