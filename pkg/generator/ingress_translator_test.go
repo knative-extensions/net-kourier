@@ -650,8 +650,7 @@ var (
 	}
 	upstreamTLSConfig = &config.Config{
 		Network: &netconfig.Config{
-			AutoTLS:            false,
-			InternalEncryption: true,
+			AutoTLS: false,
 		},
 		Kourier: pkgconfig.DefaultConfig(),
 	}
@@ -848,6 +847,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "simple",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			ns("simplens"),
@@ -889,7 +889,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 					envoy.NewCluster(
 						"servicens/servicename",
 						5*time.Second,
-						lbEndpoints,
+						lbHTTPSEndpoints,
 						false,
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
@@ -907,6 +907,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "http2",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			ns("simplens"),
@@ -914,6 +915,10 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				service.Spec.Ports = []corev1.ServicePort{{
 					Name:       "http2",
 					TargetPort: intstr.FromInt(8080),
+				}, {
+					Name:       "https",
+					Port:       443,
+					TargetPort: intstr.FromInt(8443),
 				}}
 			}),
 			eps("servicens", "servicename"),
@@ -953,7 +958,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 					envoy.NewCluster(
 						"servicens/servicename",
 						5*time.Second,
-						lbEndpoints,
+						lbHTTPSEndpoints,
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
@@ -971,7 +976,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "http and https",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromString("https")
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			ns("simplens"),
@@ -983,7 +988,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				}, {
 					Name:       "https",
 					Port:       443,
-					TargetPort: intstr.FromInt(443),
+					TargetPort: intstr.FromInt(8443),
 				}}
 			}),
 			eps("servicens", "servicename"),
@@ -1041,7 +1046,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "http2 and https",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromString("https")
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			ns("simplens"),
@@ -1053,7 +1058,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				}, {
 					Name:       "https",
 					Port:       443,
-					TargetPort: intstr.FromInt(443),
+					TargetPort: intstr.FromInt(8443),
 				}}
 			}),
 			eps("servicens", "servicename"),
@@ -1411,6 +1416,10 @@ func svc(ns, name string, opts ...func(*corev1.Service)) *corev1.Service {
 				Name:       "http",
 				Port:       80,
 				TargetPort: intstr.FromInt(8080),
+			}, {
+				Name:       "https",
+				Port:       443,
+				TargetPort: intstr.FromInt(8443),
 			}},
 		},
 	}
@@ -1502,10 +1511,10 @@ var lbEndpoints = []*endpoint.LbEndpoint{
 }
 
 var lbHTTPSEndpoints = []*endpoint.LbEndpoint{
-	envoy.NewLBEndpoint("2.2.2.2", 443),
-	envoy.NewLBEndpoint("3.3.3.3", 443),
-	envoy.NewLBEndpoint("4.4.4.4", 443),
-	envoy.NewLBEndpoint("5.5.5.5", 443),
+	envoy.NewLBEndpoint("2.2.2.2", 8443),
+	envoy.NewLBEndpoint("3.3.3.3", 8443),
+	envoy.NewLBEndpoint("4.4.4.4", 8443),
+	envoy.NewLBEndpoint("5.5.5.5", 8443),
 }
 
 var lbEndpointHTTP01Challenge = []*endpoint.LbEndpoint{
