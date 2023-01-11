@@ -112,7 +112,7 @@ func TestNewRouteConfig(t *testing.T) {
 	assert.DeepEqual(t, got, want, protocmp.Transform())
 }
 
-func TestNewHTTPConnectionManagerWithoutTrustedHopsDisabled(t *testing.T) {
+func TestNewHTTPConnectionManagerWithTrustedHops(t *testing.T) {
 	tests := []struct {
 		name              string
 		configKourer      config.Kourier
