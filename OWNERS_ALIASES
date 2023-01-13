@@ -4,7 +4,6 @@
 aliases:
   async-component-approvers:
   - AngeloDanducci
-  - bvennam
   - julz
   - maximilien
   client-wg-leads:
@@ -38,8 +37,6 @@ aliases:
   eventing-awssqs-approvers:
   - lberk
   - matzew
-  eventing-camel-approvers:
-  - nicolaferraro
   eventing-ceph-approvers:
   - lberk
   - matzew
@@ -57,11 +54,9 @@ aliases:
   - tzununbekov
   eventing-kafka-approvers:
   - aliok
-  - davyodom
   - eric-sap
   - lberk
   - matzew
-  - phamilton
   - pierDipi
   - steven0711dong
   - travis-minke-sap
@@ -88,7 +83,6 @@ aliases:
   - chunyilyu
   - gab-satchi
   - gabo1208
-  - gvmw
   - ikvmw
   - salaboy
   - xtreme-sameer-vohra
@@ -150,7 +144,6 @@ aliases:
   - rhuss
   kn-plugin-migration-approvers:
   - maximilien
-  - zhangtbj
   kn-plugin-operator-approvers:
   - dsimansk
   - houshengbo
@@ -176,7 +169,6 @@ aliases:
   - rhuss
   kn-plugin-source-kamelet-approvers:
   - christophd
-  - nicolaferraro
   - rhuss
   knative-admin:
   - csantanapr
@@ -237,8 +229,6 @@ aliases:
   - vagababov
   net-kourier-approvers:
   - carlisia
-  - davidor
-  - jmprusi
   - skonto
   - tcnghia
   networking-wg-leads: []
