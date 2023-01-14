@@ -32,8 +32,11 @@ openssl req -out "${out_dir}"/tls.csr -newkey rsa:2048 -nodes -keyout "${out_dir
 openssl x509 -req -extfile <(printf "subjectAltName=DNS:$san") -days 365 -in "${out_dir}"/tls.csr -CA "${out_dir}"/root.crt -CAkey "${out_dir}"/root.key -CAcreateserial -out "${out_dir}"/tls.crt
 
 # Create secret
+# TODO: drop ca-cert.pem after v1.9 released. It is used for upgrade e2e test since previous version uses the old file name.
 kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret generic knative-serving-certs \
-    --from-file=ca.crt="${out_dir}"/root.crt --dry-run=client -o yaml |  \
+    --from-file=ca.crt="${out_dir}"/root.crt \
+    --from-file=ca-cert.pem="${out_dir}"/root.crt \
+    --dry-run=client -o yaml |  \
     sed  '/^metadata:/a\ \ labels: {"networking.internal.knative.dev/certificate-uid":"test-id"}' | kubectl apply -f -
 
 kubectl create -n ${TEST_NAMESPACE} secret tls server-certs \
