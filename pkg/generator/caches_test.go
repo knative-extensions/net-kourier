@@ -268,7 +268,7 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 			Name: "test-ca",
 		},
 		Data: map[string][]byte{
-			certificates.SecretCaCertKey: cert,
+			certificates.CaCertName: cert,
 		},
 	}
 
