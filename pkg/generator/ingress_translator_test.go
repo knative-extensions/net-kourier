@@ -70,9 +70,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(simplens/simplename).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
-							},
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								}},
 						}},
 						"/test",
 						[]*route.WeightedCluster_ClusterWeight{
@@ -130,8 +133,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -199,8 +206,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -221,8 +232,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test"),
@@ -286,8 +301,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -371,8 +390,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -444,8 +467,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/",
@@ -499,8 +526,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -555,8 +586,12 @@ func TestIngressTranslator(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -688,8 +723,12 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -758,8 +797,12 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						"(testspace/testname).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -864,8 +907,12 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						"(simplens/simplename).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -933,8 +980,12 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						"(simplens/simplename).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -1003,8 +1054,12 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						"(simplens/simplename).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -1073,8 +1128,12 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						"(simplens/simplename).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -1284,8 +1343,12 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 						"(simplens/simplename).Rules[0].Paths[/test]",
 						[]*route.HeaderMatcher{{
 							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_ExactMatch{
-								ExactMatch: "foo",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
 							},
 						}},
 						"/test",
@@ -1563,11 +1626,14 @@ func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 							InlineBytes: cert,
 						},
 					},
-					MatchSubjectAltNames: []*envoymatcherv3.StringMatcher{{
-						MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-							Exact: certificates.FakeDnsName,
-						}},
-					},
+					MatchTypedSubjectAltNames: []*auth.SubjectAltNameMatcher{{
+						SanType: auth.SubjectAltNameMatcher_DNS,
+						Matcher: &envoymatcherv3.StringMatcher{
+							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+								Exact: certificates.FakeDnsName,
+							},
+						},
+					}},
 				},
 			},
 		},
