@@ -229,6 +229,7 @@ aliases:
   - vagababov
   net-kourier-approvers:
   - carlisia
+  - nak3
   - skonto
   - tcnghia
   networking-wg-leads: []
