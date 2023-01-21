@@ -24,9 +24,9 @@ jobs:
         - v1.25.3
 
         gateway:
-        - quay.io/maistra-dev/proxyv2-ubi8:2.3-daily # The image suffix will be added later.
-        - docker.io/envoyproxy/envoy:v1.21-latest
+        - quay.io/maistra-dev/proxyv2-ubi8:2.3-latest
         - docker.io/envoyproxy/envoy:v1.22-latest
+        - docker.io/envoyproxy/envoy:v1.23-latest
 
         upstream-tls:
         - plain
@@ -121,15 +121,6 @@ jobs:
         echo ">> Deploy certificate for upstream traffic"
         ./test/generate-upstream-cert.sh
 
-    - name: Set current datetime as env variable for maistra image
-      id: image
-      run: |
-        if [[ "${{ matrix.gateway }}" =~ "maistra" ]]; then
-          echo "::set-output name=image::${{ matrix.gateway }}-$(date --date '1 day ago' +'%Y-%m-%d')"
-        else
-          echo "::set-output name=image::${{ matrix.gateway }}"
-        fi
-
     - name: Install Knative net-kourier
       run: |
         set -o pipefail
@@ -137,7 +128,7 @@ jobs:
         # Build and Publish our containers to the docker daemon (including test assets)
         ko resolve -f test/config/ -f config/ | \
           sed 's/LoadBalancer/NodePort/g' | \
-          sed "s|docker.io/envoyproxy/envoy:.*|${{ steps.image.outputs.image }}|" | \
+          sed "s|docker.io/envoyproxy/envoy:.*|${{ matrix.gateway }}|" | \
           kubectl apply -f -
 
     - name: Wait for Ready
