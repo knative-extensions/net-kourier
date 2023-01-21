@@ -34,6 +34,10 @@ spec:
       app: net-kourier-controller
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
       labels:
         app: net-kourier-controller
     spec:
