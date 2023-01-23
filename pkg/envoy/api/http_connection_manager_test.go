@@ -17,6 +17,7 @@ limitations under the License.
 package envoy
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -109,4 +110,41 @@ func TestNewRouteConfig(t *testing.T) {
 	}
 
 	assert.DeepEqual(t, got, want, protocmp.Transform())
+}
+
+func TestNewHTTPConnectionManagerWithTrustedHops(t *testing.T) {
+	tests := []struct {
+		name              string
+		configKourer      config.Kourier
+		wantedTrustedHops uint32
+	}{
+		{
+			name: "test 0 trusted hops",
+			configKourer: config.Kourier{
+				TrustedHopsCount: 0,
+			},
+			wantedTrustedHops: 0,
+		},
+		{
+			name: "test 1 trusted hops",
+			configKourer: config.Kourier{
+				TrustedHopsCount: 1,
+			},
+			wantedTrustedHops: 1,
+		},
+		{
+			name: "test max trusted hops",
+			configKourer: config.Kourier{
+				TrustedHopsCount: math.MaxUint32,
+			},
+			wantedTrustedHops: math.MaxUint32,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			connManager := NewHTTPConnectionManager("test", &test.configKourer)
+			assert.Equal(t, test.wantedTrustedHops, connManager.XffNumTrustedHops)
+		})
+	}
 }

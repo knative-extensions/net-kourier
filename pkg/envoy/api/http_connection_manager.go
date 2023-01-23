@@ -70,6 +70,7 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 			},
 		},
 		StreamIdleTimeout: durationpb.New(idleTimeout),
+		XffNumTrustedHops: kourierConfig.TrustedHopsCount,
 	}
 
 	if enableProxyProtocol {
