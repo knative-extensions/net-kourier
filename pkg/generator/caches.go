@@ -313,7 +313,7 @@ func generateListenersAndRouteConfigs(
 	if len(sniMatches) > 0 {
 		externalHTTPSEnvoyListener, err := envoy.NewHTTPSListenerWithSNI(
 			externalTLSManager, config.HTTPSPortExternal,
-			sniMatches, cfg.Kourier.EnableProxyProtocol,
+			sniMatches, cfg.Kourier,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -322,7 +322,7 @@ func generateListenersAndRouteConfigs(
 		// create https prob listener with SNI
 		probHTTPSListener, err := envoy.NewHTTPSListenerWithSNI(
 			externalManager, config.HTTPSPortProb,
-			sniMatches, false,
+			sniMatches, cfg.Kourier,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -395,6 +395,7 @@ func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager
 		Certificate:        certificateChain,
 		PrivateKey:         privateKey,
 		PrivateKeyProvider: privateKeyProvider(cfg.EnableCryptoMB),
+		CipherSuites:       cfg.CipherSuites.List(),
 	})
 }
 
@@ -416,6 +417,7 @@ func newInternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnm
 		Certificate:        certificateChain,
 		PrivateKey:         privateKey,
 		PrivateKeyProvider: privateKeyProvider(cfg.EnableCryptoMB),
+		CipherSuites:       cfg.CipherSuites.List(),
 	})
 	if err != nil {
 		return nil, err

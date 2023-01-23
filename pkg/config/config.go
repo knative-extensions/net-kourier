@@ -79,6 +79,9 @@ const (
 	// trustedHopsCount Configure the number of additional ingress proxy hops from the
 	// right side of the x-forwarded-for HTTP header to trust.
 	trustedHopsCount = "trusted-hops-count"
+
+	// CipherSuites is the cipher suites for TLS external listener.
+	cipherSuites = "cipher-suites"
 )
 
 var disableHTTP2Annotation = kmap.KeyPriority{

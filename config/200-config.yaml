@@ -74,13 +74,16 @@ data:
     # NOTE: This flag is in an alpha state.
     traffic-isolation: ""
 
-
     # Specifies whether to use CryptoMB private key provider in order to
     # acclerate the TLS handshake.
     # NOTE THAT THIS IS AN EXPERIMENTAL / ALPHA FEATURE.
     enable-cryptomb: "false"
 
-
     # Configures the number of additional ingress proxy hops from the
     # right side of the x-forwarded-for HTTP header to trust.
     trusted-hops-count: "0"
+
+    # Specifies the cipher suites for TLS external listener.
+    # Use ',' separated values like "ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-ECDSA-CHACHA20-POLY1305"
+    # The default uses the default cipher suites of the envoy version.
+    cipher-suites: ""

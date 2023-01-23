@@ -32,6 +32,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/net-kourier/pkg/config"
 )
 
@@ -158,6 +159,41 @@ func TestNewHTTPSListenerWithPrivatekeyProvider(t *testing.T) {
 	// check proxy protocol is not configured
 	assert.Check(t, len(l.ListenerFilters) == 0)
 }
+
+func TestNewHTTPSListenerWithSNIWithCipherSuites(t *testing.T) {
+	sniMatches := []*SNIMatch{{
+		Hosts:            []string{"some_host.com"},
+		CertificateChain: []byte("cert1"),
+		PrivateKey:       []byte("key1"),
+	}, {
+		Hosts:            []string{"another_host.com"},
+		CertificateChain: []byte("cert2"),
+		PrivateKey:       []byte("key2"),
+	}}
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		EnableProxyProtocol:        false,
+		IdleTimeout:                0 * time.Second,
+		CipherSuites:               sets.NewString("foo", "bar"),
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
+	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, &kourierConfig)
+	assert.NilError(t, err)
+
+	downstreamTLSContext := &auth.DownstreamTlsContext{}
+	err = anypb.UnmarshalTo(listener.FilterChains[0].GetTransportSocket().GetTypedConfig(), downstreamTLSContext, proto.UnmarshalOptions{})
+	assert.NilError(t, err)
+
+	assert.DeepEqual(t, kourierConfig.CipherSuites.List(), downstreamTLSContext.CommonTlsContext.TlsParams.CipherSuites)
+
+	assert.Equal(t, core.SocketAddress_TCP, listener.Address.GetSocketAddress().Protocol)
+	assert.Equal(t, "0.0.0.0", listener.Address.GetSocketAddress().Address)
+	assert.Equal(t, uint32(8443), listener.Address.GetSocketAddress().GetPortValue())
+
+	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[0])
+	assertListenerHasSNIMatchConfigured(t, listener, sniMatches[1])
+}
+
 func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
 	kourierConfig := config.Kourier{
 		EnableServiceAccessLogging: true,
@@ -203,7 +239,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 		IdleTimeout:                0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
-	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, false)
+	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, &kourierConfig)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, listener.Address.GetSocketAddress().Protocol)
@@ -235,7 +271,7 @@ func TestNewHTTPSListenerWithSNIWithProxyProtocol(t *testing.T) {
 		IdleTimeout:                0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
-	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, true)
+	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, &kourierConfig)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, listener.Address.GetSocketAddress().Protocol)

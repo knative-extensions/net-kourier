@@ -20,6 +20,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	cm "knative.dev/pkg/configmap"
 )
@@ -63,6 +64,7 @@ func DefaultConfig() *Kourier {
 		IdleTimeout:                0 * time.Second, // default value
 		TrafficIsolation:           "",
 		TrustedHopsCount:           0,
+		CipherSuites:               nil,
 		EnableCryptoMB:             false,
 	}
 }
@@ -78,6 +80,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
 		cm.AsString(trafficIsolation, (*string)(&nc.TrafficIsolation)),
 		cm.AsUint32(trustedHopsCount, &nc.TrustedHopsCount),
+		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
 	); err != nil {
 		return nil, err
@@ -116,4 +119,6 @@ type Kourier struct {
 	// EnableCryptoMB specifies whether Kourier enable CryptoMB private provider to accelerate
 	// TLS handshake. The default value is "false".
 	EnableCryptoMB bool
+	// CipherSuites specifies the cipher suites for TLS external listener.
+	CipherSuites sets.String
 }

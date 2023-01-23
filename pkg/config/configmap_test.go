@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	_ "knative.dev/pkg/system/testing"
 )
@@ -85,6 +86,16 @@ func TestKourierConfig(t *testing.T) {
 			enableProxyProtocol: "foo",
 		},
 	}, {
+		name: "set cipher suites",
+		want: &Kourier{
+			EnableServiceAccessLogging: false,
+			CipherSuites:               sets.NewString("foo", "bar"),
+		},
+		data: map[string]string{
+			enableServiceAccessLoggingKey: "false",
+			cipherSuites:                  "foo, bar",
+		},
+	}, {
 		name: "set timeout to 200",
 		want: &Kourier{
 			EnableServiceAccessLogging: true,
@@ -110,19 +121,17 @@ func TestKourierConfig(t *testing.T) {
 		data: map[string]string{
 			trafficIsolation: "port",
 		},
-	},
-		{
-			name: "add 3 trusted hops",
-			want: &Kourier{
-				EnableServiceAccessLogging: false,
-				TrustedHopsCount:           3,
-			},
-			data: map[string]string{
-				enableServiceAccessLoggingKey: "false",
-				trustedHopsCount:              "3",
-			},
+	}, {
+		name: "add 3 trusted hops",
+		want: &Kourier{
+			EnableServiceAccessLogging: false,
+			TrustedHopsCount:           3,
 		},
-	}
+		data: map[string]string{
+			enableServiceAccessLoggingKey: "false",
+			trustedHopsCount:              "3",
+		},
+	}}
 
 	for _, tt := range configTests {
 		t.Run(tt.name, func(t *testing.T) {
