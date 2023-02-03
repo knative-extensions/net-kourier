@@ -263,6 +263,7 @@ aliases:
   - evankanderson
   security-writers:
   - evankanderson
+  serving-reviewers: []
   serving-wg-leads:
   - dprotaso
   - psschwei
