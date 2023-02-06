@@ -99,6 +99,7 @@ To change the Kourier gateway namespace, you will need to:
 - Support for gRPC services.
 - Timeouts and retries.
 - TLS
+- Cipher Suite
 - External Authorization support.
 - Proxy Protocol (AN EXPERIMENTAL / ALPHA FEATURE)
 - Traffic Isolation (AN EXPERIMENTAL / ALPHA FEATURE)
@@ -117,6 +118,19 @@ Add the following env vars to net-kourier-controller in the "kourier" container 
 CERTS_SECRET_NAMESPACE: ${NAMESPACES_WHERE_THE_SECRET_HAS_BEEN_CREATED}
 CERTS_SECRET_NAME: ${CERT_NAME}
 ```
+
+### Cipher Suites
+
+You can specify the cipher suites for TLS external listener.
+To specify the cipher suites you want to allow, run the following command to patch `config-kourier` ConfigMap:
+
+```
+kubectl -n "knative-serving" patch configmap/config-kourier \
+  --type merge \
+  -p '{"data":{"cipher-suites":"ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-ECDSA-CHACHA20-POLY1305"}}'
+```
+
+The default uses the default cipher suites of the envoy version.
 
 ## External Authorization Configuration
 
@@ -155,6 +169,7 @@ Ensure that the file was updated successfully:
 ```
 kubectl get configmap config-kourier --namespace knative-serving --output yaml
 ```
+
 ### LoadBalancer configuration:
 
 We need to:

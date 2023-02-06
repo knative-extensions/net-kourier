@@ -63,6 +63,17 @@ echo ">> Scale down after HA tests"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=1
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controller --replicas=1
 
+echo ">> Running TLS Cipher suites"
+echo ">> Setup cipher suites"
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"cipher-suites":"ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-ECDSA-CHACHA20-POLY1305"}}'
+
+go test -v  -tags=e2e ./test/tls/... \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
+
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"cipher-suites":""}}'
+
 echo ">> Setup one certificate"
 $(dirname $0)/generate-cert.sh
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs

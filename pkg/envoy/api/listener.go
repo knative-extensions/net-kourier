@@ -33,6 +33,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/apimachinery/pkg/types"
+
+	"knative.dev/net-kourier/pkg/config"
 )
 
 // SNIMatch represents an SNI match, including the hosts to match, the certificates and
@@ -121,8 +123,8 @@ func CreateFilterChainFromCertificateAndPrivateKey(
 // manager and applies a FilterChain with the given sniMatches.
 //
 // Ref: https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/sni.html
-func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sniMatches []*SNIMatch, enableProxyProtocol bool) (*listener.Listener, error) {
-	filterChains, err := createFilterChainsForTLS(manager, sniMatches)
+func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sniMatches []*SNIMatch, kourierConfig *config.Kourier) (*listener.Listener, error) {
+	filterChains, err := createFilterChainsForTLS(manager, sniMatches, kourierConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +136,7 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 	// the SNI will not be parsed correctly if the proxy protocol listener filter is not executed first.
 	// Without SNI matching, you would get the wrong certificate, and traffic would drop.
 	// https://github.com/solo-io/gloo/issues/5116
-	if enableProxyProtocol {
+	if kourierConfig.EnableProxyProtocol {
 		proxyProtocolListenerFilter, err := createProxyProtocolListenerFilter()
 		if err != nil {
 			return nil, err
@@ -193,7 +195,7 @@ func createFilters(manager *hcm.HttpConnectionManager) ([]*listener.Filter, erro
 	}}, nil
 }
 
-func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*SNIMatch) ([]*listener.FilterChain, error) {
+func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*SNIMatch, kourierConfig *config.Kourier) ([]*listener.FilterChain, error) {
 	res := make([]*listener.FilterChain, 0, len(sniMatches))
 	for _, sniMatch := range sniMatches {
 		filters, err := createFilters(manager)
@@ -201,7 +203,7 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 			return nil, err
 		}
 
-		c := Certificate{Certificate: sniMatch.CertificateChain, PrivateKey: sniMatch.PrivateKey}
+		c := Certificate{Certificate: sniMatch.CertificateChain, PrivateKey: sniMatch.PrivateKey, CipherSuites: kourierConfig.CipherSuites.List()}
 
 		tlsContext, err := c.createTLSContext()
 		if err != nil {
@@ -235,6 +237,7 @@ type Certificate struct {
 	PrivateKey         []byte
 	PrivateKeyProvider string
 	PollDelay          *durationpb.Duration
+	CipherSuites       []string
 }
 
 // messageToAny converts from proto message to proto Any
@@ -276,6 +279,7 @@ func (c Certificate) createTLSContext() (*auth.DownstreamTlsContext, error) {
 			// Temporary fix until we start using envoyproxy image newer than v1.23.0 (envoyproxy has adopted TLS v1.2 as the default minimum version in https://github.com/envoyproxy/envoy/commit/f8baa480ec9c6cbaa7a9d5433102efb04145cfc8)
 			TlsParams: &auth.TlsParameters{
 				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+				CipherSuites:              c.CipherSuites,
 			},
 			TlsCertificates: []*auth.TlsCertificate{tlsCertificates},
 		},
