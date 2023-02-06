@@ -319,10 +319,13 @@ func generateListenersAndRouteConfigs(
 			return nil, nil, err
 		}
 
+		probeConfig := cfg.Kourier
+		probeConfig.EnableProxyProtocol = false // Disable proxy protocol for prober.
+
 		// create https prob listener with SNI
 		probHTTPSListener, err := envoy.NewHTTPSListenerWithSNI(
 			externalManager, config.HTTPSPortProb,
-			sniMatches, cfg.Kourier,
+			sniMatches, probeConfig,
 		)
 		if err != nil {
 			return nil, nil, err
