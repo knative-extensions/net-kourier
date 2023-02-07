@@ -4,7 +4,6 @@
 aliases:
   async-component-approvers:
   - AngeloDanducci
-  - julz
   - maximilien
   client-wg-leads:
   - dsimansk
@@ -15,7 +14,6 @@ aliases:
   - navidshaikh
   - rhuss
   container-freezer-approvers:
-  - julz
   - psschwei
   control-protocol-approvers:
   - eric-sap
@@ -148,7 +146,6 @@ aliases:
   - dsimansk
   - houshengbo
   - maximilien
-  - omerbensaadon
   - rhuss
   kn-plugin-quickstart-approvers:
   - dsimansk
@@ -198,40 +195,24 @@ aliases:
   - knative-prow-updater-robot
   - knative-test-reporter-robot
   kperf-approvers:
-  - chzhyang
   - maximilien
-  - nader-ziada
   - psschwei
-  - zhanggbj
-  net-certmanager-approvers:
-  - ZhiminXiang
-  - carlisia
-  - tcnghia
+  net-certmanager-approvers: []
   net-contour-approvers:
+  - KauzClay
   - carlisia
   - dprotaso
-  - tcnghia
   net-gateway-api-approvers:
-  - carlisia
+  - dprotaso
   - nak3
-  - tcnghia
-  net-http01-approvers:
-  - carlisia
-  - tcnghia
+  net-http01-approvers: []
   net-istio-approvers:
   - AngeloDanducci
-  - JRBANCEL
-  - ZhiminXiang
-  - carlisia
   - nak3
   - skonto
-  - tcnghia
-  - vagababov
   net-kourier-approvers:
-  - carlisia
   - nak3
   - skonto
-  - tcnghia
   networking-wg-leads: []
   operations-wg-leads:
   - houshengbo
@@ -247,8 +228,6 @@ aliases:
   - upodroid
   productivity-writers:
   - cardil
-  - chaodaiG
-  - coryrc
   - kvmware
   - psschwei
   - upodroid
@@ -263,12 +242,22 @@ aliases:
   - evankanderson
   security-writers:
   - evankanderson
-  serving-reviewers: []
+  serving-approvers:
+  - nak3
+  serving-reviewers:
+  - KauzClay
+  - carlisia
+  - izabelacg
+  - jsanin-vmw
+  - kauana
+  - retocode
+  - skonto
   serving-wg-leads:
   - dprotaso
   - psschwei
   serving-writers:
   - dprotaso
+  - nak3
   - psschwei
   steering-committee:
   - csantanapr
