@@ -965,7 +965,7 @@ k8s.io/utils/trace
 # knative.dev/control-protocol v0.0.0-20230216145552-932229de6ed1
 ## explicit; go 1.18
 knative.dev/control-protocol/pkg/certificates
-# knative.dev/hack v0.0.0-20230210215449-d71d569c4308
+# knative.dev/hack v0.0.0-20230217131352-f2f3107be156
 ## explicit; go 1.18
 knative.dev/hack
 # knative.dev/networking v0.0.0-20230217014953-1bd50a5dc1e8
