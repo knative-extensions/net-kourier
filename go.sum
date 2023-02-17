@@ -910,12 +910,12 @@ k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 h1:MQ8BAZPZlWk3S9K4a9NCkI
 k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1/go.mod h1:C/N6wCaBHeBHkHUesQOQy2/MZqGgMAFPqGsGQLdbZBU=
 k8s.io/utils v0.0.0-20221108210102-8e77b1f39fe2 h1:GfD9OzL11kvZN5iArC6oTS7RTj7oJOIfnislxYlqTj8=
 k8s.io/utils v0.0.0-20221108210102-8e77b1f39fe2/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-knative.dev/control-protocol v0.0.0-20230215015055-49f82c2e2841 h1:egVH8kZS6XnOH36A13rFFp9m33M6xDahDYjder0MeYU=
-knative.dev/control-protocol v0.0.0-20230215015055-49f82c2e2841/go.mod h1:hkZaLkrdq9ZKEfM55G0ZWT2QHmWVJucgjuj/6WOmHDw=
+knative.dev/control-protocol v0.0.0-20230216145552-932229de6ed1 h1:hRV0zrT5iuVO072eh24pAWOTykS/MwqD9LDWxA+cfKs=
+knative.dev/control-protocol v0.0.0-20230216145552-932229de6ed1/go.mod h1:01CsdGNM8joEg6zt9oZa+Jgoffvys+kGIeLo9tG0G9k=
 knative.dev/hack v0.0.0-20230210215449-d71d569c4308 h1:zH5OedRfo9SB22o25VNQ+vygceTvOujsnLYaALb8jos=
 knative.dev/hack v0.0.0-20230210215449-d71d569c4308/go.mod h1:yk2OjGDsbEnQjfxdm0/HJKS2WqTLEFg/N6nUs6Rqx3Q=
-knative.dev/networking v0.0.0-20230213123750-9373ba621b64 h1:dhyAzbpEil/m4BBkn4MkTuuDmXYhIO7cW7CfwaXPbPw=
-knative.dev/networking v0.0.0-20230213123750-9373ba621b64/go.mod h1:ezx67UpsaErwhk21DNUIvd+vnorsq6ejYe37QjFX0TI=
+knative.dev/networking v0.0.0-20230217014953-1bd50a5dc1e8 h1:k2wjz4IWtIMur2dJ7N5LO8V7LTZuObxKqgY7ge6qgCc=
+knative.dev/networking v0.0.0-20230217014953-1bd50a5dc1e8/go.mod h1:CpX3EQbypZai5ZH8OljWK4DMjj047Hy3a470KziWMK4=
 knative.dev/pkg v0.0.0-20230215234751-2f55fe00c5a1 h1:uFmSftQza1crgKoZWRvPthuGynJgVEN3aFcXORqZpDQ=
 knative.dev/pkg v0.0.0-20230215234751-2f55fe00c5a1/go.mod h1:YVKzsxts9YjMq9xbG1GrMWwwGmkJRpJxqCa6iIOKb28=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
