@@ -70,7 +70,7 @@ go test -race -count=1 -timeout=20m -tags=e2e ./test/cert/... \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"
 
-KOURIER_EXTAUTHZ_PROTOCOL=grpc
+export "KOURIER_EXTAUTHZ_PROTOCOL=grpc"
 
 echo ">> Setup ExtAuthz gRPC"
 ko apply -f test/config/extauthz/grpc
@@ -105,7 +105,7 @@ echo ">> Unset ExtAuthz gRPC"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST- KOURIER_EXTAUTHZ_PACKASBYTES-
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
-KOURIER_EXTAUTHZ_PROTOCOL=http
+export "KOURIER_EXTAUTHZ_PROTOCOL=http"
 
 echo ">> Setup ExtAuthz HTTP"
 ko apply -f test/config/extauthz/http
@@ -144,7 +144,7 @@ echo ">> Unset ExtAuthz HTTP with path prefix"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST- KOURIER_EXTAUTHZ_PROTOCOL- KOURIER_EXTAUTHZ_PATHPREFIX-
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
-unset KOURIER_EXTAUTHZ_PROTOCOL
+unset "KOURIER_EXTAUTHZ_PROTOCOL"
 
 echo ">> Setup Proxy Protocol"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"enable-proxy-protocol":"true"}}'
