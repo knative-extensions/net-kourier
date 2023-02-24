@@ -29,7 +29,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"math/rand"
 	"net"
@@ -1148,7 +1148,7 @@ func RuntimeRequestWithExpectations(ctx context.Context, t *testing.T, client *h
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		b, err := ioutil.ReadAll(resp.Body)
+		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Error("Unable to read response body:", err)
 			DumpResponse(ctx, t, resp)
