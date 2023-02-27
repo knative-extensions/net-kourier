@@ -1,5 +1,7 @@
 module knative.dev/net-kourier
 
+// Trigger new release
+// https://github.com/knative/serving/issues/13747
 go 1.18
 
 require (
