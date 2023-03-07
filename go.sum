@@ -915,10 +915,10 @@ knative.dev/control-protocol v0.0.0-20230224211930-5bd050207ce1 h1:jCg6VN2ETte2Q
 knative.dev/control-protocol v0.0.0-20230224211930-5bd050207ce1/go.mod h1:knv+7h7G3Mxmw4Z/IzP9ZcF5mi2bHSjuN9VlvEl5tc4=
 knative.dev/hack v0.0.0-20230228173453-3de51aff69a3 h1:Jt3n+AZsZHZaFhk/A1NnboAvgjV+hvvyeyyuIX/hUx0=
 knative.dev/hack v0.0.0-20230228173453-3de51aff69a3/go.mod h1:yk2OjGDsbEnQjfxdm0/HJKS2WqTLEFg/N6nUs6Rqx3Q=
-knative.dev/networking v0.0.0-20230227121034-475e2321b3eb h1:BmcDUF0ruWKg/BWtZ6vTWQJ/4gI7+g9qYNn7hWHoOUs=
-knative.dev/networking v0.0.0-20230227121034-475e2321b3eb/go.mod h1:L81tFedD8jWEEvxRT5HagfsC3V2LJbGB60ORUAm8CO0=
-knative.dev/pkg v0.0.0-20230224190030-645afb2d5dad h1:RIjysOocoRfalLJgaSBkKHf6NrgdvAagF1x2CNihjqc=
-knative.dev/pkg v0.0.0-20230224190030-645afb2d5dad/go.mod h1:TlO24rbgdsfqpkwZi1Ddue/LiVbvzankhaXpVdP+Nok=
+knative.dev/networking v0.0.0-20230301131055-c692e9e6afe1 h1:ejM3dZpJSGWPXD4E/ZrL3baOU9fBD3neJkIGKs+DE8M=
+knative.dev/networking v0.0.0-20230301131055-c692e9e6afe1/go.mod h1:v3IQxqBhOuTMDFZhsvBFGiuF5vjlOGoSQM2Q6B7HSpU=
+knative.dev/pkg v0.0.0-20230306194819-b77a78c6c0ad h1:cYCDdgSMOKiCGm6v1vvR2v4l/naGorbwoJKE/e39BJI=
+knative.dev/pkg v0.0.0-20230306194819-b77a78c6c0ad/go.mod h1:S+KfTInuwEkZSTwvWqrWZV/TEw6ps51GUGaSC1Fnbe0=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
