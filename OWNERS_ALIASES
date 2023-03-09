@@ -88,6 +88,8 @@ aliases:
   - aavarghese
   - lionelvillard
   - matzew
+  eventing-reviewers:
+  - creydr
   eventing-wg-leads:
   - pierDipi
   eventing-writers:
