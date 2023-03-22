@@ -254,7 +254,7 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 			},
 		},
 	}, {
-		name: "http with pack as bytes option",
+		name: "http with path prefix with pack bytes enabled",
 		conf: &config{
 			Host:            "example.com:8080",
 			MaxRequestBytes: 8192,
