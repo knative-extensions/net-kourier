@@ -22,8 +22,8 @@ require (
 	k8s.io/code-generator v0.25.4
 	knative.dev/control-protocol v0.0.0-20230325200056-beb066655984
 	knative.dev/hack v0.0.0-20230330174700-1421f120c36b
-	knative.dev/networking v0.0.0-20230330121602-2ca8dbcaf598
-	knative.dev/pkg v0.0.0-20230329200100-696cac83c169
+	knative.dev/networking v0.0.0-20230331120101-e18ca8681d7d
+	knative.dev/pkg v0.0.0-20230403151233-b7f277446167
 )
 
 require (
