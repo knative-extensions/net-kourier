@@ -962,10 +962,10 @@ k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
-# knative.dev/control-protocol v0.0.0-20230325200056-beb066655984
+# knative.dev/control-protocol v0.0.0-20230409044437-3531529a36e8
 ## explicit; go 1.18
 knative.dev/control-protocol/pkg/certificates
-# knative.dev/hack v0.0.0-20230330174700-1421f120c36b
+# knative.dev/hack v0.0.0-20230410142639-359d58534ae2
 ## explicit; go 1.18
 knative.dev/hack
 # knative.dev/networking v0.0.0-20230404133438-0b998c1bdcef
