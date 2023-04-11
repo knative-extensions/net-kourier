@@ -183,13 +183,17 @@ aliases:
   - kvmware
   - lance
   - nainaz
+  - pierDipi
+  - pradnyavmw
   - psschwei
   - salaboy
   - upodroid
   - zroubalik
   knative-release-leads:
-  - evankanderson
-  - psschwei
+  - dsimansk
+  - kvmware
+  - pierDipi
+  - pradnyavmw
   knative-robots:
   - knative-automation
   - knative-prow-releaser-robot
