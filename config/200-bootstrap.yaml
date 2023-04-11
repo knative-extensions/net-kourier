@@ -93,7 +93,7 @@ data:
               explicit_http_config:
                 http2_protocol_options:
                   connection_keepalive:
-                    interval: 30s
+                    interval: 300s
                     timeout: 5s
           connect_timeout: 1s
           load_assignment:
