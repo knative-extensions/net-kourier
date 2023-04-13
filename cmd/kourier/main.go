@@ -42,5 +42,5 @@ func main() {
 	}
 
 	ctx := informerfiltering.GetContextWithFilteringLabelSelector(signals.NewContext())
-	sharedmain.MainWithContext(ctx, config.ControllerName, kourierIngressController.NewController)
+	sharedmain.MainWithContext(sharedmain.WithHealthProbesDisabled(ctx), config.ControllerName, kourierIngressController.NewController)
 }
