@@ -66,9 +66,13 @@ spec:
           readinessProbe:
             exec:
               command: ["/ko-app/kourier", "-probe-addr=:18000"]
+            periodSeconds: 10
+            failureThreshold: 3
           livenessProbe:
             exec:
               command: [ "/ko-app/kourier", "-probe-addr=:18000" ]
+            periodSeconds: 10
+            failureThreshold: 6
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
