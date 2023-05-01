@@ -64,13 +64,13 @@ spec:
             containerPort: 18000
             protocol: TCP
           readinessProbe:
-            exec:
-              command: ["/ko-app/kourier", "-probe-addr=:18000"]
+            grpc:
+              port: 18000
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
-            exec:
-              command: [ "/ko-app/kourier", "-probe-addr=:18000" ]
+            grpc:
+              port: 18000
             periodSeconds: 10
             failureThreshold: 6
           securityContext:

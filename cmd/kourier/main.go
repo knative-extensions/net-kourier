@@ -17,9 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"flag"
-	"os"
-
 	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
 	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
@@ -29,18 +26,7 @@ import (
 	"knative.dev/pkg/injection/sharedmain"
 )
 
-var (
-	probeAddr = flag.String("probe-addr", "", "run this binary as a health check against the given address")
-)
-
 func main() {
-	flag.Parse()
-
-	// Run the binary as a health checker if the respective flag is given.
-	if *probeAddr != "" {
-		os.Exit(check(*probeAddr))
-	}
-
 	ctx := informerfiltering.GetContextWithFilteringLabelSelector(signals.NewContext())
 	ctx = sharedmain.WithHealthProbesDisabled(ctx)
 	sharedmain.MainWithContext(ctx, config.ControllerName, kourierIngressController.NewController)
