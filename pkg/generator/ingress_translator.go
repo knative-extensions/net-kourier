@@ -48,11 +48,13 @@ import (
 
 type translatedIngress struct {
 	name                    types.NamespacedName
-	sniMatches              []*envoy.SNIMatch
+	localSNIMatches         []*envoy.SNIMatch
+	externalSNIMatches      []*envoy.SNIMatch
 	clusters                []*v3.Cluster
 	externalVirtualHosts    []*route.VirtualHost
 	externalTLSVirtualHosts []*route.VirtualHost
-	internalVirtualHosts    []*route.VirtualHost
+	localVirtualHosts       []*route.VirtualHost
+	localTLSVirtualHosts    []*route.VirtualHost
 }
 
 type IngressTranslator struct {
@@ -78,39 +80,28 @@ func NewIngressTranslator(
 func (translator *IngressTranslator) translateIngress(ctx context.Context, ingress *v1alpha1.Ingress, extAuthzEnabled bool) (*translatedIngress, error) {
 	logger := logging.FromContext(ctx)
 
-	sniMatches := make([]*envoy.SNIMatch, 0, len(ingress.Spec.TLS))
-	for _, ingressTLS := range ingress.Spec.TLS {
-		if err := trackSecret(translator.tracker, ingressTLS.SecretNamespace, ingressTLS.SecretName, ingress); err != nil {
-			return nil, err
-		}
+	localIngressTLS := ingress.GetIngressTLSForVisibility(v1alpha1.IngressVisibilityClusterLocal)
+	externalIngressTLS := ingress.GetIngressTLSForVisibility(v1alpha1.IngressVisibilityExternalIP)
 
-		secret, err := translator.secretGetter(ingressTLS.SecretNamespace, ingressTLS.SecretName)
+	externalSNIMatches := make([]*envoy.SNIMatch, 0, len(externalIngressTLS))
+	for _, t := range externalIngressTLS {
+		sniMatch, err := translator.translateIngressTLS(t, ingress)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch secret: %w", err)
+			return nil, fmt.Errorf("failed to translate ingressTLS: %w", err)
 		}
-
-		// Validate certificate here as these are defined by users.
-		// We should not send Gateway without validation.
-		_, err = tls.X509KeyPair(
-			secret.Data[certFieldInSecret],
-			secret.Data[keyFieldInSecret],
-		)
+		externalSNIMatches = append(externalSNIMatches, sniMatch)
+	}
+	localSNIMatches := make([]*envoy.SNIMatch, 0, len(localIngressTLS))
+	for _, t := range localIngressTLS {
+		sniMatch, err := translator.translateIngressTLS(t, ingress)
 		if err != nil {
-			return nil, fmt.Errorf("invalid secret is specified: %w", err)
+			return nil, fmt.Errorf("failed to translate ingressTLS: %w", err)
 		}
-
-		secretRef := types.NamespacedName{
-			Namespace: ingressTLS.SecretNamespace,
-			Name:      ingressTLS.SecretName,
-		}
-		sniMatches = append(sniMatches, &envoy.SNIMatch{
-			Hosts:            ingressTLS.Hosts,
-			CertSource:       secretRef,
-			CertificateChain: secret.Data[certFieldInSecret],
-			PrivateKey:       secret.Data[keyFieldInSecret]})
+		localSNIMatches = append(localSNIMatches, sniMatch)
 	}
 
-	internalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
+	localHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
+	localTLSHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
 	externalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
 	externalTLSHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
 	clusters := make([]*v3.Cluster, 0, len(ingress.Spec.Rules))
@@ -274,8 +265,10 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 		}
 
-		internalHosts = append(internalHosts, virtualHost)
-		if rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
+		localHosts = append(localHosts, virtualHost)
+		if rule.Visibility == v1alpha1.IngressVisibilityClusterLocal && virtualTLSHost != nil {
+			localTLSHosts = append(localTLSHosts, virtualTLSHost)
+		} else if rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
 			externalHosts = append(externalHosts, virtualHost)
 			if virtualTLSHost != nil {
 				externalTLSHosts = append(externalTLSHosts, virtualTLSHost)
@@ -288,12 +281,47 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			Namespace: ingress.Namespace,
 			Name:      ingress.Name,
 		},
-		sniMatches:              sniMatches,
+		localSNIMatches:         localSNIMatches,
+		externalSNIMatches:      externalSNIMatches,
 		clusters:                clusters,
 		externalVirtualHosts:    externalHosts,
 		externalTLSVirtualHosts: externalTLSHosts,
-		internalVirtualHosts:    internalHosts,
+		localVirtualHosts:       localHosts,
+		localTLSVirtualHosts:    localTLSHosts,
 	}, nil
+}
+
+func (translator *IngressTranslator) translateIngressTLS(ingressTLS v1alpha1.IngressTLS, ingress *v1alpha1.Ingress) (*envoy.SNIMatch, error) {
+	if err := trackSecret(translator.tracker, ingressTLS.SecretNamespace, ingressTLS.SecretName, ingress); err != nil {
+		return nil, err
+	}
+
+	secret, err := translator.secretGetter(ingressTLS.SecretNamespace, ingressTLS.SecretName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch secret: %w", err)
+	}
+
+	// Validate certificate here as these are defined by users.
+	// We should not send Gateway without validation.
+	_, err = tls.X509KeyPair(
+		secret.Data[certificates.CertName],
+		secret.Data[certificates.PrivateKeyName],
+	)
+	if err != nil {
+		return nil, fmt.Errorf("invalid secret is specified: %w", err)
+	}
+
+	secretRef := types.NamespacedName{
+		Namespace: ingressTLS.SecretNamespace,
+		Name:      ingressTLS.SecretName,
+	}
+	sniMatch := &envoy.SNIMatch{
+		Hosts:            ingressTLS.Hosts,
+		CertSource:       secretRef,
+		CertificateChain: secret.Data[certificates.CertName],
+		PrivateKey:       secret.Data[certificates.PrivateKeyName],
+	}
+	return sniMatch, nil
 }
 
 func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool, namespace string) (*envoycorev3.TransportSocket, error) {
@@ -435,7 +463,7 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 //
 // Somehow envoy doesn't match properly gRPC authorities with ports.
 // The fix is to include ":*" in the domains.
-// This applies both for internal and external domains.
+// This applies both for local and external domains.
 // More info https://github.com/envoyproxy/envoy/issues/886
 func domainsForRule(rule v1alpha1.IngressRule) []string {
 	domains := make([]string, 0, 2*len(rule.Hosts))

@@ -78,7 +78,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	secretInformer := getSecretInformer(ctx)
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
-	caches, err := generator.NewCaches(ctx, kubernetesClient, config.ExternalAuthz.Enabled)
+	caches, err := generator.NewCaches(kubernetesClient, config.ExternalAuthz.Enabled)
 	if err != nil {
 		logger.Fatalw("Failed create new caches", zap.Error(err))
 	}
