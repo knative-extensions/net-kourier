@@ -151,7 +151,11 @@ vars in the `net-kourier-controller` deployment:
 - `KOURIER_EXTAUTHZ_PATHPREFIX`: If `KOURIER_EXTAUTHZ_PROTOCOL` is equal to
   http or https, path to query the ext auth service. Example : if set to
   `/verify`, it will query `/verify/` (**notice the trailing `/`**).
-  If not set, it will query `/`.
+  If not set, it will query `/`
+- `KOURIER_EXTAUTHZ_PACKASBYTES`: If `KOURIER_EXTAUTHZ_PROTOCOL` is equal to
+  grpc, sends the body as raw bytes instead of a UTF-8 string. Accepts only true/false, t/f or 1/0.
+  Attempting to set another value will throw an error. Defaults to false. More info
+  [Envoy Docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html?highlight=pack_as_bytes#extensions-filters-http-ext-authz-v3-buffersettings).
 
 `*` Required
 

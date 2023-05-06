@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -127,6 +128,7 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 		name           string
 		conf           *config
 		extAuthzWanted *extAuthService.ExtAuthz
+		panicErrWanted error
 	}{{
 		name: "grpc",
 		conf: &config{
@@ -140,6 +142,37 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 			WithRequestBody: &extAuthService.BufferSettings{
 				MaxRequestBytes:     8192,
 				AllowPartialMessage: true,
+			},
+			Services: &extAuthService.ExtAuthz_GrpcService{
+				GrpcService: &core.GrpcService{
+					TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
+						EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
+							ClusterName: extAuthzClusterName,
+						},
+					},
+					Timeout: durationpb.New(time.Duration(2000) * time.Millisecond),
+					InitialMetadata: []*core.HeaderValue{{
+						Key:   "client",
+						Value: "kourier",
+					}},
+				},
+			},
+		},
+	}, {
+		name: "grpc with pack as bytes enabled",
+		conf: &config{
+			Host:            "example.com:50051",
+			MaxRequestBytes: 8192,
+			Timeout:         2000,
+			Protocol:        "grpc",
+			PackAsBytes:     true,
+		},
+		extAuthzWanted: &extAuthService.ExtAuthz{
+			TransportApiVersion: core.ApiVersion_V3,
+			WithRequestBody: &extAuthService.BufferSettings{
+				MaxRequestBytes:     8192,
+				AllowPartialMessage: true,
+				PackAsBytes:         true,
 			},
 			Services: &extAuthService.ExtAuthz_GrpcService{
 				GrpcService: &core.GrpcService{
@@ -223,6 +256,16 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 			},
 		},
 	}, {
+		name: "http with pack as bytes enabled",
+		conf: &config{
+			Host:            "example.com:8080",
+			MaxRequestBytes: 8192,
+			Timeout:         2000,
+			Protocol:        "http",
+			PackAsBytes:     true,
+		},
+		panicErrWanted: errPackAsBytesInvalidWithProtocolHTTP,
+	}, {
 		name: "https",
 		conf: &config{
 			Host:            "example.com:8443",
@@ -291,6 +334,12 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil && !errors.Is(r.(error), tt.panicErrWanted) {
+					t.Errorf("externalAuthZFilter() extAuthz have panicked with \"%v\", want \"%v\"", r, tt.panicErrWanted)
+				}
+			}()
+
 			got := externalAuthZFilter(tt.conf)
 
 			extAuthzWantedAny, err := anypb.New(tt.extAuthzWanted)
