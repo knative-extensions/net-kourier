@@ -111,7 +111,7 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-control
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
 
 echo ">> Running ExtAuthz tests"
-KOURIER_EXTAUTHZ_PACKASBYTES=1 go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
+go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"

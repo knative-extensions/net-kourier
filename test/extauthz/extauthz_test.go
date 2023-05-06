@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"os"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -82,9 +81,16 @@ func TestExtAuthz(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 
-	// When POSTing binary data with a gRPC ext-authz, without KOURIER_EXTAUTHZ_PACKASBYTES, the result is "Forbidden"
-	// Because data passed to ext-authz gRPC service cannot be serialized. See https://github.com/knative-sandbox/net-kourier/issues/830
-	req, err = http.NewRequest("POST", "http://"+name+".example.com/success", bytes.NewReader([]byte{0x04, 0xf1}))
+	// When POSTing binary data with a gRPC ext-authz, without KOURIER_EXTAUTHZ_PACKASBYTES, the result was "Forbidden" with Envoy <= 1.21
+	// This is because data passed to ext-authz gRPC service couldn't be serialized. See https://github.com/knative-sandbox/net-kourier/issues/830
+	// From Envoy >= 1.22, the result is now "Ok". However, even if data is sent to the ext-authz service, the data is not correctly serialized
+	// Every byte sent to the ext-authz in [128;255] range is received as 33
+	postBody := make([]byte, 256)
+	for i := 0; i < 256; i++ {
+		postBody[i] = byte(i)
+	}
+
+	req, err = http.NewRequest("POST", "http://"+name+".example.com/success", bytes.NewReader(postBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,9 +100,6 @@ func TestExtAuthz(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if os.Getenv("KOURIER_EXTAUTHZ_PROTOCOL") == "grpc" && os.Getenv("KOURIER_EXTAUTHZ_PACKASBYTES") == "" {
-		assert.Equal(t, resp.StatusCode, http.StatusForbidden)
-	} else {
-		assert.Equal(t, resp.StatusCode, http.StatusOK)
-	}
+
+	assert.Equal(t, resp.StatusCode, http.StatusOK)
 }
