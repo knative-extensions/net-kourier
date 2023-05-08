@@ -18,6 +18,7 @@ package generator
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"os"
 	"strings"
@@ -27,7 +28,7 @@ import (
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoymatcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -90,6 +91,16 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		secret, err := translator.secretGetter(ingressTLS.SecretNamespace, ingressTLS.SecretName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch secret: %w", err)
+		}
+
+		// Validate certificate here as these are defined by users.
+		// We should not send Gateway without validation.
+		_, err = tls.X509KeyPair(
+			secret.Data[certFieldInSecret],
+			secret.Data[keyFieldInSecret],
+		)
+		if err != nil {
+			return nil, fmt.Errorf("invalid secret is specified: %w", err)
 		}
 
 		secretRef := types.NamespacedName{
@@ -329,22 +340,22 @@ func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool) (
 	}, nil
 }
 
-func createUpstreamTLSContext(caCertificate []byte, alpnProtocols ...string) *tls.UpstreamTlsContext {
-	return &tls.UpstreamTlsContext{
-		CommonTlsContext: &tls.CommonTlsContext{
+func createUpstreamTLSContext(caCertificate []byte, alpnProtocols ...string) *tlsv3.UpstreamTlsContext {
+	return &tlsv3.UpstreamTlsContext{
+		CommonTlsContext: &tlsv3.CommonTlsContext{
 			AlpnProtocols: alpnProtocols,
-			TlsParams: &tls.TlsParameters{
-				TlsMinimumProtocolVersion: tls.TlsParameters_TLSv1_2,
+			TlsParams: &tlsv3.TlsParameters{
+				TlsMinimumProtocolVersion: tlsv3.TlsParameters_TLSv1_2,
 			},
-			ValidationContextType: &tls.CommonTlsContext_ValidationContext{
-				ValidationContext: &tls.CertificateValidationContext{
+			ValidationContextType: &tlsv3.CommonTlsContext_ValidationContext{
+				ValidationContext: &tlsv3.CertificateValidationContext{
 					TrustedCa: &envoycorev3.DataSource{
 						Specifier: &envoycorev3.DataSource_InlineBytes{
 							InlineBytes: caCertificate,
 						},
 					},
-					MatchTypedSubjectAltNames: []*tls.SubjectAltNameMatcher{{
-						SanType: tls.SubjectAltNameMatcher_DNS,
+					MatchTypedSubjectAltNames: []*tlsv3.SubjectAltNameMatcher{{
+						SanType: tlsv3.SubjectAltNameMatcher_DNS,
 						Matcher: &envoymatcherv3.StringMatcher{
 							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
 								Exact: certificates.FakeDnsName,

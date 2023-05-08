@@ -18,6 +18,7 @@ package generator
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,10 +50,11 @@ import (
 
 func TestIngressTranslator(t *testing.T) {
 	tests := []struct {
-		name  string
-		in    *v1alpha1.Ingress
-		state []runtime.Object
-		want  *translatedIngress
+		name    string
+		in      *v1alpha1.Ingress
+		state   []runtime.Object
+		want    *translatedIngress
+		wantErr bool
 	}{{
 		name: "simple",
 		in:   ing("simplens", "simplename"),
@@ -349,6 +351,22 @@ func TestIngressTranslator(t *testing.T) {
 				internalVirtualHosts:    vHosts,
 			}
 		}(),
+	}, {
+		name: "invalid tls",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.TLS = []v1alpha1.IngressTLS{{
+				Hosts:           []string{"foo.example.com"},
+				SecretNamespace: "secretns",
+				SecretName:      "secretname",
+			}}
+		}),
+		state: []runtime.Object{
+			ns("testspace"),
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			invalidSecret,
+		},
+		wantErr: true,
 	}, {
 		name: "split",
 		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
@@ -659,7 +677,7 @@ func TestIngressTranslator(t *testing.T) {
 			)
 
 			got, err := translator.translateIngress(ctx, test.in, false)
-			assert.NilError(t, err)
+			assert.Equal(t, err != nil, test.wantErr)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
 				protocmp.Transform(),
@@ -1585,9 +1603,10 @@ var lbEndpointHTTP01Challenge = []*endpoint.LbEndpoint{
 }
 
 var (
-	cert       = []byte("cert")
-	privateKey = []byte("key")
-	secret     = &corev1.Secret{
+	cert        = []byte(rsaCertPEM)
+	invalidCert = []byte(invalidRsaCertPEM)
+	privateKey  = []byte(rsaKeyPEM)
+	secret      = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "secretns",
 			Name:      "secretname",
@@ -1604,6 +1623,16 @@ var (
 		},
 		Data: map[string][]byte{
 			certificates.CaCertName: cert,
+		},
+	}
+	invalidSecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "secretns",
+			Name:      "secretname",
+		},
+		Data: map[string][]byte{
+			"tls.crt": invalidCert,
+			"tls.key": privateKey,
 		},
 	}
 )
@@ -1642,3 +1671,36 @@ func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 		TypedConfig: tlsAny,
 	}
 }
+
+var invalidRsaCertPEM = `-----BEGIN CERTIFICATE-----
+INVALID
+-----END CERTIFICATE-----
+`
+
+// Copied from https://go.dev/src/crypto/tls/tls_test.go
+var rsaCertPEM = `-----BEGIN CERTIFICATE-----
+MIIB0zCCAX2gAwIBAgIJAI/M7BYjwB+uMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
+BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwHhcNMTIwOTEyMjE1MjAyWhcNMTUwOTEyMjE1MjAyWjBF
+MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANLJ
+hPHhITqQbPklG3ibCVxwGMRfp/v4XqhfdQHdcVfHap6NQ5Wok/4xIA+ui35/MmNa
+rtNuC+BdZ1tMuVCPFZcCAwEAAaNQME4wHQYDVR0OBBYEFJvKs8RfJaXTH08W+SGv
+zQyKn0H8MB8GA1UdIwQYMBaAFJvKs8RfJaXTH08W+SGvzQyKn0H8MAwGA1UdEwQF
+MAMBAf8wDQYJKoZIhvcNAQEFBQADQQBJlffJHybjDGxRMqaRmDhX0+6v02TUKZsW
+r5QuVbpQhH6u+0UgcW0jp9QwpxoPTLTWGXEWBBBurxFwiCBhkQ+V
+-----END CERTIFICATE-----
+`
+
+var rsaKeyPEM = testingKey(`-----BEGIN RSA TESTING KEY-----
+MIIBOwIBAAJBANLJhPHhITqQbPklG3ibCVxwGMRfp/v4XqhfdQHdcVfHap6NQ5Wo
+k/4xIA+ui35/MmNartNuC+BdZ1tMuVCPFZcCAwEAAQJAEJ2N+zsR0Xn8/Q6twa4G
+6OB1M1WO+k+ztnX/1SvNeWu8D6GImtupLTYgjZcHufykj09jiHmjHx8u8ZZB/o1N
+MQIhAPW+eyZo7ay3lMz1V01WVjNKK9QSn1MJlb06h/LuYv9FAiEA25WPedKgVyCW
+SmUwbPw8fnTcpqDWE3yTO3vKcebqMSsCIBF3UmVue8YU3jybC3NxuXq3wNm34R8T
+xVLHwDXh/6NJAiEAl2oHGGLz64BuAfjKrqwz7qMYr9HCLIe/YsoWq/olzScCIQDi
+D2lWusoe2/nEqfDVVWGWlyJ7yOmqaVm/iNUN9B2N2g==
+-----END RSA TESTING KEY-----
+`)
+
+func testingKey(s string) string { return strings.ReplaceAll(s, "TESTING KEY", "PRIVATE KEY") }
