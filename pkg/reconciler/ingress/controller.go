@@ -266,7 +266,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
 			impl.Tracker.OnChanged,
-			corev1.SchemeGroupVersion.WithKind("Services"),
+			corev1.SchemeGroupVersion.WithKind("Service"),
 		),
 	))
 
@@ -293,7 +293,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	secretInformer.Informer().AddEventHandler(controller.HandleAll(
 		controller.EnsureTypeMeta(
 			impl.Tracker.OnChanged,
-			corev1.SchemeGroupVersion.WithKind("Secrets"),
+			corev1.SchemeGroupVersion.WithKind("Secret"),
 		),
 	))
 
