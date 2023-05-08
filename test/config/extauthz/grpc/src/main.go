@@ -36,7 +36,7 @@ type AuthV2 struct{}
 
 type AuthV3 struct{}
 
-func (ea AuthV3) Check(ctx context.Context, ar *authZ_v3.CheckRequest) (*authZ_v3.CheckResponse, error) {
+func (ea AuthV3) Check(_ context.Context, ar *authZ_v3.CheckRequest) (*authZ_v3.CheckResponse, error) {
 	if ar.Attributes.Request.Http.Path == "/success" || ar.Attributes.Request.Http.Path == "/healthz" {
 		log.Print("TRUE")
 		return &authZ_v3.CheckResponse{
@@ -56,7 +56,7 @@ func (ea AuthV3) Check(ctx context.Context, ar *authZ_v3.CheckRequest) (*authZ_v
 	}, nil
 }
 
-func (ea AuthV2) Check(ctx context.Context, ar *authZ_v2.CheckRequest) (*authZ_v2.CheckResponse, error) {
+func (ea AuthV2) Check(_ context.Context, ar *authZ_v2.CheckRequest) (*authZ_v2.CheckResponse, error) {
 	if ar.Attributes.Request.Http.Path == "/success" || ar.Attributes.Request.Http.Path == "/healthz" {
 		log.Print("TRUE")
 		return &authZ_v2.CheckResponse{

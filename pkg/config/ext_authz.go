@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -78,6 +79,7 @@ type config struct {
 	MaxRequestBytes  uint32           `default:"8192"`
 	Timeout          int              `default:"2000"`
 	Protocol         extAuthzProtocol `default:"grpc"`
+	PackAsBytes      bool             `default:"false"`
 	PathPrefix       string
 }
 
@@ -174,6 +176,8 @@ func extAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *v3Clu
 	}
 }
 
+var errPackAsBytesInvalidWithProtocolHTTP = errors.New("pack as bytes option cannot be set when using http protocol")
+
 func externalAuthZFilter(conf *config) *hcm.HttpFilter {
 	timeout := durationpb.New(time.Duration(conf.Timeout) * time.Millisecond)
 
@@ -186,6 +190,12 @@ func externalAuthZFilter(conf *config) *hcm.HttpFilter {
 		},
 		ClearRouteCache: false,
 	}
+
+	if conf.Protocol != extAuthzProtocolGRPC && conf.PackAsBytes {
+		panic(errPackAsBytesInvalidWithProtocolHTTP)
+	}
+
+	extAuthConfig.WithRequestBody.PackAsBytes = conf.PackAsBytes
 
 	headers := []*core.HeaderValue{{
 		Key:   "client",

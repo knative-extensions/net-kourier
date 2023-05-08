@@ -20,8 +20,10 @@ limitations under the License.
 package extauthz
 
 import (
+	"bytes"
 	"context"
 	"net/http"
+	"os"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -78,5 +80,31 @@ func TestExtAuthz(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
+	assert.Equal(t, resp.StatusCode, http.StatusOK)
+
+	// TODO: Drop this skip after maistra 2.4 starts using Envoy 1.22.10 or later.
+	if os.Getenv("KOURIER_GATEWAY_IMAGE") == "quay.io/maistra-dev/proxyv2-ubi8:2.4-latest" {
+		t.Skip("Skip POSTing with binary data when using maistra-dev/proxyv2-ubi8:2.4-latest image, " +
+			"see https://github.com/knative-sandbox/net-kourier/pull/1039#issuecomment-1537426109 for details. " +
+			"There is a bug in older Envoy versions, and will be solved when maistra starts using Envoy 1.22.10 or later, " +
+			"specifically this commit: https://github.com/envoyproxy/envoy/commit/5ced3041fc2da22fcf72fd621ce432aa26024caa")
+	}
+
+	postBody := make([]byte, 256)
+	for i := 0; i < 256; i++ {
+		postBody[i] = byte(i)
+	}
+
+	req, err = http.NewRequest("POST", "http://"+name+".example.com/success", bytes.NewReader(postBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 }
