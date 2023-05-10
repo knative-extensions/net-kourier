@@ -184,7 +184,11 @@ func NewSnapshotCacheWithHeartbeating(ctx context.Context, ads bool, hash NodeHa
 }
 
 func (cache *snapshotCache) sendHeartbeats(ctx context.Context, node string) {
-	snapshot := cache.snapshots[node]
+	snapshot, ok := cache.snapshots[node]
+	if !ok {
+		return
+	}
+
 	if info, ok := cache.status[node]; ok {
 		info.mu.Lock()
 		for id, watch := range info.watches {
@@ -300,7 +304,7 @@ func (cache *snapshotCache) ClearSnapshot(node string) {
 
 // nameSet creates a map from a string slice to value true.
 func nameSet(names []string) map[string]bool {
-	set := make(map[string]bool)
+	set := make(map[string]bool, len(names))
 	for _, name := range names {
 		set[name] = true
 	}
@@ -498,9 +502,9 @@ func (cache *snapshotCache) CreateDeltaWatch(request *DeltaRequest, state stream
 		watchID := cache.nextDeltaWatchID()
 
 		if exists {
-			cache.log.Infof("open delta watch ID:%d for %s Resources:%v from nodeID: %q,  version %q", watchID, t, state.GetResourceVersions(), nodeID, snapshot.GetVersion(t))
+			cache.log.Infof("open delta watch ID:%d for %s Resources:%v from nodeID: %q,  version %q", watchID, t, state.GetSubscribedResourceNames(), nodeID, snapshot.GetVersion(t))
 		} else {
-			cache.log.Infof("open delta watch ID:%d for %s Resources:%v from nodeID: %q", watchID, t, state.GetResourceVersions(), nodeID)
+			cache.log.Infof("open delta watch ID:%d for %s Resources:%v from nodeID: %q", watchID, t, state.GetSubscribedResourceNames(), nodeID)
 		}
 
 		info.setDeltaResponseWatch(watchID, DeltaResponseWatch{Request: request, Response: value, StreamState: state})
@@ -523,8 +527,8 @@ func (cache *snapshotCache) respondDelta(ctx context.Context, snapshot ResourceS
 	// otherwise, envoy won't complete initialization
 	if len(resp.Resources) > 0 || len(resp.RemovedResources) > 0 || (state.IsWildcard() && state.IsFirst()) {
 		if cache.log != nil {
-			cache.log.Debugf("node: %s, sending delta response with resources: %v removed resources %v wildcard: %t",
-				request.GetNode().GetId(), resp.Resources, resp.RemovedResources, state.IsWildcard())
+			cache.log.Debugf("node: %s, sending delta response for typeURL %s with resources: %v removed resources: %v with wildcard: %t",
+				request.GetNode().GetId(), request.TypeUrl, GetResourceNames(resp.Resources), resp.RemovedResources, state.IsWildcard())
 		}
 		select {
 		case value <- resp:
