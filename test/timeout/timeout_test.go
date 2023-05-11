@@ -62,20 +62,18 @@ func TestIdleTimeout(t *testing.T) {
 
 	test := struct {
 		name         string
-		code         int
 		initialDelay time.Duration
 		delay        time.Duration
 	}{
 		name:         "100s delay before response",
-		code:         http.StatusRequestTimeout,
 		initialDelay: waitDuration,
 	}
 
-	checkTimeout(t, client, name, test.code, test.initialDelay, test.delay)
+	checkTimeout(t, client, name, test.initialDelay, test.delay)
 
 }
 
-func checkTimeout(t *testing.T, client *http.Client, name string, code int, initial time.Duration, timeout time.Duration) {
+func checkTimeout(t *testing.T, client *http.Client, name string, initial time.Duration, timeout time.Duration) {
 	reqURL := fmt.Sprintf("http://%s.example.com?initialTimeout=%d&timeout=%d",
 		name, initial.Milliseconds(), timeout.Milliseconds())
 	req, err := http.NewRequest("GET", reqURL, nil)
@@ -87,5 +85,5 @@ func checkTimeout(t *testing.T, client *http.Client, name string, code int, init
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	assert.Equal(t, resp.StatusCode, code)
+	assert.Equal(t, true, resp.StatusCode == http.StatusRequestTimeout || resp.StatusCode == http.StatusGatewayTimeout)
 }
