@@ -2,9 +2,6 @@
 # Do not modify this file, instead modify peribolos/knative-sandbox.yaml
 
 aliases:
-  async-component-approvers:
-  - AngeloDanducci
-  - maximilien
   client-wg-leads:
   - dsimansk
   - navidshaikh
@@ -13,8 +10,6 @@ aliases:
   - dsimansk
   - navidshaikh
   - rhuss
-  container-freezer-approvers:
-  - psschwei
   control-protocol-approvers:
   - eric-sap
   - lionelvillard
@@ -236,8 +231,6 @@ aliases:
   - kvmware
   - psschwei
   - upodroid
-  scaling-group-approvers:
-  - jwcesign
   security-guard-approvers:
   - davidhadas
   - maximilien
