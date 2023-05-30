@@ -94,7 +94,6 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-control
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
 
 echo ">> Running ExtAuthz tests"
-KOURIER_GATEWAY_IMAGE="$(kubectl get deployment -n ${KOURIER_GATEWAY_NAMESPACE} 3scale-kourier-gateway -o jsonpath='{.spec.template.spec.containers[?(@.name=="kourier-gateway")].image}')" \
 go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
