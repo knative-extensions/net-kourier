@@ -166,7 +166,6 @@ aliases:
   - csantanapr
   - dprotaso
   - dsimansk
-  - evankanderson
   - itsmurugappan
   - knative-automation
   - knative-prow-releaser-robot
@@ -274,7 +273,7 @@ aliases:
   technical-oversight-committee:
   - dprotaso
   - dsimansk
-  - evankanderson
+  - kvmware
   - psschwei
   - zroubalik
   ux-wg-leads:
