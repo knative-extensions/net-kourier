@@ -1646,7 +1646,8 @@ func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 		CommonTlsContext: &auth.CommonTlsContext{
 			AlpnProtocols: alpn,
 			TlsParams: &auth.TlsParameters{
-				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
+				TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_3,
+				TlsMaximumProtocolVersion: auth.TlsParameters_TLSv1_3,
 			},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContext{
 				ValidationContext: &auth.CertificateValidationContext{
