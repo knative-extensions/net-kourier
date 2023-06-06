@@ -28,7 +28,7 @@ import (
 
 var retries = 0
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func handler(w http.ResponseWriter, _ *http.Request) {
 	if retries == 0 {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}

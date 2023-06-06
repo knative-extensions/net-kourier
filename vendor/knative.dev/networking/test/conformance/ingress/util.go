@@ -1164,7 +1164,7 @@ func RuntimeRequestWithExpectations(ctx context.Context, t *testing.T, client *h
 	return nil
 }
 
-func DumpResponse(ctx context.Context, t *testing.T, resp *http.Response) {
+func DumpResponse(_ context.Context, t *testing.T, resp *http.Response) {
 	t.Helper()
 	b, err := httputil.DumpResponse(resp, true)
 	if err != nil {

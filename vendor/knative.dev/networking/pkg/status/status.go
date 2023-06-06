@@ -286,6 +286,7 @@ func (m *Prober) Start(done <-chan struct{}) chan struct{} {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			//nolint:all
 			for m.processWorkItem() {
 			}
 		}()

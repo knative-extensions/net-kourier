@@ -77,7 +77,7 @@ func TestWebsocket(t *testing.T) {
 	defer conn.Close()
 
 	for i := 0; i < 100; i++ {
-		checkWebsocketRoundTrip(ctx, t, conn, suffix)
+		checkWebsocketRoundTrip(t, conn, suffix)
 	}
 }
 
@@ -140,14 +140,14 @@ func TestWebsocketSplit(t *testing.T) {
 		}
 		defer conn.Close()
 
-		suffix := findWebsocketSuffix(ctx, t, conn)
+		suffix := findWebsocketSuffix(t, conn)
 		if suffix == "" {
 			continue
 		}
 		got.Insert(suffix)
 
 		for j := 0; j < 10; j++ {
-			checkWebsocketRoundTrip(ctx, t, conn, suffix)
+			checkWebsocketRoundTrip(t, conn, suffix)
 		}
 
 		if want.Equal(got) {
@@ -160,7 +160,7 @@ func TestWebsocketSplit(t *testing.T) {
 	t.Errorf("(over %d requests) (-want, +got) = %s", maxRequests, cmp.Diff(want.List(), got.List()))
 }
 
-func findWebsocketSuffix(ctx context.Context, t *testing.T, conn *websocket.Conn) string {
+func findWebsocketSuffix(t *testing.T, conn *websocket.Conn) string {
 	t.Helper()
 	// Establish the suffix that corresponds to this socket.
 	message := fmt.Sprint("ping -", rand.Intn(1000))
@@ -182,7 +182,7 @@ func findWebsocketSuffix(ctx context.Context, t *testing.T, conn *websocket.Conn
 	return strings.TrimSpace(strings.TrimPrefix(gotMsg, message))
 }
 
-func checkWebsocketRoundTrip(ctx context.Context, t *testing.T, conn *websocket.Conn, suffix string) {
+func checkWebsocketRoundTrip(t *testing.T, conn *websocket.Conn, suffix string) {
 	t.Helper()
 	message := fmt.Sprint("ping -", rand.Intn(1000))
 	if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {

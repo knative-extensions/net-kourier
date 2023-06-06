@@ -365,12 +365,16 @@ func TestVisibilityPath(t *testing.T) {
 		t.Run(path, func(t *testing.T) {
 			t.Parallel()
 
+			//nolint:all
 			ri := RuntimeRequest(ctx, t, client, "http://"+publicHostName+path)
 			if ri == nil {
 				return
 			}
 
+			//nolint:all
 			got := ri.Request.Headers.Get(headerName)
+
+			//nolint:all
 			if got != want {
 				t.Errorf("Header[%q] = %q, wanted %q", headerName, got, want)
 			}
