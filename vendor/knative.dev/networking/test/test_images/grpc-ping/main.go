@@ -44,7 +44,7 @@ func pong(req *ping.Request) *ping.Response {
 
 type server struct{}
 
-func (s *server) Ping(ctx context.Context, req *ping.Request) (*ping.Response, error) {
+func (s *server) Ping(_ context.Context, req *ping.Request) (*ping.Response, error) {
 	log.Printf("Received ping: %v", req.Msg)
 
 	time.Sleep(time.Duration(delay) * time.Millisecond)
@@ -109,7 +109,6 @@ func main() {
 
 	if cert, key := os.Getenv("CERT"), os.Getenv("KEY"); cert != "" && key != "" {
 		log.Fatal(s.ListenAndServeTLS(cert, key))
-	} else {
-		log.Fatal(s.ListenAndServe())
 	}
+	log.Fatal(s.ListenAndServe())
 }
