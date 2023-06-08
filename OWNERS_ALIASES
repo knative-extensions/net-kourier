@@ -10,11 +10,6 @@ aliases:
   - dsimansk
   - navidshaikh
   - rhuss
-  control-protocol-approvers:
-  - eric-sap
-  - lionelvillard
-  - matzew
-  - travis-minke-sap
   discovery-approvers:
   - lberk
   docs-wg-leads:
