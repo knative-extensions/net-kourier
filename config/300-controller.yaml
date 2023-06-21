@@ -49,6 +49,10 @@ spec:
               value: ""
             - name: CERTS_SECRET_NAME
               value: ""
+            - name: KUBE_API_BURST
+              value: "200"
+            - name: KUBE_API_QPS
+              value: "200"
             - name: SYSTEM_NAMESPACE
               valueFrom:
                 fieldRef:
