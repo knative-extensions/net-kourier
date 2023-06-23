@@ -42,9 +42,7 @@ export "GATEWAY_OVERRIDE=kourier"
 export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 
 echo "Install the latest release Kourier version ${LATEST_RELEASE_VERSION}"
-kubectl apply -f "https://github.com/knative-sandbox/net-kourier/releases/download/${LATEST_RELEASE_VERSION}/release.yaml" --dry-run=client -o yaml | \
-  sed 's/LoadBalancer/NodePort/g' | \
-  kubectl apply -f -
+kubectl apply -f "https://github.com/knative-sandbox/net-kourier/releases/download/${LATEST_RELEASE_VERSION}/release.yaml"
 
 echo "Wait for all deployments to be up"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/net-kourier-controller
@@ -65,9 +63,7 @@ until [[ $(kubectl -n "${TEST_NAMESPACE}" get ingresses.networking.internal.knat
 kubectl -n "${TEST_NAMESPACE}" wait --timeout=300s --for=condition=Ready ingresses.networking.internal.knative.dev --all
 
 echo "Install the current Kourier version"
-ko resolve -f config | \
-  sed 's/LoadBalancer/NodePort/g' | \
-  kubectl apply -f -
+ko apply -f config
 
 echo "Wait for the deployments to roll over"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller

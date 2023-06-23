@@ -74,7 +74,6 @@ jobs:
 
         # Build and Publish our containers to the docker daemon (including test assets)
         ko resolve -f test/config/ -f config/ | \
-          sed 's/LoadBalancer/NodePort/g' | \
           sed "s|docker.io/envoyproxy/envoy:.*|${{ matrix.gateway }}|" | \
           kubectl apply -f -
 
