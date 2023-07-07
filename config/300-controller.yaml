@@ -63,11 +63,6 @@ spec:
           - name: http2-xds
             containerPort: 18000
             protocol: TCP
-          startupProbe:
-            grpc:
-              port: 18000
-            periodSeconds: 10
-            failureThreshold: 120
           readinessProbe:
             grpc:
               port: 18000
