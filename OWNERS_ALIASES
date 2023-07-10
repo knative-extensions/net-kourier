@@ -67,7 +67,6 @@ aliases:
   - matzew
   eventing-rabbitmq-approvers:
   - chunyilyu
-  - gab-satchi
   - gabo1208
   - ikvmw
   - salaboy
@@ -241,6 +240,7 @@ aliases:
   - evankanderson
   serving-approvers:
   - nak3
+  - psschwei
   - skonto
   serving-reviewers:
   - KauzClay
@@ -256,7 +256,6 @@ aliases:
   - skonto
   serving-wg-leads:
   - dprotaso
-  - psschwei
   serving-writers:
   - dprotaso
   - nak3
