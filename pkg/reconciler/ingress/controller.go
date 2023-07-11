@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	v1 "k8s.io/client-go/informers/core/v1"
@@ -34,10 +35,9 @@ import (
 	"knative.dev/net-kourier/pkg/generator"
 	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
-	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
-	knativeclient "knative.dev/networking/pkg/client/injection/client"
 	ingressinformer "knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress"
 	v1alpha1ingress "knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
+	ingresslister "knative.dev/networking/pkg/client/listers/networking/v1alpha1"
 	netconfig "knative.dev/networking/pkg/config"
 	"knative.dev/networking/pkg/status"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
@@ -71,7 +71,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	logger := logging.FromContext(ctx)
 
 	kubernetesClient := kubeclient.Get(ctx)
-	knativeClient := knativeclient.Get(ctx)
 	ingressInformer := ingressinformer.Get(ctx)
 	endpointsInformer := endpointsinformer.Get(ctx)
 	serviceInformer := serviceinformer.Get(ctx)
@@ -204,7 +203,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	// Get the current list of ingresses that are ready and seed the Envoy config with them.
-	ingressesToSync, err := getReadyIngresses(ctx, knativeClient.NetworkingV1alpha1())
+	ingressesToSync, err := getReadyIngresses(ingressInformer.Lister())
 	if err != nil {
 		logger.Fatalw("Failed to fetch ready ingresses", zap.Error(err))
 	}
@@ -311,16 +310,16 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	return impl
 }
 
-func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
-	ingresses, err := knativeClient.Ingresses("").List(ctx, metav1.ListOptions{})
+func getReadyIngresses(ingressLister ingresslister.IngressLister) ([]*v1alpha1.Ingress, error) {
+	ingresses, err := ingressLister.List(labels.SelectorFromSet(map[string]string{
+		v1alpha1ingress.ClassAnnotationKey: config.KourierIngressClassName,
+	}))
 	if err != nil {
 		return nil, err
 	}
-	ingressesToWarm := make([]*v1alpha1.Ingress, 0, len(ingresses.Items))
-	for i := range ingresses.Items {
-		ingress := &ingresses.Items[i]
-		if isKourierIngress(ingress) &&
-			ingress.GetDeletionTimestamp() == nil && // Ignore ingresses that are already marked for deletion.
+	ingressesToWarm := make([]*v1alpha1.Ingress, 0, len(ingresses))
+	for _, ingress := range ingresses {
+		if ingress.GetDeletionTimestamp() == nil && // Ignore ingresses that are already marked for deletion.
 			ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
 			ingressesToWarm = append(ingressesToWarm, ingress)
 		}
