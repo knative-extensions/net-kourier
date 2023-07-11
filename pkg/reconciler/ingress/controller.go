@@ -214,16 +214,16 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	// resources at startup.
 	startupTranslator := generator.NewIngressTranslator(
 		func(ns, name string) (*corev1.Secret, error) {
-			return kubernetesClient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+			return secretInformer.Lister().Secrets(ns).Get(name)
 		},
 		func(ns, name string) (*corev1.Endpoints, error) {
-			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+			return endpointsInformer.Lister().Endpoints(ns).Get(name)
 		},
 		func(ns, name string) (*corev1.Service, error) {
-			return kubernetesClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+			return serviceInformer.Lister().Services(ns).Get(name)
 		},
 		func(name string) (*corev1.Namespace, error) {
-			return kubernetesClient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+			return namespaceInformer.Lister().Get(name)
 		},
 		impl.Tracker)
 
