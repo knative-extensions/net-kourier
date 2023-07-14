@@ -137,7 +137,6 @@ func TestKourierConfig(t *testing.T) {
 			EnableServiceAccessLogging: true,
 			EnableProxyProtocol:        false,
 			ClusterCertSecret:          "",
-			IdleTimeout:                300 * time.Second,
 			Tracing: map[string]string{
 				"enabled":            "true",
 				"collector-host":     "jaeger.default.svc.cluster.local",
