@@ -23,6 +23,9 @@ import (
 	"strconv"
 	"sync"
 
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	httpconnmanagerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -166,7 +169,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (*cache.Snapshot, err
 	// Append the statusHost too.
 	localVHosts = append(localVHosts, caches.statusVirtualHost)
 
-	listeners, routes, err := generateListenersAndRouteConfigs(
+	listeners, routes, clusters, err := generateListenersAndRouteConfigsAndClusters(
 		ctx,
 		externalVHosts,
 		externalTLSVHosts,
@@ -179,10 +182,12 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (*cache.Snapshot, err
 		return nil, err
 	}
 
+	clusters = append(caches.clusters.list(), clusters...)
+
 	return cache.NewSnapshot(
 		uuid.NewString(),
 		map[resource.Type][]cachetypes.Resource{
-			resource.ClusterType:  caches.clusters.list(),
+			resource.ClusterType:  clusters,
 			resource.RouteType:    routes,
 			resource.ListenerType: listeners,
 		},
@@ -221,14 +226,14 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 	}
 }
 
-func generateListenersAndRouteConfigs(
+func generateListenersAndRouteConfigsAndClusters(
 	ctx context.Context,
 	externalVirtualHosts []*route.VirtualHost,
 	externalTLSVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHosts []*route.VirtualHost,
 	clusterLocalVirtualHostsPerListener map[string]portVHost,
 	sniMatches []*envoy.SNIMatch,
-	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, error) {
+	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, []cachetypes.Resource, error) {
 
 	// This has to be "OrDefaults" because this path is called before the informers are
 	// running when booting the controller up and prefilling the config before making it
@@ -258,25 +263,26 @@ func generateListenersAndRouteConfigs(
 
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	internalEnvoyListener, err := envoy.NewHTTPListener(internalManager, config.HTTPPortInternal, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, internalEnvoyListener}
 	routes := []cachetypes.Resource{externalRouteConfig, internalRouteConfig}
+	clusters := make([]cachetypes.Resource, 0, 1)
 
 	for listenerPort, portVhosts := range clusterLocalVirtualHostsPerListener {
 		port, err := strconv.ParseInt(portVhosts.port, 10, 32)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		envoyListener, err := envoy.NewHTTPListener(internalListenerManagers[listenerPort], uint32(port), false)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		listeners = append(listeners, envoyListener)
 		routes = append(routes, internalListenersRouteConfig[listenerPort])
@@ -285,7 +291,7 @@ func generateListenersAndRouteConfigs(
 	// create probe listeners
 	probHTTPListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortProb, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	listeners = append(listeners, probHTTPListener)
 
@@ -300,7 +306,7 @@ func generateListenersAndRouteConfigs(
 		)
 
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		listeners = append(listeners, internalHTTPSEnvoyListener)
@@ -316,7 +322,7 @@ func generateListenersAndRouteConfigs(
 			sniMatches, cfg.Kourier,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		probeConfig := cfg.Kourier
@@ -328,7 +334,7 @@ func generateListenersAndRouteConfigs(
 			sniMatches, probeConfig,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// if a certificate is configured, add a new filter chain to TLS listener
@@ -337,7 +343,7 @@ func generateListenersAndRouteConfigs(
 				ctx, externalTLSManager, kubeclient, cfg.Kourier,
 			)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 
 			externalHTTPSEnvoyListener.FilterChains = append(externalHTTPSEnvoyListener.FilterChains,
@@ -354,20 +360,55 @@ func generateListenersAndRouteConfigs(
 			cfg.Kourier,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// create https prob listener
 		probHTTPSListener, err := envoy.NewHTTPSListener(config.HTTPSPortProb, externalHTTPSEnvoyListener.FilterChains, false)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		listeners = append(listeners, externalHTTPSEnvoyListener, probHTTPSListener)
 		routes = append(routes, externalTLSRouteConfig)
 	}
 
-	return listeners, routes, nil
+	if cfg.Kourier.Tracing["enabled"] == "true" {
+		tracingCollectorHost := cfg.Kourier.Tracing["collector-host"]
+		tracingCollectorPort, _ := strconv.ParseInt(cfg.Kourier.Tracing["collector-port"], 10, 32)
+
+		jaegerCluster := &envoyclusterv3.Cluster{
+			Name:                 "tracing-collector",
+			ClusterDiscoveryType: &envoyclusterv3.Cluster_Type{Type: envoyclusterv3.Cluster_STRICT_DNS},
+			LoadAssignment: &endpoint.ClusterLoadAssignment{
+				ClusterName: "tracing-collector",
+				Endpoints: []*endpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*endpoint.LbEndpoint{{
+						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+							Endpoint: &endpoint.Endpoint{
+								Address: &core.Address{
+									Address: &core.Address_SocketAddress{
+										SocketAddress: &core.SocketAddress{
+											Protocol: core.SocketAddress_TCP,
+											Address:  tracingCollectorHost,
+											PortSpecifier: &core.SocketAddress_PortValue{
+												PortValue: uint32(tracingCollectorPort),
+											},
+											Ipv4Compat: true,
+										},
+									},
+								},
+							},
+						},
+					}},
+				}},
+			},
+		}
+
+		clusters = append(clusters, jaegerCluster)
+	}
+
+	return listeners, routes, clusters, nil
 }
 
 // Returns true if we need to modify the HTTPS listener with just one cert

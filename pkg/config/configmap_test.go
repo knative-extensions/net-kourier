@@ -131,6 +131,26 @@ func TestKourierConfig(t *testing.T) {
 			enableServiceAccessLoggingKey: "false",
 			trustedHopsCount:              "3",
 		},
+	}, {
+		name: "configure tracing",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			EnableProxyProtocol:        false,
+			ClusterCertSecret:          "",
+			IdleTimeout:                300 * time.Second,
+			Tracing: map[string]string{
+				"enabled":            "true",
+				"collector-host":     "jaeger.default.svc.cluster.local",
+				"collector-port":     "9411",
+				"collector-endpoint": "/api/v2/spans",
+			},
+		},
+		data: map[string]string{
+			tracingEnabled:           "true",
+			tracingCollectorHost:     "jaeger.default.svc.cluster.local",
+			tracingCollectorPort:     "9411",
+			tracingCollectorEndpoint: "/api/v2/spans",
+		},
 	}}
 
 	for _, tt := range configTests {

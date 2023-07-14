@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracing-backend-server
+  namespace: knative-serving
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tracing-backend-server
+  template:
+    metadata:
+      labels:
+        app: tracing-backend-server
+    spec:
+      containers:
+      - image: ko://knative.dev/net-kourier/test/config/tracing/src
+        name: tracing-backend-server
+        ports:
+        - containerPort: 9411
+        readinessProbe:
+          tcpSocket:
+            port: 9411
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tracing-backend-server
+  namespace: knative-serving
+spec:
+  type: ClusterIP
+  selector:
+    app: tracing-backend-server
+  ports:
+  - name: http
+    port: 9411
+    protocol: TCP

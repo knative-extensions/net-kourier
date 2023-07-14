@@ -27,6 +27,8 @@ import (
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 )
 
+const ServiceStatsClusterName = "service_stats"
+
 // Generates an internal virtual host that signals that the Envoy instance has
 // been configured, this endpoint is used by the kubernetes readiness, liveness probes.
 func statusVHost() *route.VirtualHost {
@@ -51,7 +53,7 @@ func statusVHost() *route.VirtualHost {
 }
 
 func readyRoute() *route.Route {
-	cluster := envoy.NewWeightedCluster("service_stats", 100, nil)
+	cluster := envoy.NewWeightedCluster(ServiceStatsClusterName, 100, nil)
 	var wrs []*route.WeightedCluster_ClusterWeight
 	wrs = append(wrs, cluster)
 	route := envoy.NewRoute("gateway_ready", nil, "/ready", wrs, 1*time.Second, nil, "")

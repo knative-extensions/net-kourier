@@ -54,6 +54,12 @@ const (
 
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
+
+	tracingPrefix            = "tracing"
+	tracingEnabled           = tracingPrefix + "-enabled"
+	tracingCollectorHost     = tracingPrefix + "-collector-host"
+	tracingCollectorPort     = tracingPrefix + "-collector-port"
+	tracingCollectorEndpoint = tracingPrefix + "-collector-endpoint"
 )
 
 func DefaultConfig() *Kourier {
@@ -82,6 +88,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsUint32(trustedHopsCount, &nc.TrustedHopsCount),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
+		cm.CollectMapEntriesWithPrefix(tracingPrefix, &nc.Tracing),
 	); err != nil {
 		return nil, err
 	}
@@ -121,4 +128,6 @@ type Kourier struct {
 	EnableCryptoMB bool
 	// CipherSuites specifies the cipher suites for TLS external listener.
 	CipherSuites sets.String
+	// Tracing specifies the configuration for gateway tracing
+	Tracing map[string]string
 }
