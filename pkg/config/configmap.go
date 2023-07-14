@@ -56,10 +56,10 @@ const (
 	enableCryptoMB = "enable-cryptomb"
 
 	tracingPrefix            = "tracing"
-	tracingEnabled           = tracingPrefix + "-enabled"
-	tracingCollectorHost     = tracingPrefix + "-collector-host"
-	tracingCollectorPort     = tracingPrefix + "-collector-port"
-	tracingCollectorEndpoint = tracingPrefix + "-collector-endpoint"
+	TracingEnabled           = tracingPrefix + "-enabled"
+	TracingCollectorHost     = tracingPrefix + "-collector-host"
+	TracingCollectorPort     = tracingPrefix + "-collector-port"
+	TracingCollectorEndpoint = tracingPrefix + "-collector-endpoint"
 )
 
 func DefaultConfig() *Kourier {

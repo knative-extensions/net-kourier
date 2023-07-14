@@ -145,10 +145,10 @@ func TestKourierConfig(t *testing.T) {
 			},
 		},
 		data: map[string]string{
-			tracingEnabled:           "true",
-			tracingCollectorHost:     "jaeger.default.svc.cluster.local",
-			tracingCollectorPort:     "9411",
-			tracingCollectorEndpoint: "/api/v2/spans",
+			TracingEnabled:           "true",
+			TracingCollectorHost:     "jaeger.default.svc.cluster.local",
+			TracingCollectorPort:     "9411",
+			TracingCollectorEndpoint: "/api/v2/spans",
 		},
 	}}
 
