@@ -105,7 +105,7 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 
 		mgr.Tracing = &hcm.HttpConnectionManager_Tracing{
 			Provider: &envoy_config_trace_v3.Tracing_Http{
-				Name: "envoy.tracers.zipkin",
+				Name: wellknown.Zipkin,
 				ConfigType: &envoy_config_trace_v3.Tracing_Http_TypedConfig{
 					TypedConfig: zipkinConfig,
 				},

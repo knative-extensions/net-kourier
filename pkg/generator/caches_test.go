@@ -399,6 +399,8 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 			err = anypb.UnmarshalTo(httpConnectionManagerFilter.GetTypedConfig(), httpConnectionManagerConfig, proto.UnmarshalOptions{})
 			assert.NilError(t, err)
 
+			assert.Equal(t, true, httpConnectionManagerConfig.GenerateRequestId.GetValue())
+
 			tracingConfig := &tracev3.ZipkinConfig{}
 			err = anypb.UnmarshalTo(httpConnectionManagerConfig.Tracing.Provider.GetTypedConfig(), tracingConfig, proto.UnmarshalOptions{})
 			assert.NilError(t, err)
