@@ -35,13 +35,13 @@ func logRequest(w http.ResponseWriter, req *http.Request) {
 	log.Printf("%s %s - %s", req.Method, req.URL.Path, string(reqBody))
 
 	w.WriteHeader(http.StatusOK)
-	return
 }
 
 func main() {
 	http.HandleFunc("/", logRequest)
 
 	log.Printf("Running the tracing backend server.")
+	//nolint // ignore G114: Use of net/http serve function that has no support for setting timeouts (gosec)
 	if err := http.ListenAndServe(":9411", nil); err != nil {
 		panic(err)
 	}

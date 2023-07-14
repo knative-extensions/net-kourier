@@ -55,7 +55,7 @@ const (
 	tracingServerAppLabel   = "tracing-backend-server"
 )
 
-var tracingServerLogRegex = regexp.MustCompile("(?P<datetime>[\\d]{4}/[\\d]{2}/[\\d]{2} [\\d]{2}:[\\d]{2}:[\\d]{2}) (?P<method>[^ ]+) (?P<endpoint>[^ ]+) - (?P<spans>.*)")
+var tracingServerLogRegex = regexp.MustCompile(`(?P<datetime>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<method>[^ ]+) (?P<endpoint>[^ ]+) - (?P<spans>.*)`)
 
 // we keep only fields necessary for comparison
 type TracingSpan struct {
@@ -64,8 +64,8 @@ type TracingSpan struct {
 	} `json:"localEndpoint"`
 	Name string `json:"name"`
 	Tags struct {
-		HttpStatusCode  string `json:"http.status_code"`
-		HttpUrl         string `json:"http.url"`
+		HTTPStatusCode  string `json:"http.status_code"`
+		HTTPURL         string `json:"http.url"`
 		UpstreamCluster string `json:"upstream_cluster"`
 		UserAgent       string `json:"user_agent"`
 	} `json:"tags"`
@@ -112,7 +112,7 @@ func TestTracing(t *testing.T) {
 	// the gateway span (from the http request above) and 2 spans from the probes (knative ingress probe and kube probe)
 	time.Sleep(12 * time.Second)
 
-	logs := getLogsFromAllPodsInDeployment(t, ctx, clients.KubeClient, kourierControlNamespace, tracingServerAppLabel, startTime)
+	logs := getLogsFromAllPodsInDeployment(ctx, t, clients.KubeClient, kourierControlNamespace, tracingServerAppLabel, startTime)
 	spans := parseTracingSpansFromLogs(t, logs)
 
 	kubeVersion, err := discovery.NewDiscoveryClient(clients.KubeClient.DiscoveryV1().RESTClient()).ServerVersion()
@@ -129,13 +129,13 @@ func TestTracing(t *testing.T) {
 			},
 			Name: name + ".example.com",
 			Tags: struct {
-				HttpStatusCode  string `json:"http.status_code"`
-				HttpUrl         string `json:"http.url"`
+				HTTPStatusCode  string `json:"http.status_code"`
+				HTTPURL         string `json:"http.url"`
 				UpstreamCluster string `json:"upstream_cluster"`
 				UserAgent       string `json:"user_agent"`
 			}{
-				HttpStatusCode:  "200",
-				HttpUrl:         "http://" + name + ".example.com/",
+				HTTPStatusCode:  "200",
+				HTTPURL:         "http://" + name + ".example.com/",
 				UpstreamCluster: testsNamespace + "/" + name,
 				UserAgent:       fmt.Sprintf("knative.dev/%s/%s", t.Name(), ing.Name),
 			},
@@ -148,13 +148,13 @@ func TestTracing(t *testing.T) {
 			},
 			Name: config.InternalKourierDomain,
 			Tags: struct {
-				HttpStatusCode  string `json:"http.status_code"`
-				HttpUrl         string `json:"http.url"`
+				HTTPStatusCode  string `json:"http.status_code"`
+				HTTPURL         string `json:"http.url"`
 				UpstreamCluster string `json:"upstream_cluster"`
 				UserAgent       string `json:"user_agent"`
 			}{
-				HttpStatusCode:  "200",
-				HttpUrl:         "http://" + config.InternalKourierDomain + "/ready",
+				HTTPStatusCode:  "200",
+				HTTPURL:         "http://" + config.InternalKourierDomain + "/ready",
 				UpstreamCluster: generator.ServiceStatsClusterName,
 				UserAgent:       fmt.Sprintf("%s%s.%s", header.KubeProbeUAPrefix, kubeVersion.Major, kubeVersion.Minor),
 			},
@@ -167,13 +167,13 @@ func TestTracing(t *testing.T) {
 			},
 			Name: name + ".example.com",
 			Tags: struct {
-				HttpStatusCode  string `json:"http.status_code"`
-				HttpUrl         string `json:"http.url"`
+				HTTPStatusCode  string `json:"http.status_code"`
+				HTTPURL         string `json:"http.url"`
 				UpstreamCluster string `json:"upstream_cluster"`
 				UserAgent       string `json:"user_agent"`
 			}{
-				HttpStatusCode:  "200",
-				HttpUrl:         "http://" + name + ".example.com/healthz",
+				HTTPStatusCode:  "200",
+				HTTPURL:         "http://" + name + ".example.com/healthz",
 				UpstreamCluster: testsNamespace + "/" + name,
 				UserAgent:       header.IngressReadinessUserAgent,
 			},
@@ -183,7 +183,7 @@ func TestTracing(t *testing.T) {
 	assert.Equal(t, containsSpans(t, spans, spansToFind), true)
 }
 
-func getLogsFromAllPodsInDeployment(t *testing.T, ctx context.Context, kubeClient kubeclient.Interface, namespace, appLabelValue string, startTime time.Time) []string {
+func getLogsFromAllPodsInDeployment(ctx context.Context, t *testing.T, kubeClient kubeclient.Interface, namespace, appLabelValue string, startTime time.Time) []string {
 	t.Helper()
 
 	tracingServerPods, err := kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
@@ -283,13 +283,13 @@ func Test_parseTracingSpansFromLogs(t *testing.T) {
 		},
 		Name: "tracing-bdectujw.example.com",
 		Tags: struct {
-			HttpStatusCode  string `json:"http.status_code"`
-			HttpUrl         string `json:"http.url"`
+			HTTPStatusCode  string `json:"http.status_code"`
+			HTTPURL         string `json:"http.url"`
 			UpstreamCluster string `json:"upstream_cluster"`
 			UserAgent       string `json:"user_agent"`
 		}{
-			HttpStatusCode:  "200",
-			HttpUrl:         "http://tracing-bdectujw.example.com/",
+			HTTPStatusCode:  "200",
+			HTTPURL:         "http://tracing-bdectujw.example.com/",
 			UpstreamCluster: "serving-tests/tracing-bdectujw",
 			UserAgent:       "knative.dev/TestTracing/tracing-cdnyafeq",
 		},
@@ -304,13 +304,13 @@ func Test_parseTracingSpansFromLogs(t *testing.T) {
 		},
 		Name: "tracing-bdectujw.example.com",
 		Tags: struct {
-			HttpStatusCode  string `json:"http.status_code"`
-			HttpUrl         string `json:"http.url"`
+			HTTPStatusCode  string `json:"http.status_code"`
+			HTTPURL         string `json:"http.url"`
 			UpstreamCluster string `json:"upstream_cluster"`
 			UserAgent       string `json:"user_agent"`
 		}{
-			HttpStatusCode:  "200",
-			HttpUrl:         "http://tracing-bdectujw.example.com/healthz",
+			HTTPStatusCode:  "200",
+			HTTPURL:         "http://tracing-bdectujw.example.com/healthz",
 			UpstreamCluster: "serving-tests/tracing-bdectujw",
 			UserAgent:       "Knative-Ingress-Probe",
 		},
@@ -325,13 +325,13 @@ func Test_parseTracingSpansFromLogs(t *testing.T) {
 		},
 		Name: "internalkourier",
 		Tags: struct {
-			HttpStatusCode  string `json:"http.status_code"`
-			HttpUrl         string `json:"http.url"`
+			HTTPStatusCode  string `json:"http.status_code"`
+			HTTPURL         string `json:"http.url"`
 			UpstreamCluster string `json:"upstream_cluster"`
 			UserAgent       string `json:"user_agent"`
 		}{
-			HttpStatusCode:  "200",
-			HttpUrl:         "http://internalkourier/ready",
+			HTTPStatusCode:  "200",
+			HTTPURL:         "http://internalkourier/ready",
 			UpstreamCluster: "service_stats",
 			UserAgent:       "kube-probe/1.24",
 		},
@@ -357,10 +357,10 @@ func containsSpans(t *testing.T, spans []TracingSpan, spansToFind []TracingSpan)
 	if spansFound != len(spansToFind) {
 		// sort to print a nice diff
 		sort.Slice(spans, func(i, j int) bool {
-			return spans[i].Name < spans[j].Name && spans[i].Tags.HttpUrl < spans[j].Tags.HttpUrl
+			return spans[i].Name < spans[j].Name && spans[i].Tags.HTTPURL < spans[j].Tags.HTTPURL
 		})
 		sort.Slice(spansToFind, func(i, j int) bool {
-			return spansToFind[i].Name < spansToFind[j].Name && spansToFind[i].Tags.HttpUrl < spansToFind[j].Tags.HttpUrl
+			return spansToFind[i].Name < spansToFind[j].Name && spansToFind[i].Tags.HTTPURL < spansToFind[j].Tags.HTTPURL
 		})
 
 		t.Logf("Expected %d, got %d spans. Diff: %v", len(spansToFind), spansFound, cmp.Diff(spans, spansToFind))
