@@ -174,9 +174,9 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout restart deployment/net-kourier
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
 
 echo ">> Setup Tracing"
-ko apply -f test/config/tracing
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/tracing-backend-server
-export TRACING_COLLECTOR_HOST="$(kubectl -n "${KOURIER_CONTROL_NAMESPACE}" get svc/tracing-backend-server -o jsonpath='{.spec.clusterIP}')"
+kubectl apply -f test/config/tracing
+kubectl -n tracing wait --timeout=300s --for=condition=Available deployment/jaeger
+export TRACING_COLLECTOR_HOST="$(kubectl -n tracing get svc/jaeger -o jsonpath='{.spec.clusterIP}')"
 export TRACING_COLLECTOR_PORT="9411"
 export TRACING_COLLECTOR_ENDPOINT="/api/v2/spans"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p "{
@@ -200,7 +200,8 @@ echo ">> Unset Tracing"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"tracing-enabled": "false"}}'
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout restart deployment/net-kourier-controller
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-ko delete -f test/config/tracing
+kubectl delete -f test/config/tracing
+unset TRACING_COLLECTOR_HOST TRACING_COLLECTOR_PORT TRACING_COLLECTOR_ENDPOINT
 
 echo ">> Set IdleTimeout to 50s"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"stream-idle-timeout":"50s"}}'

@@ -1,23 +1,36 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tracing
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tracing-backend-server
-  namespace: knative-serving
+  name: jaeger
+  namespace: tracing
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tracing-backend-server
+      app: jaeger
   template:
     metadata:
       labels:
-        app: tracing-backend-server
+        app: jaeger
     spec:
       containers:
-      - image: ko://knative.dev/net-kourier/test/config/tracing/src
-        name: tracing-backend-server
+      - image: jaegertracing/all-in-one:1.47
+        name: jaeger
+        env:
+          - name: COLLECTOR_ZIPKIN_HOST_PORT
+            value: ":9411"
         ports:
         - containerPort: 9411
+          name: zipkin
+        - containerPort: 16685
+          name: grpc-query
+        - containerPort: 16686
+          name: query
         readinessProbe:
           tcpSocket:
             port: 9411
@@ -25,13 +38,27 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: tracing-backend-server
-  namespace: knative-serving
+  name: jaeger
+  namespace: tracing
 spec:
   type: ClusterIP
   selector:
-    app: tracing-backend-server
+    app: jaeger
   ports:
-  - name: http
+  - name: zipkin
     port: 9411
-    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query
+  namespace: tracing
+spec:
+  type: LoadBalancer # because we want to reach it from the e2e tests (that are not running inside Kubernetes)
+  selector:
+    app: jaeger
+  ports:
+    - name: grpc-query
+      port: 16685
+    - name: query # to access the UI for debugging
+      port: 16686
