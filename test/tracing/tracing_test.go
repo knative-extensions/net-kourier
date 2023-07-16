@@ -21,6 +21,7 @@ package tracing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -174,7 +175,7 @@ func getNumberOfTraces(ctx context.Context, t *testing.T, queryClient jaegerAPI.
 
 	for {
 		span, err := traces.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			err = traces.CloseSend()
 			if err != nil {
 				t.Fatal(err)
@@ -189,6 +190,4 @@ func getNumberOfTraces(ctx context.Context, t *testing.T, queryClient jaegerAPI.
 		t.Logf("Spans: %+v\n", span.Spans)
 		spansNumber++
 	}
-
-	return spansNumber
 }
