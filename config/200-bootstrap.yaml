@@ -65,11 +65,11 @@ data:
                           routes:
                             - match:
                                 safe_regex:
-                                  google_re2: {}
                                   regex: '/(certs|stats(/prometheus)?|server_info|clusters|listeners|ready)?'
                                 headers:
                                   - name: ':method'
-                                    exact_match: GET
+                                    string_match:
+                                      exact: GET
                               route:
                                 cluster: service_stats
       clusters:
