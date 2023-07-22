@@ -135,20 +135,26 @@ func TestKourierConfig(t *testing.T) {
 		name: "configure tracing",
 		want: &Kourier{
 			EnableServiceAccessLogging: true,
-			EnableProxyProtocol:        false,
-			ClusterCertSecret:          "",
-			Tracing: map[string]string{
-				"enabled":            "true",
-				"collector-host":     "jaeger.default.svc.cluster.local",
-				"collector-port":     "9411",
-				"collector-endpoint": "/api/v2/spans",
+			Tracing: Tracing{
+				Enabled:           true,
+				CollectorHost:     "jaeger.default.svc.cluster.local",
+				CollectorPort:     9411,
+				CollectorEndpoint: "/api/v2/spans",
 			},
 		},
 		data: map[string]string{
-			TracingEnabled:           "true",
-			TracingCollectorHost:     "jaeger.default.svc.cluster.local",
-			TracingCollectorPort:     "9411",
-			TracingCollectorEndpoint: "/api/v2/spans",
+			TracingCollectorFullEndpoint: "jaeger.default.svc.cluster.local:9411/api/v2/spans",
+		},
+	}, {
+		name: "do not enable tracing",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			Tracing: Tracing{
+				Enabled: false,
+			},
+		},
+		data: map[string]string{
+			TracingCollectorFullEndpoint: "",
 		},
 	}}
 

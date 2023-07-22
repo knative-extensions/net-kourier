@@ -35,13 +35,7 @@ func (in *Kourier) DeepCopyInto(out *Kourier) {
 			(*out)[key] = val
 		}
 	}
-	if in.Tracing != nil {
-		in, out := &in.Tracing, &out.Tracing
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
+	out.Tracing = in.Tracing
 	return
 }
 

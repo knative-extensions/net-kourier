@@ -373,10 +373,7 @@ func generateListenersAndRouteConfigsAndClusters(
 		routes = append(routes, externalTLSRouteConfig)
 	}
 
-	if cfg.Kourier.Tracing["enabled"] == "true" {
-		tracingCollectorHost := cfg.Kourier.Tracing["collector-host"]
-		tracingCollectorPort, _ := strconv.ParseInt(cfg.Kourier.Tracing["collector-port"], 10, 32)
-
+	if cfg.Kourier.Tracing.Enabled {
 		jaegerCluster := &envoyclusterv3.Cluster{
 			Name:                 "tracing-collector",
 			ClusterDiscoveryType: &envoyclusterv3.Cluster_Type{Type: envoyclusterv3.Cluster_STRICT_DNS},
@@ -390,9 +387,9 @@ func generateListenersAndRouteConfigsAndClusters(
 									Address: &core.Address_SocketAddress{
 										SocketAddress: &core.SocketAddress{
 											Protocol: core.SocketAddress_TCP,
-											Address:  tracingCollectorHost,
+											Address:  cfg.Kourier.Tracing.CollectorHost,
 											PortSpecifier: &core.SocketAddress_PortValue{
-												PortValue: uint32(tracingCollectorPort),
+												PortValue: uint32(cfg.Kourier.Tracing.CollectorPort),
 											},
 											Ipv4Compat: true,
 										},

@@ -17,6 +17,10 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
+	"math"
+	"net/url"
+	"strconv"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -55,11 +59,7 @@ const (
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
-	tracingPrefix            = "tracing"
-	TracingEnabled           = tracingPrefix + "-enabled"
-	TracingCollectorHost     = tracingPrefix + "-collector-host"
-	TracingCollectorPort     = tracingPrefix + "-collector-port"
-	TracingCollectorEndpoint = tracingPrefix + "-collector-endpoint"
+	TracingCollectorFullEndpoint = "tracing-collector-full-endpoint"
 )
 
 func DefaultConfig() *Kourier {
@@ -88,12 +88,48 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsUint32(trustedHopsCount, &nc.TrustedHopsCount),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
-		cm.CollectMapEntriesWithPrefix(tracingPrefix, &nc.Tracing),
+		asTracing(TracingCollectorFullEndpoint, &nc.Tracing),
 	); err != nil {
 		return nil, err
 	}
 
 	return nc, nil
+}
+
+type Tracing struct {
+	Enabled           bool
+	CollectorHost     string
+	CollectorPort     uint16
+	CollectorEndpoint string
+}
+
+func asTracing(collectorFullEndpoint string, tracing *Tracing) cm.ParseFunc {
+	return func(data map[string]string) error {
+		if raw, ok := data[collectorFullEndpoint]; ok && raw != "" {
+			tracing.Enabled = true
+
+			// We add a random scheme to be able to use url.ParseRequestURI.
+			parsedURL, err := url.ParseRequestURI("scheme://" + raw)
+			if err != nil {
+				return fmt.Errorf("\"%s\" is not a valid URL: %w", raw, err)
+			}
+
+			tracing.CollectorHost = parsedURL.Hostname()
+			collectorPortUint64, err := strconv.ParseUint(parsedURL.Port(), 10, 32)
+			if err != nil {
+				return fmt.Errorf("\"%s\" is not a valid port: %w", parsedURL.Port(), err)
+			}
+
+			if collectorPortUint64 > math.MaxUint16 {
+				return fmt.Errorf("port %d must be a valid port", collectorPortUint64)
+			}
+
+			tracing.CollectorPort = uint16(collectorPortUint64)
+			tracing.CollectorEndpoint = parsedURL.Path
+		}
+
+		return nil
+	}
 }
 
 // NewConfigFromConfigMap creates a Kourier from the supplied configMap.
@@ -129,5 +165,5 @@ type Kourier struct {
 	// CipherSuites specifies the cipher suites for TLS external listener.
 	CipherSuites sets.String
 	// Tracing specifies the configuration for gateway tracing
-	Tracing map[string]string
+	Tracing Tracing
 }

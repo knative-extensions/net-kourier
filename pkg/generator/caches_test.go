@@ -19,7 +19,6 @@ package generator
 import (
 	"context"
 	"sort"
-	"strconv"
 	"testing"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -310,20 +309,15 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 // TestListenersAndClustersWithTracing verifies that when we enable tracing
 // a cluster is added for the tracing backend, and tracing configuration is added to all listeners.
 func TestListenersAndClustersWithTracing(t *testing.T) {
-	tracingCollectorHost := "jaeger.default.svc.cluster.local"
-	tracingCollectorPort := 9411
-	tracingCollectorEndpoint := "/api/v2/spans"
-
-	kourierCfg, err := config.NewConfigFromMap(map[string]string{
-		config.TracingEnabled:           "true",
-		config.TracingCollectorHost:     tracingCollectorHost,
-		config.TracingCollectorPort:     strconv.Itoa(tracingCollectorPort),
-		config.TracingCollectorEndpoint: tracingCollectorEndpoint,
-	})
-	assert.NilError(t, err)
-
 	testConfig := &rconfig.Config{
-		Kourier: kourierCfg,
+		Kourier: &config.Kourier{
+			Tracing: config.Tracing{
+				Enabled:           true,
+				CollectorHost:     "jaeger.default.svc.cluster.local",
+				CollectorPort:     9411,
+				CollectorEndpoint: "/api/v2/spans",
+			},
+		},
 	}
 
 	kubeClient := fake.Clientset{}
@@ -356,9 +350,9 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 									Address: &core.Address_SocketAddress{
 										SocketAddress: &core.SocketAddress{
 											Protocol: core.SocketAddress_TCP,
-											Address:  tracingCollectorHost,
+											Address:  testConfig.Kourier.Tracing.CollectorHost,
 											PortSpecifier: &core.SocketAddress_PortValue{
-												PortValue: uint32(tracingCollectorPort),
+												PortValue: uint32(testConfig.Kourier.Tracing.CollectorPort),
 											},
 											Ipv4Compat: true,
 										},
@@ -387,7 +381,7 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 
 			expectedTracingConfig := &tracev3.ZipkinConfig{
 				CollectorCluster:         "tracing-collector",
-				CollectorEndpoint:        tracingCollectorEndpoint,
+				CollectorEndpoint:        testConfig.Kourier.Tracing.CollectorEndpoint,
 				SharedSpanContext:        wrapperspb.Bool(false),
 				CollectorEndpointVersion: tracev3.ZipkinConfig_HTTP_JSON,
 			}

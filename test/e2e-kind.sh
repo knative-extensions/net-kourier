@@ -176,15 +176,10 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-
 echo ">> Setup Tracing"
 kubectl apply -f test/config/tracing
 kubectl -n tracing wait --timeout=300s --for=condition=Available deployment/jaeger
-export TRACING_COLLECTOR_HOST="$(kubectl -n tracing get svc/jaeger -o jsonpath='{.spec.clusterIP}')"
-export TRACING_COLLECTOR_PORT="9411"
-export TRACING_COLLECTOR_ENDPOINT="/api/v2/spans"
+export TRACING_COLLECTOR_FULL_ENDPOINT="$(kubectl -n tracing get svc/jaeger -o jsonpath='{.spec.clusterIP}'):9411/api/v2/spans"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p "{
   \"data\":{
-    \"tracing-enabled\": \"true\",
-    \"tracing-collector-host\": \"$TRACING_COLLECTOR_HOST\",
-    \"tracing-collector-port\": \"$TRACING_COLLECTOR_PORT\",
-    \"tracing-collector-endpoint\": \"$TRACING_COLLECTOR_ENDPOINT\"
+    \"tracing-collector-full-endpoint\": \"$TRACING_COLLECTOR_FULL_ENDPOINT\"
   }
 }"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout restart deployment/net-kourier-controller
@@ -197,11 +192,11 @@ go test -race -count=1 -timeout=5m -tags=e2e ./test/tracing/... \
   --cluster-suffix="$CLUSTER_SUFFIX"
 
 echo ">> Unset Tracing"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"tracing-enabled": "false"}}'
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"tracing-collector-full-endpoint": ""}}'
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout restart deployment/net-kourier-controller
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
 kubectl delete -f test/config/tracing
-unset TRACING_COLLECTOR_HOST TRACING_COLLECTOR_PORT TRACING_COLLECTOR_ENDPOINT
+unset TRACING_COLLECTOR_FULL_ENDPOINT
 
 echo ">> Set IdleTimeout to 50s"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"stream-idle-timeout":"50s"}}'

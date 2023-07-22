@@ -93,12 +93,12 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 		}}
 	}
 
-	if kourierConfig.Tracing["enabled"] == "true" {
+	if kourierConfig.Tracing.Enabled {
 		mgr.GenerateRequestId = wrapperspb.Bool(true)
 
 		zipkinConfig, _ := anypb.New(&envoy_config_trace_v3.ZipkinConfig{
 			CollectorCluster:         "tracing-collector",
-			CollectorEndpoint:        kourierConfig.Tracing["collector-endpoint"],
+			CollectorEndpoint:        kourierConfig.Tracing.CollectorEndpoint,
 			SharedSpanContext:        wrapperspb.Bool(false),
 			CollectorEndpointVersion: envoy_config_trace_v3.ZipkinConfig_HTTP_JSON,
 		})
