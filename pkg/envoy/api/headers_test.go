@@ -50,13 +50,13 @@ func TestHeadersToAdd(t *testing.T) {
 				Key:   "foo",
 				Value: "bar",
 			},
-			Append: wrapperspb.Bool(false),
+			AppendAction: core.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD,
 		}, {
 			Header: &core.HeaderValue{
 				Key:   "baz",
 				Value: "lol",
 			},
-			Append: wrapperspb.Bool(false),
+			AppendAction: core.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD,
 		}},
 	}}
 
