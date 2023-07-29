@@ -2,7 +2,7 @@
 // +build e2e
 
 /*
-Copyright 2020 The Knative Authors
+Copyright 2023 The Knative Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -92,6 +92,10 @@ func TestTracing(t *testing.T) {
 	jaegerQueryService, err := clients.KubeClient.CoreV1().Services(tracingNamespace).
 		Get(ctx, "jaeger-query", metav1.GetOptions{})
 	assert.NilError(t, err)
+
+	if len(jaegerQueryService.Status.LoadBalancer.Ingress) == 0 {
+		t.Fatal("No load balancer ingress ready for jaeger, cannot continue")
+	}
 
 	conn, err := grpc.Dial(
 		fmt.Sprintf("%s:%d",

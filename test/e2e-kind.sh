@@ -178,8 +178,6 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type 
     \"tracing-collector-full-endpoint\": \"$TRACING_COLLECTOR_FULL_ENDPOINT\"
   }
 }"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout restart deployment/net-kourier-controller
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
 
 echo ">> Running Tracing tests"
 go test -race -count=1 -timeout=5m -tags=e2e ./test/tracing/... \
@@ -189,8 +187,6 @@ go test -race -count=1 -timeout=5m -tags=e2e ./test/tracing/... \
 
 echo ">> Unset Tracing"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"tracing-collector-full-endpoint": ""}}'
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout restart deployment/net-kourier-controller
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
 kubectl delete -f test/config/tracing
 unset TRACING_COLLECTOR_FULL_ENDPOINT
 

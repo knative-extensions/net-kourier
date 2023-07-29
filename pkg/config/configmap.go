@@ -59,6 +59,7 @@ const (
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
+	// TracingCollectorFullEndpoint is the config map key to configure tracing at kourier gateway level
 	TracingCollectorFullEndpoint = "tracing-collector-full-endpoint"
 )
 
@@ -96,6 +97,8 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 	return nc, nil
 }
 
+// Tracing contains all fields required to configure tracing at kourier gateway level.
+// This object is mostly filled by the asTracing method, using TracingCollectorFullEndpoint value as the source.
 type Tracing struct {
 	Enabled           bool
 	CollectorHost     string
@@ -111,13 +114,13 @@ func asTracing(collectorFullEndpoint string, tracing *Tracing) cm.ParseFunc {
 			// We add a random scheme to be able to use url.ParseRequestURI.
 			parsedURL, err := url.ParseRequestURI("scheme://" + raw)
 			if err != nil {
-				return fmt.Errorf("\"%s\" is not a valid URL: %w", raw, err)
+				return fmt.Errorf("%q is not a valid URL: %w", raw, err)
 			}
 
 			tracing.CollectorHost = parsedURL.Hostname()
 			collectorPortUint64, err := strconv.ParseUint(parsedURL.Port(), 10, 32)
 			if err != nil {
-				return fmt.Errorf("\"%s\" is not a valid port: %w", parsedURL.Port(), err)
+				return fmt.Errorf("%q is not a valid port: %w", parsedURL.Port(), err)
 			}
 
 			if collectorPortUint64 > math.MaxUint16 {
