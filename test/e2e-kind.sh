@@ -169,6 +169,27 @@ go test -race -count=1 -timeout=5m -tags=e2e ./test/proxyprotocol/... \
 echo ">> Unset Proxy Protocol"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"enable-proxy-protocol":"false"}}'
 
+echo ">> Setup Tracing"
+kubectl apply -f test/config/tracing
+kubectl -n tracing wait --timeout=300s --for=condition=Available deployment/jaeger
+export TRACING_COLLECTOR_FULL_ENDPOINT="$(kubectl -n tracing get svc/jaeger -o jsonpath='{.spec.clusterIP}'):9411/api/v2/spans"
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p "{
+  \"data\":{
+    \"tracing-collector-full-endpoint\": \"$TRACING_COLLECTOR_FULL_ENDPOINT\"
+  }
+}"
+
+echo ">> Running Tracing tests"
+go test -race -count=1 -timeout=5m -tags=e2e ./test/tracing/... \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
+
+echo ">> Unset Tracing"
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"tracing-collector-full-endpoint": ""}}'
+kubectl delete -f test/config/tracing
+unset TRACING_COLLECTOR_FULL_ENDPOINT
+
 echo ">> Set IdleTimeout to 50s"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"stream-idle-timeout":"50s"}}'
 

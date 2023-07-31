@@ -35,6 +35,7 @@ func (in *Kourier) DeepCopyInto(out *Kourier) {
 			(*out)[key] = val
 		}
 	}
+	out.Tracing = in.Tracing
 	return
 }
 

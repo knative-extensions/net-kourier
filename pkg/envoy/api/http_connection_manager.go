@@ -22,6 +22,7 @@ import (
 	accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_api_v3_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_config_trace_v3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
 	accesslog_file_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -90,6 +91,26 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 				TypedConfig: accessLog,
 			},
 		}}
+	}
+
+	if kourierConfig.Tracing.Enabled {
+		mgr.GenerateRequestId = wrapperspb.Bool(true)
+
+		zipkinConfig, _ := anypb.New(&envoy_config_trace_v3.ZipkinConfig{
+			CollectorCluster:         "tracing-collector",
+			CollectorEndpoint:        kourierConfig.Tracing.CollectorEndpoint,
+			SharedSpanContext:        wrapperspb.Bool(false),
+			CollectorEndpointVersion: envoy_config_trace_v3.ZipkinConfig_HTTP_JSON,
+		})
+
+		mgr.Tracing = &hcm.HttpConnectionManager_Tracing{
+			Provider: &envoy_config_trace_v3.Tracing_Http{
+				Name: wellknown.Zipkin,
+				ConfigType: &envoy_config_trace_v3.Tracing_Http_TypedConfig{
+					TypedConfig: zipkinConfig,
+				},
+			},
+		}
 	}
 
 	return mgr
