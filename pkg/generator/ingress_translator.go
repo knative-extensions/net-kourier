@@ -37,8 +37,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
-	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/certificates"
 	netconfig "knative.dev/networking/pkg/config"
@@ -99,13 +99,13 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, fmt.Errorf("failed to fetch secret: %w", err)
 		}
 
-		if secret.Labels == nil || secret.Labels[informerfiltering.EnableSecretInformerFilteringByCertUIDEnv] == "" {
+		if secret.Labels == nil || secret.Labels[networking.CertificateUIDLabelKey] == "" {
 			// Don't modify the informers copy
 			existing := secret.DeepCopy()
 			if existing.Labels == nil {
 				existing.Labels = make(map[string]string)
 			}
-			existing.Labels[informerfiltering.EnableSecretInformerFilteringByCertUIDEnv] = ingressTLS.SecretName
+			existing.Labels[networking.CertificateUIDLabelKey] = ingressTLS.SecretName
 			secret, err = translator.secretUpdater(ingressTLS.SecretNamespace, existing)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update secret: %w", err)
