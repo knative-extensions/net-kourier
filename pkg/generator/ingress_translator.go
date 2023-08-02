@@ -34,7 +34,9 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	kubeclient "k8s.io/client-go/kubernetes"
 	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
@@ -62,6 +64,8 @@ type IngressTranslator struct {
 	serviceGetter   func(ns, name string) (*corev1.Service, error)
 	namespaceGetter func(name string) (*corev1.Namespace, error)
 	tracker         tracker.Interface
+
+	kubeClient kubeclient.Interface
 }
 
 func NewIngressTranslator(
@@ -91,6 +95,15 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		secret, err := translator.secretGetter(ingressTLS.SecretNamespace, ingressTLS.SecretName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch secret: %w", err)
+		}
+
+		// Don't modify the informers copy
+		existing := secret.DeepCopy()
+		//		existing.Labels = desired.Labels
+
+		secret, err = translator.kubeClient.CoreV1().Secrets(ingressTLS.SecretNamespace).Update(ctx, existing, metav1.UpdateOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to update secret: %w", err)
 		}
 
 		// Validate certificate here as these are defined by users.
