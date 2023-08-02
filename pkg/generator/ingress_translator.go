@@ -34,7 +34,10 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	kubeclient "k8s.io/client-go/kubernetes"
 	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
@@ -62,8 +65,7 @@ type IngressTranslator struct {
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error)
 	serviceGetter   func(ns, name string) (*corev1.Service, error)
 	namespaceGetter func(name string) (*corev1.Namespace, error)
-
-	secretUpdater func(ns string, secret *corev1.Secret) (*corev1.Secret, error)
+	kubeClient      kubeclient.Interface
 
 	tracker tracker.Interface
 }
@@ -73,14 +75,14 @@ func NewIngressTranslator(
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
 	namespaceGetter func(name string) (*corev1.Namespace, error),
-	secretUpdater func(ns string, secret *corev1.Secret) (*corev1.Secret, error),
+	kubeClient kubeclient.Interface,
 	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
 		secretGetter:    secretGetter,
 		endpointsGetter: endpointsGetter,
 		serviceGetter:   serviceGetter,
 		namespaceGetter: namespaceGetter,
-		secretUpdater:   secretUpdater,
+		kubeClient:      kubeClient,
 		tracker:         tracker,
 	}
 }
@@ -95,7 +97,14 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		}
 
 		secret, err := translator.secretGetter(ingressTLS.SecretNamespace, ingressTLS.SecretName)
-		if err != nil {
+		if apierrs.IsNotFound(err) {
+			// As secret does not have a CertificateUIDLabel for the first time, informer cannot get the secret.
+			// Try to use k8s client to get the secret. It may have some cost but it happens only once when a new secret is specified.
+			secret, err = translator.kubeClient.CoreV1().Secrets(ingressTLS.SecretNamespace).Get(ctx, ingressTLS.SecretName, metav1.GetOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get secret: %w", err)
+			}
+		} else if err != nil {
 			return nil, fmt.Errorf("failed to fetch secret: %w", err)
 		}
 
@@ -106,7 +115,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				existing.Labels = make(map[string]string)
 			}
 			existing.Labels[networking.CertificateUIDLabelKey] = ingressTLS.SecretName
-			secret, err = translator.secretUpdater(ingressTLS.SecretNamespace, existing)
+			secret, err = translator.kubeClient.CoreV1().Secrets(ingressTLS.SecretNamespace).Update(ctx, existing, metav1.UpdateOptions{})
 			if err != nil {
 				return nil, fmt.Errorf("failed to update secret: %w", err)
 			}

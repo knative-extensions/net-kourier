@@ -190,9 +190,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		func(name string) (*corev1.Namespace, error) {
 			return namespaceInformer.Lister().Get(name)
 		},
-		func(ns string, secret *corev1.Secret) (*corev1.Secret, error) {
-			return kubernetesClient.CoreV1().Secrets(ns).Update(ctx, secret, metav1.UpdateOptions{})
-		},
+		kubernetesClient,
 		impl.Tracker)
 	r.ingressTranslator = &ingressTranslator
 
@@ -226,9 +224,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		func(name string) (*corev1.Namespace, error) {
 			return namespaceInformer.Lister().Get(name)
 		},
-		func(ns string, secret *corev1.Secret) (*corev1.Secret, error) {
-			return kubernetesClient.CoreV1().Secrets(ns).Update(ctx, secret, metav1.UpdateOptions{})
-		},
+		kubernetesClient,
 		impl.Tracker)
 
 	for _, ingress := range ingressesToSync {
