@@ -674,6 +674,7 @@ func TestIngressTranslator(t *testing.T) {
 					return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
 				},
 				&pkgtest.FakeTracker{},
+				kubeclient.Interface,
 			)
 
 			got, err := translator.translateIngress(ctx, test.in, false)
