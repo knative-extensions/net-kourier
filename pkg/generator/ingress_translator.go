@@ -39,6 +39,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
+	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/certificates"
@@ -97,13 +98,15 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, fmt.Errorf("failed to fetch secret: %w", err)
 		}
 
-		// Don't modify the informers copy
-		existing := secret.DeepCopy()
-		//		existing.Labels = desired.Labels
+		if secret.Labels[informerfiltering.EnableSecretInformerFilteringByCertUIDEnv] == "" {
+			// Don't modify the informers copy
+			existing := secret.DeepCopy()
+			existing.Labels[informerfiltering.EnableSecretInformerFilteringByCertUIDEnv] = ingressTLS.SecretName
+			secret, err = translator.kubeClient.CoreV1().Secrets(ingressTLS.SecretNamespace).Update(ctx, existing, metav1.UpdateOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("failed to update secret: %w", err)
+			}
 
-		secret, err = translator.kubeClient.CoreV1().Secrets(ingressTLS.SecretNamespace).Update(ctx, existing, metav1.UpdateOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to update secret: %w", err)
 		}
 
 		// Validate certificate here as these are defined by users.
