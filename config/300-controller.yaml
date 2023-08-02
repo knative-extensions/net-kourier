@@ -57,8 +57,6 @@ spec:
               value: "knative.dev/samples"
             - name: KOURIER_GATEWAY_NAMESPACE
               value: "kourier-system"
-            - name: ENABLE_SECRET_INFORMER_FILTERING_BY_CERT_UID
-              value: "false"
             # KUBE_API_BURST and KUBE_API_QPS allows to configure maximum burst for throttle and maximum QPS to the server from the client.
             # Setting these values using env vars is possible since https://github.com/knative/pkg/pull/2755.
             # 200 is an arbitrary value, but it speeds up kourier startup duration, and the whole ingress reconciliation process as a whole.

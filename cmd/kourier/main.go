@@ -18,16 +18,17 @@ package main
 
 import (
 	"knative.dev/net-kourier/pkg/config"
-	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
 	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/pkg/signals"
 
 	// This defines the shared main for injected controllers.
+	filteredFactory "knative.dev/pkg/client/injection/kube/informers/factory/filtered"
 	"knative.dev/pkg/injection/sharedmain"
 )
 
 func main() {
-	ctx := informerfiltering.GetContextWithFilteringLabelSelector(signals.NewContext())
+	ctx := filteredFactory.WithSelectors(signals.NewContext(), networking.CertificateUIDLabelKey)
 	ctx = sharedmain.WithHealthProbesDisabled(ctx)
 	sharedmain.MainWithContext(ctx, config.ControllerName, kourierIngressController.NewController)
 }
