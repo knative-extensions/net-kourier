@@ -34,9 +34,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	kubeclient "k8s.io/client-go/kubernetes"
 	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
@@ -64,9 +62,10 @@ type IngressTranslator struct {
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error)
 	serviceGetter   func(ns, name string) (*corev1.Service, error)
 	namespaceGetter func(name string) (*corev1.Namespace, error)
-	tracker         tracker.Interface
 
-	kubeClient kubeclient.Interface
+	secretUpdater func(ns string, secret *corev1.Secret) (*corev1.Secret, error)
+
+	tracker tracker.Interface
 }
 
 func NewIngressTranslator(
@@ -74,12 +73,14 @@ func NewIngressTranslator(
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
 	namespaceGetter func(name string) (*corev1.Namespace, error),
+	secretUpdater func(ns string, secret *corev1.Secret) (*corev1.Secret, error),
 	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
 		secretGetter:    secretGetter,
 		endpointsGetter: endpointsGetter,
 		serviceGetter:   serviceGetter,
 		namespaceGetter: namespaceGetter,
+		secretUpdater:   secretUpdater,
 		tracker:         tracker,
 	}
 }
@@ -98,11 +99,14 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, fmt.Errorf("failed to fetch secret: %w", err)
 		}
 
-		if secret.Labels[informerfiltering.EnableSecretInformerFilteringByCertUIDEnv] == "" {
+		if secret.Labels == nil || secret.Labels[informerfiltering.EnableSecretInformerFilteringByCertUIDEnv] == "" {
 			// Don't modify the informers copy
 			existing := secret.DeepCopy()
+			if existing.Labels == nil {
+				existing.Labels = make(map[string]string)
+			}
 			existing.Labels[informerfiltering.EnableSecretInformerFilteringByCertUIDEnv] = ingressTLS.SecretName
-			secret, err = translator.kubeClient.CoreV1().Secrets(ingressTLS.SecretNamespace).Update(ctx, existing, metav1.UpdateOptions{})
+			secret, err = translator.secretUpdater(ingressTLS.SecretNamespace, existing)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update secret: %w", err)
 			}

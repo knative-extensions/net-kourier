@@ -673,8 +673,10 @@ func TestIngressTranslator(t *testing.T) {
 				func(name string) (*corev1.Namespace, error) {
 					return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
 				},
+				func(ns string, secret *corev1.Secret) (*corev1.Secret, error) {
+					return kubeclient.CoreV1().Secrets(ns).Update(ctx, secret, metav1.UpdateOptions{})
+				},
 				&pkgtest.FakeTracker{},
-				kubeclient.Interface,
 			)
 
 			got, err := translator.translateIngress(ctx, test.in, false)
@@ -885,6 +887,9 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				},
 				func(name string) (*corev1.Namespace, error) {
 					return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+				},
+				func(ns string, secret *corev1.Secret) (*corev1.Secret, error) {
+					return kubeclient.CoreV1().Secrets(ns).Update(ctx, secret, metav1.UpdateOptions{})
 				},
 				&pkgtest.FakeTracker{},
 			)
@@ -1212,6 +1217,9 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				func(name string) (*corev1.Namespace, error) {
 					return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
 				},
+				func(ns string, secret *corev1.Secret) (*corev1.Secret, error) {
+					return kubeclient.CoreV1().Secrets(ns).Update(ctx, secret, metav1.UpdateOptions{})
+				},
 				&pkgtest.FakeTracker{},
 			)
 
@@ -1312,6 +1320,9 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 			},
 			func(name string) (*corev1.Namespace, error) {
 				return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+			},
+			func(ns string, secret *corev1.Secret) (*corev1.Secret, error) {
+				return kubeclient.CoreV1().Secrets(ns).Update(ctx, secret, metav1.UpdateOptions{})
 			},
 			&pkgtest.FakeTracker{},
 		)
@@ -1424,6 +1435,9 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 			},
 			func(name string) (*corev1.Namespace, error) {
 				return kubeclient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+			},
+			func(ns string, secret *corev1.Secret) (*corev1.Secret, error) {
+				return kubeclient.CoreV1().Secrets(ns).Update(ctx, secret, metav1.UpdateOptions{})
 			},
 			&pkgtest.FakeTracker{},
 		)
