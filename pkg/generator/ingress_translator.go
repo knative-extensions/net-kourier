@@ -66,8 +66,7 @@ type IngressTranslator struct {
 	serviceGetter   func(ns, name string) (*corev1.Service, error)
 	namespaceGetter func(name string) (*corev1.Namespace, error)
 	kubeClient      kubeclient.Interface
-
-	tracker tracker.Interface
+	tracker         tracker.Interface
 }
 
 func NewIngressTranslator(
