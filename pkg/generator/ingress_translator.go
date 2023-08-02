@@ -34,7 +34,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kubeclient "k8s.io/client-go/kubernetes"
@@ -96,7 +95,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		}
 
 		secret, err := translator.secretGetter(ingressTLS.SecretNamespace, ingressTLS.SecretName)
-		if apierrs.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// As secret does not have a CertificateUIDLabel for the first time, informer cannot get the secret.
 			// Try to use k8s client to get the secret. It may have some cost but it happens only once when a new secret is specified.
 			secret, err = translator.kubeClient.CoreV1().Secrets(ingressTLS.SecretNamespace).Get(ctx, ingressTLS.SecretName, metav1.GetOptions{})
