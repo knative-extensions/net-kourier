@@ -1,5 +1,5 @@
 # This file is auto-generated from peribolos.
-# Do not modify this file, instead modify peribolos/knative-sandbox.yaml
+# Do not modify this file, instead modify peribolos/knative-extensions.yaml
 
 aliases:
   client-wg-leads:
