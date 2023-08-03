@@ -31,7 +31,7 @@ This directory contains Ingress conformance tests for Knative Ingress resource.
    export NETWORKING_ROOT=<where-you-checked-out-knative/networking>
    ```
 1. (Recommended) Knative
-   [net-istio](https://github.com/knative-sandbox/net-istio) source code checked
+   [net-istio](https://github.com/knative-extensions/net-istio) source code checked
    out. This contains an invocation of `RunConformance` that easily allows to
    run tests.
 1. (For setup only) Knative Serving source code check out at `${SERVING_ROOT}`.
@@ -106,7 +106,7 @@ func TestYourIngressConformance(t *testing.T) {
 ### Running the tests from `net-istio` repository
 
 `net-istio` already invokes the `RunConformance` function in
-[`ingress_test.go`](https://github.com/knative-sandbox/net-istio/blob/main/test/conformance/ingress_test.go),
+[`ingress_test.go`](https://github.com/knative-extensions/net-istio/blob/main/test/conformance/ingress_test.go),
 so it offers a convenient place to run the tests.
 
 If `INGRESS_CLASS` is already set, then you can simply `go test ingress_test.go`
