@@ -66,9 +66,14 @@ aliases:
   - lberk
   - matzew
   eventing-rabbitmq-approvers:
+  - andrew-su
+  - bbtong
   - chunyilyu
+  - dolfolife
   - gabo1208
   - ikvmw
+  - joeeltgroth
+  - menehune23
   - salaboy
   - xtreme-sameer-vohra
   eventing-redis-approvers:
