@@ -18,8 +18,7 @@ aliases:
   - csantanapr
   - psschwei
   - snneji
-  eventing-autoscaler-keda-approvers:
-  - zroubalik
+  eventing-autoscaler-keda-approvers: []
   eventing-awssqs-approvers:
   - lberk
   - matzew
@@ -97,28 +96,24 @@ aliases:
   - matejvasek
   - nainaz
   - salaboy
-  - zroubalik
   functastic-writers:
   - lance
   - lkingland
   - matejvasek
   - nainaz
   - salaboy
-  - zroubalik
   function-runtime-approvers:
   - lance
   - lkingland
   - matejvasek
   - nainaz
   - salaboy
-  - zroubalik
   function-runtime-writers:
   - lance
   - lkingland
   - matejvasek
   - nainaz
   - salaboy
-  - zroubalik
   homebrew-kn-plugins-approvers:
   - dsimansk
   - maximilien
@@ -182,7 +177,6 @@ aliases:
   - salaboy
   - skonto
   - upodroid
-  - zroubalik
   knative-release-leads:
   - Vishal-Chdhry
   - creydr
@@ -278,7 +272,6 @@ aliases:
   - dsimansk
   - kvmware
   - psschwei
-  - zroubalik
   ux-wg-leads:
   - snneji
   ux-writers:
