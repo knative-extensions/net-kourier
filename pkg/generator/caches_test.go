@@ -22,11 +22,19 @@ import (
 	"testing"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	tracev3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
+	http_connection_managerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -295,6 +303,103 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortInternal)].(*listener.Listener)
 		assert.Assert(t, len(tlsListener.ListenerFilters) == 1)
 		assert.Assert(t, (tlsListener.ListenerFilters[0]).Name == wellknown.ProxyProtocol)
+	})
+}
+
+// TestListenersAndClustersWithTracing verifies that when we enable tracing
+// a cluster is added for the tracing backend, and tracing configuration is added to all listeners.
+func TestListenersAndClustersWithTracing(t *testing.T) {
+	testConfig := &rconfig.Config{
+		Kourier: &config.Kourier{
+			Tracing: config.Tracing{
+				Enabled:           true,
+				CollectorHost:     "jaeger.default.svc.cluster.local",
+				CollectorPort:     9411,
+				CollectorEndpoint: "/api/v2/spans",
+			},
+		},
+	}
+
+	kubeClient := fake.Clientset{}
+	cfg := testConfig.DeepCopy()
+	ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
+
+	caches, err := NewCaches(ctx, &kubeClient, false)
+	assert.NilError(t, err)
+
+	t.Run("check a tracing cluster exist, and tracing is configured on listeners", func(t *testing.T) {
+		translatedIngress := &translatedIngress{}
+		err := caches.addTranslatedIngress(translatedIngress)
+		assert.NilError(t, err)
+
+		snapshot, err := caches.ToEnvoySnapshot(ctx)
+		assert.NilError(t, err)
+
+		tracingCollectorCluster := snapshot.GetResources(resource.ClusterType)["tracing-collector"].(*v3.Cluster)
+
+		expectedTracingCollectorCluster := &v3.Cluster{
+			Name:                 "tracing-collector",
+			ClusterDiscoveryType: &v3.Cluster_Type{Type: v3.Cluster_STRICT_DNS},
+			LoadAssignment: &endpoint.ClusterLoadAssignment{
+				ClusterName: "tracing-collector",
+				Endpoints: []*endpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*endpoint.LbEndpoint{{
+						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+							Endpoint: &endpoint.Endpoint{
+								Address: &core.Address{
+									Address: &core.Address_SocketAddress{
+										SocketAddress: &core.SocketAddress{
+											Protocol: core.SocketAddress_TCP,
+											Address:  testConfig.Kourier.Tracing.CollectorHost,
+											PortSpecifier: &core.SocketAddress_PortValue{
+												PortValue: uint32(testConfig.Kourier.Tracing.CollectorPort),
+											},
+											Ipv4Compat: true,
+										},
+									},
+								},
+							},
+						},
+					}},
+				}},
+			},
+		}
+
+		assert.DeepEqual(t, expectedTracingCollectorCluster, tracingCollectorCluster,
+			cmpopts.IgnoreUnexported(
+				v3.Cluster{}, endpoint.ClusterLoadAssignment{}, endpoint.LocalityLbEndpoints{}, endpoint.LbEndpoint{},
+				endpoint.Endpoint{}, core.Address{}, core.SocketAddress{},
+			),
+		)
+
+		listenersPorts := []uint32{
+			config.HTTPPortExternal, config.HTTPPortInternal, config.HTTPPortProb,
+		}
+
+		for _, listenerPort := range listenersPorts {
+			currentListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(listenerPort)].(*listener.Listener)
+
+			expectedTracingConfig := &tracev3.ZipkinConfig{
+				CollectorCluster:         "tracing-collector",
+				CollectorEndpoint:        testConfig.Kourier.Tracing.CollectorEndpoint,
+				SharedSpanContext:        wrapperspb.Bool(false),
+				CollectorEndpointVersion: tracev3.ZipkinConfig_HTTP_JSON,
+			}
+
+			httpConnectionManagerFilter := currentListener.FilterChains[0].Filters[0]
+			assert.Equal(t, wellknown.HTTPConnectionManager, httpConnectionManagerFilter.Name)
+
+			httpConnectionManagerConfig := &http_connection_managerv3.HttpConnectionManager{}
+			err = anypb.UnmarshalTo(httpConnectionManagerFilter.GetTypedConfig(), httpConnectionManagerConfig, proto.UnmarshalOptions{})
+			assert.NilError(t, err)
+
+			assert.Equal(t, true, httpConnectionManagerConfig.GenerateRequestId.GetValue())
+
+			tracingConfig := &tracev3.ZipkinConfig{}
+			err = anypb.UnmarshalTo(httpConnectionManagerConfig.Tracing.Provider.GetTypedConfig(), tracingConfig, proto.UnmarshalOptions{})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, expectedTracingConfig, tracingConfig, cmpopts.IgnoreUnexported(tracev3.ZipkinConfig{}, wrapperspb.BoolValue{}))
+		}
 	})
 }
 

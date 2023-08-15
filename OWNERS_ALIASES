@@ -1,5 +1,5 @@
 # This file is auto-generated from peribolos.
-# Do not modify this file, instead modify peribolos/knative-sandbox.yaml
+# Do not modify this file, instead modify peribolos/knative-extensions.yaml
 
 aliases:
   client-wg-leads:
@@ -18,8 +18,7 @@ aliases:
   - csantanapr
   - psschwei
   - snneji
-  eventing-autoscaler-keda-approvers:
-  - zroubalik
+  eventing-autoscaler-keda-approvers: []
   eventing-awssqs-approvers:
   - lberk
   - matzew
@@ -66,9 +65,14 @@ aliases:
   - lberk
   - matzew
   eventing-rabbitmq-approvers:
+  - andrew-su
+  - bbtong
   - chunyilyu
+  - dolfolife
   - gabo1208
   - ikvmw
+  - joeeltgroth
+  - menehune23
   - salaboy
   - xtreme-sameer-vohra
   eventing-redis-approvers:
@@ -81,6 +85,7 @@ aliases:
   - pierDipi
   eventing-writers:
   - aliok
+  - creydr
   - lionelvillard
   - matzew
   - odacremolbap
@@ -91,28 +96,24 @@ aliases:
   - matejvasek
   - nainaz
   - salaboy
-  - zroubalik
   functastic-writers:
   - lance
   - lkingland
   - matejvasek
   - nainaz
   - salaboy
-  - zroubalik
   function-runtime-approvers:
   - lance
   - lkingland
   - matejvasek
   - nainaz
   - salaboy
-  - zroubalik
   function-runtime-writers:
   - lance
   - lkingland
   - matejvasek
   - nainaz
   - salaboy
-  - zroubalik
   homebrew-kn-plugins-approvers:
   - dsimansk
   - maximilien
@@ -176,7 +177,6 @@ aliases:
   - salaboy
   - skonto
   - upodroid
-  - zroubalik
   knative-release-leads:
   - Vishal-Chdhry
   - creydr
@@ -272,7 +272,6 @@ aliases:
   - dsimansk
   - kvmware
   - psschwei
-  - zroubalik
   ux-wg-leads:
   - snneji
   ux-writers:
