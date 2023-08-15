@@ -22,7 +22,6 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"google.golang.org/protobuf/testing/protocmp"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
 )
 
@@ -50,13 +49,13 @@ func TestHeadersToAdd(t *testing.T) {
 				Key:   "foo",
 				Value: "bar",
 			},
-			Append: wrapperspb.Bool(false),
+			AppendAction: core.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD,
 		}, {
 			Header: &core.HeaderValue{
 				Key:   "baz",
 				Value: "lol",
 			},
-			Append: wrapperspb.Bool(false),
+			AppendAction: core.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD,
 		}},
 	}}
 
