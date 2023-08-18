@@ -1004,7 +1004,7 @@ k8s.io/utils/trace
 # knative.dev/hack v0.0.0-20230815012940-044c02b7a447
 ## explicit; go 1.18
 knative.dev/hack
-# knative.dev/networking v0.0.0-20230815014240-ed0534b4ef83
+# knative.dev/networking v0.0.0-20230817140742-4bfcc9fb6012
 ## explicit; go 1.18
 knative.dev/networking/config
 knative.dev/networking/pkg
