@@ -7,12 +7,12 @@ require (
 	github.com/golang/protobuf v1.5.3
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
-	github.com/hashicorp/golang-lru v0.5.4
+	github.com/hashicorp/golang-lru v1.0.2
 	github.com/jaegertracing/jaeger v1.47.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pires/go-proxyproto v0.6.1
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.25.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230807174057-1744710a1577
 	google.golang.org/grpc v1.57.0
 	google.golang.org/protobuf v1.31.0
@@ -21,9 +21,9 @@ require (
 	k8s.io/apimachinery v0.26.5
 	k8s.io/client-go v0.26.5
 	k8s.io/code-generator v0.26.5
-	knative.dev/hack v0.0.0-20230815012940-044c02b7a447
+	knative.dev/hack v0.0.0-20230818155117-9cc05a31e8c0
 	knative.dev/networking v0.0.0-20230817140742-4bfcc9fb6012
-	knative.dev/pkg v0.0.0-20230815132840-4f651e092853
+	knative.dev/pkg v0.0.0-20230821102121-81e4ee140363
 )
 
 require (
@@ -76,7 +76,7 @@ require (
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	go.uber.org/automaxprocs v1.5.2 // indirect
+	go.uber.org/automaxprocs v1.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
@@ -88,7 +88,7 @@ require (
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.12.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.3.0 // indirect
-	google.golang.org/api v0.136.0 // indirect
+	google.golang.org/api v0.138.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230803162519-f966b187b2e5 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230803162519-f966b187b2e5 // indirect
