@@ -50,7 +50,7 @@ spec:
             - --log-level info
           command:
             - /usr/local/bin/envoy
-          image: docker.io/envoyproxy/envoy:v1.24-latest
+          image: docker.io/envoyproxy/envoy:v1.25-latest
           name: kourier-gateway
           ports:
             - name: http2-external
