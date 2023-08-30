@@ -42,7 +42,6 @@ import (
 	"knative.dev/networking/pkg/status"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
-	nsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/namespace"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
 	secretfilteredinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret/filtered"
 	serviceinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/service"
@@ -77,7 +76,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 	secretInformer := getSecretInformer(ctx)
-	namespaceInformer := nsinformer.Get(ctx)
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
 	caches, err := generator.NewCaches(ctx, kubernetesClient, config.ExternalAuthz.Enabled)
@@ -86,9 +84,8 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	r := &Reconciler{
-		caches:          caches,
-		extAuthz:        config.ExternalAuthz.Enabled,
-		namespaceLister: namespaceInformer.Lister(),
+		caches:   caches,
+		extAuthz: config.ExternalAuthz.Enabled,
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
@@ -162,7 +159,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	statusProber := status.NewProber(
 		logger.Named("status-manager"),
-		NewProbeTargetLister(logger, endpointsInformer.Lister(), namespaceInformer.Lister()),
+		NewProbeTargetLister(logger, endpointsInformer.Lister()),
 		func(ing *v1alpha1.Ingress) {
 			logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
 			impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
@@ -186,9 +183,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		},
 		func(ns, name string) (*corev1.Service, error) {
 			return serviceInformer.Lister().Services(ns).Get(name)
-		},
-		func(name string) (*corev1.Namespace, error) {
-			return namespaceInformer.Lister().Get(name)
 		},
 		impl.Tracker)
 	r.ingressTranslator = &ingressTranslator
@@ -219,9 +213,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		},
 		func(ns, name string) (*corev1.Service, error) {
 			return serviceInformer.Lister().Services(ns).Get(name)
-		},
-		func(name string) (*corev1.Namespace, error) {
-			return namespaceInformer.Lister().Get(name)
 		},
 		impl.Tracker)
 

@@ -482,33 +482,3 @@ func getVHostsNames(routeConfigs []*route.RouteConfiguration) []string {
 
 	return res
 }
-
-func TestAddIsolatedIngress(t *testing.T) {
-	kubeClient := fake.Clientset{}
-	ctx := context.Background()
-
-	caches, err := NewCaches(ctx, &kubeClient, false)
-	assert.NilError(t, err)
-
-	translatedIngress := translatedIngress{
-		name: types.NamespacedName{
-			Namespace: "ingress_2_namespace",
-			Name:      "ingress_2",
-		},
-		listenerPort:         "12158",
-		internalVirtualHosts: []*route.VirtualHost{{Name: "internal_host_for_ingress_2", Domains: []string{"internal_host_for_ingress_1"}}},
-	}
-
-	err = caches.addTranslatedIngress(&translatedIngress)
-	assert.NilError(t, err)
-
-	snapshot, err := caches.ToEnvoySnapshot(ctx)
-	assert.NilError(t, err)
-
-	ls := snapshot.GetResources(resource.ListenerType)
-	assert.Assert(t, ls != nil)
-
-	l, ok := ls["listener_12158"].(*listener.Listener)
-	assert.Assert(t, ok)
-	assert.Equal(t, l.GetAddress().GetSocketAddress().GetPortValue(), uint32(12158))
-}
