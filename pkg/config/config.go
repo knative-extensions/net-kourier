@@ -31,9 +31,6 @@ const (
 	// InternalServiceName is the name of the internal service.
 	InternalServiceName = "kourier-internal"
 
-	// IsolationServicePrefix is the prefix of the isolated services.
-	IsolationServicePrefix = "kourier-isolation-"
-
 	// ExternalServiceName is the name of the external service.
 	ExternalServiceName = "kourier"
 
@@ -72,10 +69,6 @@ const (
 	// e.g. OpenShift deploys Kourier in different namespace so `system.Namespace()` does not work.
 	ServingNamespaceEnv = "SERVING_NAMESPACE"
 
-	// ListenerPortAnnotationKey is the annotation key for assigning the ingress to a particular
-	// envoy listener port. Only applicable to internal services.
-	ListenerPortAnnotationKey = "kourier.knative.dev/listener-port"
-
 	// trustedHopsCount Configure the number of additional ingress proxy hops from the
 	// right side of the x-forwarded-for HTTP header to trust.
 	trustedHopsCount = "trusted-hops-count"
@@ -94,10 +87,6 @@ var disableHTTP2Annotation = kmap.KeyPriority{
 func ServiceHostnames() (string, string) {
 	return network.GetServiceHostname(ExternalServiceName, GatewayNamespace()),
 		network.GetServiceHostname(InternalServiceName, GatewayNamespace())
-}
-
-func ListenerServiceHostnames(port string) string {
-	return network.GetServiceHostname(IsolationServicePrefix+port, GatewayNamespace())
 }
 
 // GatewayNamespace returns the namespace where the gateway is deployed.

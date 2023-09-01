@@ -63,17 +63,6 @@ data:
     # The default, 0s, imposes no timeout at all.
     stream-idle-timeout: "0s"
 
-    # Control the desired level of incoming traffic isolation.
-    #
-    # When set to an empty value (default), all incoming traffic flows through
-    # a shared ingress and listeners.
-    #
-    # When set to "port", incoming traffic is isolated by using different
-    # listener ports.
-    #
-    # NOTE: This flag is in an alpha state.
-    traffic-isolation: ""
-
     # Specifies whether to use CryptoMB private key provider in order to
     # acclerate the TLS handshake.
     # NOTE THAT THIS IS AN EXPERIMENTAL / ALPHA FEATURE.

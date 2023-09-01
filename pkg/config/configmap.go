@@ -29,9 +29,6 @@ import (
 	cm "knative.dev/pkg/configmap"
 )
 
-// TrafficIsolationType is the type for traffic isolation configuration
-type TrafficIsolationType string
-
 const (
 	// ConfigName is the name of config map for Kourier.
 	ConfigName = "config-kourier"
@@ -50,12 +47,6 @@ const (
 	// for incoming requests. This value is set to "stream_idle_timeout" in Envoy.
 	IdleTimeoutKey = "stream-idle-timeout"
 
-	// trafficIsolation is the config map key for controlling the desire level of incoming traffic isolation
-	trafficIsolation = "traffic-isolation"
-
-	// IsolationIngressPort if the config map value enabling port-level traffic isolation
-	IsolationIngressPort TrafficIsolationType = "port"
-
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
@@ -69,7 +60,6 @@ func DefaultConfig() *Kourier {
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
 		IdleTimeout:                0 * time.Second, // default value
-		TrafficIsolation:           "",
 		TrustedHopsCount:           0,
 		CipherSuites:               nil,
 		EnableCryptoMB:             false,
@@ -85,7 +75,6 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
 		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
-		cm.AsString(trafficIsolation, (*string)(&nc.TrafficIsolation)),
 		cm.AsUint32(trustedHopsCount, &nc.TrustedHopsCount),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
@@ -157,8 +146,6 @@ type Kourier struct {
 	// this option, for example, the "timeoutSeconds" specified in Knative service is still
 	// valid.
 	IdleTimeout time.Duration
-	// Desire level of incoming traffic isolation
-	TrafficIsolation TrafficIsolationType
 	// TrustedHopsCount configures the number of additional ingress proxy hops from the
 	// right side of the x-forwarded-for HTTP header to trust.
 	TrustedHopsCount uint32

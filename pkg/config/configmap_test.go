@@ -110,18 +110,6 @@ func TestKourierConfig(t *testing.T) {
 			IdleTimeoutKey:                "200s",
 		},
 	}, {
-		name: "set isolation-traffic to port",
-		want: &Kourier{
-			EnableServiceAccessLogging: true,
-			EnableProxyProtocol:        false,
-			ClusterCertSecret:          "",
-			IdleTimeout:                0 * time.Second,
-			TrafficIsolation:           "port",
-		},
-		data: map[string]string{
-			trafficIsolation: "port",
-		},
-	}, {
 		name: "add 3 trusted hops",
 		want: &Kourier{
 			EnableServiceAccessLogging: false,

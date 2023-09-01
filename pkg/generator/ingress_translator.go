@@ -48,7 +48,6 @@ import (
 
 type translatedIngress struct {
 	name                    types.NamespacedName
-	listenerPort            string
 	sniMatches              []*envoy.SNIMatch
 	clusters                []*v3.Cluster
 	externalVirtualHosts    []*route.VirtualHost
@@ -60,7 +59,6 @@ type IngressTranslator struct {
 	secretGetter    func(ns, name string) (*corev1.Secret, error)
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error)
 	serviceGetter   func(ns, name string) (*corev1.Service, error)
-	namespaceGetter func(name string) (*corev1.Namespace, error)
 	tracker         tracker.Interface
 }
 
@@ -68,13 +66,11 @@ func NewIngressTranslator(
 	secretGetter func(ns, name string) (*corev1.Secret, error),
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
-	namespaceGetter func(name string) (*corev1.Namespace, error),
 	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
 		secretGetter:    secretGetter,
 		endpointsGetter: endpointsGetter,
 		serviceGetter:   serviceGetter,
-		namespaceGetter: namespaceGetter,
 		tracker:         tracker,
 	}
 }
@@ -286,31 +282,12 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 		}
 	}
-	listenerPort := ""
-
-	if config.FromContextOrDefaults(ctx).Kourier.TrafficIsolation == pkgconfig.IsolationIngressPort {
-		ns, err := translator.namespaceGetter(ingress.Namespace)
-		if err != nil {
-			return nil, err
-		}
-
-		if ns.Annotations != nil {
-			if value, ok := ns.Annotations[pkgconfig.ListenerPortAnnotationKey]; ok {
-				listenerPort = value
-
-				logger.Infof("mapping ingress %s/%s to port %v", ingress.Namespace, ingress.Name, listenerPort)
-			}
-		}
-
-		// REVISIT: When neither labels/annotations if found then default to the default behavior (no isolation)
-	}
 
 	return &translatedIngress{
 		name: types.NamespacedName{
 			Namespace: ingress.Namespace,
 			Name:      ingress.Name,
 		},
-		listenerPort:            listenerPort,
 		sniMatches:              sniMatches,
 		clusters:                clusters,
 		externalVirtualHosts:    externalHosts,

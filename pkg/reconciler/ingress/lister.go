@@ -26,23 +26,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"knative.dev/net-kourier/pkg/config"
-	ingressconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
 )
 
-func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister, namespaceLister corev1listers.NamespaceLister) status.ProbeTargetLister {
+func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
 	return &gatewayPodTargetLister{
 		logger:          logger,
 		endpointsLister: endpointsLister,
-		namespaceLister: namespaceLister,
 	}
 }
 
 type gatewayPodTargetLister struct {
 	logger          *zap.SugaredLogger
 	endpointsLister corev1listers.EndpointsLister
-	namespaceLister corev1listers.NamespaceLister
 }
 
 func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
@@ -60,10 +57,10 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 	if len(readyIPs) == 0 {
 		return nil, fmt.Errorf("no gateway pods available")
 	}
-	return l.getIngressUrls(ctx, ing, readyIPs)
+	return l.getIngressUrls(ing, readyIPs)
 }
 
-func (l *gatewayPodTargetLister) getIngressUrls(ctx context.Context, ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
+func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
 	ips := sets.NewString(gatewayIps...)
 
 	targets := make([]status.ProbeTarget, 0, len(ing.Spec.Rules))
@@ -85,24 +82,9 @@ func (l *gatewayPodTargetLister) getIngressUrls(ctx context.Context, ing *v1alph
 				target.URLs = domainsToURL(domains, scheme)
 			}
 		} else {
-			podPort := strconv.Itoa(int(config.HTTPPortInternal))
-
-			if ingressconfig.FromContextOrDefaults(ctx).Kourier.TrafficIsolation == config.IsolationIngressPort {
-				ns, err := l.namespaceLister.Get(ing.Namespace)
-				if err != nil {
-					return nil, fmt.Errorf("failed to get the ingress namespace: %w", err)
-				}
-
-				if ns.Annotations != nil {
-					if value, ok := ns.Annotations[config.ListenerPortAnnotationKey]; ok {
-						podPort = value
-					}
-				}
-			}
-
 			target = status.ProbeTarget{
 				PodIPs:  ips,
-				PodPort: podPort,
+				PodPort: strconv.Itoa(int(config.HTTPPortInternal)),
 				URLs:    domainsToURL(domains, scheme),
 			}
 		}
