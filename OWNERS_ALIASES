@@ -49,6 +49,8 @@ aliases:
   - aliok
   - matzew
   - pierDipi
+  eventing-kafka-broker-reviewers:
+  - cali0707
   eventing-kafka-mtsource-approvers:
   - steven0711dong
   eventing-kafka-wg-leads:
@@ -79,6 +81,7 @@ aliases:
   - lionelvillard
   - matzew
   eventing-reviewers:
+  - cali0707
   - creydr
   eventing-wg-leads:
   - pierDipi
