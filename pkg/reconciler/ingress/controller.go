@@ -204,15 +204,17 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 	logger.Infof("Priming the config with %d ingresses", len(ingressesToSync))
 
+	// The startup translator uses clients instead of listeners to correctly list all
+	// resources at startup.
 	startupTranslator := generator.NewIngressTranslator(
 		func(ns, name string) (*corev1.Secret, error) {
-			return secretInformer.Lister().Secrets(ns).Get(name)
+			return kubernetesClient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 		},
 		func(ns, name string) (*corev1.Endpoints, error) {
-			return endpointsInformer.Lister().Endpoints(ns).Get(name)
+			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
 		},
 		func(ns, name string) (*corev1.Service, error) {
-			return serviceInformer.Lister().Services(ns).Get(name)
+			return kubernetesClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
 		},
 		impl.Tracker)
 
