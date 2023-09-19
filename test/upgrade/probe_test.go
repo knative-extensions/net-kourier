@@ -59,14 +59,14 @@ func TestProbe(t *testing.T) {
 
 	portName := networking.ServicePortNameHTTP1
 
-	// Set "https" to the port name when internal-encryption is enabled.
-	// Controller determines the internal-encryption is enabled or not by the port instead of configmap.
+	// Set "https" to the port name when knative-internal-tls is enabled.
+	// Controller determines the knative-internal-tls is enabled or not by the port instead of configmap.
 	// ConfigMap does not work during the upgrade test - issues/968.
 	cm, err := clients.KubeClient.CoreV1().ConfigMaps(system.Namespace()).Get(ctx, "config-network", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal("Failed to fetch configmap:", err)
 	}
-	if strings.EqualFold(cm.Data[config.InternalEncryptionKey], "true") {
+	if strings.EqualFold(cm.Data[config.KnativeInternalTLSKey], config.EncryptionEnabled) {
 		portName = networking.ServicePortNameHTTPS
 	}
 

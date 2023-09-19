@@ -684,12 +684,12 @@ func (t *testConfigStore) ToContext(ctx context.Context) context.Context {
 var (
 	defaultConfig = &config.Config{
 		Network: &netconfig.Config{
-			AutoTLS: false,
+			ExternalDomainTLS: false,
 		},
 	}
 	upstreamTLSConfig = &config.Config{
 		Network: &netconfig.Config{
-			AutoTLS: false,
+			ExternalDomainTLS: false,
 		},
 	}
 )
@@ -937,7 +937,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false,
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false /* http2 */),
+							ConfigType: typedConfig(false /* http2 */, "servicens"),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1009,7 +1009,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(true /* http2 */),
+							ConfigType: typedConfig(true /* http2 */, "servicens"),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1082,7 +1082,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false /* http2 */),
+							ConfigType: typedConfig(false /* http2 */, "servicens"),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1155,7 +1155,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(true /* http2 */),
+							ConfigType: typedConfig(true /* http2 */, "servicens"),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1574,7 +1574,7 @@ var (
 	caSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "knative-testing",
-			Name:      netconfig.ServingInternalCertName,
+			Name:      netconfig.ServingRoutingCertName,
 		},
 		Data: map[string][]byte{
 			certificates.CaCertName: cert,
@@ -1592,7 +1592,7 @@ var (
 	}
 )
 
-func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
+func typedConfig(http2 bool, namespace string) *envoycorev3.TransportSocket_TypedConfig {
 	alpn := []string{""}
 	if http2 {
 		alpn = []string{"h2"}
@@ -1615,7 +1615,16 @@ func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 						SanType: auth.SubjectAltNameMatcher_DNS,
 						Matcher: &envoymatcherv3.StringMatcher{
 							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-								Exact: certificates.FakeDnsName,
+								// SAN of Activator
+								Exact: certificates.DataPlaneRoutingSAN,
+							},
+						},
+					}, {
+						SanType: auth.SubjectAltNameMatcher_DNS,
+						Matcher: &envoymatcherv3.StringMatcher{
+							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+								// SAN of Queue-Proxy in target namespace
+								Exact: certificates.DataPlaneUserSAN(namespace),
 							},
 						},
 					}},

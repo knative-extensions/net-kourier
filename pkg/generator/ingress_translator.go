@@ -151,10 +151,10 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// Match the ingress' port with a port on the Service to find the target.
 				// Also find out if the target supports HTTP2.
 				var (
-					externalPort       = int32(80)
-					targetPort         = int32(80)
-					http2              = false
-					internalEncryption = false
+					externalPort  = int32(80)
+					targetPort    = int32(80)
+					http2         = false
+					httpsPortUsed = false
 				)
 				for _, port := range service.Spec.Ports {
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
@@ -165,7 +165,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 						http2 = true
 					}
 					if port.Port == split.ServicePort.IntVal && port.Name == "https" {
-						internalEncryption = true
+						httpsPortUsed = true
 					}
 				}
 
@@ -209,16 +209,16 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				//
 				// TODO:
 				// Drop this configmap check - issues/968
-				// We can determin whether internal-encryption is enabled or disabled via `internalEncryption` only,
-				// but all conformance tests need to be updated to have the port name so check the configmap as well.
+				// We could determine whether knative-internal-tls is enabled or disabled via the flag only,
+				// but all conformance tests need to be updated to have the port name so we check the configmap as well.
 				//
 				// TODO: Or fetch configmap before the loop as per https://github.com/knative-sandbox/net-kourier/pull/959#discussion_r1048441513
 				cfg := config.FromContextOrDefaults(ctx)
 
 				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
-				if (cfg.Network.InternalEncryption || internalEncryption) && httpPath.RewriteHost == "" {
+				if (cfg.Network.KnativeInternalTLSEnabled() || httpsPortUsed) && httpPath.RewriteHost == "" {
 					var err error
-					transportSocket, err = translator.createUpstreamTransportSocket(http2)
+					transportSocket, err = translator.createUpstreamTransportSocket(http2, split.ServiceNamespace)
 					if err != nil {
 						return nil, err
 					}
@@ -296,8 +296,8 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	}, nil
 }
 
-func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool) (*envoycorev3.TransportSocket, error) {
-	caSecret, err := translator.secretGetter(pkgconfig.ServingNamespace(), netconfig.ServingInternalCertName)
+func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool, namespace string) (*envoycorev3.TransportSocket, error) {
+	caSecret, err := translator.secretGetter(pkgconfig.ServingNamespace(), netconfig.ServingRoutingCertName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch activator CA secret: %w", err)
 	}
@@ -305,7 +305,7 @@ func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool) (
 	if http2 {
 		alpnProtocols = "h2"
 	}
-	tlsAny, err := anypb.New(createUpstreamTLSContext(caSecret.Data[certificates.CaCertName], alpnProtocols))
+	tlsAny, err := anypb.New(createUpstreamTLSContext(caSecret.Data[certificates.CaCertName], namespace, alpnProtocols))
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool) (
 	}, nil
 }
 
-func createUpstreamTLSContext(caCertificate []byte, alpnProtocols ...string) *tlsv3.UpstreamTlsContext {
+func createUpstreamTLSContext(caCertificate []byte, namespace string, alpnProtocols ...string) *tlsv3.UpstreamTlsContext {
 	return &tlsv3.UpstreamTlsContext{
 		CommonTlsContext: &tlsv3.CommonTlsContext{
 			AlpnProtocols: alpnProtocols,
@@ -336,7 +336,16 @@ func createUpstreamTLSContext(caCertificate []byte, alpnProtocols ...string) *tl
 						SanType: tlsv3.SubjectAltNameMatcher_DNS,
 						Matcher: &envoymatcherv3.StringMatcher{
 							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-								Exact: certificates.FakeDnsName,
+								// SAN used by Activator
+								Exact: certificates.DataPlaneRoutingSAN,
+							},
+						},
+					}, {
+						SanType: tlsv3.SubjectAltNameMatcher_DNS,
+						Matcher: &envoymatcherv3.StringMatcher{
+							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+								// SAN used by Queue-Proxy in target namespace
+								Exact: certificates.DataPlaneUserSAN(namespace),
 							},
 						},
 					}},
