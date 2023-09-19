@@ -66,7 +66,7 @@ func TestProbe(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to fetch configmap:", err)
 	}
-	if strings.EqualFold(cm.Data[config.KnativeInternalTLSKey], config.EncryptionEnabled) {
+	if strings.EqualFold(cm.Data[config.KnativeInternalTLSKey], string(config.EncryptionEnabled)) {
 		portName = networking.ServicePortNameHTTPS
 	}
 
