@@ -22,4 +22,4 @@ metadata:
     app.kubernetes.io/component: networking
     app.kubernetes.io/version: devel
 data:
-  knative-internal-tls: "enabled"
+  system-internal-tls: "enabled"

@@ -103,5 +103,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace knative.dev/networking => github.com/ReToCode/networking v0.0.0-20230918124119-ce04c96e518c

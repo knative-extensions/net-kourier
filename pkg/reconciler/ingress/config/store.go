@@ -51,7 +51,7 @@ func FromContextOrDefaults(ctx context.Context) *Config {
 
 func defaultConfig() *netconfig.Config {
 	return &netconfig.Config{
-		ClusterLocalDomainTLS: netconfig.EncryptionDisabled,
+		SystemInternalTLS: netconfig.EncryptionDisabled,
 	}
 }
 
