@@ -28,13 +28,13 @@ $(dirname $0)/upload-test-images.sh
 echo ">> Setup test resources"
 ko apply -f test/config
 if [[ $(kubectl get secret server-certs -n "${TEST_NAMESPACE}" -o name | wc -l) -eq 1 ]]; then
-  echo ">> Enable tls against upstream"
+  echo ">> Enabling TLS on kourier gateway (one static certificate) and upstream TLS with system-internal-tls"
   ko apply -f test/config/tls
   export "UPSTREAM_TLS_CERT=server-certs"
   export "UPSTREAM_CA_CERT=server-ca"
   # Use OpenSSL subjectAltName/serverName to enable the certificate for various
   # application URLs with this pattern: <APP>.<NAMESPACE>.svc.X.X
-  export "SERVER_NAME=data-plane.knative.dev"
+  export "SERVER_NAME=kn-user-serving-tests"
 fi
 
 IPS=($(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}'))
@@ -74,8 +74,8 @@ go test -v -tags=e2e ./test/tls/... \
 
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"cipher-suites":""}}'
 
-echo ">> Setup one certificate"
-$(dirname $0)/generate-cert.sh
+echo ">> Setup one wildcard certificate"
+$(dirname $0)/generate-wildcard-cert.sh
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
 

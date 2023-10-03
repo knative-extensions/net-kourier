@@ -22,4 +22,4 @@ metadata:
     app.kubernetes.io/component: networking
     app.kubernetes.io/version: devel
 data:
-  internal-encryption: "true"
+  system-internal-tls: "enabled"
