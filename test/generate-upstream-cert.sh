@@ -17,7 +17,8 @@
 SERVING_SYSTEM_NAMESPACE=knative-serving
 TEST_NAMESPACE=serving-tests
 out_dir="$(mktemp -d /tmp/certs-XXX)"
-san="data-plane.knative.dev"
+activatorSAN="kn-routing"
+serviceSAN="kn-user-$TEST_NAMESPACE"
 
 kubectl create ns $SERVING_SYSTEM_NAMESPACE
 kubectl create ns $TEST_NAMESPACE
@@ -25,28 +26,34 @@ kubectl create ns $TEST_NAMESPACE
 # Generate Root key and cert.
 openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Example/CN=Example' -keyout "${out_dir}"/root.key -out "${out_dir}"/root.crt
 
-# Create server key
-openssl req -out "${out_dir}"/tls.csr -newkey rsa:2048 -nodes -keyout "${out_dir}"/tls.key -subj "/CN=Example/O=Example" -addext "subjectAltName = DNS:$san"
+# Create activator key + cert
+openssl req -out "${out_dir}"/activator-tls.csr -newkey rsa:2048 -nodes -keyout "${out_dir}"/activator-tls.key -subj "/CN=Example/O=Example" -addext "subjectAltName = DNS:$activatorSAN"
+openssl x509 -req -extfile <(printf "subjectAltName=DNS:$activatorSAN") -days 365 -in "${out_dir}"/activator-tls.csr -CA "${out_dir}"/root.crt -CAkey "${out_dir}"/root.key -CAcreateserial -out "${out_dir}"/activator-tls.crt
 
-# Create server certs
-openssl x509 -req -extfile <(printf "subjectAltName=DNS:$san") -days 365 -in "${out_dir}"/tls.csr -CA "${out_dir}"/root.crt -CAkey "${out_dir}"/root.key -CAcreateserial -out "${out_dir}"/tls.crt
+# Create test service key + cert
+openssl req -out "${out_dir}"/service-tls.csr -newkey rsa:2048 -nodes -keyout "${out_dir}"/service-tls.key -subj "/CN=Example/O=Example" -addext "subjectAltName = DNS:$serviceSAN"
+openssl x509 -req -extfile <(printf "subjectAltName=DNS:$serviceSAN") -days 365 -in "${out_dir}"/service-tls.csr -CA "${out_dir}"/root.crt -CAkey "${out_dir}"/root.key -CAcreateserial -out "${out_dir}"/service-tls.crt
 
-# Create secret
-# TODO: drop ca-cert.pem after v1.9 released. It is used for upgrade e2e test since previous version uses the old file name.
-kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret generic knative-serving-certs \
+# Create activator secret for system-internal-tls
+kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret generic routing-serving-certs \
     --from-file=ca.crt="${out_dir}"/root.crt \
-    --from-file=ca-cert.pem="${out_dir}"/root.crt \
     --dry-run=client -o yaml |  \
     sed  '/^metadata:/a\ \ labels: {"networking.internal.knative.dev/certificate-uid":"test-id"}' | kubectl apply -f -
 
-kubectl create -n ${TEST_NAMESPACE} secret tls server-certs \
-    --key="${out_dir}"/tls.key \
-    --cert="${out_dir}"/tls.crt --dry-run=client -o yaml | kubectl apply -f -
+# Create test service secret for system-internal-tls
+kubectl create -n ${TEST_NAMESPACE} secret tls serving-certs \
+    --key="${out_dir}"/service-tls.key \
+    --cert="${out_dir}"/service-tls.crt --dry-run=client -o yaml | kubectl apply -f -
 
-# For testing encryption with Kourier local gateway
+
+# Create a certificate for testing kourier encryption with a static certificate
+san="example.com"
+openssl req -out "${out_dir}"/san-tls.csr -newkey rsa:2048 -nodes -keyout "${out_dir}"/san-tls.key -subj "/CN=Example/O=Example" -addext "subjectAltName = DNS:$san"
+openssl x509 -req -extfile <(printf "subjectAltName=DNS:$san") -days 365 -in "${out_dir}"/san-tls.csr -CA "${out_dir}"/root.crt -CAkey "${out_dir}"/root.key -CAcreateserial -out "${out_dir}"/san-tls.crt
+
 kubectl create -n ${TEST_NAMESPACE} secret generic server-ca \
     --from-file=ca.crt="${out_dir}"/root.crt
 
 kubectl create -n ${SERVING_SYSTEM_NAMESPACE} secret tls server-certs \
-    --key="${out_dir}"/tls.key \
-    --cert="${out_dir}"/tls.crt --dry-run=client -o yaml | kubectl apply -f -
+    --key="${out_dir}"/san-tls.key \
+    --cert="${out_dir}"/san-tls.crt --dry-run=client -o yaml | kubectl apply -f -

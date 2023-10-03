@@ -937,7 +937,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false,
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false /* http2 */, "servicens"),
+							ConfigType: typedConfig(false),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1009,7 +1009,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(true /* http2 */, "servicens"),
+							ConfigType: typedConfig(true),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1082,7 +1082,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false /* http2 */, "servicens"),
+							ConfigType: typedConfig(false),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1155,7 +1155,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(true /* http2 */, "servicens"),
+							ConfigType: typedConfig(true),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1592,7 +1592,7 @@ var (
 	}
 )
 
-func typedConfig(http2 bool, namespace string) *envoycorev3.TransportSocket_TypedConfig {
+func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 	alpn := []string{""}
 	if http2 {
 		alpn = []string{"h2"}
@@ -1624,7 +1624,7 @@ func typedConfig(http2 bool, namespace string) *envoycorev3.TransportSocket_Type
 						Matcher: &envoymatcherv3.StringMatcher{
 							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
 								// SAN of Queue-Proxy in target namespace
-								Exact: certificates.DataPlaneUserSAN(namespace),
+								Exact: certificates.DataPlaneUserSAN("servicens"),
 							},
 						},
 					}},
