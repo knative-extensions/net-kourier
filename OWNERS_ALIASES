@@ -16,7 +16,9 @@ aliases:
   - snneji
   docs-writers:
   - csantanapr
-  - psschwei
+  - nak3
+  - retocode
+  - skonto
   - snneji
   eventing-autoscaler-keda-approvers: []
   eventing-awssqs-approvers:
@@ -224,7 +226,6 @@ aliases:
   productivity-writers:
   - cardil
   - kvmware
-  - psschwei
   - upodroid
   security-guard-approvers:
   - davidhadas
