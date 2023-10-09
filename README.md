@@ -177,7 +177,7 @@ kubectl get configmap config-kourier --namespace knative-serving --output yaml
 
 We need to:
 - Use your LB provider annotation to enable proxy-protocol.
-- If you are planning to enable autoTLS, use your LB provider annotation to specify a custom name to use for the Load balancer,
+- If you are planning to enable external-domain-tls, use your LB provider annotation to specify a custom name to use for the Load balancer,
   This is used to work around the issue of kube-proxy adding external LB address to node local iptables rule, which will break requests to an LB from in-cluster if the LB is expected to terminate SSL or proxy protocol.
 - Change the external Traffic Policy to `local` so the LB we'll preserve the client source IP and avoids a second hop for LoadBalancer.
 
