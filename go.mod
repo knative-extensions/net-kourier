@@ -27,7 +27,7 @@ require (
 	knative.dev/control-protocol v0.0.0-20230420145039-d9cda76c5b03
 	knative.dev/hack v0.0.0-20230417170854-f591fea109b3
 	knative.dev/networking v0.0.0-20231012063223-0b0f2107abef
-	knative.dev/pkg v0.0.0-20231011201526-df28feae6d34
+	knative.dev/pkg v0.0.0-20231023160942-0c39ce4b3a7f
 )
 
 require (
