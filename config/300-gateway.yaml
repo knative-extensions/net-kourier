@@ -113,7 +113,7 @@ spec:
               cpu: 200m
               memory: 200Mi
             limits:
-              cpu: 500m
+              cpu: "1"
               memory: 500Mi
       volumes:
         - name: config-volume
