@@ -106,10 +106,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	r.resyncConflicts = func() {
 		impl.FilteredGlobalResync(func(obj interface{}) bool {
-			lbReady := obj.(*v1alpha1.Ingress).Status.GetCondition(v1alpha1.IngressConditionLoadBalancerReady).GetReason()
+			lbReady := obj.(*v1alpha1.Ingress).Status.GetCondition(v1alpha1.IngressConditionLoadBalancerReady)
 			// Force reconcile all Kourier ingresses that are either not reconciled yet
 			// (and thus might end up in a conflict) or already in conflict.
-			return isKourierIngress(obj) && (lbReady == "" || lbReady == conflictReason)
+			return isKourierIngress(obj) && (lbReady == nil || lbReady.GetReason() == conflictReason)
 		}, ingressInformer.Informer())
 	}
 
