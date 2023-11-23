@@ -2,6 +2,8 @@
 # Do not modify this file, instead modify peribolos/knative-extensions.yaml
 
 aliases:
+  backstage-plugins-reviewers: []
+  backstage-plugins-writers: []
   client-wg-leads:
   - dsimansk
   - navidshaikh
