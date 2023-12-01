@@ -169,22 +169,22 @@ aliases:
   knative-admin:
   - Cali0707
   - ReToCode
+  - aliok
   - creydr
-  - csantanapr
   - davidhadas
   - dprotaso
   - dsimansk
-  - itsmurugappan
+  - evankanderson
   - knative-automation
   - knative-prow-releaser-robot
   - knative-prow-robot
   - knative-prow-updater-robot
   - knative-test-reporter-robot
-  - kvmware
-  - lance
+  - krsna-m
   - nainaz
   - pierDipi
   - psschwei
+  - puerco
   - salaboy
   - skonto
   - upodroid
@@ -225,14 +225,14 @@ aliases:
   - houshengbo
   - upodroid
   productivity-leads:
-  - kvmware
+  - krsna-m
   - upodroid
   productivity-wg-leads:
-  - kvmware
+  - krsna-m
   - upodroid
   productivity-writers:
   - cardil
-  - kvmware
+  - krsna-m
   - upodroid
   security-guard-approvers:
   - davidhadas
@@ -250,6 +250,7 @@ aliases:
   - psschwei
   - skonto
   serving-progressive-rollout-approvers:
+  - alexagriffith
   - houshengbo
   - sukumargaonkar
   - yuzisun
@@ -257,7 +258,7 @@ aliases:
   - KauzClay
   - jsanin-vmw
   - kauana
-  - kvmware
+  - krsna-m
   - retocode
   - skonto
   - xtreme-vikram-yadav
@@ -273,16 +274,16 @@ aliases:
   - psschwei
   - skonto
   steering-committee:
-  - csantanapr
-  - itsmurugappan
-  - lance
+  - aliok
+  - evankanderson
   - nainaz
+  - puerco
   - salaboy
   technical-oversight-committee:
   - davidhadas
   - dprotaso
   - dsimansk
-  - kvmware
+  - krsna-m
   - psschwei
   ux-wg-leads:
   - cali0707
