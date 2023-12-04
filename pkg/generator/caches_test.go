@@ -51,7 +51,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	kubeClient := fake.Clientset{}
 	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, &kubeClient, false)
+	caches, err := NewCaches(&kubeClient, false)
 	assert.NilError(t, err)
 
 	// Add info for an ingress
@@ -117,7 +117,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	kubeClient := fake.Clientset{}
 	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, &kubeClient, false)
+	caches, err := NewCaches(&kubeClient, false)
 	assert.NilError(t, err)
 
 	// Add info for an ingress
@@ -166,14 +166,14 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete, protocmp.Transform())
 }
 
-func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
+func TestExternalTLSListener(t *testing.T) {
 	t.Setenv(envCertsSecretNamespace, "certns")
 	t.Setenv(envCertsSecretName, "secretname")
 
 	kubeClient := fake.Clientset{}
 	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, &kubeClient, false)
+	caches, err := NewCaches(&kubeClient, false)
 	assert.NilError(t, err)
 
 	fooSNIMatch := &envoy.SNIMatch{
@@ -191,7 +191,7 @@ func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
 
 	t.Run("without SNI matches", func(t *testing.T) {
 		translatedIngress := &translatedIngress{
-			sniMatches: nil,
+			externalSNIMatches: nil,
 		}
 		err := caches.addTranslatedIngress(translatedIngress)
 		assert.NilError(t, err)
@@ -206,7 +206,7 @@ func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
 
 	t.Run("with a single SNI match", func(t *testing.T) {
 		translatedIngress := &translatedIngress{
-			sniMatches: []*envoy.SNIMatch{fooSNIMatch},
+			externalSNIMatches: []*envoy.SNIMatch{fooSNIMatch},
 		}
 		err := caches.addTranslatedIngress(translatedIngress)
 		assert.NilError(t, err)
@@ -233,7 +233,7 @@ func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
 
 	t.Run("with multiple SNI matches", func(t *testing.T) {
 		translatedIngress := &translatedIngress{
-			sniMatches: []*envoy.SNIMatch{fooSNIMatch, barSNIMatch},
+			externalSNIMatches: []*envoy.SNIMatch{fooSNIMatch, barSNIMatch},
 		}
 		err := caches.addTranslatedIngress(translatedIngress)
 		assert.NilError(t, err)
@@ -260,9 +260,9 @@ func TestTLSListenerWithEnvCertsSecret(t *testing.T) {
 	})
 }
 
-// TestTLSListenerWithInternalCertSecret verfies that
+// TestLocalTLSListener verifies that
 // filter is added when secret name is specified by cluster-cert-secret.
-func TestTLSListenerWithInternalCertSecret(t *testing.T) {
+func TestLocalTLSListener(t *testing.T) {
 	testConfig := &rconfig.Config{
 		Network: &netconfig.Config{},
 		Kourier: &config.Kourier{
@@ -271,7 +271,20 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 		},
 	}
 
-	internalSecret := &corev1.Secret{
+	fooSNIMatch := &envoy.SNIMatch{
+		Hosts:            []string{"foo.svc.cluster.local"},
+		CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname1"},
+		CertificateChain: []byte("cert1"),
+		PrivateKey:       []byte("privateKey1"),
+	}
+	barSNIMatch := &envoy.SNIMatch{
+		Hosts:            []string{"bar.svc.cluster.local"},
+		CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname2"},
+		CertificateChain: []byte("cert2"),
+		PrivateKey:       []byte("privateKey2"),
+	}
+
+	oneCertSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-ca",
 		},
@@ -284,15 +297,15 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 	cfg := testConfig.DeepCopy()
 	ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
 
-	_, err := kubeClient.CoreV1().Secrets("knative-serving").Create(ctx, internalSecret, metav1.CreateOptions{})
+	_, err := kubeClient.CoreV1().Secrets("knative-serving").Create(ctx, oneCertSecret, metav1.CreateOptions{})
 	assert.NilError(t, err)
 
-	caches, err := NewCaches(ctx, &kubeClient, false)
+	caches, err := NewCaches(&kubeClient, false)
 	assert.NilError(t, err)
 
 	t.Run("without SNI matches", func(t *testing.T) {
 		translatedIngress := &translatedIngress{
-			sniMatches: nil,
+			externalSNIMatches: nil,
 		}
 		err := caches.addTranslatedIngress(translatedIngress)
 		assert.NilError(t, err)
@@ -300,9 +313,64 @@ func TestTLSListenerWithInternalCertSecret(t *testing.T) {
 		snapshot, err := caches.ToEnvoySnapshot(ctx)
 		assert.NilError(t, err)
 
-		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortInternal)].(*listener.Listener)
+		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortLocal)].(*listener.Listener)
 		assert.Assert(t, len(tlsListener.ListenerFilters) == 1)
 		assert.Assert(t, (tlsListener.ListenerFilters[0]).Name == wellknown.ProxyProtocol)
+	})
+
+	t.Run("with a single SNI match", func(t *testing.T) {
+		translatedIngress := &translatedIngress{
+			localSNIMatches: []*envoy.SNIMatch{fooSNIMatch},
+		}
+		err := caches.addTranslatedIngress(translatedIngress)
+		assert.NilError(t, err)
+
+		snapshot, err := caches.ToEnvoySnapshot(ctx)
+		assert.NilError(t, err)
+
+		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortLocal)].(*listener.Listener)
+		filterChains := tlsListener.FilterChains
+		assert.Assert(t, len(filterChains) == 2)
+
+		filterChainsByServerName := map[string]*listener.FilterChain{}
+		for _, filterChain := range filterChains {
+			var serverName string
+			if filterChain.FilterChainMatch != nil {
+				serverName = filterChain.FilterChainMatch.ServerNames[0]
+			}
+			filterChainsByServerName[serverName] = filterChain
+		}
+
+		assert.Check(t, filterChainsByServerName["foo.svc.cluster.local"] != nil)
+		assert.Check(t, filterChainsByServerName[""] != nil) // filter chain without server name, "default" one
+	})
+
+	t.Run("with multiple SNI matches", func(t *testing.T) {
+		translatedIngress := &translatedIngress{
+			localSNIMatches: []*envoy.SNIMatch{fooSNIMatch, barSNIMatch},
+		}
+		err := caches.addTranslatedIngress(translatedIngress)
+		assert.NilError(t, err)
+
+		snapshot, err := caches.ToEnvoySnapshot(ctx)
+		assert.NilError(t, err)
+
+		tlsListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(config.HTTPSPortLocal)].(*listener.Listener)
+		filterChains := tlsListener.FilterChains
+		assert.Assert(t, len(filterChains) == 3)
+
+		filterChainsByServerName := map[string]*listener.FilterChain{}
+		for _, filterChain := range filterChains {
+			var serverName string
+			if filterChain.FilterChainMatch != nil {
+				serverName = filterChain.FilterChainMatch.ServerNames[0]
+			}
+			filterChainsByServerName[serverName] = filterChain
+		}
+
+		assert.Check(t, filterChainsByServerName["foo.svc.cluster.local"] != nil)
+		assert.Check(t, filterChainsByServerName["bar.svc.cluster.local"] != nil)
+		assert.Check(t, filterChainsByServerName[""] != nil) // filter chain without server name, "default" one
 	})
 }
 
@@ -324,7 +392,7 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 	cfg := testConfig.DeepCopy()
 	ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
 
-	caches, err := NewCaches(ctx, &kubeClient, false)
+	caches, err := NewCaches(&kubeClient, false)
 	assert.NilError(t, err)
 
 	t.Run("check a tracing cluster exist, and tracing is configured on listeners", func(t *testing.T) {
@@ -373,7 +441,7 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 		)
 
 		listenersPorts := []uint32{
-			config.HTTPPortExternal, config.HTTPPortInternal, config.HTTPPortProb,
+			config.HTTPPortExternal, config.HTTPPortLocal, config.HTTPPortProb,
 		}
 
 		for _, listenerPort := range listenersPorts {
@@ -410,7 +478,7 @@ func createTestDataForIngress(
 	ingressName string,
 	ingressNamespace string,
 	clusterName string,
-	internalVHostName string,
+	localVHostName string,
 	externalVHostName string,
 	externalTLSVHostName string) {
 
@@ -422,8 +490,8 @@ func createTestDataForIngress(
 		clusters:                []*v3.Cluster{{Name: clusterName}},
 		externalVirtualHosts:    []*route.VirtualHost{{Name: externalVHostName, Domains: []string{externalVHostName}}},
 		externalTLSVirtualHosts: []*route.VirtualHost{{Name: externalTLSVHostName, Domains: []string{externalTLSVHostName}}},
-		internalVirtualHosts:    []*route.VirtualHost{{Name: internalVHostName, Domains: []string{internalVHostName}}},
-		sniMatches: []*envoy.SNIMatch{{
+		localVirtualHosts:       []*route.VirtualHost{{Name: localVHostName, Domains: []string{localVHostName}}},
+		externalSNIMatches: []*envoy.SNIMatch{{
 			Hosts:            []string{"foo.example.com"},
 			CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname"},
 			CertificateChain: cert,
@@ -435,9 +503,8 @@ func createTestDataForIngress(
 
 func TestValidateIngress(t *testing.T) {
 	kubeClient := fake.Clientset{}
-	ctx := context.Background()
 
-	caches, err := NewCaches(ctx, &kubeClient, false)
+	caches, err := NewCaches(&kubeClient, false)
 	assert.NilError(t, err)
 
 	createTestDataForIngress(
@@ -459,8 +526,8 @@ func TestValidateIngress(t *testing.T) {
 		externalVirtualHosts:    []*route.VirtualHost{{Name: "external_host_for_ingress_2", Domains: []string{"external_host_for_ingress_2"}}},
 		externalTLSVirtualHosts: []*route.VirtualHost{{Name: "external_tls_host_for_ingress_2", Domains: []string{"external__tlshost_for_ingress_2"}}},
 		//This domain should clash with the cached ingress.
-		internalVirtualHosts: []*route.VirtualHost{{Name: "internal_host_for_ingress_2", Domains: []string{"internal_host_for_ingress_1"}}},
-		sniMatches: []*envoy.SNIMatch{{
+		localVirtualHosts: []*route.VirtualHost{{Name: "internal_host_for_ingress_2", Domains: []string{"internal_host_for_ingress_1"}}},
+		externalSNIMatches: []*envoy.SNIMatch{{
 			Hosts:            []string{"foo.example.com"},
 			CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname"},
 			CertificateChain: cert,

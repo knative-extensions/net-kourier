@@ -93,7 +93,8 @@ func TestIngressTranslator(t *testing.T) {
 					Namespace: "simplens",
 					Name:      "simplename",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -106,11 +107,12 @@ func TestIngressTranslator(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
-		name: "tls",
+		name: "external-domain-tls",
 		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
 			ing.Spec.TLS = []v1alpha1.IngressTLS{{
 				Hosts:           []string{"foo.example.com"},
@@ -156,7 +158,7 @@ func TestIngressTranslator(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{{
+				externalSNIMatches: []*envoy.SNIMatch{{
 					Hosts: []string{"foo.example.com"},
 					CertSource: types.NamespacedName{
 						Namespace: "secretns",
@@ -165,6 +167,7 @@ func TestIngressTranslator(t *testing.T) {
 					CertificateChain: cert,
 					PrivateKey:       privateKey,
 				}},
+				localSNIMatches: []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -177,11 +180,87 @@ func TestIngressTranslator(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: vHosts,
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
-		name: "tls redirect",
+		name: "cluster-local-domain-tls",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.TLS = []v1alpha1.IngressTLS{{
+				Hosts:           []string{"foo.ns.svc.cluster.local", "foo.ns.svc", "foo.ns"},
+				SecretNamespace: "secretns",
+				SecretName:      "secretname",
+			}}
+			ing.Spec.Rules[0].Visibility = v1alpha1.IngressVisibilityClusterLocal
+			ing.Spec.Rules[0].Hosts = []string{"foo.ns.svc.cluster.local", "foo.ns.svc", "foo.ns"}
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			secret,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(testspace/testname).Rules[0]",
+					[]string{"foo.ns.svc.cluster.local", "foo.ns.svc.cluster.local:*", "foo.ns.svc", "foo.ns.svc:*", "foo.ns", "foo.ns:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(testspace/testname).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						"rewritten.example.com"),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "testspace",
+					Name:      "testname",
+				},
+				localSNIMatches: []*envoy.SNIMatch{{
+					Hosts: []string{"foo.ns.svc.cluster.local", "foo.ns.svc", "foo.ns"},
+					CertSource: types.NamespacedName{
+						Namespace: "secretns",
+						Name:      "secretname",
+					},
+					CertificateChain: cert,
+					PrivateKey:       privateKey,
+				}},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbEndpoints,
+						false,
+						nil,
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    []*route.VirtualHost{},
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    vHosts,
+			}
+		}(),
+	}, {
+		name: "external-domain-tls redirect",
 		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
 			ing.Spec.TLS = []v1alpha1.IngressTLS{{
 				Hosts:           []string{"foo.example.com"},
@@ -248,7 +327,7 @@ func TestIngressTranslator(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{{
+				externalSNIMatches: []*envoy.SNIMatch{{
 					Hosts: []string{"foo.example.com"},
 					CertSource: types.NamespacedName{
 						Namespace: "secretns",
@@ -257,6 +336,7 @@ func TestIngressTranslator(t *testing.T) {
 					CertificateChain: cert,
 					PrivateKey:       privateKey,
 				}},
+				localSNIMatches: []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -269,12 +349,13 @@ func TestIngressTranslator(t *testing.T) {
 				},
 				externalVirtualHosts:    vHostsRedirect,
 				externalTLSVirtualHosts: vHosts,
-				internalVirtualHosts:    vHostsRedirect,
+				localVirtualHosts:       vHostsRedirect,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
-		// cluster local is not affected by HTTPOption.
-		name: "tls redirect cluster local",
+		// cluster-local-domain-tls is not affected by HTTPOption.
+		name: "cluster-local-domain-tls redirect",
 		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
 			ing.Spec.TLS = []v1alpha1.IngressTLS{{
 				Hosts:           []string{"foo.example.com"},
@@ -322,7 +403,8 @@ func TestIngressTranslator(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{{
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches: []*envoy.SNIMatch{{
 					Hosts: []string{"foo.example.com"},
 					CertSource: types.NamespacedName{
 						Namespace: "secretns",
@@ -343,17 +425,34 @@ func TestIngressTranslator(t *testing.T) {
 				},
 				externalVirtualHosts:    []*route.VirtualHost{},
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    vHosts,
 			}
 		}(),
 	}, {
-		name: "invalid tls",
+		name: "external-domain-tls invalid",
 		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
 			ing.Spec.TLS = []v1alpha1.IngressTLS{{
 				Hosts:           []string{"foo.example.com"},
 				SecretNamespace: "secretns",
 				SecretName:      "secretname",
 			}}
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			invalidSecret,
+		},
+		wantErr: true,
+	}, {
+		name: "cluster-local-domain-tls invalid",
+		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
+			ing.Spec.TLS = []v1alpha1.IngressTLS{{
+				Hosts:           []string{"foo.example.com"},
+				SecretNamespace: "secretns",
+				SecretName:      "secretname",
+			}}
+			ing.Spec.Rules[0].Visibility = v1alpha1.IngressVisibilityClusterLocal
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
@@ -427,7 +526,8 @@ func TestIngressTranslator(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -456,7 +556,8 @@ func TestIngressTranslator(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
@@ -501,7 +602,8 @@ func TestIngressTranslator(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -514,7 +616,8 @@ func TestIngressTranslator(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
@@ -559,7 +662,8 @@ func TestIngressTranslator(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -572,7 +676,8 @@ func TestIngressTranslator(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
@@ -618,7 +723,8 @@ func TestIngressTranslator(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -631,7 +737,8 @@ func TestIngressTranslator(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
@@ -702,7 +809,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 		state []runtime.Object
 		want  *translatedIngress
 	}{{
-		name: "tls redirect",
+		name: "external-domain-tls redirect",
 		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
 			ing.Spec.TLS = []v1alpha1.IngressTLS{{
 				Hosts:           []string{"foo.example.com"},
@@ -748,7 +855,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{{
+				externalSNIMatches: []*envoy.SNIMatch{{
 					Hosts: []string{"foo.example.com"},
 					CertSource: types.NamespacedName{
 						Namespace: "secretns",
@@ -757,6 +864,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 					CertificateChain: cert,
 					PrivateKey:       privateKey,
 				}},
+				localSNIMatches: []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -769,12 +877,13 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: vHosts,
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
-		// cluster local is not affected by HTTPOption.
-		name: "tls redirect cluster local",
+		// cluster-local-domain-tls is not affected by HTTPOption.
+		name: "cluster-local-domain-tls redirect",
 		in: ing("testspace", "testname", func(ing *v1alpha1.Ingress) {
 			ing.Spec.TLS = []v1alpha1.IngressTLS{{
 				Hosts:           []string{"foo.example.com"},
@@ -822,7 +931,8 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 					Namespace: "testspace",
 					Name:      "testname",
 				},
-				sniMatches: []*envoy.SNIMatch{{
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches: []*envoy.SNIMatch{{
 					Hosts: []string{"foo.example.com"},
 					CertSource: types.NamespacedName{
 						Namespace: "secretns",
@@ -843,7 +953,8 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				},
 				externalVirtualHosts:    []*route.VirtualHost{},
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    vHosts,
 			}
 		}(),
 	}}
@@ -928,7 +1039,8 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 					Namespace: "simplens",
 					Name:      "simplename",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -944,7 +1056,8 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
@@ -1000,7 +1113,8 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 					Namespace: "simplens",
 					Name:      "simplename",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -1016,7 +1130,8 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
@@ -1073,7 +1188,8 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 					Namespace: "simplens",
 					Name:      "simplename",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -1089,7 +1205,8 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}, {
@@ -1146,7 +1263,8 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 					Namespace: "simplens",
 					Name:      "simplename",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -1162,7 +1280,8 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}}
@@ -1246,7 +1365,8 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 					Namespace: "simplens",
 					Name:      "simplename",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"simplens/cm-acme-http-solver",
@@ -1259,7 +1379,8 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}
@@ -1353,7 +1474,8 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 					Namespace: "simplens",
 					Name:      "simplename",
 				},
-				sniMatches: []*envoy.SNIMatch{},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
 				clusters: []*v3.Cluster{
 					envoy.NewCluster(
 						"servicens/servicename",
@@ -1368,7 +1490,8 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 				},
 				externalVirtualHosts:    vHosts,
 				externalTLSVirtualHosts: []*route.VirtualHost{},
-				internalVirtualHosts:    vHosts,
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
 	}
