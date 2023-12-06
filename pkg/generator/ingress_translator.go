@@ -392,7 +392,7 @@ func (translator *IngressTranslator) buildTrustChain(logger *zap.SugaredLogger) 
 		return nil, fmt.Errorf("failed to fetch Secret %s/%s: %w", pkgconfig.ServingNamespace(), netconfig.ServingRoutingCertName, err)
 	}
 	routingCABytes := routingCA.Data[certificates.CaCertName]
-	if routingCABytes != nil && len(routingCABytes) > 0 {
+	if len(routingCABytes) > 0 {
 		if err = checkCertBundle(routingCABytes); err != nil {
 			logger.Warnf("CA from Secret %s/%s[%s] is invalid and will be ignored: %v",
 				pkgconfig.ServingNamespace(), netconfig.ServingRoutingCertName, certificates.CaCertName, err)

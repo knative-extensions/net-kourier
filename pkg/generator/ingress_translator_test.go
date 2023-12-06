@@ -763,7 +763,7 @@ func TestIngressTranslator(t *testing.T) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
 				func(ns, label string) ([]*corev1.ConfigMap, error) {
-					return getConfigmaps(ns, kubeclient, ctx)
+					return getConfigmaps(ctx, kubeclient, ns)
 				},
 				func(ns, name string) (*corev1.Endpoints, error) {
 					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -976,7 +976,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
 				func(ns, label string) ([]*corev1.ConfigMap, error) {
-					return getConfigmaps(ns, kubeclient, ctx)
+					return getConfigmaps(ctx, kubeclient, ns)
 				},
 				func(ns, name string) (*corev1.Endpoints, error) {
 					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -1582,7 +1582,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
 				func(ns, label string) ([]*corev1.ConfigMap, error) {
-					return getConfigmaps(ns, kubeclient, ctx)
+					return getConfigmaps(ctx, kubeclient, ns)
 				},
 				func(ns, name string) (*corev1.Endpoints, error) {
 					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -1684,7 +1684,7 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 			},
 			func(ns, label string) ([]*corev1.ConfigMap, error) {
-				return getConfigmaps(ns, kubeclient, ctx)
+				return getConfigmaps(ctx, kubeclient, ns)
 			},
 			func(ns, name string) (*corev1.Endpoints, error) {
 				return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -1797,7 +1797,7 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 			},
 			func(ns, label string) ([]*corev1.ConfigMap, error) {
-				return getConfigmaps(ns, kubeclient, ctx)
+				return getConfigmaps(ctx, kubeclient, ns)
 			},
 			func(ns, name string) (*corev1.Endpoints, error) {
 				return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -1955,14 +1955,15 @@ func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alp
 	return ingress
 }
 
-func getConfigmaps(ns string, kubeclient *fake.Clientset, ctx context.Context) ([]*corev1.ConfigMap, error) {
+func getConfigmaps(ctx context.Context, kubeclient *fake.Clientset, ns string) ([]*corev1.ConfigMap, error) {
 	cms, err := kubeclient.CoreV1().ConfigMaps(ns).List(ctx, metav1.ListOptions{LabelSelector: informerfiltering.KnativeCABundleLabelKey})
 	if err != nil {
 		return nil, err
 	}
 	result := make([]*corev1.ConfigMap, 0)
 	for _, c := range cms.Items {
-		result = append(result, &c)
+		ci := c
+		result = append(result, &ci)
 	}
 	return result, nil
 }
