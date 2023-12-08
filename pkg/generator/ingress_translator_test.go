@@ -166,7 +166,7 @@ func TestIngressTranslator(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				localSNIMatches: []*envoy.SNIMatch{},
@@ -241,7 +241,7 @@ func TestIngressTranslator(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				externalSNIMatches: []*envoy.SNIMatch{},
@@ -335,7 +335,7 @@ func TestIngressTranslator(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				localSNIMatches: []*envoy.SNIMatch{},
@@ -412,7 +412,7 @@ func TestIngressTranslator(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				clusters: []*v3.Cluster{
@@ -867,7 +867,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				localSNIMatches: []*envoy.SNIMatch{},
@@ -944,7 +944,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				clusters: []*v3.Cluster{
@@ -1058,7 +1058,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false,
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false, cert),
+							ConfigType: typedConfig(false, secretCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1132,7 +1132,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(true, cert),
+							ConfigType: typedConfig(true, secretCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1207,7 +1207,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false, cert),
+							ConfigType: typedConfig(false, secretCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1282,7 +1282,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(true, cert),
+							ConfigType: typedConfig(true, secretCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1348,7 +1348,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false,
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false, combineCerts(cert, cert)),
+							ConfigType: typedConfig(false, combineCerts(secretCert, configmapCert)),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1418,7 +1418,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false,
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false, cert),
+							ConfigType: typedConfig(false, configmapCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1988,16 +1988,27 @@ var lbEndpointHTTP01Challenge = []*endpoint.LbEndpoint{
 }
 
 var (
-	cert        = []byte(rsaCertPEM)
-	invalidCert = []byte(invalidRsaCertPEM)
-	privateKey  = []byte(rsaKeyPEM)
-	secret      = &corev1.Secret{
+	secretCert    = []byte(rsaSecretCertPEM)
+	configmapCert = []byte(rsaConfigmapCertPEM)
+	invalidCert   = []byte(invalidRsaCertPEM)
+	privateKey    = []byte(rsaKeyPEM)
+	secret        = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "secretns",
 			Name:      "secretname",
 		},
 		Data: map[string][]byte{
-			"tls.crt": cert,
+			"tls.crt": secretCert,
+			"tls.key": privateKey,
+		},
+	}
+	invalidSecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "secretns",
+			Name:      "secretname",
+		},
+		Data: map[string][]byte{
+			"tls.crt": invalidCert,
 			"tls.key": privateKey,
 		},
 	}
@@ -2007,7 +2018,7 @@ var (
 			Name:      netconfig.ServingRoutingCertName,
 		},
 		Data: map[string][]byte{
-			certificates.CaCertName: cert,
+			certificates.CaCertName: secretCert,
 		},
 	}
 	validCAConfigmap = &corev1.ConfigMap{
@@ -2019,7 +2030,7 @@ var (
 			},
 		},
 		Data: map[string]string{
-			certificates.CaCertName: string(cert),
+			certificates.CaCertName: string(configmapCert),
 		},
 	}
 	invalidCAConfigmap = &corev1.ConfigMap{
@@ -2043,17 +2054,7 @@ var (
 			},
 		},
 		Data: map[string]string{
-			certificates.CaCertName: string(cert) + "\n" + string(invalidCert),
-		},
-	}
-	invalidSecret = &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "secretns",
-			Name:      "secretname",
-		},
-		Data: map[string][]byte{
-			"tls.crt": invalidCert,
-			"tls.key": privateKey,
+			certificates.CaCertName: string(configmapCert) + "\n" + string(invalidCert),
 		},
 	}
 )
@@ -2109,7 +2110,7 @@ INVALID
 `
 
 // Copied from https://go.dev/src/crypto/tls/tls_test.go
-var rsaCertPEM = `-----BEGIN CERTIFICATE-----
+var rsaSecretCertPEM = `-----BEGIN CERTIFICATE-----
 MIIB0zCCAX2gAwIBAgIJAI/M7BYjwB+uMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
 BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
 aWRnaXRzIFB0eSBMdGQwHhcNMTIwOTEyMjE1MjAyWhcNMTUwOTEyMjE1MjAyWjBF
@@ -2122,6 +2123,27 @@ MAMBAf8wDQYJKoZIhvcNAQEFBQADQQBJlffJHybjDGxRMqaRmDhX0+6v02TUKZsW
 r5QuVbpQhH6u+0UgcW0jp9QwpxoPTLTWGXEWBBBurxFwiCBhkQ+V
 -----END CERTIFICATE-----
 `
+
+// Selfsigned CA for testing trust-bundles
+var rsaConfigmapCertPEM = `-----BEGIN CERTIFICATE-----
+MIIDDTCCAfWgAwIBAgIQMQuip05h7NLQq2TB+j9ZmTANBgkqhkiG9w0BAQsFADAW
+MRQwEgYDVQQDEwtrbmF0aXZlLmRldjAeFw0yMzExMjIwOTAwNDhaFw0yNDAyMjAw
+OTAwNDhaMBYxFDASBgNVBAMTC2tuYXRpdmUuZGV2MIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEA3clC3CV7sy0TpUKNuTku6QmP9z8JUCbLCPCLACCUc1zG
+FEokqOva6TakgvAntXLkB3TEsbdCJlNm6qFbbko6DBfX6rEggqZs40x3/T+KH66u
+4PvMT3fzEtaMJDK/KQOBIvVHrKmPkvccUYK/qWY7rgBjVjjLVSJrCn4dKaEZ2JNr
+Fd0KNnaaW/dP9/FvviLqVJvHnTMHH5qyRRr1kUGTrc8njRKwpHcnUdauiDoWRKxo
+Zlyy+MhQfdbbyapX984WsDjCvrDXzkdGgbRNAf+erl6yUm6pHpQhyFFo/zndx6Uq
+QXA7jYvM2M3qCnXmaFowidoLDsDyhwoxD7WT8zur/QIDAQABo1cwVTAOBgNVHQ8B
+Af8EBAMCAgQwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zAd
+BgNVHQ4EFgQU7p4VuECNOcnrP9ulOjc4J37Q2VUwDQYJKoZIhvcNAQELBQADggEB
+AAv26Vnk+ptQrppouF7yHV8fZbfnehpm07HIZkmnXO2vAP+MZJDNrHjy8JAVzXjt
++OlzqAL0cRQLsUptB0btoJuw23eq8RXgJo05OLOPQ2iGNbAATQh2kLwBWd/CMg+V
+KJ4EIEpF4dmwOohsNR6xa/JoArIYH0D7gh2CwjrdGZr/tq1eMSL+uZcuX5OiE44A
+2oXF9/jsqerOcH7QUMejSnB8N7X0LmUvH4jAesQgr7jo1JTOBs7GF6wb+U76NzFa
+8ms2iAWhoplQ+EHR52wffWb0k6trXspq4O6v/J+nq9Ky3vC36so+G1ZFkMhCdTVJ
+ZmrBsSMWeT2l07qeei2UFRU=
+-----END CERTIFICATE-----`
 
 var rsaKeyPEM = testingKey(`-----BEGIN RSA TESTING KEY-----
 MIIBOwIBAAJBANLJhPHhITqQbPklG3ibCVxwGMRfp/v4XqhfdQHdcVfHap6NQ5Wo

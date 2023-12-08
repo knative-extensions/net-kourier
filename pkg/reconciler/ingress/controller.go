@@ -246,11 +246,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		},
 		impl.Tracker)
 
-	// Pre-warming the ingresses needs the configuration to be loaded.
-	// As the config-store is starting to watch the configs after this function,
-	// we enforce the initial loading.
-	ctx = ctxWithInitialConfig(ctx, logger)
-
 	for _, ingress := range ingressesToSync {
 		if err := generator.UpdateInfoForIngress(
 			ctx, caches, ingress, &startupTranslator, config.ExternalAuthz.Enabled); err != nil {
@@ -345,33 +340,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	})
 
 	return impl
-}
-
-func ctxWithInitialConfig(ctx context.Context, logger *zap.SugaredLogger) context.Context {
-	networkCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, netconfig.ConfigMapName, metav1.GetOptions{})
-	if err != nil {
-		logger.Fatalw("Failed to fetch network config", zap.Error(err))
-	}
-	networkConfig, err := netconfig.NewConfigFromMap(networkCM.Data)
-	if err != nil {
-		logger.Fatalw("Failed to construct network config", zap.Error(err))
-	}
-
-	kourierCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, config.ConfigName, metav1.GetOptions{})
-	if err != nil {
-		logger.Fatalw("Failed to fetch kourier config", zap.Error(err))
-	}
-	kourierConfig, err := config.NewConfigFromMap(kourierCM.Data)
-	if err != nil {
-		logger.Fatalw("Failed to construct kourier config", zap.Error(err))
-	}
-
-	ctx = store.ToContext(ctx, &store.Config{
-		Kourier: kourierConfig,
-		Network: networkConfig,
-	})
-
-	return ctx
 }
 
 func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
