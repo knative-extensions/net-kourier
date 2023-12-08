@@ -47,6 +47,7 @@ import (
 	netconfig "knative.dev/networking/pkg/config"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
+	"knative.dev/pkg/system"
 	"knative.dev/pkg/tracker"
 )
 
@@ -62,25 +63,25 @@ type translatedIngress struct {
 }
 
 type IngressTranslator struct {
-	secretGetter    func(ns, name string) (*corev1.Secret, error)
-	configmapGetter func(ns, label string) ([]*corev1.ConfigMap, error)
-	endpointsGetter func(ns, name string) (*corev1.Endpoints, error)
-	serviceGetter   func(ns, name string) (*corev1.Service, error)
-	tracker         tracker.Interface
+	secretGetter      func(ns, name string) (*corev1.Secret, error)
+	nsConfigmapGetter func(label string) ([]*corev1.ConfigMap, error)
+	endpointsGetter   func(ns, name string) (*corev1.Endpoints, error)
+	serviceGetter     func(ns, name string) (*corev1.Service, error)
+	tracker           tracker.Interface
 }
 
 func NewIngressTranslator(
 	secretGetter func(ns, name string) (*corev1.Secret, error),
-	configmapGetter func(ns, label string) ([]*corev1.ConfigMap, error),
+	nsConfigmapGetter func(label string) ([]*corev1.ConfigMap, error),
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
 	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
-		secretGetter:    secretGetter,
-		configmapGetter: configmapGetter,
-		endpointsGetter: endpointsGetter,
-		serviceGetter:   serviceGetter,
-		tracker:         tracker,
+		secretGetter:      secretGetter,
+		nsConfigmapGetter: nsConfigmapGetter,
+		endpointsGetter:   endpointsGetter,
+		serviceGetter:     serviceGetter,
+		tracker:           tracker,
 	}
 }
 
@@ -387,24 +388,24 @@ func createUpstreamTLSContext(trustChain []byte, namespace string, alpnProtocols
 func (translator *IngressTranslator) buildTrustChain(logger *zap.SugaredLogger) ([]byte, error) {
 	var trustChain []byte
 
-	routingCA, err := translator.secretGetter(pkgconfig.ServingNamespace(), netconfig.ServingRoutingCertName)
+	routingCA, err := translator.secretGetter(system.Namespace(), netconfig.ServingRoutingCertName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch Secret %s/%s: %w", pkgconfig.ServingNamespace(), netconfig.ServingRoutingCertName, err)
+		return nil, fmt.Errorf("failed to fetch Secret %s/%s: %w", system.Namespace(), netconfig.ServingRoutingCertName, err)
 	}
 	routingCABytes := routingCA.Data[certificates.CaCertName]
 	if len(routingCABytes) > 0 {
 		if err = checkCertBundle(routingCABytes); err != nil {
 			logger.Warnf("CA from Secret %s/%s[%s] is invalid and will be ignored: %v",
-				pkgconfig.ServingNamespace(), netconfig.ServingRoutingCertName, certificates.CaCertName, err)
+				system.Namespace(), netconfig.ServingRoutingCertName, certificates.CaCertName, err)
 		} else {
-			logger.Infof("Adding CA from Secret %s/%s[%s] to trust chain", pkgconfig.ServingNamespace(), netconfig.ServingRoutingCertName, certificates.CaCertName)
+			logger.Infof("Adding CA from Secret %s/%s[%s] to trust chain", system.Namespace(), netconfig.ServingRoutingCertName, certificates.CaCertName)
 			trustChain = routingCABytes
 		}
 	}
 
-	cms, err := translator.configmapGetter(pkgconfig.ServingNamespace(), informerfiltering.KnativeCABundleLabelKey)
+	cms, err := translator.nsConfigmapGetter(informerfiltering.KnativeCABundleLabelKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch Configmaps with label: %s in namespace: %s: %w", informerfiltering.KnativeCABundleLabelKey, pkgconfig.ServingNamespace(), err)
+		return nil, fmt.Errorf("failed to fetch Configmaps with label: %s in namespace: %s: %w", informerfiltering.KnativeCABundleLabelKey, system.Namespace(), err)
 	}
 
 	newline := []byte("\n")
@@ -412,9 +413,9 @@ func (translator *IngressTranslator) buildTrustChain(logger *zap.SugaredLogger) 
 		for _, bundle := range cm.Data {
 			if err = checkCertBundle([]byte(bundle)); err != nil {
 				logger.Warnf("CA bundle from Configmap %s/%s is invalid and will be ignored: %v",
-					pkgconfig.ServingNamespace(), cm.Name, err)
+					system.Namespace(), cm.Name, err)
 			} else {
-				logger.Infof("Adding CA bundle from Configmap %s/%s to trust chain", pkgconfig.ServingNamespace(), cm.Name)
+				logger.Infof("Adding CA bundle from Configmap %s/%s to trust chain", system.Namespace(), cm.Name)
 				if len(trustChain) > 0 {
 					// make sure we always have at least one newline between bundles, multiple ones are ok
 					trustChain = append(trustChain, newline...)

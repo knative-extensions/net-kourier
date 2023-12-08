@@ -48,7 +48,6 @@ import (
 	netconfig "knative.dev/networking/pkg/config"
 	"knative.dev/networking/pkg/status"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
-	configmapinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/configmap"
 	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
 	secretfilteredinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret/filtered"
@@ -56,6 +55,7 @@ import (
 	filteredFactory "knative.dev/pkg/client/injection/kube/informers/factory/filtered"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
+	nsconfigmapinformer "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/configmap"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
 	"knative.dev/pkg/system"
@@ -85,7 +85,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 	secretInformer := getSecretInformer(ctx)
-	configmapInformer := configmapinformer.Get(ctx)
+	nsConfigmapInformer := nsconfigmapinformer.Get(ctx) // this is filtered to SYSTEM_NAMESPACE
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
 	caches, err := generator.NewCaches(kubernetesClient, config.ExternalAuthz.Enabled)
@@ -188,12 +188,12 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		func(ns, name string) (*corev1.Secret, error) {
 			return secretInformer.Lister().Secrets(ns).Get(name)
 		},
-		func(ns, label string) ([]*corev1.ConfigMap, error) {
+		func(label string) ([]*corev1.ConfigMap, error) {
 			selector, err := getLabelSelector(label)
 			if err != nil {
 				return nil, err
 			}
-			return configmapInformer.Lister().ConfigMaps(ns).List(selector)
+			return nsConfigmapInformer.Lister().ConfigMaps(system.Namespace()).List(selector)
 		},
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return endpointsInformer.Lister().Endpoints(ns).Get(name)
@@ -231,12 +231,12 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		func(ns, name string) (*corev1.Secret, error) {
 			return kubernetesClient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 		},
-		func(ns, label string) ([]*corev1.ConfigMap, error) {
+		func(label string) ([]*corev1.ConfigMap, error) {
 			selector, err := getLabelSelector(label)
 			if err != nil {
 				return nil, err
 			}
-			return configmapInformer.Lister().ConfigMaps(ns).List(selector)
+			return nsConfigmapInformer.Lister().ConfigMaps(system.Namespace()).List(selector)
 		},
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -334,7 +334,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		},
 	})
 
-	configmapInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+	nsConfigmapInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: reconciler.ChainFilterFuncs(
 			reconciler.LabelExistsFilterFunc(informerfiltering.KnativeCABundleLabelKey),
 		),
@@ -348,7 +348,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 }
 
 func ctxWithInitialConfig(ctx context.Context, logger *zap.SugaredLogger) context.Context {
-	networkCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(config.ServingNamespace()).Get(ctx, netconfig.ConfigMapName, metav1.GetOptions{})
+	networkCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, netconfig.ConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		logger.Fatalw("Failed to fetch network config", zap.Error(err))
 	}
@@ -357,7 +357,7 @@ func ctxWithInitialConfig(ctx context.Context, logger *zap.SugaredLogger) contex
 		logger.Fatalw("Failed to construct network config", zap.Error(err))
 	}
 
-	kourierCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(config.ServingNamespace()).Get(ctx, config.ConfigName, metav1.GetOptions{})
+	kourierCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, config.ConfigName, metav1.GetOptions{})
 	if err != nil {
 		logger.Fatalw("Failed to fetch kourier config", zap.Error(err))
 	}
