@@ -106,6 +106,8 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	externalTLSHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
 	clusters := make([]*v3.Cluster, 0, len(ingress.Spec.Rules))
 
+	cfg := config.FromContext(ctx)
+
 	for i, rule := range ingress.Spec.Rules {
 		ruleName := fmt.Sprintf("(%s/%s).Rules[%d]", ingress.Namespace, ingress.Name, i)
 
@@ -194,17 +196,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 				var transportSocket *envoycorev3.TransportSocket
 
-				// This has to be "OrDefaults" because this path could be called before the informers are
-				// running when booting the controller up and prefilling the config before making it
-				// ready.
-				//
-				// TODO:
-				// Drop this configmap check - issues/968
+				// TODO: drop this configmap check - issues/968
 				// We could determine whether system-internal-tls is enabled or disabled via the flag only,
 				// but all conformance tests need to be updated to have the port name so we check the configmap as well.
-				//
-				// TODO: Or fetch configmap before the loop as per https://github.com/knative-sandbox/net-kourier/pull/959#discussion_r1048441513
-				cfg := config.FromContextOrDefaults(ctx)
 
 				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
 				if (cfg.Network.SystemInternalTLSEnabled() || httpsPortUsed) && httpPath.RewriteHost == "" {

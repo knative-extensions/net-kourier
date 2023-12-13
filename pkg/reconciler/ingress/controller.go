@@ -18,7 +18,10 @@ package ingress
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
@@ -27,12 +30,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	v1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
-	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	store "knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	knativeclient "knative.dev/networking/pkg/client/injection/client"
@@ -50,6 +54,7 @@ import (
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
+	"knative.dev/pkg/system"
 )
 
 const (
@@ -96,7 +101,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		resync := configmap.TypeFilter(configsToResync...)(func(string, interface{}) {
 			impl.FilteredGlobalResync(isKourierIngress, ingressInformer.Informer())
 		})
-		configStore := rconfig.NewStore(logger.Named("config-store"), resync)
+		configStore := store.NewStore(logger.Named("config-store"), resync)
 		configStore.WatchConfigs(cmw)
 		return controller.Options{
 			ConfigStore:       configStore,
@@ -203,6 +208,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		logger.Fatalw("Failed to fetch ready ingresses", zap.Error(err))
 	}
 	logger.Infof("Priming the config with %d ingresses", len(ingressesToSync))
+
+	// startupTranslator will read the configuration from ctx, so we need to wait until
+	// the ConfigMaps are present or die
+	ctx = ensureCtxWithConfigOrDie(ctx)
 
 	// The startup translator uses clients instead of listeners to correctly list all
 	// resources at startup.
@@ -344,4 +353,43 @@ func readyAddresses(eps *corev1.Endpoints) sets.String {
 func getSecretInformer(ctx context.Context) v1.SecretInformer {
 	untyped := ctx.Value(filteredFactory.LabelKey{}) // This should always be not nil and have exactly one selector
 	return secretfilteredinformer.Get(ctx, untyped.([]string)[0])
+}
+
+func ensureCtxWithConfigOrDie(ctx context.Context) context.Context {
+	var err error
+	var cfg *store.Config
+	if pollErr := wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(context.Context) (bool, error) {
+		cfg, err = getInitialConfig(ctx)
+		return err == nil, nil
+	}); pollErr != nil {
+		log.Fatalf("Timed out waiting for configuration in ConfigMaps: %v", err)
+	}
+
+	ctx = store.ToContext(ctx, cfg)
+	return ctx
+}
+
+func getInitialConfig(ctx context.Context) (*store.Config, error) {
+	networkCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, netconfig.ConfigMapName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch network config: %w", err)
+	}
+	networkConfig, err := netconfig.NewConfigFromMap(networkCM.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct network config: %w", err)
+	}
+
+	kourierCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, config.ConfigName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch kourier config: %w", err)
+	}
+	kourierConfig, err := config.NewConfigFromMap(kourierCM.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct kourier config: %w", err)
+	}
+
+	return &store.Config{
+		Kourier: kourierConfig,
+		Network: networkConfig,
+	}, nil
 }
