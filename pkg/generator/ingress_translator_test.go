@@ -40,8 +40,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
-	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/certificates"
 	netconfig "knative.dev/networking/pkg/config"
@@ -1957,7 +1957,7 @@ func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alp
 }
 
 func getConfigmaps(ctx context.Context, kubeclient *fake.Clientset) ([]*corev1.ConfigMap, error) {
-	cms, err := kubeclient.CoreV1().ConfigMaps(system.Namespace()).List(ctx, metav1.ListOptions{LabelSelector: informerfiltering.KnativeCABundleLabelKey})
+	cms, err := kubeclient.CoreV1().ConfigMaps(system.Namespace()).List(ctx, metav1.ListOptions{LabelSelector: networking.TrustBundleLabelKey})
 	if err != nil {
 		return nil, err
 	}
@@ -2026,7 +2026,7 @@ var (
 			Namespace: "knative-testing",
 			Name:      "valid-ca",
 			Labels: map[string]string{
-				informerfiltering.KnativeCABundleLabelKey: "true",
+				networking.TrustBundleLabelKey: "true",
 			},
 		},
 		Data: map[string]string{
@@ -2038,7 +2038,7 @@ var (
 			Namespace: "knative-testing",
 			Name:      "invalid-ca",
 			Labels: map[string]string{
-				informerfiltering.KnativeCABundleLabelKey: "true",
+				networking.TrustBundleLabelKey: "true",
 			},
 		},
 		Data: map[string]string{
@@ -2050,7 +2050,7 @@ var (
 			Namespace: "knative-testing",
 			Name:      "partially-valid-ca",
 			Labels: map[string]string{
-				informerfiltering.KnativeCABundleLabelKey: "true",
+				networking.TrustBundleLabelKey: "true",
 			},
 		},
 		Data: map[string]string{

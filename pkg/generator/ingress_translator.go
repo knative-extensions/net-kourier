@@ -40,8 +40,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
-	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/certificates"
 	netconfig "knative.dev/networking/pkg/config"
@@ -403,9 +403,9 @@ func (translator *IngressTranslator) buildTrustChain(logger *zap.SugaredLogger) 
 		}
 	}
 
-	cms, err := translator.nsConfigmapGetter(informerfiltering.KnativeCABundleLabelKey)
+	cms, err := translator.nsConfigmapGetter(networking.TrustBundleLabelKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch Configmaps with label: %s in namespace: %s: %w", informerfiltering.KnativeCABundleLabelKey, system.Namespace(), err)
+		return nil, fmt.Errorf("failed to fetch Configmaps with label: %s in namespace: %s: %w", networking.TrustBundleLabelKey, system.Namespace(), err)
 	}
 
 	newline := []byte("\n")

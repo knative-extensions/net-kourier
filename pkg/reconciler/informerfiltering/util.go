@@ -25,9 +25,6 @@ import (
 	filteredFactory "knative.dev/pkg/client/injection/kube/informers/factory/filtered"
 )
 
-// TODO: rle extract this to pkg
-const KnativeCABundleLabelKey = "knative-ca-trust-bundle"
-
 const EnableSecretInformerFilteringByCertUIDEnv = "ENABLE_SECRET_INFORMER_FILTERING_BY_CERT_UID"
 
 // ShouldFilterByCertificateUID allows to choose whether to apply filtering on certificate related secrets
