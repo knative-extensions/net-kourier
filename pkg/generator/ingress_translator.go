@@ -398,7 +398,7 @@ func (translator *IngressTranslator) buildTrustChain(logger *zap.SugaredLogger) 
 			logger.Warnf("CA from Secret %s/%s[%s] is invalid and will be ignored: %v",
 				system.Namespace(), netconfig.ServingRoutingCertName, certificates.CaCertName, err)
 		} else {
-			logger.Infof("Adding CA from Secret %s/%s[%s] to trust chain", system.Namespace(), netconfig.ServingRoutingCertName, certificates.CaCertName)
+			logger.Debugf("Adding CA from Secret %s/%s[%s] to trust chain", system.Namespace(), netconfig.ServingRoutingCertName, certificates.CaCertName)
 			trustChain = routingCABytes
 		}
 	}
@@ -415,7 +415,7 @@ func (translator *IngressTranslator) buildTrustChain(logger *zap.SugaredLogger) 
 				logger.Warnf("CA bundle from Configmap %s/%s is invalid and will be ignored: %v",
 					system.Namespace(), cm.Name, err)
 			} else {
-				logger.Infof("Adding CA bundle from Configmap %s/%s to trust chain", system.Namespace(), cm.Name)
+				logger.Debugf("Adding CA bundle from Configmap %s/%s to trust chain", system.Namespace(), cm.Name)
 				if len(trustChain) > 0 {
 					// make sure we always have at least one newline between bundles, multiple ones are ok
 					trustChain = append(trustChain, newline...)
