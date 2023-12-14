@@ -577,8 +577,8 @@ google.golang.org/api v0.25.0/go.mod h1:lIXQywCXRcnZPGlsd8NbLnOjtAoL6em04bJ9+z0M
 google.golang.org/api v0.28.0/go.mod h1:lIXQywCXRcnZPGlsd8NbLnOjtAoL6em04bJ9+z0MncE=
 google.golang.org/api v0.29.0/go.mod h1:Lcubydp8VUV7KeIHD9z2Bys/sm/vGKnG1UHuDBSrHWM=
 google.golang.org/api v0.30.0/go.mod h1:QGmEvQ87FHZNiUVJkT14jQNYJ4ZJjdRF23ZXz5138Fc=
-google.golang.org/api v0.152.0 h1:t0r1vPnfMc260S2Ci+en7kfCZaLOPs5KI0sVV/6jZrY=
-google.golang.org/api v0.152.0/go.mod h1:3qNJX5eOmhiWYc67jRA/3GsDw97UFb5ivv7Y2PrriAY=
+google.golang.org/api v0.153.0 h1:N1AwGhielyKFaUqH07/ZSIQR3uNPcV7NVw0vj+j4iR4=
+google.golang.org/api v0.153.0/go.mod h1:3qNJX5eOmhiWYc67jRA/3GsDw97UFb5ivv7Y2PrriAY=
 google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
 google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/appengine v1.5.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
@@ -708,10 +708,10 @@ k8s.io/utils v0.0.0-20230209194617-a36077c30491 h1:r0BAOLElQnnFhE/ApUsg3iHdVYYPB
 k8s.io/utils v0.0.0-20230209194617-a36077c30491/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 knative.dev/hack v0.0.0-20231201014241-7030d5bf584d h1:IqXY770znXS9tLJDEh+OUcLMgtIFslSxqao3uplpUlY=
 knative.dev/hack v0.0.0-20231201014241-7030d5bf584d/go.mod h1:yk2OjGDsbEnQjfxdm0/HJKS2WqTLEFg/N6nUs6Rqx3Q=
-knative.dev/networking v0.0.0-20231204135118-c52ad92c6e13 h1:I5QnQc9eCV/ybuJqxyKmME5NxO/UjCQes3Q6c8xqpV4=
-knative.dev/networking v0.0.0-20231204135118-c52ad92c6e13/go.mod h1:njFzUMJxYa8RzgJwwYtz/miGQud/BikNi83jY1gLazY=
-knative.dev/pkg v0.0.0-20231204120332-9386ad6703ee h1:O1bJlEC4pzAEyTt8+f0Qe50QqS2JJxhK269CAGZ68vg=
-knative.dev/pkg v0.0.0-20231204120332-9386ad6703ee/go.mod h1:aJX49KSaKufMCwJgrCbHxXLTQ/j6LGspSZxn9VIv51w=
+knative.dev/networking v0.0.0-20231214120216-b06964dfbad9 h1:9h591Am8vSEqGKuIjUJuTmAVj4+ewVlzJFm2ZwbWklg=
+knative.dev/networking v0.0.0-20231214120216-b06964dfbad9/go.mod h1:njFzUMJxYa8RzgJwwYtz/miGQud/BikNi83jY1gLazY=
+knative.dev/pkg v0.0.0-20231211072236-4914c472e81a h1:rvQ83jR984Ow/O6Kjo2svp1G09bSfjn+fCvo/rKiEp4=
+knative.dev/pkg v0.0.0-20231211072236-4914c472e81a/go.mod h1:v9vcH/UyLLR7wmOcl9DsPu4eXeWQK6Oi8/wfHQbS6HM=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
