@@ -193,7 +193,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			if err != nil {
 				return nil, err
 			}
-			return nsConfigmapInformer.Lister().ConfigMaps(system.Namespace()).List(selector)
+			return nsConfigmapInformer.Lister().List(selector)
 		},
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return endpointsInformer.Lister().Endpoints(ns).Get(name)
@@ -236,7 +236,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			if err != nil {
 				return nil, err
 			}
-			return nsConfigmapInformer.Lister().ConfigMaps(system.Namespace()).List(selector)
+			return nsConfigmapInformer.Lister().List(selector)
 		},
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -386,7 +386,7 @@ func getSecretInformer(ctx context.Context) v1.SecretInformer {
 
 func getLabelSelector(label string) (labels.Selector, error) {
 	selector := labels.NewSelector()
-	req, err := labels.NewRequirement(label, selection.Exists, make([]string, 0))
+	req, err := labels.NewRequirement(label, selection.Exists, nil)
 	if err != nil {
 		return nil, err
 	}

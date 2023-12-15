@@ -417,7 +417,7 @@ func (translator *IngressTranslator) buildTrustChain(logger *zap.SugaredLogger) 
 			} else {
 				logger.Debugf("Adding CA bundle from Configmap %s/%s to trust chain", system.Namespace(), cm.Name)
 				if len(trustChain) > 0 {
-					// make sure we always have at least one newline between bundles, multiple ones are ok
+					// Make sure we always have at least one newline between bundles, multiple ones are ok
 					trustChain = append(trustChain, newline...)
 				}
 				trustChain = append(trustChain, []byte(bundle)...)
