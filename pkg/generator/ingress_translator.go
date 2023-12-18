@@ -123,6 +123,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		if err != nil {
 			return nil, err
 		}
+		if trustChain == nil {
+			return nil, fmt.Errorf("failed to build trust-chain, as no valid CA certificate was provided. Please make sure to provide a valid trust-bundle before enabling `system-internal-tls`")
+		}
 	}
 
 	for i, rule := range ingress.Spec.Rules {

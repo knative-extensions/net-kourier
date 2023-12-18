@@ -1000,10 +1000,11 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 
 func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 	tests := []struct {
-		name  string
-		in    *v1alpha1.Ingress
-		state []runtime.Object
-		want  *translatedIngress
+		name    string
+		in      *v1alpha1.Ingress
+		state   []runtime.Object
+		want    *translatedIngress
+		wantErr bool
 	}{{
 		name: "simple",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
@@ -1445,60 +1446,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			}(),
 			invalidCAConfigmap,
 		},
-		want: func() *translatedIngress {
-			vHosts := []*route.VirtualHost{
-				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
-					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
-									},
-								},
-							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						""),
-					},
-				),
-			}
-
-			return &translatedIngress{
-				name: types.NamespacedName{
-					Namespace: "simplens",
-					Name:      "simplename",
-				},
-				externalSNIMatches: []*envoy.SNIMatch{},
-				localSNIMatches:    []*envoy.SNIMatch{},
-				clusters: []*v3.Cluster{
-					envoy.NewCluster(
-						"servicens/servicename",
-						5*time.Second,
-						lbHTTPSEndpoints,
-						false,
-						&envoycorev3.TransportSocket{
-							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false, nil),
-						},
-						v3.Cluster_STATIC,
-					),
-				},
-				externalVirtualHosts:    vHosts,
-				externalTLSVirtualHosts: []*route.VirtualHost{},
-				localVirtualHosts:       vHosts,
-				localTLSVirtualHosts:    []*route.VirtualHost{},
-			}
-		}(),
+		wantErr: true,
 	}, {
 		name: "partially valid CA from configmap",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
@@ -1515,60 +1463,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			}(),
 			partiallyValidCAConfigmap,
 		},
-		want: func() *translatedIngress {
-			vHosts := []*route.VirtualHost{
-				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
-					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
-									},
-								},
-							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						""),
-					},
-				),
-			}
-
-			return &translatedIngress{
-				name: types.NamespacedName{
-					Namespace: "simplens",
-					Name:      "simplename",
-				},
-				externalSNIMatches: []*envoy.SNIMatch{},
-				localSNIMatches:    []*envoy.SNIMatch{},
-				clusters: []*v3.Cluster{
-					envoy.NewCluster(
-						"servicens/servicename",
-						5*time.Second,
-						lbHTTPSEndpoints,
-						false,
-						&envoycorev3.TransportSocket{
-							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false, nil),
-						},
-						v3.Cluster_STATIC,
-					),
-				},
-				externalVirtualHosts:    vHosts,
-				externalTLSVirtualHosts: []*route.VirtualHost{},
-				localVirtualHosts:       vHosts,
-				localTLSVirtualHosts:    []*route.VirtualHost{},
-			}
-		}(),
+		wantErr: true,
 	}}
 
 	for _, test := range tests {
@@ -1595,7 +1490,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			)
 
 			got, err := translator.translateIngress(ctx, test.in, false)
-			assert.NilError(t, err)
+			assert.Equal(t, err != nil, test.wantErr)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
 				protocmp.Transform(),
