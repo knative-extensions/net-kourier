@@ -2,7 +2,9 @@ module knative.dev/net-kourier
 
 // This comment was added so CI would trigger a point release with a
 // newer version of Go
-// Fixes: https://groups.google.com/g/golang-announce/c/iNNxDTCjZvo
+// Fixes
+// - https://groups.google.com/g/golang-announce/c/iNNxDTCjZvo
+// - https://github.com/knative/serving/issues/14732
 
 go 1.18
 
