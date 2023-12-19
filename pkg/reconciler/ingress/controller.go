@@ -28,6 +28,8 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -37,6 +39,7 @@ import (
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
 	store "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
 	knativeclient "knative.dev/networking/pkg/client/injection/client"
@@ -52,6 +55,7 @@ import (
 	filteredFactory "knative.dev/pkg/client/injection/kube/informers/factory/filtered"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
+	nsconfigmapinformer "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/configmap"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
 	"knative.dev/pkg/system"
@@ -81,6 +85,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 	secretInformer := getSecretInformer(ctx)
+	nsConfigmapInformer := nsconfigmapinformer.Get(ctx) // this is filtered to SYSTEM_NAMESPACE
 
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
 	caches, err := generator.NewCaches(kubernetesClient, config.ExternalAuthz.Enabled)
@@ -183,6 +188,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		func(ns, name string) (*corev1.Secret, error) {
 			return secretInformer.Lister().Secrets(ns).Get(name)
 		},
+		func(label string) ([]*corev1.ConfigMap, error) {
+			selector, err := getLabelSelector(label)
+			if err != nil {
+				return nil, err
+			}
+			return nsConfigmapInformer.Lister().List(selector)
+		},
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return endpointsInformer.Lister().Endpoints(ns).Get(name)
 		},
@@ -218,6 +230,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	startupTranslator := generator.NewIngressTranslator(
 		func(ns, name string) (*corev1.Secret, error) {
 			return kubernetesClient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(label string) ([]*corev1.ConfigMap, error) {
+			selector, err := getLabelSelector(label)
+			if err != nil {
+				return nil, err
+			}
+			return nsConfigmapInformer.Lister().List(selector)
 		},
 		func(ns, name string) (*corev1.Endpoints, error) {
 			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -310,6 +329,16 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		},
 	})
 
+	nsConfigmapInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		FilterFunc: reconciler.ChainFilterFuncs(
+			reconciler.LabelExistsFilterFunc(networking.TrustBundleLabelKey),
+		),
+		Handler: controller.HandleAll(func(obj interface{}) {
+			logger.Info("Doing a global resync due to CA bundle Configmap changes")
+			impl.FilteredGlobalResync(isKourierIngress, ingressInformer.Informer())
+		}),
+	})
+
 	return impl
 }
 
@@ -353,6 +382,16 @@ func readyAddresses(eps *corev1.Endpoints) sets.String {
 func getSecretInformer(ctx context.Context) v1.SecretInformer {
 	untyped := ctx.Value(filteredFactory.LabelKey{}) // This should always be not nil and have exactly one selector
 	return secretfilteredinformer.Get(ctx, untyped.([]string)[0])
+}
+
+func getLabelSelector(label string) (labels.Selector, error) {
+	selector := labels.NewSelector()
+	req, err := labels.NewRequirement(label, selection.Exists, nil)
+	if err != nil {
+		return nil, err
+	}
+	selector = selector.Add(*req)
+	return selector, nil
 }
 
 func ensureCtxWithConfigOrDie(ctx context.Context) context.Context {

@@ -19,6 +19,8 @@ package generator
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"strings"
@@ -31,6 +33,7 @@ import (
 	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoymatcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,11 +41,13 @@ import (
 	pkgconfig "knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/certificates"
 	netconfig "knative.dev/networking/pkg/config"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
+	"knative.dev/pkg/system"
 	"knative.dev/pkg/tracker"
 )
 
@@ -58,22 +63,25 @@ type translatedIngress struct {
 }
 
 type IngressTranslator struct {
-	secretGetter    func(ns, name string) (*corev1.Secret, error)
-	endpointsGetter func(ns, name string) (*corev1.Endpoints, error)
-	serviceGetter   func(ns, name string) (*corev1.Service, error)
-	tracker         tracker.Interface
+	secretGetter      func(ns, name string) (*corev1.Secret, error)
+	nsConfigmapGetter func(label string) ([]*corev1.ConfigMap, error)
+	endpointsGetter   func(ns, name string) (*corev1.Endpoints, error)
+	serviceGetter     func(ns, name string) (*corev1.Service, error)
+	tracker           tracker.Interface
 }
 
 func NewIngressTranslator(
 	secretGetter func(ns, name string) (*corev1.Secret, error),
+	nsConfigmapGetter func(label string) ([]*corev1.ConfigMap, error),
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
 	tracker tracker.Interface) IngressTranslator {
 	return IngressTranslator{
-		secretGetter:    secretGetter,
-		endpointsGetter: endpointsGetter,
-		serviceGetter:   serviceGetter,
-		tracker:         tracker,
+		secretGetter:      secretGetter,
+		nsConfigmapGetter: nsConfigmapGetter,
+		endpointsGetter:   endpointsGetter,
+		serviceGetter:     serviceGetter,
+		tracker:           tracker,
 	}
 }
 
@@ -107,6 +115,18 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 	clusters := make([]*v3.Cluster, 0, len(ingress.Spec.Rules))
 
 	cfg := config.FromContext(ctx)
+
+	var err error
+	var trustChain []byte
+	if cfg.Network.SystemInternalTLSEnabled() {
+		trustChain, err = translator.buildTrustChain(logger)
+		if err != nil {
+			return nil, err
+		}
+		if trustChain == nil {
+			return nil, fmt.Errorf("failed to build trust-chain, as no valid CA certificate was provided. Please make sure to provide a valid trust-bundle before enabling `system-internal-tls`")
+		}
+	}
 
 	for i, rule := range ingress.Spec.Rules {
 		ruleName := fmt.Sprintf("(%s/%s).Rules[%d]", ingress.Namespace, ingress.Name, i)
@@ -144,10 +164,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				// Match the ingress' port with a port on the Service to find the target.
 				// Also find out if the target supports HTTP2.
 				var (
-					externalPort  = int32(80)
-					targetPort    = int32(80)
-					http2         = false
-					httpsPortUsed = false
+					externalPort = int32(80)
+					targetPort   = int32(80)
+					http2        = false
 				)
 				for _, port := range service.Spec.Ports {
 					if port.Port == split.ServicePort.IntVal || port.Name == split.ServicePort.StrVal {
@@ -156,9 +175,6 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					}
 					if port.Name == "http2" || port.Name == "h2c" {
 						http2 = true
-					}
-					if port.Port == split.ServicePort.IntVal && port.Name == "https" {
-						httpsPortUsed = true
 					}
 				}
 
@@ -196,14 +212,10 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 				var transportSocket *envoycorev3.TransportSocket
 
-				// TODO: drop this configmap check - issues/968
-				// We could determine whether system-internal-tls is enabled or disabled via the flag only,
-				// but all conformance tests need to be updated to have the port name so we check the configmap as well.
-
-				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable TLS.
-				if (cfg.Network.SystemInternalTLSEnabled() || httpsPortUsed) && httpPath.RewriteHost == "" {
+				// As Ingress with RewriteHost points to ExternalService(kourier-internal), we don't enable upstream TLS.
+				if (cfg.Network.SystemInternalTLSEnabled()) && httpPath.RewriteHost == "" {
 					var err error
-					transportSocket, err = translator.createUpstreamTransportSocket(http2, split.ServiceNamespace)
+					transportSocket, err = translator.createUpstreamTransportSocket(http2, split.ServiceNamespace, trustChain)
 					if err != nil {
 						return nil, err
 					}
@@ -318,16 +330,12 @@ func (translator *IngressTranslator) translateIngressTLS(ingressTLS v1alpha1.Ing
 	return sniMatch, nil
 }
 
-func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool, namespace string) (*envoycorev3.TransportSocket, error) {
-	caSecret, err := translator.secretGetter(pkgconfig.ServingNamespace(), netconfig.ServingRoutingCertName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch activator CA secret: %w", err)
-	}
+func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool, namespace string, trustChain []byte) (*envoycorev3.TransportSocket, error) {
 	var alpnProtocols string
 	if http2 {
 		alpnProtocols = "h2"
 	}
-	tlsAny, err := anypb.New(createUpstreamTLSContext(caSecret.Data[certificates.CaCertName], namespace, alpnProtocols))
+	tlsAny, err := anypb.New(createUpstreamTLSContext(trustChain, namespace, alpnProtocols))
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +347,7 @@ func (translator *IngressTranslator) createUpstreamTransportSocket(http2 bool, n
 	}, nil
 }
 
-func createUpstreamTLSContext(caCertificate []byte, namespace string, alpnProtocols ...string) *tlsv3.UpstreamTlsContext {
+func createUpstreamTLSContext(trustChain []byte, namespace string, alpnProtocols ...string) *tlsv3.UpstreamTlsContext {
 	return &tlsv3.UpstreamTlsContext{
 		CommonTlsContext: &tlsv3.CommonTlsContext{
 			AlpnProtocols: alpnProtocols,
@@ -351,7 +359,7 @@ func createUpstreamTLSContext(caCertificate []byte, namespace string, alpnProtoc
 				ValidationContext: &tlsv3.CertificateValidationContext{
 					TrustedCa: &envoycorev3.DataSource{
 						Specifier: &envoycorev3.DataSource_InlineBytes{
-							InlineBytes: caCertificate,
+							InlineBytes: trustChain,
 						},
 					},
 					MatchTypedSubjectAltNames: []*tlsv3.SubjectAltNameMatcher{{
@@ -375,6 +383,52 @@ func createUpstreamTLSContext(caCertificate []byte, namespace string, alpnProtoc
 			},
 		},
 	}
+}
+
+// CA can optionally be in `ca.crt` in the `routing-serving-certs` secret
+// and/or configured using a trust-bundle via ConfigMap that has the defined label `knative-ca-trust-bundle`.
+// Our upstream TLS context needs to trust them all.
+func (translator *IngressTranslator) buildTrustChain(logger *zap.SugaredLogger) ([]byte, error) {
+	var trustChain []byte
+
+	routingCA, err := translator.secretGetter(system.Namespace(), netconfig.ServingRoutingCertName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Secret %s/%s: %w", system.Namespace(), netconfig.ServingRoutingCertName, err)
+	}
+	routingCABytes := routingCA.Data[certificates.CaCertName]
+	if len(routingCABytes) > 0 {
+		if err = checkCertBundle(routingCABytes); err != nil {
+			logger.Warnf("CA from Secret %s/%s[%s] is invalid and will be ignored: %v",
+				system.Namespace(), netconfig.ServingRoutingCertName, certificates.CaCertName, err)
+		} else {
+			logger.Debugf("Adding CA from Secret %s/%s[%s] to trust chain", system.Namespace(), netconfig.ServingRoutingCertName, certificates.CaCertName)
+			trustChain = routingCABytes
+		}
+	}
+
+	cms, err := translator.nsConfigmapGetter(networking.TrustBundleLabelKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Configmaps with label: %s in namespace: %s: %w", networking.TrustBundleLabelKey, system.Namespace(), err)
+	}
+
+	newline := []byte("\n")
+	for _, cm := range cms {
+		for _, bundle := range cm.Data {
+			if err = checkCertBundle([]byte(bundle)); err != nil {
+				logger.Warnf("CA bundle from Configmap %s/%s is invalid and will be ignored: %v",
+					system.Namespace(), cm.Name, err)
+			} else {
+				logger.Debugf("Adding CA bundle from Configmap %s/%s to trust chain", system.Namespace(), cm.Name)
+				if len(trustChain) > 0 {
+					// Make sure we always have at least one newline between bundles, multiple ones are ok
+					trustChain = append(trustChain, newline...)
+				}
+				trustChain = append(trustChain, []byte(bundle)...)
+			}
+		}
+	}
+
+	return trustChain, nil
 }
 
 func trackSecret(t tracker.Interface, ns, name string, ingress *v1alpha1.Ingress) error {
@@ -465,4 +519,25 @@ func domainsForRule(rule v1alpha1.IngressRule) []string {
 		domains = append(domains, host, host+":*")
 	}
 	return domains
+}
+
+func checkCertBundle(certs []byte) error {
+	for block, rest := pem.Decode(certs); block != nil || len(rest) > 0; block, rest = pem.Decode(rest) {
+		if block != nil {
+			switch block.Type {
+			case "CERTIFICATE":
+				_, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					return fmt.Errorf("failed to parse certificate. Invalid certificate found: %s, %v", block.Bytes, err.Error())
+				}
+
+			default:
+				return fmt.Errorf("failed to parse bundle. Bundle contains something other than a certificate. Type: %s, block: %s", block.Type, block.Bytes)
+			}
+		} else {
+			// if the last certificate is parsed, and we still have rest, there are additional unwanted things in the CM
+			return fmt.Errorf("failed to parse bundle. Bundle contains something other than a certificate: %s", rest)
+		}
+	}
+	return nil
 }

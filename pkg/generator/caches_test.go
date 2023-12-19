@@ -289,7 +289,7 @@ func TestLocalTLSListener(t *testing.T) {
 			Name: "test-ca",
 		},
 		Data: map[string][]byte{
-			certificates.CaCertName: cert,
+			certificates.CaCertName: secretCert,
 		},
 	}
 
@@ -494,7 +494,7 @@ func createTestDataForIngress(
 		externalSNIMatches: []*envoy.SNIMatch{{
 			Hosts:            []string{"foo.example.com"},
 			CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname"},
-			CertificateChain: cert,
+			CertificateChain: secretCert,
 			PrivateKey:       privateKey}},
 	}
 
@@ -530,7 +530,7 @@ func TestValidateIngress(t *testing.T) {
 		externalSNIMatches: []*envoy.SNIMatch{{
 			Hosts:            []string{"foo.example.com"},
 			CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname"},
-			CertificateChain: cert,
+			CertificateChain: secretCert,
 			PrivateKey:       privateKey}},
 	}
 

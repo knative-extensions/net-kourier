@@ -41,10 +41,12 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/certificates"
 	netconfig "knative.dev/networking/pkg/config"
 	pkgtest "knative.dev/pkg/reconciler/testing"
+	"knative.dev/pkg/system"
 )
 
 func TestIngressTranslator(t *testing.T) {
@@ -164,7 +166,7 @@ func TestIngressTranslator(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				localSNIMatches: []*envoy.SNIMatch{},
@@ -239,7 +241,7 @@ func TestIngressTranslator(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				externalSNIMatches: []*envoy.SNIMatch{},
@@ -333,7 +335,7 @@ func TestIngressTranslator(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				localSNIMatches: []*envoy.SNIMatch{},
@@ -410,7 +412,7 @@ func TestIngressTranslator(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				clusters: []*v3.Cluster{
@@ -761,6 +763,9 @@ func TestIngressTranslator(t *testing.T) {
 				func(ns, name string) (*corev1.Secret, error) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
+				func(label string) ([]*corev1.ConfigMap, error) {
+					return getConfigmaps(ctx, kubeclient)
+				},
 				func(ns, name string) (*corev1.Endpoints, error) {
 					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
 				},
@@ -797,6 +802,7 @@ var (
 	upstreamTLSConfig = &config.Config{
 		Network: &netconfig.Config{
 			ExternalDomainTLS: false,
+			SystemInternalTLS: netconfig.EncryptionEnabled,
 		},
 	}
 )
@@ -861,7 +867,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				localSNIMatches: []*envoy.SNIMatch{},
@@ -938,7 +944,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						Namespace: "secretns",
 						Name:      "secretname",
 					},
-					CertificateChain: cert,
+					CertificateChain: secretCert,
 					PrivateKey:       privateKey,
 				}},
 				clusters: []*v3.Cluster{
@@ -970,6 +976,9 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				func(ns, name string) (*corev1.Secret, error) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
+				func(label string) ([]*corev1.ConfigMap, error) {
+					return getConfigmaps(ctx, kubeclient)
+				},
 				func(ns, name string) (*corev1.Endpoints, error) {
 					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
 				},
@@ -991,10 +1000,11 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 
 func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 	tests := []struct {
-		name  string
-		in    *v1alpha1.Ingress
-		state []runtime.Object
-		want  *translatedIngress
+		name    string
+		in      *v1alpha1.Ingress
+		state   []runtime.Object
+		want    *translatedIngress
+		wantErr bool
 	}{{
 		name: "simple",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
@@ -1049,7 +1059,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false,
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false),
+							ConfigType: typedConfig(false, secretCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1123,7 +1133,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(true),
+							ConfigType: typedConfig(true, secretCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1198,7 +1208,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						false, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(false),
+							ConfigType: typedConfig(false, secretCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1273,7 +1283,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						true, /* http2 */
 						&envoycorev3.TransportSocket{
 							Name:       wellknown.TransportSocketTls,
-							ConfigType: typedConfig(true),
+							ConfigType: typedConfig(true, secretCert),
 						},
 						v3.Cluster_STATIC,
 					),
@@ -1284,6 +1294,176 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				localTLSVirtualHosts:    []*route.VirtualHost{},
 			}
 		}(),
+	}, {
+		name: "valid CAs from secret and configmap",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			caSecret,
+			validCAConfigmap,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(simplens/simplename).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(simplens/simplename).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						""),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbHTTPSEndpoints,
+						false,
+						&envoycorev3.TransportSocket{
+							Name:       wellknown.TransportSocketTls,
+							ConfigType: typedConfig(false, combineCerts(secretCert, configmapCert)),
+						},
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
+			}
+		}(),
+	}, {
+		name: "valid CA from configmap",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			func() runtime.Object {
+				s := caSecret.DeepCopy()
+				delete(s.Data, certificates.CaCertName)
+				return s
+			}(),
+			validCAConfigmap,
+		},
+		want: func() *translatedIngress {
+			vHosts := []*route.VirtualHost{
+				envoy.NewVirtualHost(
+					"(simplens/simplename).Rules[0]",
+					[]string{"foo.example.com", "foo.example.com:*"},
+					[]*route.Route{envoy.NewRoute(
+						"(simplens/simplename).Rules[0].Paths[/test]",
+						[]*route.HeaderMatcher{{
+							Name: "testheader",
+							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+								StringMatch: &envoymatcherv3.StringMatcher{
+									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+										Exact: "foo",
+									},
+								},
+							},
+						}},
+						"/test",
+						[]*route.WeightedCluster_ClusterWeight{
+							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+						},
+						0,
+						map[string]string{"foo": "bar"},
+						""),
+					},
+				),
+			}
+
+			return &translatedIngress{
+				name: types.NamespacedName{
+					Namespace: "simplens",
+					Name:      "simplename",
+				},
+				externalSNIMatches: []*envoy.SNIMatch{},
+				localSNIMatches:    []*envoy.SNIMatch{},
+				clusters: []*v3.Cluster{
+					envoy.NewCluster(
+						"servicens/servicename",
+						5*time.Second,
+						lbHTTPSEndpoints,
+						false,
+						&envoycorev3.TransportSocket{
+							Name:       wellknown.TransportSocketTls,
+							ConfigType: typedConfig(false, configmapCert),
+						},
+						v3.Cluster_STATIC,
+					),
+				},
+				externalVirtualHosts:    vHosts,
+				externalTLSVirtualHosts: []*route.VirtualHost{},
+				localVirtualHosts:       vHosts,
+				localTLSVirtualHosts:    []*route.VirtualHost{},
+			}
+		}(),
+	}, {
+		name: "invalid CA from configmap",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			func() runtime.Object {
+				s := caSecret.DeepCopy()
+				delete(s.Data, certificates.CaCertName)
+				return s
+			}(),
+			invalidCAConfigmap,
+		},
+		wantErr: true,
+	}, {
+		name: "partially valid CA from configmap",
+		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
+			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+		}),
+		state: []runtime.Object{
+			svc("servicens", "servicename"),
+			eps("servicens", "servicename"),
+			func() runtime.Object {
+				s := caSecret.DeepCopy()
+				delete(s.Data, certificates.CaCertName)
+				return s
+			}(),
+			partiallyValidCAConfigmap,
+		},
+		wantErr: true,
 	}}
 
 	for _, test := range tests {
@@ -1297,6 +1477,9 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				func(ns, name string) (*corev1.Secret, error) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
+				func(label string) ([]*corev1.ConfigMap, error) {
+					return getConfigmaps(ctx, kubeclient)
+				},
 				func(ns, name string) (*corev1.Endpoints, error) {
 					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
 				},
@@ -1307,7 +1490,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 			)
 
 			got, err := translator.translateIngress(ctx, test.in, false)
-			assert.NilError(t, err)
+			assert.Equal(t, err != nil, test.wantErr)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
 				protocmp.Transform(),
@@ -1395,6 +1578,9 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 		translator := NewIngressTranslator(
 			func(ns, name string) (*corev1.Secret, error) {
 				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			func(label string) ([]*corev1.ConfigMap, error) {
+				return getConfigmaps(ctx, kubeclient)
 			},
 			func(ns, name string) (*corev1.Endpoints, error) {
 				return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -1505,6 +1691,9 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 		translator := NewIngressTranslator(
 			func(ns, name string) (*corev1.Secret, error) {
 				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			func(label string) ([]*corev1.ConfigMap, error) {
+				return getConfigmaps(ctx, kubeclient)
 			},
 			func(ns, name string) (*corev1.Endpoints, error) {
 				return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
@@ -1662,6 +1851,19 @@ func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alp
 	return ingress
 }
 
+func getConfigmaps(ctx context.Context, kubeclient *fake.Clientset) ([]*corev1.ConfigMap, error) {
+	cms, err := kubeclient.CoreV1().ConfigMaps(system.Namespace()).List(ctx, metav1.ListOptions{LabelSelector: networking.TrustBundleLabelKey})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*corev1.ConfigMap, 0)
+	for _, c := range cms.Items {
+		ci := c
+		result = append(result, &ci)
+	}
+	return result, nil
+}
+
 var lbEndpoints = []*endpoint.LbEndpoint{
 	envoy.NewLBEndpoint("2.2.2.2", 8080),
 	envoy.NewLBEndpoint("3.3.3.3", 8080),
@@ -1681,26 +1883,18 @@ var lbEndpointHTTP01Challenge = []*endpoint.LbEndpoint{
 }
 
 var (
-	cert        = []byte(rsaCertPEM)
-	invalidCert = []byte(invalidRsaCertPEM)
-	privateKey  = []byte(rsaKeyPEM)
-	secret      = &corev1.Secret{
+	secretCert    = []byte(rsaSecretCertPEM)
+	configmapCert = []byte(rsaConfigmapCertPEM)
+	invalidCert   = []byte(invalidRsaCertPEM)
+	privateKey    = []byte(rsaKeyPEM)
+	secret        = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "secretns",
 			Name:      "secretname",
 		},
 		Data: map[string][]byte{
-			"tls.crt": cert,
+			"tls.crt": secretCert,
 			"tls.key": privateKey,
-		},
-	}
-	caSecret = &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "knative-testing",
-			Name:      netconfig.ServingRoutingCertName,
-		},
-		Data: map[string][]byte{
-			certificates.CaCertName: cert,
 		},
 	}
 	invalidSecret = &corev1.Secret{
@@ -1713,9 +1907,54 @@ var (
 			"tls.key": privateKey,
 		},
 	}
+	caSecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "knative-testing",
+			Name:      netconfig.ServingRoutingCertName,
+		},
+		Data: map[string][]byte{
+			certificates.CaCertName: secretCert,
+		},
+	}
+	validCAConfigmap = &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "knative-testing",
+			Name:      "valid-ca",
+			Labels: map[string]string{
+				networking.TrustBundleLabelKey: "true",
+			},
+		},
+		Data: map[string]string{
+			certificates.CaCertName: string(configmapCert),
+		},
+	}
+	invalidCAConfigmap = &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "knative-testing",
+			Name:      "invalid-ca",
+			Labels: map[string]string{
+				networking.TrustBundleLabelKey: "true",
+			},
+		},
+		Data: map[string]string{
+			certificates.CaCertName: "NOT A VALID CA",
+		},
+	}
+	partiallyValidCAConfigmap = &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "knative-testing",
+			Name:      "partially-valid-ca",
+			Labels: map[string]string{
+				networking.TrustBundleLabelKey: "true",
+			},
+		},
+		Data: map[string]string{
+			certificates.CaCertName: string(configmapCert) + "\n" + string(invalidCert),
+		},
+	}
 )
 
-func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
+func typedConfig(http2 bool, expectedCert []byte) *envoycorev3.TransportSocket_TypedConfig {
 	alpn := []string{""}
 	if http2 {
 		alpn = []string{"h2"}
@@ -1731,7 +1970,7 @@ func typedConfig(http2 bool) *envoycorev3.TransportSocket_TypedConfig {
 				ValidationContext: &auth.CertificateValidationContext{
 					TrustedCa: &envoycorev3.DataSource{
 						Specifier: &envoycorev3.DataSource_InlineBytes{
-							InlineBytes: cert,
+							InlineBytes: expectedCert,
 						},
 					},
 					MatchTypedSubjectAltNames: []*auth.SubjectAltNameMatcher{{
@@ -1766,7 +2005,7 @@ INVALID
 `
 
 // Copied from https://go.dev/src/crypto/tls/tls_test.go
-var rsaCertPEM = `-----BEGIN CERTIFICATE-----
+var rsaSecretCertPEM = `-----BEGIN CERTIFICATE-----
 MIIB0zCCAX2gAwIBAgIJAI/M7BYjwB+uMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
 BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
 aWRnaXRzIFB0eSBMdGQwHhcNMTIwOTEyMjE1MjAyWhcNMTUwOTEyMjE1MjAyWjBF
@@ -1780,6 +2019,27 @@ r5QuVbpQhH6u+0UgcW0jp9QwpxoPTLTWGXEWBBBurxFwiCBhkQ+V
 -----END CERTIFICATE-----
 `
 
+// Selfsigned CA for testing trust-bundles
+var rsaConfigmapCertPEM = `-----BEGIN CERTIFICATE-----
+MIIDDTCCAfWgAwIBAgIQMQuip05h7NLQq2TB+j9ZmTANBgkqhkiG9w0BAQsFADAW
+MRQwEgYDVQQDEwtrbmF0aXZlLmRldjAeFw0yMzExMjIwOTAwNDhaFw0yNDAyMjAw
+OTAwNDhaMBYxFDASBgNVBAMTC2tuYXRpdmUuZGV2MIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEA3clC3CV7sy0TpUKNuTku6QmP9z8JUCbLCPCLACCUc1zG
+FEokqOva6TakgvAntXLkB3TEsbdCJlNm6qFbbko6DBfX6rEggqZs40x3/T+KH66u
+4PvMT3fzEtaMJDK/KQOBIvVHrKmPkvccUYK/qWY7rgBjVjjLVSJrCn4dKaEZ2JNr
+Fd0KNnaaW/dP9/FvviLqVJvHnTMHH5qyRRr1kUGTrc8njRKwpHcnUdauiDoWRKxo
+Zlyy+MhQfdbbyapX984WsDjCvrDXzkdGgbRNAf+erl6yUm6pHpQhyFFo/zndx6Uq
+QXA7jYvM2M3qCnXmaFowidoLDsDyhwoxD7WT8zur/QIDAQABo1cwVTAOBgNVHQ8B
+Af8EBAMCAgQwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zAd
+BgNVHQ4EFgQU7p4VuECNOcnrP9ulOjc4J37Q2VUwDQYJKoZIhvcNAQELBQADggEB
+AAv26Vnk+ptQrppouF7yHV8fZbfnehpm07HIZkmnXO2vAP+MZJDNrHjy8JAVzXjt
++OlzqAL0cRQLsUptB0btoJuw23eq8RXgJo05OLOPQ2iGNbAATQh2kLwBWd/CMg+V
+KJ4EIEpF4dmwOohsNR6xa/JoArIYH0D7gh2CwjrdGZr/tq1eMSL+uZcuX5OiE44A
+2oXF9/jsqerOcH7QUMejSnB8N7X0LmUvH4jAesQgr7jo1JTOBs7GF6wb+U76NzFa
+8ms2iAWhoplQ+EHR52wffWb0k6trXspq4O6v/J+nq9Ky3vC36so+G1ZFkMhCdTVJ
+ZmrBsSMWeT2l07qeei2UFRU=
+-----END CERTIFICATE-----`
+
 var rsaKeyPEM = testingKey(`-----BEGIN RSA TESTING KEY-----
 MIIBOwIBAAJBANLJhPHhITqQbPklG3ibCVxwGMRfp/v4XqhfdQHdcVfHap6NQ5Wo
 k/4xIA+ui35/MmNartNuC+BdZ1tMuVCPFZcCAwEAAQJAEJ2N+zsR0Xn8/Q6twa4G
@@ -1792,3 +2052,10 @@ D2lWusoe2/nEqfDVVWGWlyJ7yOmqaVm/iNUN9B2N2g==
 `)
 
 func testingKey(s string) string { return strings.ReplaceAll(s, "TESTING KEY", "PRIVATE KEY") }
+
+func combineCerts(cert1 []byte, cert2 []byte) []byte {
+	result := cert1
+	result = append(result, []byte("\n")...)
+	result = append(result, cert2...)
+	return result
+}

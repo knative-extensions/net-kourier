@@ -65,10 +65,6 @@ const (
 	// to indicate that http2 should not be enabled for it.
 	disableHTTP2AnnotationKey = "kourier.knative.dev/disable-http2"
 
-	// ServingNamespaceEnv is an env variable specifying where the serving is deployed.
-	// e.g. OpenShift deploys Kourier in different namespace so `system.Namespace()` does not work.
-	ServingNamespaceEnv = "SERVING_NAMESPACE"
-
 	// trustedHopsCount Configure the number of additional ingress proxy hops from the
 	// right side of the x-forwarded-for HTTP header to trust.
 	trustedHopsCount = "trusted-hops-count"
@@ -92,15 +88,6 @@ func ServiceHostnames() (string, string) {
 // GatewayNamespace returns the namespace where the gateway is deployed.
 func GatewayNamespace() string {
 	namespace := os.Getenv(GatewayNamespaceEnv)
-	if namespace == "" {
-		return system.Namespace()
-	}
-	return namespace
-}
-
-// ServingNamespace returns the namespace where the serving is deployed.
-func ServingNamespace() string {
-	namespace := os.Getenv(ServingNamespaceEnv)
 	if namespace == "" {
 		return system.Namespace()
 	}
