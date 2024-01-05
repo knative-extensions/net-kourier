@@ -67,6 +67,8 @@ aliases:
   - spolti
   - vaibhavjainwiz
   eventing-natss-approvers:
+  - astelmashenko
+  - dan-j
   - zhaojizhuang
   eventing-prometheus-approvers:
   - lberk
