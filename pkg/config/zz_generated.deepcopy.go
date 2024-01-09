@@ -30,7 +30,7 @@ func (in *Kourier) DeepCopyInto(out *Kourier) {
 	*out = *in
 	if in.CipherSuites != nil {
 		in, out := &in.CipherSuites, &out.CipherSuites
-		*out = make(sets.String, len(*in))
+		*out = make(sets.Set[string], len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

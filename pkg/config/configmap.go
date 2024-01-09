@@ -153,7 +153,7 @@ type Kourier struct {
 	// TLS handshake. The default value is "false".
 	EnableCryptoMB bool
 	// CipherSuites specifies the cipher suites for TLS external listener.
-	CipherSuites sets.String
+	CipherSuites sets.Set[string]
 	// Tracing specifies the configuration for gateway tracing
 	Tracing Tracing
 }

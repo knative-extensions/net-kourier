@@ -61,7 +61,7 @@ func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1al
 }
 
 func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIps []string) ([]status.ProbeTarget, error) {
-	ips := sets.NewString(gatewayIps...)
+	ips := sets.New(gatewayIps...)
 
 	localIngressTLS := ing.GetIngressTLSForVisibility(v1alpha1.IngressVisibilityClusterLocal)
 	externalIngressTLS := ing.GetIngressTLSForVisibility(v1alpha1.IngressVisibilityExternalIP)

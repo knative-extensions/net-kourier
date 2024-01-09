@@ -89,7 +89,7 @@ func TestKourierConfig(t *testing.T) {
 		name: "set cipher suites",
 		want: &Kourier{
 			EnableServiceAccessLogging: false,
-			CipherSuites:               sets.NewString("foo", "bar"),
+			CipherSuites:               sets.New("foo", "bar"),
 		},
 		data: map[string]string{
 			enableServiceAccessLoggingKey: "false",

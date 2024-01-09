@@ -174,7 +174,7 @@ func TestNewHTTPSListenerWithSNIWithCipherSuites(t *testing.T) {
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        false,
 		IdleTimeout:                0 * time.Second,
-		CipherSuites:               sets.NewString("foo", "bar"),
+		CipherSuites:               sets.New("foo", "bar"),
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 	listener, err := NewHTTPSListenerWithSNI(manager, 8443, sniMatches, &kourierConfig)
@@ -184,7 +184,7 @@ func TestNewHTTPSListenerWithSNIWithCipherSuites(t *testing.T) {
 	err = anypb.UnmarshalTo(listener.FilterChains[0].GetTransportSocket().GetTypedConfig(), downstreamTLSContext, proto.UnmarshalOptions{})
 	assert.NilError(t, err)
 
-	assert.DeepEqual(t, kourierConfig.CipherSuites.List(), downstreamTLSContext.CommonTlsContext.TlsParams.CipherSuites)
+	assert.DeepEqual(t, sets.List(kourierConfig.CipherSuites), downstreamTLSContext.CommonTlsContext.TlsParams.CipherSuites)
 
 	assert.Equal(t, core.SocketAddress_TCP, listener.Address.GetSocketAddress().Protocol)
 	assert.Equal(t, "0.0.0.0", listener.Address.GetSocketAddress().Address)

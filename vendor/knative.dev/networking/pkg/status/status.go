@@ -96,7 +96,7 @@ type workItem struct {
 
 // ProbeTarget contains the URLs to probes for a set of Pod IPs serving out of the same port.
 type ProbeTarget struct {
-	PodIPs  sets.String
+	PodIPs  sets.Set[string]
 	PodPort string
 	Port    string
 	URLs    []*url.URL

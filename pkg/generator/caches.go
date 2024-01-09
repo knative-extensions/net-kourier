@@ -444,7 +444,7 @@ func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager
 		Certificate:        certificateChain,
 		PrivateKey:         privateKey,
 		PrivateKeyProvider: privateKeyProvider(cfg.EnableCryptoMB),
-		CipherSuites:       cfg.CipherSuites.List(),
+		CipherSuites:       sets.List(cfg.CipherSuites),
 	})
 }
 
@@ -466,7 +466,7 @@ func newLocalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *h
 		Certificate:        certificateChain,
 		PrivateKey:         privateKey,
 		PrivateKeyProvider: privateKeyProvider(cfg.EnableCryptoMB),
-		CipherSuites:       cfg.CipherSuites.List(),
+		CipherSuites:       sets.List(cfg.CipherSuites),
 	})
 }
 

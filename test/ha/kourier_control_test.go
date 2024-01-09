@@ -49,7 +49,7 @@ func TestKourierControlHA(t *testing.T) {
 	}
 
 	// TODO(mattmoor): Once we switch to the new sharded leader election, we should use more than a single bucket here, but the test is still interesting.
-	leaders, err := pkgHa.WaitForNewLeaders(ctx, t, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, sets.NewString(), 1 /* numBuckets */)
+	leaders, err := pkgHa.WaitForNewLeaders(ctx, t, clients.KubeClient, kourierControlDeployment, kourierControlNamespace, sets.New[string](), 1 /* numBuckets */)
 	if err != nil {
 		t.Fatalf("Failed to get leader: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestKourierControlHA(t *testing.T) {
 	prober := test.RunRouteProber(t.Logf, clients, url.URL())
 	defer test.AssertProberDefault(t, prober)
 
-	for _, leader := range leaders.List() {
+	for _, leader := range sets.List(leaders) {
 		if err := clients.KubeClient.CoreV1().Pods(kourierControlNamespace).Delete(ctx, leader, metav1.DeleteOptions{
 			GracePeriodSeconds: ptr.Int64(0),
 		}); err != nil && !apierrs.IsNotFound(err) {

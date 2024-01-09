@@ -209,7 +209,7 @@ func TestPathAndPercentageSplit(t *testing.T) {
 		totalHalf = total / 2
 		tolerance = total * 0.15
 	)
-	wantKeys := sets.NewString(fooName, barName)
+	wantKeys := sets.New(fooName, barName)
 	resultCh := make(chan string, total)
 
 	var g errgroup.Group
