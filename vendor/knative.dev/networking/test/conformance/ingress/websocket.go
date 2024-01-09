@@ -93,7 +93,7 @@ func TestWebsocketSplit(t *testing.T) {
 	greenName, greenPort, _ := CreateWebsocketService(ctx, t, clients, suffixGreen)
 
 	// The suffixes we expect to see.
-	want := sets.NewString(suffixBlue, suffixGreen)
+	want := sets.New(suffixBlue, suffixGreen)
 
 	// Create a simple Ingress over the Service.
 	name := test.ObjectNameForTest(t)
@@ -132,7 +132,7 @@ func TestWebsocketSplit(t *testing.T) {
 	u := url.URL{Scheme: "ws", Host: domain, Path: "/"}
 
 	const maxRequests = 100
-	got := sets.NewString()
+	got := sets.New[string]()
 	for i := 0; i < maxRequests; i++ {
 		conn, _, err := dialer.Dial(u.String(), http.Header{"Host": {domain}})
 		if err != nil {
@@ -157,7 +157,7 @@ func TestWebsocketSplit(t *testing.T) {
 	}
 
 	// Us getting here means we haven't seen splits.
-	t.Errorf("(over %d requests) (-want, +got) = %s", maxRequests, cmp.Diff(want.List(), got.List()))
+	t.Errorf("(over %d requests) (-want, +got) = %s", maxRequests, cmp.Diff(sets.List(want), sets.List(got)))
 }
 
 func findWebsocketSuffix(t *testing.T, conn *websocket.Conn) string {

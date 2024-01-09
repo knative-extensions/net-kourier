@@ -102,7 +102,7 @@ func TestGRPCSplit(t *testing.T) {
 	greenName, greenPort, _ := CreateGRPCService(ctx, t, clients, suffixGreen)
 
 	// The suffixes we expect to see.
-	want := sets.NewString(suffixBlue, suffixGreen)
+	want := sets.New(suffixBlue, suffixGreen)
 
 	// Create a simple Ingress over the Service.
 	name := test.ObjectNameForTest(t)
@@ -150,7 +150,7 @@ func TestGRPCSplit(t *testing.T) {
 	defer cancel()
 
 	const maxRequests = 100
-	got := sets.NewString()
+	got := sets.New[string]()
 	for i := 0; i < maxRequests; i++ {
 		stream, err := pc.PingStream(ctx)
 		if err != nil {
