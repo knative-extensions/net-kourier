@@ -283,7 +283,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 	)
 
 	backends := make([]v1alpha1.IngressBackendSplit, 0, splits)
-	names := make(sets.String, splits)
+	names := make(sets.Set[string], splits)
 	for i := 0; i < splits; i++ {
 		name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 		backends = append(backends, v1alpha1.IngressBackendSplit{
@@ -322,7 +322,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 		// Make enough requests that the likelihood of us seeing each variation is high,
 		// but don't check the distribution of requests, as that isn't the point of this
 		// particular test.
-		seen := make(sets.String, len(names))
+		seen := make(sets.Set[string], len(names))
 		for i := 0; i < maxRequests; i++ {
 			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
 			if ri == nil {
@@ -345,7 +345,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 		// Make enough requests that the likelihood of us seeing each variation is high,
 		// but don't check the distribution of requests, as that isn't the point of this
 		// particular test.
-		seen := make(sets.String, len(names))
+		seen := make(sets.Set[string], len(names))
 		for i := 0; i < maxRequests; i++ {
 			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com", func(req *http.Request) {
 				// Specify a value for the header to verify that implementations

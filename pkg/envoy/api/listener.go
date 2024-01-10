@@ -33,6 +33,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"knative.dev/net-kourier/pkg/config"
 )
@@ -203,7 +204,7 @@ func createFilterChainsForTLS(manager *hcm.HttpConnectionManager, sniMatches []*
 			return nil, err
 		}
 
-		c := Certificate{Certificate: sniMatch.CertificateChain, PrivateKey: sniMatch.PrivateKey, CipherSuites: kourierConfig.CipherSuites.List()}
+		c := Certificate{Certificate: sniMatch.CertificateChain, PrivateKey: sniMatch.PrivateKey, CipherSuites: sets.List(kourierConfig.CipherSuites)}
 
 		tlsContext, err := c.createTLSContext()
 		if err != nil {
