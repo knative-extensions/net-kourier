@@ -75,11 +75,8 @@ aliases:
   - matzew
   eventing-rabbitmq-approvers:
   - andrew-su
-  - bbtong
   - chunyilyu
-  - dolfolife
   - gabo1208
-  - ikvmw
   - joeeltgroth
   - salaboy
   - xtreme-sameer-vohra
@@ -208,14 +205,12 @@ aliases:
   net-certmanager-approvers: []
   net-contour-approvers:
   - KauzClay
-  - carlisia
   - dprotaso
   net-gateway-api-approvers:
   - dprotaso
   - nak3
   net-http01-approvers: []
   net-istio-approvers:
-  - AngeloDanducci
   - nak3
   - skonto
   net-kourier-approvers:
@@ -261,11 +256,9 @@ aliases:
   serving-reviewers:
   - KauzClay
   - jsanin-vmw
-  - kauana
   - krsna-m
   - retocode
   - skonto
-  - xtreme-vikram-yadav
   serving-triage:
   - KauzClay
   - retocode
