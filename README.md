@@ -173,6 +173,13 @@ Ensure that the file was updated successfully:
 kubectl get configmap config-kourier --namespace knative-serving --output yaml
 ```
 
+## Ingress class
+
+Kourier uses the `kourier.ingress.networking.knative.dev` ingress class by default.
+However, in some cases it may be useful to use multiple ingress classes.
+
+You can modify the default ingress class by `KOURIER_INGRESS_CLASS_NAME` env variable.
+
 ### LoadBalancer configuration:
 
 We need to:
