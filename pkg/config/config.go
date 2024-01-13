@@ -58,9 +58,6 @@ const (
 	// GatewayNamespaceEnv is an env variable specifying where the gateway is deployed.
 	GatewayNamespaceEnv = "KOURIER_GATEWAY_NAMESPACE"
 
-	// KourierIngressClassName is the class name to reconcile.
-	KourierIngressClassName = "kourier.ingress.networking.knative.dev"
-
 	// disableHTTP2AnnotationKey is the annotation key attached to a Knative Domain Mapping
 	// to indicate that http2 should not be enabled for it.
 	disableHTTP2AnnotationKey = "kourier.knative.dev/disable-http2"
@@ -72,6 +69,9 @@ const (
 	// CipherSuites is the cipher suites for TLS external listener.
 	cipherSuites = "cipher-suites"
 )
+
+// KourierIngressClassName is the class name to reconcile.
+var KourierIngressClassName = GetIngressClassName()
 
 var disableHTTP2Annotation = kmap.KeyPriority{
 	disableHTTP2AnnotationKey,
@@ -97,4 +97,13 @@ func GatewayNamespace() string {
 // GetDisableHTTP2 specifies whether http2 is going to be disabled
 func GetDisableHTTP2(annotations map[string]string) (val string) {
 	return disableHTTP2Annotation.Value(annotations)
+}
+
+func GetIngressClassName() string {
+	defaultIngressClassName := "kourier.ingress.networking.knative.dev"
+	className := os.Getenv("KOURIER_INGRESS_CLASS_NAME")
+	if className != "" {
+		return className
+	}
+	return defaultIngressClassName
 }
