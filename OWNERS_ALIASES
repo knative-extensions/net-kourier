@@ -74,12 +74,8 @@ aliases:
   - lberk
   - matzew
   eventing-rabbitmq-approvers:
-  - andrew-su
-  - chunyilyu
   - gabo1208
-  - joeeltgroth
-  - salaboy
-  - xtreme-sameer-vohra
+  - tcnghia
   eventing-redis-approvers:
   - aavarghese
   - lionelvillard
