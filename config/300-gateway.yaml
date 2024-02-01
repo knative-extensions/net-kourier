@@ -93,7 +93,22 @@ spec:
 
                   exec 3<>/dev/tcp/localhost/9000
                   echo -e "POST /healthcheck/fail HTTP/1.1\nHost: localhost\nConnection: close\n\n" >&3
-                  sleep 15
+
+                  active_connections=1
+
+                  while [ "$active_connections" != "0" ]
+                  do
+                      sleep 1
+
+                      exec 3<>/dev/tcp/localhost/9000
+                      # get downstream_cx_active (active requests) for all "public" listeners (8080, 8081, 8443)
+                      echo -e "GET /stats?filter=listener.0.0.0.0_%288080%7C8081%7C8443%29.downstream_cx_active&format=text HTTP/1.1\nHost: localhost\nConnection: close\n\n" >&3
+
+                      active_connections=$(cat <&3 | grep 'downstream_cx_active' | awk 'BEGIN{active=0} {active+=$NF} END{print active}')
+                      echo "Active connections: $active_connections"
+                  done
+
+                  echo "No more active connections!"
           readinessProbe:
             httpGet:
               httpHeaders:
@@ -123,6 +138,7 @@ spec:
             limits:
               cpu: "1"
               memory: 500Mi
+      terminationGracePeriodSeconds: 120
       volumes:
         - name: config-volume
           configMap:
