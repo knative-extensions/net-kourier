@@ -70,6 +70,9 @@ spec:
           - name: http2-xds
             containerPort: 18000
             protocol: TCP
+          - name: metrics
+            containerPort: 9090
+            protocol: TCP
           readinessProbe:
             grpc:
               port: 18000
@@ -115,6 +118,10 @@ spec:
       port: 18000
       protocol: TCP
       targetPort: 18000
+    - name: http-metrics
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
   selector:
     app: net-kourier-controller
   type: ClusterIP
