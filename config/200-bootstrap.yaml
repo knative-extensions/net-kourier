@@ -72,15 +72,6 @@ data:
                                       exact: GET
                               route:
                                 cluster: service_stats
-                            - match:
-                                safe_regex:
-                                  regex: '/drain_listeners'
-                                headers:
-                                  - name: ':method'
-                                    string_match:
-                                      exact: POST
-                              route:
-                                cluster: service_stats
       clusters:
         - name: service_stats
           connect_timeout: 0.250s
