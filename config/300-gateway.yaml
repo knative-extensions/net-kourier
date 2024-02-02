@@ -50,14 +50,11 @@ spec:
             - --log-level info
             - --drain-time-s $(DRAIN_TIME_SECONDS)
             - --drain-strategy immediate
-            - --parent-shutdown-time-s $(PARENT_SHUTDOWN_TIME_SECONDS)
           command:
             - /usr/local/bin/envoy
           env:
             - name: DRAIN_TIME_SECONDS
-              value: "60"
-            - name: PARENT_SHUTDOWN_TIME_SECONDS
-              value: "900"
+              value: "15"
           image: docker.io/envoyproxy/envoy:v1.26-latest
           name: kourier-gateway
           ports:
@@ -134,7 +131,6 @@ spec:
             limits:
               cpu: "1"
               memory: 500Mi
-      terminationGracePeriodSeconds: 900
       volumes:
         - name: config-volume
           configMap:
