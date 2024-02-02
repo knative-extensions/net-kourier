@@ -41,6 +41,8 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "disable logging",
 		want: &Kourier{
+			HTTPPortExternal:           HTTPPortExternal,
+			HTTPSPortExternal:          HTTPSPortExternal,
 			EnableServiceAccessLogging: false,
 			IdleTimeout:                0 * time.Second,
 		},
@@ -56,6 +58,8 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "enable proxy protocol, logging and internal cert",
 		want: &Kourier{
+			HTTPPortExternal:           HTTPPortExternal,
+			HTTPSPortExternal:          HTTPSPortExternal,
 			EnableServiceAccessLogging: true,
 			EnableProxyProtocol:        true,
 			ClusterCertSecret:          "my-cert",
@@ -69,6 +73,8 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "enable proxy protocol and disable logging, empty internal cert",
 		want: &Kourier{
+			HTTPPortExternal:           HTTPPortExternal,
+			HTTPSPortExternal:          HTTPSPortExternal,
 			EnableServiceAccessLogging: false,
 			EnableProxyProtocol:        true,
 			ClusterCertSecret:          "",
@@ -88,6 +94,8 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "set cipher suites",
 		want: &Kourier{
+			HTTPPortExternal:           HTTPPortExternal,
+			HTTPSPortExternal:          HTTPSPortExternal,
 			EnableServiceAccessLogging: false,
 			CipherSuites:               sets.New("foo", "bar"),
 		},
@@ -98,6 +106,8 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "set timeout to 200",
 		want: &Kourier{
+			HTTPPortExternal:           HTTPPortExternal,
+			HTTPSPortExternal:          HTTPSPortExternal,
 			EnableServiceAccessLogging: true,
 			EnableProxyProtocol:        false,
 			ClusterCertSecret:          "",
@@ -112,6 +122,8 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "add 3 trusted hops",
 		want: &Kourier{
+			HTTPPortExternal:           HTTPPortExternal,
+			HTTPSPortExternal:          HTTPSPortExternal,
 			EnableServiceAccessLogging: false,
 			TrustedHopsCount:           3,
 		},
@@ -122,6 +134,8 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "configure tracing",
 		want: &Kourier{
+			HTTPPortExternal:           HTTPPortExternal,
+			HTTPSPortExternal:          HTTPSPortExternal,
 			EnableServiceAccessLogging: true,
 			Tracing: Tracing{
 				Enabled:           true,
@@ -136,6 +150,8 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "do not enable tracing",
 		want: &Kourier{
+			HTTPPortExternal:           HTTPPortExternal,
+			HTTPSPortExternal:          HTTPSPortExternal,
 			EnableServiceAccessLogging: true,
 			Tracing: Tracing{
 				Enabled: false,
@@ -144,7 +160,19 @@ func TestKourierConfig(t *testing.T) {
 		data: map[string]string{
 			TracingCollectorFullEndpoint: "",
 		},
-	}}
+	}, {
+		name: "non-default external ports",
+		want: &Kourier{
+			HTTPPortExternal:           80,
+			HTTPSPortExternal:          443,
+			EnableServiceAccessLogging: true,
+		},
+		data: map[string]string{
+			httpPortExternal:  "80",
+			httpsPortExternal: "443",
+		},
+	},
+	}
 
 	for _, tt := range configTests {
 		t.Run(tt.name, func(t *testing.T) {
