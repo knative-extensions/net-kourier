@@ -74,7 +74,7 @@ data:
                                 cluster: service_stats
                             - match:
                                 safe_regex:
-                                  regex: '/healthcheck/(fail|ok)'
+                                  regex: '/drain_listeners'
                                 headers:
                                   - name: ':method'
                                     string_match:

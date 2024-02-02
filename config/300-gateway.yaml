@@ -91,24 +91,40 @@ spec:
                 - |-
                   set -e
 
-                  exec 3<>/dev/tcp/localhost/9000
-                  echo -e "POST /healthcheck/fail HTTP/1.1\nHost: localhost\nConnection: close\n\n" >&3
+                  # helper method to do a HTTP call to the admin interface
+                  function http_admin_request() {
+                    method="$1"
+                    path="$2"
 
+                    {
+                      echo -e >&3 "$method $path HTTP/1.1\nHost: localhost\nConnection: close\n\n"
+                      cat <&3
+                    } 3<>/dev/tcp/localhost/9000
+                  }
+
+                  function log() {
+                    echo "[$(date --iso-8601=seconds --utc)] $1" > /proc/1/fd/1
+                  }
+
+                  log "Start draining process"
+
+                  # first, run the drain process
+                  http_admin_request POST "/drain_listeners?graceful&skip_exit"
+
+                  # then, wait until there is no more active connections
                   active_connections=1
-
                   while [ "$active_connections" != "0" ]
                   do
                       sleep 1
 
-                      exec 3<>/dev/tcp/localhost/9000
-                      # get downstream_cx_active (active requests) for all "public" listeners (8080, 8081, 8443)
-                      echo -e "GET /stats?filter=listener.0.0.0.0_%288080%7C8081%7C8443%29.downstream_cx_active&format=text HTTP/1.1\nHost: localhost\nConnection: close\n\n" >&3
-
-                      active_connections=$(cat <&3 | grep 'downstream_cx_active' | awk 'BEGIN{active=0} {active+=$NF} END{print active}')
-                      echo "Active connections: $active_connections"
+                      # we use /stats endpoint to find out the number of active connections to listeners, excluding the admin one
+                      active_connections=$(http_admin_request GET "/stats?filter=listener.0.0.0.0_%5B%5E9%5D%5Cd%2B.downstream_cx_active&format=text" | \
+                        grep 'downstream_cx_active' | \
+                        awk 'BEGIN{active=0} {active+=$NF} END{print active}')
+                      log "Number of active connections: $active_connections"
                   done
 
-                  echo "No more active connections!"
+                  log "No more active connections, safely exiting"
           readinessProbe:
             httpGet:
               httpHeaders:
@@ -138,7 +154,7 @@ spec:
             limits:
               cpu: "1"
               memory: 500Mi
-      terminationGracePeriodSeconds: 120
+      terminationGracePeriodSeconds: 300
       volumes:
         - name: config-volume
           configMap:
