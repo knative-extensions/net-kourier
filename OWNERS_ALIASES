@@ -246,11 +246,13 @@ aliases:
   - yuzisun
   serving-reviewers:
   - KauzClay
+  - izabelacg
   - krsna-m
   - retocode
   - skonto
   serving-triage:
   - KauzClay
+  - izabelacg
   - retocode
   - skonto
   serving-wg-leads:
