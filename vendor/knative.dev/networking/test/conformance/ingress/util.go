@@ -555,9 +555,10 @@ func CreateGRPCService(ctx context.Context, t *testing.T, clients *test.Clients,
 		Spec: corev1.ServiceSpec{
 			Type: "ClusterIP",
 			Ports: []corev1.ServicePort{{
-				Name:       networking.ServicePortNameH2C,
-				Port:       int32(port),
-				TargetPort: intstr.FromInt(containerPort),
+				Name:        networking.ServicePortNameH2C,
+				Port:        int32(port),
+				TargetPort:  intstr.FromInt(containerPort),
+				AppProtocol: ptr.String("kubernetes.io/h2c"),
 			}},
 			Selector: map[string]string{
 				"test-pod": name,
