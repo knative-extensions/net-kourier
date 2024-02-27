@@ -3,7 +3,7 @@ module knative.dev/net-kourier
 go 1.21
 
 require (
-	github.com/envoyproxy/go-control-plane v0.11.1
+	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/golang/protobuf v1.5.3
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -14,7 +14,7 @@ require (
 	github.com/pires/go-proxyproto v0.6.1
 	go.uber.org/zap v1.27.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240213162025-012b6fc9bca9
-	google.golang.org/grpc v1.61.1
+	google.golang.org/grpc v1.62.0
 	google.golang.org/protobuf v1.32.0
 	gotest.tools/v3 v3.0.3
 	k8s.io/api v0.29.2
@@ -22,8 +22,8 @@ require (
 	k8s.io/client-go v0.29.2
 	k8s.io/code-generator v0.29.2
 	knative.dev/hack v0.0.0-20240222141347-5f0998e65262
-	knative.dev/networking v0.0.0-20240226140608-7391d203a132
-	knative.dev/pkg v0.0.0-20240226072014-32e13c4925ed
+	knative.dev/networking v0.0.0-20240227132105-cfb3abdd3c62
+	knative.dev/pkg v0.0.0-20240227021706-97fb318ab987
 )
 
 require (
@@ -34,10 +34,10 @@ require (
 	github.com/blendle/zapdriver v1.3.1 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cncf/xds/go v0.0.0-20231109132714-523115ebc101 // indirect
+	github.com/cncf/xds/go v0.0.0-20231128003011-0fa0005c9caa // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
-	github.com/envoyproxy/protoc-gen-validate v1.0.2 // indirect
+	github.com/envoyproxy/protoc-gen-validate v1.0.4 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
