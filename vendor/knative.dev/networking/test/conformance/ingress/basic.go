@@ -61,7 +61,10 @@ func TestBasicsHTTP2(t *testing.T) {
 	t.Parallel()
 	ctx, clients := context.Background(), test.Setup(t)
 
-	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameH2C)
+	name, port, _ := CreateRuntimeService(ctx, t, clients,
+		networking.ServicePortNameH2C,
+		networking.AppProtocolH2C,
+	)
 
 	// Create a simple Ingress over the Service.
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
