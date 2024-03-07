@@ -22,8 +22,8 @@ require (
 	k8s.io/client-go v0.29.2
 	k8s.io/code-generator v0.29.2
 	knative.dev/hack v0.0.0-20240302114326-e6dedc74dc47
-	knative.dev/networking v0.0.0-20240304224543-918a090eb35d
-	knative.dev/pkg v0.0.0-20240304225122-181596eba93a
+	knative.dev/networking v0.0.0-20240306063647-941710129f7a
+	knative.dev/pkg v0.0.0-20240305144923-6b13f01ae5f7
 )
 
 require (
@@ -64,8 +64,8 @@ require (
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.19.0 // indirect
-	github.com/prometheus/client_model v0.5.0 // indirect
-	github.com/prometheus/common v0.48.0 // indirect
+	github.com/prometheus/client_model v0.6.0 // indirect
+	github.com/prometheus/common v0.49.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/prometheus/statsd_exporter v0.22.7 // indirect
 	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417 // indirect
