@@ -91,26 +91,15 @@ spec:
             preStop:
               exec:
                 command:
-                - perl
-                - -e
-                - |-
-                  use strict;
-                  use warnings;
-                  use IO::Socket qw(AF_UNIX SOCK_STREAM SHUT_WR);
-
-                  my $client = IO::Socket->new(
-                    Domain => IO::Socket::AF_UNIX,
-                    Type   => IO::Socket::SOCK_STREAM,
-                    Peer   => "/tmp/envoy.admin"
-                  ) || die "Can't open socket: $IO::Socket::errstr";
-                  $client->autoflush(1);
-
-                  $client->send("POST /drain_listeners?graceful HTTP/1.1\nHost: localhost\nConnection: close\n\n");
-                  $client->shutdown(IO::Socket::SHUT_WR);
-
-                  $client->close();
-
-                  sleep $ENV{DRAIN_TIME_SECONDS};
+                  - /bin/bash
+                  - -c
+                  - |-
+                    set -e
+                    {
+                        echo -e >&3 "POST /drain_listeners?graceful HTTP/1.1\nHost: localhost\nConnection: close\n\n"
+                        cat <&3
+                    } 3<>/dev/tcp/localhost/9000
+                    sleep $DRAIN_TIME_SECONDS
           readinessProbe:
             httpGet:
               httpHeaders:
