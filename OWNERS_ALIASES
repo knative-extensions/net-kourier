@@ -82,6 +82,7 @@ aliases:
   - matzew
   eventing-rabbitmq-approvers:
   - gabo1208
+  - ikavgo
   - tcnghia
   eventing-redis-approvers:
   - aavarghese
@@ -188,7 +189,6 @@ aliases:
   - nainaz
   - pierDipi
   - psschwei
-  - puerco
   - salaboy
   - skonto
   - upodroid
@@ -271,7 +271,6 @@ aliases:
   - aliok
   - evankanderson
   - nainaz
-  - puerco
   - salaboy
   technical-oversight-committee:
   - davidhadas
