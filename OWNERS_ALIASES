@@ -50,12 +50,10 @@ aliases:
   - tzununbekov
   eventing-kafka-approvers:
   - aliok
-  - eric-sap
   - lberk
   - matzew
   - pierDipi
   - steven0711dong
-  - travis-minke-sap
   eventing-kafka-broker-approvers:
   - aliok
   - matzew
@@ -65,10 +63,8 @@ aliases:
   - cali0707
   eventing-kafka-mtsource-approvers:
   - steven0711dong
-  eventing-kafka-wg-leads:
-  - travis-minke-sap
-  eventing-kafka-writers:
-  - travis-minke-sap
+  eventing-kafka-wg-leads: []
+  eventing-kafka-writers: []
   eventing-kogito-approvers:
   - ricardozanini
   - spolti
@@ -81,9 +77,9 @@ aliases:
   - lberk
   - matzew
   eventing-rabbitmq-approvers:
-  - gabo1208
+  - Zerpet
   - ikavgo
-  - tcnghia
+  - mkuratczyk
   eventing-redis-approvers:
   - aavarghese
   - lionelvillard
