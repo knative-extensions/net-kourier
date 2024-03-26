@@ -68,6 +68,9 @@ spec:
             - name: https-probe
               containerPort: 9443
               protocol: TCP
+            - name: metrics
+              containerPort: 9000
+              protocol: TCP
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
