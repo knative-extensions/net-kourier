@@ -66,8 +66,6 @@ aliases:
   eventing-kafka-writers: []
   eventing-kogito-approvers:
   - ricardozanini
-  - spolti
-  - vaibhavjainwiz
   eventing-natss-approvers:
   - astelmashenko
   - dan-j
