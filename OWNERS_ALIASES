@@ -22,13 +22,10 @@ aliases:
   - rhuss
   discovery-approvers:
   - lberk
-  docs-wg-leads:
-  - snneji
   docs-writers:
   - csantanapr
   - retocode
   - skonto
-  - snneji
   eventing-autoscaler-keda-approvers: []
   eventing-awssqs-approvers:
   - lberk
@@ -52,7 +49,6 @@ aliases:
   - lberk
   - matzew
   - pierDipi
-  - steven0711dong
   eventing-kafka-broker-approvers:
   - aliok
   - matzew
@@ -60,9 +56,6 @@ aliases:
   eventing-kafka-broker-reviewers:
   - Leo6Leo
   - cali0707
-  eventing-kafka-mtsource-approvers:
-  - steven0711dong
-  eventing-kafka-wg-leads: []
   eventing-kafka-writers: []
   eventing-kogito-approvers:
   - ricardozanini
@@ -210,7 +203,6 @@ aliases:
   - skonto
   net-kourier-approvers:
   - skonto
-  networking-wg-leads: []
   operations-wg-leads:
   - houshengbo
   operations-writers:
