@@ -379,6 +379,8 @@ func TestLocalTLSListener(t *testing.T) {
 func TestListenersAndClustersWithTracing(t *testing.T) {
 	testConfig := &rconfig.Config{
 		Kourier: &config.Kourier{
+			HTTPPortExternal:  config.HTTPPortExternal,
+			HTTPSPortExternal: config.HTTPSPortExternal,
 			Tracing: config.Tracing{
 				Enabled:           true,
 				CollectorHost:     "jaeger.default.svc.cluster.local",

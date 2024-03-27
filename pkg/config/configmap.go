@@ -33,6 +33,12 @@ const (
 	// ConfigName is the name of config map for Kourier.
 	ConfigName = "config-kourier"
 
+	// httpPortExternal is the config map key for HTTP port for external availability.
+	httpPortExternal = "http-port-external"
+
+	// httpsPortExternal is the config map key for HTTPS port for external availability.
+	httpsPortExternal = "https-port-external"
+
 	// enableServiceAccessLoggingKey is the config map key for enabling service related
 	// access logging.
 	enableServiceAccessLoggingKey = "enable-service-access-logging"
@@ -56,6 +62,8 @@ const (
 
 func DefaultConfig() *Kourier {
 	return &Kourier{
+		HTTPPortExternal:           HTTPPortExternal,
+		HTTPSPortExternal:          HTTPSPortExternal,
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
@@ -71,6 +79,8 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 	nc := DefaultConfig()
 
 	if err := cm.Parse(configMap,
+		cm.AsUint32(httpPortExternal, &nc.HTTPPortExternal),
+		cm.AsUint32(httpsPortExternal, &nc.HTTPSPortExternal),
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
@@ -132,6 +142,10 @@ func NewConfigFromConfigMap(config *corev1.ConfigMap) (*Kourier, error) {
 // Kourier includes the configuration for Kourier.
 // +k8s:deepcopy-gen=true
 type Kourier struct {
+	// HTTPPortExternal is the port for external availability.
+	HTTPPortExternal uint32
+	// HTTPSPortExternal is the port for external HTTPS availability.
+	HTTPSPortExternal uint32
 	// EnableServiceAccessLogging specifies whether requests reaching the Kourier gateway
 	// should be logged.
 	EnableServiceAccessLogging bool
