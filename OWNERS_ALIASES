@@ -166,6 +166,7 @@ aliases:
   - dprotaso
   - dsimansk
   - evankanderson
+  - izabelacg
   - knative-automation
   - knative-prow-releaser-robot
   - knative-prow-robot
@@ -184,6 +185,7 @@ aliases:
   - ReToCode
   - creydr
   - dsimansk
+  - izabelacg
   - pierDipi
   - skonto
   knative-robots:
