@@ -2,8 +2,16 @@
 # Do not modify this file, instead modify peribolos/knative-extensions.yaml
 
 aliases:
-  backstage-plugins-reviewers: []
-  backstage-plugins-writers: []
+  backstage-plugins-reviewers:
+  - aliok
+  - cali0707
+  - leo6leo
+  - pierdipi
+  backstage-plugins-writers:
+  - aliok
+  - cali0707
+  - leo6leo
+  - pierdipi
   client-wg-leads:
   - dsimansk
   - navidshaikh
@@ -14,13 +22,10 @@ aliases:
   - rhuss
   discovery-approvers:
   - lberk
-  docs-wg-leads:
-  - snneji
   docs-writers:
   - csantanapr
   - retocode
   - skonto
-  - snneji
   eventing-autoscaler-keda-approvers: []
   eventing-awssqs-approvers:
   - lberk
@@ -39,15 +44,11 @@ aliases:
   - lberk
   - matzew
   - sebgoa
-  - tzununbekov
   eventing-kafka-approvers:
   - aliok
-  - eric-sap
   - lberk
   - matzew
   - pierDipi
-  - steven0711dong
-  - travis-minke-sap
   eventing-kafka-broker-approvers:
   - aliok
   - matzew
@@ -55,16 +56,9 @@ aliases:
   eventing-kafka-broker-reviewers:
   - Leo6Leo
   - cali0707
-  eventing-kafka-mtsource-approvers:
-  - steven0711dong
-  eventing-kafka-wg-leads:
-  - travis-minke-sap
-  eventing-kafka-writers:
-  - travis-minke-sap
+  eventing-kafka-writers: []
   eventing-kogito-approvers:
   - ricardozanini
-  - spolti
-  - vaibhavjainwiz
   eventing-natss-approvers:
   - astelmashenko
   - dan-j
@@ -73,8 +67,9 @@ aliases:
   - lberk
   - matzew
   eventing-rabbitmq-approvers:
-  - gabo1208
-  - tcnghia
+  - Zerpet
+  - ikavgo
+  - mkuratczyk
   eventing-redis-approvers:
   - aavarghese
   - lionelvillard
@@ -165,11 +160,13 @@ aliases:
   - Leo6Leo
   - ReToCode
   - aliok
+  - cardil
   - creydr
   - davidhadas
   - dprotaso
   - dsimansk
   - evankanderson
+  - izabelacg
   - knative-automation
   - knative-prow-releaser-robot
   - knative-prow-robot
@@ -179,7 +176,6 @@ aliases:
   - nainaz
   - pierDipi
   - psschwei
-  - puerco
   - salaboy
   - skonto
   - upodroid
@@ -189,6 +185,7 @@ aliases:
   - ReToCode
   - creydr
   - dsimansk
+  - izabelacg
   - pierDipi
   - skonto
   knative-robots:
@@ -208,7 +205,6 @@ aliases:
   - skonto
   net-kourier-approvers:
   - skonto
-  networking-wg-leads: []
   operations-wg-leads:
   - houshengbo
   operations-writers:
@@ -216,10 +212,10 @@ aliases:
   - houshengbo
   - upodroid
   productivity-leads:
-  - krsna-m
+  - cardil
   - upodroid
   productivity-wg-leads:
-  - krsna-m
+  - cardil
   - upodroid
   productivity-writers:
   - cardil
@@ -245,12 +241,11 @@ aliases:
   - sukumargaonkar
   - yuzisun
   serving-reviewers:
-  - KauzClay
-  - krsna-m
+  - izabelacg
   - retocode
   - skonto
   serving-triage:
-  - KauzClay
+  - izabelacg
   - retocode
   - skonto
   serving-wg-leads:
@@ -263,7 +258,6 @@ aliases:
   - aliok
   - evankanderson
   - nainaz
-  - puerco
   - salaboy
   technical-oversight-committee:
   - davidhadas

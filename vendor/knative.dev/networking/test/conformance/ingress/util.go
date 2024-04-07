@@ -92,7 +92,7 @@ func (ua *uaRoundTripper) RoundTrip(rq *http.Request) (*http.Response, error) {
 // specified with the given portName.  It returns the service name, the port on
 // which the service is listening, and a "cancel" function to clean up the
 // created resources.
-func CreateRuntimeService(ctx context.Context, t *testing.T, clients *test.Clients, portName string) (string, int, context.CancelFunc) {
+func CreateRuntimeService(ctx context.Context, t *testing.T, clients *test.Clients, portName string, appProtocol ...string) (string, int, context.CancelFunc) {
 	t.Helper()
 	name := test.ObjectNameForTest(t)
 
@@ -169,6 +169,10 @@ func CreateRuntimeService(ctx context.Context, t *testing.T, clients *test.Clien
 				"test-pod": name,
 			},
 		},
+	}
+
+	if len(appProtocol) > 0 {
+		svc.Spec.Ports[0].AppProtocol = ptr.String(appProtocol[0])
 	}
 
 	return name, port, createPodAndService(ctx, t, clients, pod, svc)
@@ -555,9 +559,10 @@ func CreateGRPCService(ctx context.Context, t *testing.T, clients *test.Clients,
 		Spec: corev1.ServiceSpec{
 			Type: "ClusterIP",
 			Ports: []corev1.ServicePort{{
-				Name:       networking.ServicePortNameH2C,
-				Port:       int32(port),
-				TargetPort: intstr.FromInt(containerPort),
+				Name:        networking.ServicePortNameH2C,
+				Port:        int32(port),
+				TargetPort:  intstr.FromInt(containerPort),
+				AppProtocol: ptr.String(networking.AppProtocolH2C),
 			}},
 			Selector: map[string]string{
 				"test-pod": name,
