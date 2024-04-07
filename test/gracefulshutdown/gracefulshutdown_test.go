@@ -118,7 +118,7 @@ func TestGracefulShutdown(t *testing.T) {
 	// Run all requests asynchronously at the same time, and collect the results in statusCodes map
 	for _, test := range tests {
 		g.Go(func() error {
-			statusCode, err := sendRequest(name, test.requestDuration)
+			statusCode, err := sendRequest(client, name, test.requestDuration)
 			statusCodes[test.requestDuration] = statusCode
 			return err
 		})
@@ -147,11 +147,11 @@ func TestGracefulShutdown(t *testing.T) {
 	}
 }
 
-func sendRequest(name string, requestTimeout time.Duration) (statusCode int, err error) {
+func sendRequest(client *http.Client, name string, requestTimeout time.Duration) (statusCode int, err error) {
 	reqURL := fmt.Sprintf("http://%s.example.com?initialTimeout=%d", name, requestTimeout.Milliseconds())
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
-		t.Fatal("Error making GET request:", err)
+		return 0, fmt.Errorf("error making GET request: %w", err)
 	}
 
 	resp, err := client.Do(req)
