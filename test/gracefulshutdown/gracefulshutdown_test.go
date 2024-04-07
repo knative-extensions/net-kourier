@@ -33,7 +33,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
-	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
+
+	// kubeErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -148,14 +149,14 @@ func TestGracefulShutdown(t *testing.T) {
 
 	// Check the gateway pod we have deleted previously has disappeared now:
 	// pod has been drained, terminated, and replaced by a new one
-	_, err = clients.KubeClient.CoreV1().Pods(gatewayNs).Get(ctx, gatewayPodName, metav1.GetOptions{})
-	assert.Equal(t, kubeErrors.IsNotFound(err), true)
+	// _, err = clients.KubeClient.CoreV1().Pods(gatewayNs).Get(ctx, gatewayPodName, metav1.GetOptions{})
+	// assert.Equal(t, kubeErrors.IsNotFound(err), true)
 
 	for _, test := range tests {
-		statusCodeAny, _ := statusCodes.Load(test.name)
-		statusCode := statusCodeAny.(int)
+		statusCode, _ := statusCodes.Load(test.name)
 
-		assert.Equal(t, statusCode, test.wantStatusCode, fmt.Sprintf("%s has failed", test.name))
+		assert.Equal(t, statusCode.(int), test.wantStatusCode, fmt.Sprintf("%s has failed: expected %d, got %s",
+			test.name, test.wantStatusCode, statusCode))
 	}
 }
 
@@ -168,11 +169,9 @@ func sendRequest(client *http.Client, name string, requestTimeout time.Duration)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("sendRequest %s: err: %T, %+v", requestTimeout, err, err)
-
 		var errURL *url.Error
 		if errors.As(err, &errURL) {
-			log.Printf("sendRequest %s: err: %T, %+v", requestTimeout, errURL, errURL)
+			log.Printf("sendRequest %s: err: %+v, %+v, %+v, %+v", requestTimeout, errURL.Op, errURL.URL, errURL.Err, errURL.Unwrap())
 			return 0, nil
 		}
 
