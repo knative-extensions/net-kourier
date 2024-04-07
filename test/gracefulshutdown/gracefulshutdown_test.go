@@ -22,6 +22,7 @@ package gracefulshutdown
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -112,7 +113,7 @@ func TestGracefulShutdown(t *testing.T) {
 		{
 			name:            fmt.Sprintf("do a request taking slightly more than the drain time: %s", drainTime),
 			requestDuration: drainTime + (3 * time.Second),
-			wantStatusCode:  http.StatusGatewayTimeout,
+			wantStatusCode:  0,
 		},
 	}
 
@@ -142,8 +143,6 @@ func TestGracefulShutdown(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: check the gateway has been shutdown at that point
-
 	for _, test := range tests {
 		statusCodeAny, _ := statusCodes.Load(test.name)
 		statusCode := statusCodeAny.(int)
@@ -161,11 +160,14 @@ func sendRequest(client *http.Client, name string, requestTimeout time.Duration)
 
 	resp, err := client.Do(req)
 	if err != nil {
+		// EOF is returned when Envoy cuts the connection
+		if err == io.EOF {
+			return 0, nil
+		}
+
 		return 0, err
 	}
+	defer resp.Body.Close()
 
-	statusCode = resp.StatusCode
-	resp.Body.Close()
-
-	return statusCode, nil
+	return resp.StatusCode, nil
 }
