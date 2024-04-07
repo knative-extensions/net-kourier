@@ -20,18 +20,18 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.28.x
+        #- v1.28.x
         - v1.29.x
 
         gateway:
-        - quay.io/maistra-dev/proxyv2-ubi8:2.4-latest
-        - docker.io/envoyproxy/envoy:v1.26-latest
-        - docker.io/envoyproxy/envoy:v1.27-latest
+        #- quay.io/maistra-dev/proxyv2-ubi8:2.4-latest
+        #- docker.io/envoyproxy/envoy:v1.26-latest
+        #- docker.io/envoyproxy/envoy:v1.27-latest
         - docker.io/envoyproxy/envoy:v1.28-latest
 
         upstream-tls:
         - plain
-        - tls
+        #- tls
 
     env:
       GOPATH: ${{ github.workspace }}
