@@ -103,13 +103,13 @@ func TestGracefulShutdown(t *testing.T) {
 		requestDuration time.Duration
 	}{
 		{
-			name: fmt.Sprintf("do a request taking slightly less than the drain time: %s", drainTime),
+			name:            fmt.Sprintf("do a request taking slightly less than the drain time: %s", drainTime),
 			requestDuration: drainTime - (3 * time.Second),
 		},
 		{
-			name: fmt.Sprintf("do a request taking slightly more than the drain time: %s", drainTime),
+			name:            fmt.Sprintf("do a request taking slightly more than the drain time: %s", drainTime),
 			requestDuration: drainTime + (3 * time.Second),
-		}
+		},
 	}
 
 	g := new(errgroup.Group)
