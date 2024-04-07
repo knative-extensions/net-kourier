@@ -1,14 +1,17 @@
 name: KinD e2e upgrade tests
 
 on:
-  #pull_request:
-  #  branches: [ 'main' ]
+  pull_request:
+    branches: [ 'main' ]
+
   push:
     branches: [ 'main' ]
+
 defaults:
   run:
     shell: bash
     working-directory: ./src/knative.dev/net-kourier
+
 jobs:
   e2e-upgrade-tests:
     name: e2e tests
