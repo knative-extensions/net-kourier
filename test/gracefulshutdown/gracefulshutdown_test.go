@@ -33,8 +33,6 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
-
-	// kubeErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -146,11 +144,6 @@ func TestGracefulShutdown(t *testing.T) {
 	if err := g.Wait(); err != nil {
 		t.Fatal(err)
 	}
-
-	// Check the gateway pod we have deleted previously has disappeared now:
-	// pod has been drained, terminated, and replaced by a new one
-	// _, err = clients.KubeClient.CoreV1().Pods(gatewayNs).Get(ctx, gatewayPodName, metav1.GetOptions{})
-	// assert.Equal(t, kubeErrors.IsNotFound(err), true)
 
 	for _, test := range tests {
 		statusCode, _ := statusCodes.Load(test.name)
