@@ -53,7 +53,7 @@ func TestGracefulShutdown(t *testing.T) {
 		t.Fatal("DRAIN_TIME_SECONDS environment variable must be set")
 	}
 
-	drainTime, err := time.ParseDuration(fmt.Sprintf("%ds", drainTimeSeconds))
+	drainTime, err := time.ParseDuration(drainTimeSeconds + "s")
 	if err != nil {
 		t.Fatal("DRAIN_TIME_SECONDS is an invalid duration:", err)
 	}

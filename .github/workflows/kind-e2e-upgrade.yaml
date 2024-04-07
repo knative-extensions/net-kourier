@@ -1,32 +1,29 @@
-# name: KinD e2e upgrade tests
-# 
-# on:
-#   pull_request:
-#     branches: [ 'main' ]
-# 
-#   push:
-#     branches: [ 'main' ]
-# 
-# defaults:
-#   run:
-#     shell: bash
-#     working-directory: ./src/knative.dev/net-kourier
-# 
-# jobs:
-#   e2e-upgrade-tests:
-#     name: e2e tests
-#     runs-on: ubuntu-latest
+name: KinD e2e upgrade tests
+
+on:
+  pull_request:
+    branches: [ 'main' ]
+  push:
+    branches: [ 'main' ]
+defaults:
+  run:
+    shell: bash
+    working-directory: ./src/knative.dev/net-kourier
+jobs:
+  e2e-upgrade-tests:
+    name: e2e tests
+    runs-on: ubuntu-latest
 #     strategy:
 #       fail-fast: false # Keep running if one leg fails.
 #       matrix:
 #         k8s-version:
 #         - v1.28.x
 #         - v1.29.x
-# 
+#
 #         upstream-traffic:
 #         - plain
 #         - tls
-# 
+#
 #     env:
 #       GOPATH: ${{ github.workspace }}
 #       KO_DOCKER_REPO: kind.local
@@ -34,22 +31,22 @@
 #       # so reruns don't just give us a completely new value.
 #       CLUSTER_SUFFIX: c${{ github.run_id }}.local
 #       KIND_CLUSTER_NAME: "kourier-integration"
-# 
+#
 #     steps:
 #     - name: Set up Go 1.21.x
 #       uses: actions/setup-go@v4
 #       with:
 #         go-version: 1.21.x
-# 
+#
 #     - uses: ko-build/setup-ko@v0.6
-# 
+#
 #     - name: Check out code onto GOPATH
 #       uses: actions/checkout@v3
 #       with:
 #         path: ./src/knative.dev/net-kourier
 #         # Fetch all tags to determine the latest release version.
 #         fetch-depth: 0
-# 
+#
 #     - name: Create KinD Cluster
 #       uses: chainguard-dev/actions/setup-kind@main
 #       id: kind
@@ -57,14 +54,14 @@
 #         k8s-version: ${{ matrix.k8s-version }}
 #         kind-worker-count: 1
 #         cluster-suffix: "${CLUSTER_SUFFIX}"
-# 
+#
 #     - name: Deploy certificates for upstream traffic
 #       if: matrix.upstream-traffic == 'tls'
 #       run: |
 #         set -o pipefail
 #         echo ">> Deploy certificate for upstream traffic"
 #         ./test/generate-upstream-cert.sh
-# 
+#
 #     - name: Run upgrade tests
 #       run: |
 #         ./test/e2e-upgrade-kind.sh
