@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -105,15 +106,17 @@ func TestGracefulShutdown(t *testing.T) {
 		{
 			name:            fmt.Sprintf("do a request taking slightly less than the drain time: %s", drainTime),
 			requestDuration: drainTime - (3 * time.Second),
+			wantStatusCode:  http.StatusOK,
 		},
 		{
 			name:            fmt.Sprintf("do a request taking slightly more than the drain time: %s", drainTime),
 			requestDuration: drainTime + (3 * time.Second),
+			wantStatusCode:  http.StatusGatewayTimeout,
 		},
 	}
 
 	g := new(errgroup.Group)
-	statusCodes := make(map[time.Duration]int, len(tests))
+	var statusCodes sync.Map
 
 	// Run all requests asynchronously at the same time, and collect the results in statusCodes map
 	for i := range tests {
@@ -121,7 +124,7 @@ func TestGracefulShutdown(t *testing.T) {
 
 		g.Go(func() error {
 			statusCode, err := sendRequest(client, name, test.requestDuration)
-			statusCodes[test.requestDuration] = statusCode
+			statusCodes.Store(test.name, statusCode)
 			return err
 		})
 	}
@@ -138,14 +141,13 @@ func TestGracefulShutdown(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The gateway has been gracefully shutdown, so the in-flight requests taking less than the drain time will finish with a OK status code
-	// But, requests taking more than the drain time will be terminated, thus returning a non-OK status code
-	for timeout, statusCode := range statusCodes {
-		if timeout < drainTime {
-			assert.Equal(t, statusCode, http.StatusOK)
-		} else {
-			assert.Equal(t, statusCode, http.StatusOK) // TODO: get the right status code
-		}
+	// TODO: check the gateway has been shutdown at that point
+
+	for _, test := range tests {
+		statusCodeAny, _ := statusCodes.Load(test.name)
+		statusCode := statusCodeAny.(int)
+
+		assert.Equal(t, statusCode, test.wantStatusCode, fmt.Sprintf("%s has failed", test.name))
 	}
 }
 
