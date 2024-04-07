@@ -77,7 +77,7 @@ func TestGracefulShutdown(t *testing.T) {
 		t.Fatal("Failed to get Gateway pods:", err)
 	}
 	if len(gatewayPods.Items) != 1 {
-		t.Fatal("This test expects exactly 1 gateway pod, found: ", len(gatewayPods.Items))
+		t.Fatal("This test expects exactly 1 gateway pod, found:", len(gatewayPods.Items))
 	}
 
 	gatewayPodName := gatewayPods.Items[0].Name
