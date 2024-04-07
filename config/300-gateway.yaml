@@ -112,7 +112,7 @@ spec:
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 5
-            failureThreshold: 40
+            failureThreshold: 6
           resources:
             requests:
               cpu: 200m
