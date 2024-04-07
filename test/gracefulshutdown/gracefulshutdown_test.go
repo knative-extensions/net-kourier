@@ -21,10 +21,11 @@ package gracefulshutdown
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"testing"
@@ -168,8 +169,10 @@ func sendRequest(client *http.Client, name string, requestTimeout time.Duration)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("sendRequest %s: err: %T, %+v", requestTimeout, err, err)
-		// EOF is returned when Envoy cuts the connection
-		if err == io.EOF {
+
+		var errURL *url.Error
+		if errors.As(err, &errURL) {
+			log.Printf("sendRequest %s: err: %T, %+v", requestTimeout, errURL, errURL)
 			return 0, nil
 		}
 
