@@ -116,7 +116,9 @@ func TestGracefulShutdown(t *testing.T) {
 	statusCodes := make(map[time.Duration]int, len(tests))
 
 	// Run all requests asynchronously at the same time, and collect the results in statusCodes map
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
+
 		g.Go(func() error {
 			statusCode, err := sendRequest(client, name, test.requestDuration)
 			statusCodes[test.requestDuration] = statusCode
