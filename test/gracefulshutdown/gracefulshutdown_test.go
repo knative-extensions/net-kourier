@@ -102,6 +102,7 @@ func TestGracefulShutdown(t *testing.T) {
 	tests := []struct {
 		name            string
 		requestDuration time.Duration
+		wantStatusCode  int
 	}{
 		{
 			name:            fmt.Sprintf("do a request taking slightly less than the drain time: %s", drainTime),
