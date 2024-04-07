@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -163,8 +164,7 @@ func sendRequest(client *http.Client, name string, requestTimeout time.Duration)
 	resp, err := client.Do(req)
 	if err != nil {
 		var errURL *url.Error
-		if errors.As(err, &errURL) {
-			log.Printf("sendRequest %s: err: %+v, %+v, %+v, %+v", requestTimeout, errURL.Op, errURL.URL, errURL.Err, errURL.Unwrap())
+		if errors.As(err, &errURL) && errURL.Unwrap() == io.EOF {
 			return 0, nil
 		}
 

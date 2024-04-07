@@ -202,7 +202,15 @@ export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 echo ">> Change DRAIN_TIME_SECONDS and terminationGracePeriodSeconds for graceful shutdown tests"
 export DRAIN_TIME_SECONDS=30
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" set env deployment 3scale-kourier-gateway DRAIN_TIME_SECONDS="$DRAIN_TIME_SECONDS"
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gateway -p '{"spec": {"template": {"spec": {"terminationGracePeriodSeconds": 60}}}}'
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gateway -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "terminationGracePeriodSeconds": 60
+      }
+    }
+  }
+}'
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway --timeout=300s
 
 echo ">> Running graceful shutdown tests"
@@ -212,3 +220,4 @@ go test -v -race -count=1 -timeout=20m -tags=e2e ./test/gracefulshutdown \
   --cluster-suffix="$CLUSTER_SUFFIX"
 
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" get pods -l app=3scale-kourier-gateway -o json
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" logs -l app=3scale-kourier-gateway
