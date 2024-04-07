@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"gotest.tools/v3/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/test"
@@ -37,7 +38,7 @@ import (
 const kourierGatewayLabel = "app=3scale-kourier-gateway"
 
 func TestGracefulShutdown(t *testing.T) {
-	kourierGatewayNamespace = os.Getenv("GATEWAY_NAMESPACE_OVERRIDE")
+	kourierGatewayNamespace := os.Getenv("GATEWAY_NAMESPACE_OVERRIDE")
 	if kourierGatewayNamespace == "" {
 		t.Fatal("GATEWAY_NAMESPACE_OVERRIDE env var must be set")
 	}
@@ -51,11 +52,11 @@ func TestGracefulShutdown(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to get Gateway pods:", err)
 	}
-	if len(gatewayPods) != 1 {
-		t.Fatal("This test expects exactly 1 gateway pod, found: ", len(gatewayPods))
+	if len(gatewayPods.Items) != 1 {
+		t.Fatal("This test expects exactly 1 gateway pod, found: ", len(gatewayPods.Items))
 	}
 
-	gatewayPodName := pods.Items[0].Name
+	gatewayPodName := gatewayPods.Items[0].Name
 
 	name, port, _ := ingress.CreateTimeoutService(ctx, t, clients)
 	_, client, _ := ingress.CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
