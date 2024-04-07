@@ -81,20 +81,23 @@ func TestGracefulShutdown(t *testing.T) {
 
 	var statusCode int
 
-	go func() {
-		reqURL := fmt.Sprintf("http://%s.example.com?timeout=%d", name, delay.Milliseconds())
-		req, err := http.NewRequest("GET", reqURL, nil)
-		if err != nil {
-			t.Fatal("Error making GET request:", err)
-		}
+	reqURL := fmt.Sprintf("http://%s.example.com?timeout=%d", name, delay.Milliseconds())
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		t.Fatal("Error making GET request:", err)
+	}
 
+	errs := make(chan error, 1)
+
+	go func() {
 		resp, err := client.Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
 		defer resp.Body.Close()
 
-		statusCode = resp.StatusCode
+		if err != nil {
+			statusCode = resp.StatusCode
+		}
+
+		errs <- err
 	}()
 
 	time.Sleep(2 * time.Second)
@@ -103,7 +106,10 @@ func TestGracefulShutdown(t *testing.T) {
 		t.Fatalf("Failed to delete pod %s: %v", gatewayPodName, err)
 	}
 
-	time.Sleep(delay)
+	err = <-errs
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	assert.Equal(t, statusCode, http.StatusOK)
 }
