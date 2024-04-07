@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -97,45 +98,69 @@ func TestGracefulShutdown(t *testing.T) {
 		}},
 	})
 
-	// Prepare the request to the ingress: this request will wait for slightly less than the drain time configured
-	requestTimeout := drainTime - (3 * time.Second)
+	tests := []struct {
+		name            string
+		requestDuration time.Duration
+	}{
+		{
+			name: fmt.Sprintf("do a request taking slightly less than the drain time: %s", drainTime),
+			requestDuration: drainTime - (3 * time.Second),
+		},
+		{
+			name: fmt.Sprintf("do a request taking slightly more than the drain time: %s", drainTime),
+			requestDuration: drainTime + (3 * time.Second),
+		}
+	}
+
+	g := new(errgroup.Group)
+	statusCodes := make(map[time.Duration]int, len(tests))
+
+	// Run all requests asynchronously at the same time, and collect the results in statusCodes map
+	for _, test := range tests {
+		g.Go(func() error {
+			statusCode, err := sendRequest(name, test.requestDuration)
+			statusCodes[test.requestDuration] = statusCode
+			return err
+		})
+	}
+
+	// Once requests are in-flight, delete the gateway pod:
+	// the 1 second sleep before the deletion is here to ensure the requests have been sent by the goroutines above
+	time.Sleep(1 * time.Second)
+	if err := clients.KubeClient.CoreV1().Pods(gatewayNs).Delete(ctx, gatewayPodName, metav1.DeleteOptions{}); err != nil {
+		t.Fatalf("Failed to delete pod %s: %v", gatewayPodName, err)
+	}
+
+	// Wait until we get responses from the asynchronous requests
+	if err := g.Wait(); err != nil {
+		t.Fatal(err)
+	}
+
+	// The gateway has been gracefully shutdown, so the in-flight requests taking less than the drain time will finish with a OK status code
+	// But, requests taking more than the drain time will be terminated, thus returning a non-OK status code
+	for timeout, statusCode := range statusCodes {
+		if timeout < drainTime {
+			assert.Equal(t, statusCode, http.StatusOK)
+		} else {
+			assert.Equal(t, statusCode, http.StatusOK) // TODO: get the right status code
+		}
+	}
+}
+
+func sendRequest(name string, requestTimeout time.Duration) (statusCode int, err error) {
 	reqURL := fmt.Sprintf("http://%s.example.com?initialTimeout=%d", name, requestTimeout.Milliseconds())
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		t.Fatal("Error making GET request:", err)
 	}
 
-	errs := make(chan error, 1)
-	var statusCode int
-
-	// Do the request asynchronously: goroutine will return only once the service has returned a response (after initialTimeout),
-	// or early if there is an error
-	go func() {
-		resp, err := client.Do(req)
-		if err != nil {
-			errs <- err
-			return
-		}
-
-		statusCode = resp.StatusCode
-		resp.Body.Close()
-
-		errs <- nil
-	}()
-
-	// In parallel, delete the gateway pod:
-	// the 1 second sleep before the deletion is here to ensure the request has been sent by the goroutine above
-	time.Sleep(1 * time.Second)
-	if err := clients.KubeClient.CoreV1().Pods(gatewayNs).Delete(ctx, gatewayPodName, metav1.DeleteOptions{}); err != nil {
-		t.Fatalf("Failed to delete pod %s: %v", gatewayPodName, err)
-	}
-
-	// Wait until we get a response from the asynchronous request
-	err = <-errs
+	resp, err := client.Do(req)
 	if err != nil {
-		t.Fatal(err)
+		return 0, err
 	}
 
-	// The gateway has been gracefully shutdown, so the in-flight request finishes with a OK status code
-	assert.Equal(t, statusCode, http.StatusOK)
+	statusCode = resp.StatusCode
+	resp.Body.Close()
+
+	return statusCode, nil
 }
