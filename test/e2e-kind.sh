@@ -214,10 +214,7 @@ kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gatewa
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway --timeout=300s
 
 echo ">> Running graceful shutdown tests"
-go test -v -race -count=1 -timeout=20m -tags=e2e ./test/gracefulshutdown \
+go test -race -count=1 -timeout=20m -tags=e2e ./test/gracefulshutdown \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"
-
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" get pods -l app=3scale-kourier-gateway -o json
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" logs -l app=3scale-kourier-gateway

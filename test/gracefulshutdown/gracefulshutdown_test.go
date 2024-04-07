@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -164,15 +163,14 @@ func sendRequest(client *http.Client, name string, requestTimeout time.Duration)
 	resp, err := client.Do(req)
 	if err != nil {
 		var errURL *url.Error
-		if errors.As(err, &errURL) && errURL.Unwrap() == io.EOF {
+		// When the gateway cuts the connection (after completing the drain process), an EOF error is returned to the client
+		if errors.As(err, &errURL) && errors.Is(errURL, io.EOF) {
 			return 0, nil
 		}
 
 		return 0, err
 	}
 	defer resp.Body.Close()
-
-	log.Printf("sendRequest %s: %+v", requestTimeout, resp)
 
 	return resp.StatusCode, nil
 }
