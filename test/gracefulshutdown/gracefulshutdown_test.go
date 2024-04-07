@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -31,6 +32,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
+	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
@@ -143,6 +145,11 @@ func TestGracefulShutdown(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Check the gateway pod we have deleted previously has disappeared now:
+	// pod has been drained, terminated, and replaced by a new one
+	_, err = clients.KubeClient.CoreV1().Pods(gatewayNs).Get(ctx, gatewayPodName, metav1.GetOptions{})
+	assert.Equal(t, kubeErrors.IsNotFound(err), true)
+
 	for _, test := range tests {
 		statusCodeAny, _ := statusCodes.Load(test.name)
 		statusCode := statusCodeAny.(int)
@@ -160,6 +167,7 @@ func sendRequest(client *http.Client, name string, requestTimeout time.Duration)
 
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("sendRequest %s: err: %T, %+v", requestTimeout, err, err)
 		// EOF is returned when Envoy cuts the connection
 		if err == io.EOF {
 			return 0, nil
@@ -168,6 +176,8 @@ func sendRequest(client *http.Client, name string, requestTimeout time.Duration)
 		return 0, err
 	}
 	defer resp.Body.Close()
+
+	log.Printf("sendRequest %s: %+v", requestTimeout, resp)
 
 	return resp.StatusCode, nil
 }
