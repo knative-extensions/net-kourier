@@ -35,18 +35,37 @@ import (
 	"knative.dev/networking/test/conformance/ingress"
 )
 
-const kourierGatewayLabel = "app=3scale-kourier-gateway"
+const (
+	kourierGatewayNamespace = "kourier-system"
+	kourierGatewayLabel     = "app=3scale-kourier-gateway"
+)
 
 func TestGracefulShutdown(t *testing.T) {
-	kourierGatewayNamespace := os.Getenv("GATEWAY_NAMESPACE_OVERRIDE")
-	if kourierGatewayNamespace == "" {
-		t.Fatal("GATEWAY_NAMESPACE_OVERRIDE env var must be set")
+	gatewayNs := kourierGatewayNamespace
+	if gatewayNsOverride := os.Getenv("GATEWAY_NAMESPACE_OVERRIDE"); gatewayNsOverride != "" {
+		gatewayNs = gatewayNsOverride
+	}
+
+	// Retrieve drain time from environment
+	var drainTime time.Duration
+	drainTimeSeconds := os.Getenv("DRAIN_TIME_SECONDS")
+	if drainTimeSeconds == "" {
+		t.Fatal("DRAIN_TIME_SECONDS environment variable must be set")
+	}
+
+	drainTime, err := time.ParseDuration(fmt.Sprintf("%ds", drainTimeSeconds))
+	if err != nil {
+		t.Fatal("DRAIN_TIME_SECONDS is an invalid duration:", err)
+	}
+	if drainTime <= 5*time.Second {
+		t.Fatal("DRAIN_TIME_SECONDS must be greater than 5")
 	}
 
 	clients := test.Setup(t)
 	ctx := context.Background()
 
-	gatewayPods, err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).List(ctx, metav1.ListOptions{
+	// Retrieve the gateway pod name
+	gatewayPods, err := clients.KubeClient.CoreV1().Pods(gatewayNs).List(ctx, metav1.ListOptions{
 		LabelSelector: kourierGatewayLabel,
 	})
 	if err != nil {
@@ -58,6 +77,7 @@ func TestGracefulShutdown(t *testing.T) {
 
 	gatewayPodName := gatewayPods.Items[0].Name
 
+	// Create a service and an ingress
 	name, port, _ := ingress.CreateTimeoutService(ctx, t, clients)
 	_, client, _ := ingress.CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
@@ -77,39 +97,45 @@ func TestGracefulShutdown(t *testing.T) {
 		}},
 	})
 
-	delay := 20 * time.Second
-
-	var statusCode int
-
-	reqURL := fmt.Sprintf("http://%s.example.com?initialTimeout=%d", name, delay.Milliseconds())
+	// Prepare the request to the ingress: this request will wait for slightly less than the drain time configured
+	requestTimeout := drainTime - (3 * time.Second)
+	reqURL := fmt.Sprintf("http://%s.example.com?initialTimeout=%d", name, requestTimeout.Milliseconds())
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		t.Fatal("Error making GET request:", err)
 	}
 
 	errs := make(chan error, 1)
+	var statusCode int
 
+	// Do the request asynchronously: goroutine will return only once the service has returned a response (after initialTimeout),
+	// or early if there is an error
 	go func() {
 		resp, err := client.Do(req)
-		defer resp.Body.Close()
-
-		if err == nil {
-			statusCode = resp.StatusCode
+		if err != nil {
+			errs <- err
+			return
 		}
 
-		errs <- err
+		statusCode = resp.StatusCode
+		resp.Body.Close()
+
+		errs <- nil
 	}()
 
-	time.Sleep(2 * time.Second)
-
-	if err := clients.KubeClient.CoreV1().Pods(kourierGatewayNamespace).Delete(ctx, gatewayPodName, metav1.DeleteOptions{}); err != nil {
+	// In parallel, delete the gateway pod:
+	// the 1 second sleep before the deletion is here to ensure the request has been sent by the goroutine above
+	time.Sleep(1 * time.Second)
+	if err := clients.KubeClient.CoreV1().Pods(gatewayNs).Delete(ctx, gatewayPodName, metav1.DeleteOptions{}); err != nil {
 		t.Fatalf("Failed to delete pod %s: %v", gatewayPodName, err)
 	}
 
+	// Wait until we get a response from the asynchronous request
 	err = <-errs
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// The gateway has been gracefully shutdown, so the in-flight request finishes with a OK status code
 	assert.Equal(t, statusCode, http.StatusOK)
 }

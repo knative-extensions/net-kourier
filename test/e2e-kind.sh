@@ -201,7 +201,8 @@ export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 # 
 
 echo ">> Change DRAIN_TIME_SECONDS for graceful shutdown tests"
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" set env deployment 3scale-kourier-gateway DRAIN_TIME_SECONDS="25"
+export DRAIN_TIME_SECONDS=25
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" set env deployment 3scale-kourier-gateway DRAIN_TIME_SECONDS="$DRAIN_TIME_SECONDS"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway --timeout=300s
 
 echo ">> Running graceful shutdown tests"
