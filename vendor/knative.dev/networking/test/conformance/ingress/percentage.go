@@ -74,7 +74,7 @@ func TestPercentage(t *testing.T) {
 	name := test.ObjectNameForTest(t)
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -103,7 +103,7 @@ func TestPercentage(t *testing.T) {
 
 	for i := 0.0; i < totalRequests; i++ {
 		g.Go(func() error {
-			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
+			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain)
 			if ri == nil {
 				return errors.New("failed to request")
 			}

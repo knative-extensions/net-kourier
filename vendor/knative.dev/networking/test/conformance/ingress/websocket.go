@@ -42,7 +42,7 @@ func TestWebsocket(t *testing.T) {
 	const suffix = "- pong"
 	name, port, _ := CreateWebsocketService(ctx, t, clients, suffix)
 
-	domain := name + ".example.com"
+	domain := name + "." + test.NetworkingFlags.ServiceDomain
 
 	// Create a simple Ingress over the Service.
 	_, dialCtx, _ := createIngressReadyDialContext(ctx, t, clients, v1alpha1.IngressSpec{
@@ -97,7 +97,7 @@ func TestWebsocketSplit(t *testing.T) {
 
 	// Create a simple Ingress over the Service.
 	name := test.ObjectNameForTest(t)
-	domain := name + ".example.com"
+	domain := name + "." + test.NetworkingFlags.ServiceDomain
 	_, dialCtx, _ := createIngressReadyDialContext(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{domain},

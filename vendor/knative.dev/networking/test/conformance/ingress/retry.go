@@ -31,7 +31,7 @@ func TestRetry(t *testing.T) {
 	t.Parallel()
 	ctx, clients := context.Background(), test.Setup(t)
 	name, port, _ := CreateRetryService(ctx, t, clients)
-	domain := name + ".example.com"
+	domain := name + "." + test.NetworkingFlags.ServiceDomain
 
 	// Create a simple Ingress over the Service.
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{

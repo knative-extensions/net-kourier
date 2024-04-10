@@ -51,7 +51,7 @@ func TestPath(t *testing.T) {
 
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -131,7 +131,7 @@ func TestPath(t *testing.T) {
 		t.Run(path, func(t *testing.T) {
 			t.Parallel()
 
-			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com"+path)
+			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain+path)
 			if ri == nil {
 				return
 			}
@@ -159,7 +159,7 @@ func TestPathAndPercentageSplit(t *testing.T) {
 
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -217,7 +217,7 @@ func TestPathAndPercentageSplit(t *testing.T) {
 
 	for i := 0; i < total; i++ {
 		g.Go(func() error {
-			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com/foo")
+			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain+"/foo")
 			if ri == nil {
 				return errors.New("failed to request")
 			}

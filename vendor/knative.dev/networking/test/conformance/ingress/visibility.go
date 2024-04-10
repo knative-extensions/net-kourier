@@ -85,7 +85,7 @@ func testProxyToHelloworld(ctx context.Context, t *testing.T, ingress *v1alpha1.
 
 	// Using fixed hostnames can lead to conflicts when -count=N>1
 	// so pseudo-randomize the hostnames to avoid conflicts.
-	publicHostName := test.ObjectNameForTest(t) + ".publicproxy.example.com"
+	publicHostName := test.ObjectNameForTest(t) + ".publicproxy." + test.NetworkingFlags.ServiceDomain
 
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
@@ -170,7 +170,7 @@ func TestVisibilitySplit(t *testing.T) {
 	loadbalancerAddress := localIngress.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
 	proxyName, proxyPort, _ := CreateProxyService(ctx, t, clients, privateHostName, loadbalancerAddress)
 
-	publicHostName := fmt.Sprintf("%s.%s", name, "example.com")
+	publicHostName := fmt.Sprintf("%s.%s", name, test.NetworkingFlags.ServiceDomain)
 	_, client, _ = CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{publicHostName},
@@ -334,7 +334,7 @@ func TestVisibilityPath(t *testing.T) {
 	loadbalancerAddress := localIngress.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
 	proxyName, proxyPort, _ := CreateProxyService(ctx, t, clients, privateHostName, loadbalancerAddress)
 
-	publicHostName := fmt.Sprintf("%s.%s", name, "example.com")
+	publicHostName := fmt.Sprintf("%s.%s", name, test.NetworkingFlags.ServiceDomain)
 	_, client, _ = CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
 			Hosts:      []string{publicHostName},

@@ -39,7 +39,7 @@ func TestRule(t *testing.T) {
 
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{fooName + ".example.com"},
+			Hosts:      []string{fooName + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -58,7 +58,7 @@ func TestRule(t *testing.T) {
 				}},
 			},
 		}, {
-			Hosts:      []string{barName + ".example.com"},
+			Hosts:      []string{barName + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -77,12 +77,12 @@ func TestRule(t *testing.T) {
 		}},
 	})
 
-	ri := RuntimeRequest(ctx, t, client, "http://"+fooName+".example.com")
+	ri := RuntimeRequest(ctx, t, client, "http://"+fooName+"."+test.NetworkingFlags.ServiceDomain)
 	if got := ri.Request.Headers.Get(headerName); got != fooName {
 		t.Errorf("Header[Host] = %q, wanted %q", got, fooName)
 	}
 
-	ri = RuntimeRequest(ctx, t, client, "http://"+barName+".example.com")
+	ri = RuntimeRequest(ctx, t, client, "http://"+barName+"."+test.NetworkingFlags.ServiceDomain)
 	if got := ri.Request.Headers.Get(headerName); got != barName {
 		t.Errorf("Header[Host] = %q, wanted %q", got, barName)
 	}

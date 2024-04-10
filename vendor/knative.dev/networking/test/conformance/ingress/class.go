@@ -79,7 +79,7 @@ func verifyIngressWithAnnotations(ctx context.Context, t *testing.T, clients *te
 	original, _ := CreateIngress(ctx, t, clients,
 		v1alpha1.IngressSpec{
 			Rules: []v1alpha1.IngressRule{{
-				Hosts:      []string{backend.ServiceName + ".example.com"},
+				Hosts:      []string{backend.ServiceName + "." + test.NetworkingFlags.ServiceDomain},
 				Visibility: v1alpha1.IngressVisibilityExternalIP,
 				HTTP: &v1alpha1.HTTPIngressRuleValue{
 					Paths: []v1alpha1.HTTPIngressPath{{
