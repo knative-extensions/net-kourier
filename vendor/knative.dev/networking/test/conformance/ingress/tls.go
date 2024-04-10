@@ -33,7 +33,7 @@ func TestIngressTLS(t *testing.T) {
 
 	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
-	hosts := []string{name + ".example.com"}
+	hosts := []string{name + "." + test.NetworkingFlags.ServiceDomain}
 
 	secretName, tlsConfig, _ := CreateTLSSecret(ctx, t, clients, hosts)
 
@@ -61,10 +61,10 @@ func TestIngressTLS(t *testing.T) {
 	}, tlsConfig)
 
 	// Check without TLS.
-	RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
+	RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain)
 
 	// Check with TLS.
-	RuntimeRequest(ctx, t, client, "https://"+name+".example.com")
+	RuntimeRequest(ctx, t, client, "https://"+name+"."+test.NetworkingFlags.ServiceDomain)
 }
 
 // TODO(mattmoor): Consider adding variants where we have multiple hosts with distinct certificates.
