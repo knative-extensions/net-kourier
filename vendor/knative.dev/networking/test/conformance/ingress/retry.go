@@ -56,7 +56,7 @@ func TestRetry(t *testing.T) {
 	// automatically and the service only responds 200 on the _second_ access.
 	resp, err := client.Get("http://" + domain)
 	if err != nil {
-		t.Errorf("Error making GET request: %v", err)
+		t.Fatalf("Error making GET request: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusServiceUnavailable {
@@ -67,7 +67,7 @@ func TestRetry(t *testing.T) {
 	// Second try - this time we should succeed.
 	resp, err = client.Get("http://" + domain)
 	if err != nil {
-		t.Errorf("Error making GET request: %v", err)
+		t.Fatalf("Error making GET request: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
