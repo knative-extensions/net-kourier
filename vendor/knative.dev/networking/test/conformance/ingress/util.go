@@ -749,7 +749,7 @@ func createPodAndService(ctx context.Context, t *testing.T, clients *test.Client
 	}
 
 	// Wait for the Pod to show up in the Endpoints resource.
-	waitErr := wait.PollImmediate(test.PollInterval, test.PollTimeout, func() (bool, error) {
+	waitErr := wait.PollUntilContextTimeout(ctx, test.PollInterval, test.PollTimeout, true, func(ctx context.Context) (bool, error) {
 		var ep *corev1.Endpoints
 		err := reconciler.RetryTestErrors(func(attempts int) (err error) {
 			ep, err = clients.KubeClient.CoreV1().Endpoints(svc.Namespace).Get(ctx, svc.Name, metav1.GetOptions{})
@@ -1212,7 +1212,7 @@ func WaitForIngressState(ctx context.Context, client *test.NetworkingClients, na
 	defer span.End()
 
 	var lastState *v1alpha1.Ingress
-	waitErr := wait.PollImmediate(test.PollInterval, test.PollTimeout, func() (bool, error) {
+	waitErr := wait.PollUntilContextTimeout(ctx, test.PollInterval, test.PollTimeout, true, func(ctx context.Context) (bool, error) {
 		err := reconciler.RetryTestErrors(func(attempts int) (err error) {
 			lastState, err = client.Ingresses.Get(ctx, name, metav1.GetOptions{})
 			return err

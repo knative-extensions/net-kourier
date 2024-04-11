@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 
+	"knative.dev/networking/pkg/http/probe"
 	"knative.dev/networking/test"
 	"knative.dev/networking/test/test_images/runtime/handlers"
 )
@@ -48,11 +49,13 @@ func main() {
 	mux := http.NewServeMux()
 	handlers.InitHandlers(mux)
 
+	h := probe.NewHandler(mux)
+
 	if cert, key := os.Getenv("CERT"), os.Getenv("KEY"); cert != "" && key != "" {
 		log.Print("Server starting on port with TLS ", port)
-		test.ListenAndServeTLSGracefullyWithHandler(cert, key, ":"+port, mux)
+		test.ListenAndServeTLSGracefullyWithHandler(cert, key, ":"+port, h)
 	} else {
 		log.Print("Server starting on port ", port)
-		test.ListenAndServeGracefullyWithHandler(":"+port, mux)
+		test.ListenAndServeGracefullyWithHandler(":"+port, h)
 	}
 }

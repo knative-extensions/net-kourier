@@ -83,21 +83,25 @@ func TestProbeHeaders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ros := []RequestOption{}
+			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s.%s", name, test.NetworkingFlags.ServiceDomain), nil)
+			if err != nil {
+				t.Fatal("Error creating request:", err)
+			}
+			req.Header.Set(header.ProbeKey, header.ProbeValue)
+			req.Header.Set(header.HashKey, tt.req)
 
-			ros = append(ros, func(r *http.Request) {
-				// Add the header to indicate this is a probe request.
-				r.Header.Set(header.ProbeKey, header.ProbeValue)
-				r.Header.Set(header.HashKey, tt.req)
-			})
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatal("Error making GET request:", err)
+			}
+			defer resp.Body.Close()
 
-			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain, ros...)
-			if ri == nil {
-				t.Error("Couldn't make request")
-				return
+			if resp.StatusCode != http.StatusOK {
+				t.Errorf("Unexpected status code: %d, wanted %d", resp.StatusCode, http.StatusOK)
+				DumpResponse(ctx, t, resp)
 			}
 
-			if got, want := ri.Request.Headers.Get(header.HashKey), tt.want; got != want {
+			if got, want := resp.Header.Get(header.HashKey), tt.want; got != want {
 				t.Errorf("Header[%q] = %q, wanted %q", header.HashKey, got, want)
 			}
 		})
