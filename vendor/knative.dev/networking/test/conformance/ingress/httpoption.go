@@ -68,7 +68,7 @@ func TestHTTPOption(t *testing.T) {
 func create(ctx context.Context, t *testing.T, clients *test.Clients, httpOption v1alpha1.HTTPOption) (string, *http.Client) {
 	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
-	hosts := []string{name + ".example.com"}
+	hosts := []string{name + "." + test.NetworkingFlags.ServiceDomain}
 
 	secretName, tlsConfig, _ := CreateTLSSecret(ctx, t, clients, hosts)
 

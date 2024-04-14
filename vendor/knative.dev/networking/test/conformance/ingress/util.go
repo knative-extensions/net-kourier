@@ -749,7 +749,7 @@ func createPodAndService(ctx context.Context, t *testing.T, clients *test.Client
 	}
 
 	// Wait for the Pod to show up in the Endpoints resource.
-	waitErr := wait.PollImmediate(test.PollInterval, test.PollTimeout, func() (bool, error) {
+	waitErr := wait.PollUntilContextTimeout(ctx, test.PollInterval, test.PollTimeout, true, func(ctx context.Context) (bool, error) {
 		var ep *corev1.Endpoints
 		err := reconciler.RetryTestErrors(func(attempts int) (err error) {
 			ep, err = clients.KubeClient.CoreV1().Endpoints(svc.Namespace).Get(ctx, svc.Name, metav1.GetOptions{})
@@ -1046,7 +1046,6 @@ func CreateDialContext(ctx context.Context, t *testing.T, ing *v1alpha1.Ingress,
 	// TODO(mattmoor): I'm open to tricks that would let us cleanly test multiple
 	// public load balancers or LBs with multiple ingresses (below), but want to
 	// keep our simple tests simple, thus the [0]s...
-
 	// We expect an ingress LB with the form foo.bar.svc.cluster.local (though
 	// we aren't strictly sensitive to the suffix, this is just illustrative.
 	internalDomain := ing.Status.PublicLoadBalancer.Ingress[0].DomainInternal
@@ -1122,6 +1121,15 @@ func RuntimeRequestWithExpectations(ctx context.Context, t *testing.T, client *h
 	allowDialError bool,
 	opts ...RequestOption) *types.RuntimeInfo {
 	t.Helper()
+
+	if test.NetworkingFlags.RequestDelay < 0 {
+		t.Error("Error creating Request:", fmt.Errorf("request delay value must be greater than or equal to 0, receieved %d", test.NetworkingFlags.RequestDelay))
+		return nil
+	}
+	if test.NetworkingFlags.RequestDelay > 0 {
+		t.Logf("delay of %d before doing the request", test.NetworkingFlags.RequestDelay)
+		time.Sleep(time.Duration(test.NetworkingFlags.RequestDelay) * time.Second)
+	}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -1204,7 +1212,7 @@ func WaitForIngressState(ctx context.Context, client *test.NetworkingClients, na
 	defer span.End()
 
 	var lastState *v1alpha1.Ingress
-	waitErr := wait.PollImmediate(test.PollInterval, test.PollTimeout, func() (bool, error) {
+	waitErr := wait.PollUntilContextTimeout(ctx, test.PollInterval, test.PollTimeout, true, func(ctx context.Context) (bool, error) {
 		err := reconciler.RetryTestErrors(func(attempts int) (err error) {
 			lastState, err = client.Ingresses.Get(ctx, name, metav1.GetOptions{})
 			return err

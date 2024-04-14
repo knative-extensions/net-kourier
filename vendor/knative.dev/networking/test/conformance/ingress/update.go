@@ -42,7 +42,7 @@ func TestUpdate(t *testing.T) {
 	hostname := test.ObjectNameForTest(t)
 	ing, client, cancel := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{hostname + ".example.com"},
+			Hosts:      []string{hostname + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -68,7 +68,7 @@ func TestUpdate(t *testing.T) {
 		firstCancel()
 	}
 
-	proberCancel := checkOK(ctx, t, "http://"+hostname+".example.com", client)
+	proberCancel := checkOK(ctx, t, "http://"+hostname+"."+test.NetworkingFlags.ServiceDomain, client)
 	defer func() {
 		proberCancel()
 		previousVersionCancel()
@@ -87,7 +87,7 @@ func TestUpdate(t *testing.T) {
 		// Update the Ingress, and wait for it to report ready.
 		UpdateIngressReady(ctx, t, clients, ing.Name, v1alpha1.IngressSpec{
 			Rules: []v1alpha1.IngressRule{{
-				Hosts:      []string{hostname + ".example.com"},
+				Hosts:      []string{hostname + "." + test.NetworkingFlags.ServiceDomain},
 				Visibility: v1alpha1.IngressVisibilityExternalIP,
 				HTTP: &v1alpha1.HTTPIngressRuleValue{
 					Paths: []v1alpha1.HTTPIngressPath{{
@@ -108,7 +108,7 @@ func TestUpdate(t *testing.T) {
 
 		// Check that it serves the right message as soon as we get "Ready",
 		// but before we stop probing.
-		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+".example.com")
+		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+"."+test.NetworkingFlags.ServiceDomain)
 		if ri != nil {
 			if got := ri.Request.Headers.Get(updateHeaderName); got != sentinel {
 				t.Errorf("Header[%q] = %q, wanted %q", updateHeaderName, got, sentinel)
@@ -130,7 +130,7 @@ func TestUpdate(t *testing.T) {
 		// Update the Ingress, and wait for it to report ready.
 		UpdateIngressReady(ctx, t, clients, ing.Name, v1alpha1.IngressSpec{
 			Rules: []v1alpha1.IngressRule{{
-				Hosts:      []string{hostname + ".example.com"},
+				Hosts:      []string{hostname + "." + test.NetworkingFlags.ServiceDomain},
 				Visibility: v1alpha1.IngressVisibilityExternalIP,
 				HTTP: &v1alpha1.HTTPIngressRuleValue{
 					Paths: []v1alpha1.HTTPIngressPath{{
@@ -151,7 +151,7 @@ func TestUpdate(t *testing.T) {
 
 		// Check that it serves the right message as soon as we get "Ready",
 		// but before we stop probing.
-		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+".example.com")
+		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+"."+test.NetworkingFlags.ServiceDomain)
 		if ri != nil {
 			if got := ri.Request.Headers.Get(updateHeaderName); got != sentinel {
 				t.Errorf("Header[%q] = %q, wanted %q", updateHeaderName, got, sentinel)

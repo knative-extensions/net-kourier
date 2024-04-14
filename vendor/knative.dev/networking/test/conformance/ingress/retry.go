@@ -31,7 +31,7 @@ func TestRetry(t *testing.T) {
 	t.Parallel()
 	ctx, clients := context.Background(), test.Setup(t)
 	name, port, _ := CreateRetryService(ctx, t, clients)
-	domain := name + ".example.com"
+	domain := name + "." + test.NetworkingFlags.ServiceDomain
 
 	// Create a simple Ingress over the Service.
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
@@ -56,7 +56,7 @@ func TestRetry(t *testing.T) {
 	// automatically and the service only responds 200 on the _second_ access.
 	resp, err := client.Get("http://" + domain)
 	if err != nil {
-		t.Errorf("Error making GET request: %v", err)
+		t.Fatalf("Error making GET request: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusServiceUnavailable {
@@ -67,7 +67,7 @@ func TestRetry(t *testing.T) {
 	// Second try - this time we should succeed.
 	resp, err = client.Get("http://" + domain)
 	if err != nil {
-		t.Errorf("Error making GET request: %v", err)
+		t.Fatalf("Error making GET request: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

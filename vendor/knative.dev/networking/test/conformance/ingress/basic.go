@@ -36,7 +36,7 @@ func TestBasics(t *testing.T) {
 	// Create a simple Ingress over the Service.
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -52,7 +52,7 @@ func TestBasics(t *testing.T) {
 		}},
 	})
 
-	RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
+	RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain)
 }
 
 // TestBasicsHTTP2 verifies that the same no-frills Ingress over a Service with http/2 configured
@@ -69,7 +69,7 @@ func TestBasicsHTTP2(t *testing.T) {
 	// Create a simple Ingress over the Service.
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -85,7 +85,7 @@ func TestBasicsHTTP2(t *testing.T) {
 		}},
 	})
 
-	ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
+	ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain)
 	if ri == nil {
 		return
 	}

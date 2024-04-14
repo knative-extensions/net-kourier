@@ -43,7 +43,7 @@ func TestProbeHeaders(t *testing.T) {
 	// Create a simple Ingress over the Service.
 	ing, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -83,21 +83,25 @@ func TestProbeHeaders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ros := []RequestOption{}
+			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s.%s", name, test.NetworkingFlags.ServiceDomain), nil)
+			if err != nil {
+				t.Fatal("Error creating request:", err)
+			}
+			req.Header.Set(header.ProbeKey, header.ProbeValue)
+			req.Header.Set(header.HashKey, tt.req)
 
-			ros = append(ros, func(r *http.Request) {
-				// Add the header to indicate this is a probe request.
-				r.Header.Set(header.ProbeKey, header.ProbeValue)
-				r.Header.Set(header.HashKey, tt.req)
-			})
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatal("Error making GET request:", err)
+			}
+			defer resp.Body.Close()
 
-			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com", ros...)
-			if ri == nil {
-				t.Error("Couldn't make request")
-				return
+			if resp.StatusCode != http.StatusOK {
+				t.Errorf("Unexpected status code: %d, wanted %d", resp.StatusCode, http.StatusOK)
+				DumpResponse(ctx, t, resp)
 			}
 
-			if got, want := ri.Request.Headers.Get(header.HashKey), tt.want; got != want {
+			if got, want := resp.Header.Get(header.HashKey), tt.want; got != want {
 				t.Errorf("Header[%q] = %q, wanted %q", header.HashKey, got, want)
 			}
 		})
@@ -124,7 +128,7 @@ func TestTagHeaders(t *testing.T) {
 
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -195,7 +199,7 @@ func TestTagHeaders(t *testing.T) {
 				})
 			}
 
-			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com", ros...)
+			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain, ros...)
 			if ri == nil {
 				t.Error("Couldn't make request")
 				return
@@ -221,7 +225,7 @@ func TestPreSplitSetHeaders(t *testing.T) {
 	// Create a simple Ingress over the 10 Services.
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -243,7 +247,7 @@ func TestPreSplitSetHeaders(t *testing.T) {
 	t.Run("Check without passing header", func(t *testing.T) {
 		t.Parallel()
 
-		ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
+		ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain)
 		if ri == nil {
 			return
 		}
@@ -256,7 +260,7 @@ func TestPreSplitSetHeaders(t *testing.T) {
 	t.Run("Check with passing header", func(t *testing.T) {
 		t.Parallel()
 
-		ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com", func(req *http.Request) {
+		ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain, func(req *http.Request) {
 			// Specify a value for the header to verify that implementations
 			// use set vs. append semantics.
 			req.Header.Set(headerName, "bogus")
@@ -306,7 +310,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 	name := test.ObjectNameForTest(t)
 	_, client, _ := CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
 		Rules: []v1alpha1.IngressRule{{
-			Hosts:      []string{name + ".example.com"},
+			Hosts:      []string{name + "." + test.NetworkingFlags.ServiceDomain},
 			Visibility: v1alpha1.IngressVisibilityExternalIP,
 			HTTP: &v1alpha1.HTTPIngressRuleValue{
 				Paths: []v1alpha1.HTTPIngressPath{{
@@ -324,7 +328,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 		// particular test.
 		seen := make(sets.Set[string], len(names))
 		for i := 0; i < maxRequests; i++ {
-			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com")
+			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain)
 			if ri == nil {
 				return
 			}
@@ -347,7 +351,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 		// particular test.
 		seen := make(sets.Set[string], len(names))
 		for i := 0; i < maxRequests; i++ {
-			ri := RuntimeRequest(ctx, t, client, "http://"+name+".example.com", func(req *http.Request) {
+			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain, func(req *http.Request) {
 				// Specify a value for the header to verify that implementations
 				// use set vs. append semantics.
 				req.Header.Set(headerName, "bogus")
