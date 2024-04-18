@@ -14,11 +14,9 @@ aliases:
   - pierdipi
   client-wg-leads:
   - dsimansk
-  - navidshaikh
   - rhuss
   client-writers:
   - dsimansk
-  - navidshaikh
   - rhuss
   discovery-approvers:
   - lberk
@@ -118,13 +116,11 @@ aliases:
   - rhuss
   kn-plugin-admin-approvers:
   - maximilien
-  - navidshaikh
   - rhuss
   - zhanggbj
   kn-plugin-diag-approvers:
   - cdlliuy
   - maximilien
-  - navidshaikh
   kn-plugin-event-approvers:
   - cardil
   - rhuss
@@ -137,12 +133,10 @@ aliases:
   - rhuss
   kn-plugin-quickstart-approvers:
   - dsimansk
-  - navidshaikh
   - psschwei
   - rhuss
   kn-plugin-sample-approvers:
   - maximilien
-  - navidshaikh
   - rhuss
   kn-plugin-service-log-approvers:
   - rhuss
@@ -150,7 +144,6 @@ aliases:
   - daisy-ycguo
   - dsimansk
   - maximilien
-  - navidshaikh
   - rhuss
   kn-plugin-source-kamelet-approvers:
   - christophd
@@ -233,7 +226,6 @@ aliases:
   - davidhadas
   - evankanderson
   serving-approvers:
-  - psschwei
   - skonto
   serving-progressive-rollout-approvers:
   - alexagriffith
@@ -252,7 +244,6 @@ aliases:
   - dprotaso
   serving-writers:
   - dprotaso
-  - psschwei
   - skonto
   steering-committee:
   - aliok
