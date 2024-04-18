@@ -13,7 +13,7 @@ require (
 	github.com/pires/go-proxyproto v0.6.1
 	go.uber.org/zap v1.27.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237
-	google.golang.org/grpc v1.63.0
+	google.golang.org/grpc v1.63.2
 	google.golang.org/protobuf v1.33.0
 	gotest.tools/v3 v3.0.3
 	k8s.io/api v0.29.2
@@ -21,8 +21,8 @@ require (
 	k8s.io/client-go v0.29.2
 	k8s.io/code-generator v0.29.2
 	knative.dev/hack v0.0.0-20240404013450-1133b37da8d7
-	knative.dev/networking v0.0.0-20240411132722-aaf8f94e0652
-	knative.dev/pkg v0.0.0-20240415083725-39d72dabe4f2
+	knative.dev/networking v0.0.0-20240416165409-a40d058f6aef
+	knative.dev/pkg v0.0.0-20240416145024-0f34a8815650
 )
 
 require (
