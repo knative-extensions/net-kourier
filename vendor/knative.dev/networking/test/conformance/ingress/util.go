@@ -1046,61 +1046,74 @@ func CreateDialContext(ctx context.Context, t *testing.T, ing *v1alpha1.Ingress,
 	// TODO(mattmoor): I'm open to tricks that would let us cleanly test multiple
 	// public load balancers or LBs with multiple ingresses (below), but want to
 	// keep our simple tests simple, thus the [0]s...
-	// We expect an ingress LB with the form foo.bar.svc.cluster.local (though
-	// we aren't strictly sensitive to the suffix, this is just illustrative.
 	internalDomain := ing.Status.PublicLoadBalancer.Ingress[0].DomainInternal
-	parts := strings.SplitN(internalDomain, ".", 3)
-	if len(parts) < 3 {
-		t.Fatal("Too few parts in internal domain:", internalDomain)
-	}
-	name, namespace := parts[0], parts[1]
-
-	var svc *corev1.Service
-	err := reconciler.RetryTestErrors(func(attempts int) (err error) {
-		svc, err = clients.KubeClient.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
-		return err
-	})
-	if err != nil {
-		t.Fatalf("Unable to retrieve Kubernetes service %s/%s: %v", namespace, name, err)
-	}
-
-	dial := network.NewBackoffDialer(dialBackoff)
-	if pkgTest.Flags.IngressEndpoint != "" {
-		t.Logf("ingressendpoint: %q", pkgTest.Flags.IngressEndpoint)
-
-		// If we're using a manual --ingressendpoint then don't require
-		// "type: LoadBalancer", which may not play nice with KinD
-		return func(ctx context.Context, _ string, address string) (net.Conn, error) {
-			_, port, err := net.SplitHostPort(address)
-			if err != nil {
-				return nil, err
-			}
-			for _, sp := range svc.Spec.Ports {
-				if fmt.Sprint(sp.Port) == port {
-					return dial(ctx, "tcp", fmt.Sprintf("%s:%d", pkgTest.Flags.IngressEndpoint, sp.NodePort))
-				}
-			}
-			return nil, fmt.Errorf("service doesn't contain a matching port: %s", port)
+	if internalDomain != "" {
+		parts := strings.SplitN(internalDomain, ".", 3)
+		if len(parts) < 3 {
+			t.Fatal("Too few parts in internal domain:", internalDomain)
 		}
-	} else if len(svc.Status.LoadBalancer.Ingress) >= 1 {
-		ingress := svc.Status.LoadBalancer.Ingress[0]
-		return func(ctx context.Context, _ string, address string) (net.Conn, error) {
-			_, port, err := net.SplitHostPort(address)
-			if err != nil {
-				return nil, err
+		name, namespace := parts[0], parts[1]
+
+		var svc *corev1.Service
+		err := reconciler.RetryTestErrors(func(attempts int) (err error) {
+			svc, err = clients.KubeClient.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+			return err
+		})
+		if err != nil {
+			t.Fatalf("Unable to retrieve Kubernetes service %s/%s: %v", namespace, name, err)
+		}
+
+		dial := network.NewBackoffDialer(dialBackoff)
+		if pkgTest.Flags.IngressEndpoint != "" {
+			t.Logf("ingressendpoint: %q", pkgTest.Flags.IngressEndpoint)
+
+			// If we're using a manual --ingressendpoint then don't require
+			// "type: LoadBalancer", which may not play nice with KinD
+			return func(ctx context.Context, _ string, address string) (net.Conn, error) {
+				_, port, err := net.SplitHostPort(address)
+				if err != nil {
+					return nil, err
+				}
+				for _, sp := range svc.Spec.Ports {
+					if fmt.Sprint(sp.Port) == port {
+						return dial(ctx, "tcp", fmt.Sprintf("%s:%d", pkgTest.Flags.IngressEndpoint, sp.NodePort))
+					}
+				}
+				return nil, fmt.Errorf("service doesn't contain a matching port: %s", port)
 			}
-			if ingress.IP != "" {
-				return dial(ctx, "tcp", ingress.IP+":"+port)
+		} else if len(svc.Status.LoadBalancer.Ingress) >= 1 {
+			ingress := svc.Status.LoadBalancer.Ingress[0]
+			return func(ctx context.Context, _ string, address string) (net.Conn, error) {
+				_, port, err := net.SplitHostPort(address)
+				if err != nil {
+					return nil, err
+				}
+				if ingress.IP != "" {
+					return dial(ctx, "tcp", ingress.IP+":"+port)
+				}
+				if ingress.Hostname != "" {
+					return dial(ctx, "tcp", ingress.Hostname+":"+port)
+				}
+				return nil, errors.New("service ingress does not contain dialing information")
 			}
-			if ingress.Hostname != "" {
-				return dial(ctx, "tcp", ingress.Hostname+":"+port)
-			}
-			return nil, errors.New("service ingress does not contain dialing information")
+		}
+		t.Fatal("Service does not have a supported shape (not type LoadBalancer? missing --ingressendpoint?).")
+	} else if ing.Status.PublicLoadBalancer.Ingress[0].IP != "" {
+		dial := network.NewBackoffDialer(dialBackoff)
+		ingressIP := ing.Status.PublicLoadBalancer.Ingress[0].IP
+
+		port := 80
+		if ing.Spec.Rules[0].Visibility == v1alpha1.IngressVisibilityExternalIP && ing.Spec.HTTPOption == v1alpha1.HTTPOptionRedirected {
+			port = 443
+		}
+
+		return func(ctx context.Context, _ string, _ string) (net.Conn, error) {
+			return dial(ctx, "tcp", fmt.Sprintf("%s:%d", ingressIP, port))
 		}
 	} else {
-		t.Fatal("Service does not have a supported shape (not type LoadBalancer? missing --ingressendpoint?).")
-		return nil // Unreachable
+		t.Fatal("No IP or domain found on ingress.")
 	}
+	return nil // Unreachable
 }
 
 type RequestOption func(*http.Request)
