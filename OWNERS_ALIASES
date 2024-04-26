@@ -226,6 +226,7 @@ aliases:
   - davidhadas
   - evankanderson
   serving-approvers:
+  - ReToCode
   - skonto
   serving-progressive-rollout-approvers:
   - alexagriffith
@@ -243,6 +244,7 @@ aliases:
   serving-wg-leads:
   - dprotaso
   serving-writers:
+  - ReToCode
   - dprotaso
   - skonto
   steering-committee:
