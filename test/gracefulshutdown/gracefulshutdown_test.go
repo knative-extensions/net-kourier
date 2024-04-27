@@ -68,7 +68,7 @@ func TestGracefulShutdown(t *testing.T) {
 
 	clients := test.Setup(t)
 	ctx := context.Background()
-	
+
 	// Create a service and an ingress
 	name, port, _ := ingress.CreateTimeoutService(ctx, t, clients)
 	_, client, _ := ingress.CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
