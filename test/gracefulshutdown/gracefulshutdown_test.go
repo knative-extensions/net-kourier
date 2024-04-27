@@ -68,20 +68,7 @@ func TestGracefulShutdown(t *testing.T) {
 
 	clients := test.Setup(t)
 	ctx := context.Background()
-
-	// Retrieve the gateway pod name
-	gatewayPods, err := clients.KubeClient.CoreV1().Pods(gatewayNs).List(ctx, metav1.ListOptions{
-		LabelSelector: kourierGatewayLabel,
-	})
-	if err != nil {
-		t.Fatal("Failed to get Gateway pods:", err)
-	}
-	if len(gatewayPods.Items) != 1 {
-		t.Fatal("This test expects exactly 1 gateway pod, found:", len(gatewayPods.Items))
-	}
-
-	gatewayPodName := gatewayPods.Items[0].Name
-
+	
 	// Create a service and an ingress
 	name, port, _ := ingress.CreateTimeoutService(ctx, t, clients)
 	_, client, _ := ingress.CreateIngressReady(ctx, t, clients, v1alpha1.IngressSpec{
@@ -133,11 +120,21 @@ func TestGracefulShutdown(t *testing.T) {
 		})
 	}
 
-	// Once requests are in-flight, delete the gateway pod:
-	// the 1 second sleep before the deletion is here to ensure the requests have been sent by the goroutines above
+	// Ensures the requests sent by the goroutines above are in-flight
 	time.Sleep(1 * time.Second)
-	if err := clients.KubeClient.CoreV1().Pods(gatewayNs).Delete(ctx, gatewayPodName, metav1.DeleteOptions{}); err != nil {
-		t.Fatalf("Failed to delete pod %s: %v", gatewayPodName, err)
+
+	// Delete all gateway pods
+	gatewayPods, err := clients.KubeClient.CoreV1().Pods(gatewayNs).Delete(ctx, metav1.DeleteOptions{
+		LabelSelector: kourierGatewayLabel,
+	})
+	if err != nil {
+		t.Fatal("Failed to get Gateway pods:", err)
+	}
+
+	for _, gatewayPod := range gatewayPods.Items {
+		if err := clients.KubeClient.CoreV1().Pods(gatewayNs).Delete(ctx, gatewayPod.Name, metav1.DeleteOptions{}); err != nil {
+			t.Fatalf("Failed to delete pod %s: %v", gatewayPod.Name, err)
+		}
 	}
 
 	// Wait until we get responses from the asynchronous requests
