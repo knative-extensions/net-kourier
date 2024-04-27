@@ -54,15 +54,17 @@ kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gatewa
   "spec": {
     "template": {
       "spec": {
-        "containers": {
-          "name": "kourier-gateway",
-          "env": [
-            {
-              "name": "DRAIN_TIME_SECONDS",
-              "value": "30"
-            }
-          ]
-        },
+        "containers": [
+          {
+            "name": "kourier-gateway",
+            "env": [
+              {
+                "name": "DRAIN_TIME_SECONDS",
+                "value": "30"
+              }
+            ]
+          }
+        ],
         "terminationGracePeriodSeconds": 60
       }
     }
@@ -80,15 +82,17 @@ kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gatewa
   "spec": {
     "template": {
       "spec": {
-        "containers": {
-          "name": "kourier-gateway",
-          "env": [
-            {
-              "name": "DRAIN_TIME_SECONDS",
-              "value": "15"
-            }
-          ]
-        },
+        "containers": [
+          {
+            "name": "kourier-gateway",
+            "env": [
+              {
+                "name": "DRAIN_TIME_SECONDS",
+                "value": "15"
+              }
+            ]
+          }
+        ],
         "terminationGracePeriodSeconds": null
       }
     }
