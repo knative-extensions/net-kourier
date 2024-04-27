@@ -120,6 +120,7 @@ spec:
             limits:
               cpu: "1"
               memory: 800Mi
+      # to ensure a graceful drain, terminationGracePeriodSeconds must be greater than DRAIN_TIME_SECONDS environment variable
       terminationGracePeriodSeconds: 30
       volumes:
         - name: config-volume
