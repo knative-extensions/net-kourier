@@ -50,12 +50,19 @@ go test -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e
   --cluster-suffix="$CLUSTER_SUFFIX"
 
 echo ">> Change DRAIN_TIME_SECONDS and terminationGracePeriodSeconds for graceful shutdown tests"
-export DRAIN_TIME_SECONDS=30
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" set env deployment 3scale-kourier-gateway DRAIN_TIME_SECONDS="$DRAIN_TIME_SECONDS"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gateway -p '{
   "spec": {
     "template": {
       "spec": {
+        "containers": {
+          "name": "kourier-gateway",
+          "env": [
+            {
+              "name": "DRAIN_TIME_SECONDS",
+              "value": "30"
+            }
+          ]
+        },
         "terminationGracePeriodSeconds": 60
       }
     }
@@ -64,16 +71,24 @@ kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gatewa
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway --timeout=300s
 
 echo ">> Running graceful shutdown tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/gracefulshutdown \
+DRAIN_TIME_SECONDS=30 go test -race -count=1 -timeout=20m -tags=e2e ./test/gracefulshutdown \
   --ingressendpoint="${IPS[0]}" \
   --ingressClass=kourier.ingress.networking.knative.dev \
   --cluster-suffix="$CLUSTER_SUFFIX"
 
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" set env deployment 3scale-kourier-gateway DRAIN_TIME_SECONDS="15"
 kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gateway -p '{
   "spec": {
     "template": {
       "spec": {
+        "containers": {
+          "name": "kourier-gateway",
+          "env": [
+            {
+              "name": "DRAIN_TIME_SECONDS",
+              "value": "15"
+            }
+          ]
+        },
         "terminationGracePeriodSeconds": null
       }
     }
