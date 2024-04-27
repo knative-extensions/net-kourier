@@ -19,6 +19,7 @@ package ingress
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -108,7 +109,7 @@ func TestUpdate(t *testing.T) {
 
 		// Check that it serves the right message as soon as we get "Ready",
 		// but before we stop probing.
-		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+"."+test.NetworkingFlags.ServiceDomain)
+		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+"."+test.NetworkingFlags.ServiceDomain+timeQuery())
 		if ri != nil {
 			if got := ri.Request.Headers.Get(updateHeaderName); got != sentinel {
 				t.Errorf("Header[%q] = %q, wanted %q", updateHeaderName, got, sentinel)
@@ -151,7 +152,7 @@ func TestUpdate(t *testing.T) {
 
 		// Check that it serves the right message as soon as we get "Ready",
 		// but before we stop probing.
-		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+"."+test.NetworkingFlags.ServiceDomain)
+		ri := RuntimeRequest(ctx, t, client, "http://"+hostname+"."+test.NetworkingFlags.ServiceDomain+timeQuery())
 		if ri != nil {
 			if got := ri.Request.Headers.Get(updateHeaderName); got != sentinel {
 				t.Errorf("Header[%q] = %q, wanted %q", updateHeaderName, got, sentinel)
@@ -184,7 +185,7 @@ func checkOK(ctx context.Context, t *testing.T, url string, client *http.Client)
 			}
 			// Scope the defer below to avoid leaking until the test completes.
 			func() {
-				ri := RuntimeRequest(ctx, t, client, url)
+				ri := RuntimeRequest(ctx, t, client, url+timeQuery())
 				if ri != nil {
 					// Use the updateHeaderName as a debug marker to identify which version
 					// (of programming) is responding.
@@ -199,4 +200,8 @@ func checkOK(ctx context.Context, t *testing.T, url string, client *http.Client)
 		close(stopCh)
 		<-doneCh
 	}
+}
+
+func timeQuery() string {
+	return "?time=" + strconv.FormatInt(time.Now().UnixNano(), 10)
 }
