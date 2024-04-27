@@ -123,8 +123,8 @@ func TestGracefulShutdown(t *testing.T) {
 	// Ensures the requests sent by the goroutines above are in-flight
 	time.Sleep(1 * time.Second)
 
-	// Delete all gateway pods
-	gatewayPods, err := clients.KubeClient.CoreV1().Pods(gatewayNs).Delete(ctx, metav1.DeleteOptions{
+	// Retrieve and delete all gateway pods
+	gatewayPods, err := clients.KubeClient.CoreV1().Pods(gatewayNs).List(ctx, metav1.DeleteOptions{
 		LabelSelector: kourierGatewayLabel,
 	})
 	if err != nil {
