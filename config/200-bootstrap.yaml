@@ -72,6 +72,15 @@ data:
                                       exact: GET
                               route:
                                 cluster: service_stats
+                            - match:
+                                safe_regex:
+                                  regex: '/drain_listeners'
+                                headers:
+                                  - name: ':method'
+                                    string_match:
+                                      exact: POST
+                              route:
+                                cluster: service_stats
       clusters:
         - name: service_stats
           connect_timeout: 0.250s
@@ -82,8 +91,9 @@ data:
               lb_endpoints:
                 endpoint:
                   address:
-                    pipe:
-                      path: /tmp/envoy.admin
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 9901
         - name: xds_cluster
           # This keepalive is recommended by envoy docs.
           # https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
@@ -112,5 +122,6 @@ data:
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
       address:
-        pipe:
-          path: /tmp/envoy.admin
+        socket_address:
+          address: 127.0.0.1
+          port_value: 9901

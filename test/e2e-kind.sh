@@ -190,6 +190,57 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type 
 kubectl delete -f test/config/tracing
 unset TRACING_COLLECTOR_FULL_ENDPOINT
 
+echo ">> Change DRAIN_TIME_SECONDS and terminationGracePeriodSeconds for graceful shutdown tests"
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gateway -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [
+          {
+            "name": "kourier-gateway",
+            "env": [
+              {
+                "name": "DRAIN_TIME_SECONDS",
+                "value": "30"
+              }
+            ]
+          }
+        ],
+        "terminationGracePeriodSeconds": 60
+      }
+    }
+  }
+}'
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway --timeout=300s
+
+echo ">> Running graceful shutdown tests"
+DRAIN_TIME_SECONDS=30 go test -race -count=1 -timeout=20m -tags=e2e ./test/gracefulshutdown \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
+
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" patch deployment/3scale-kourier-gateway -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [
+          {
+            "name": "kourier-gateway",
+            "env": [
+              {
+                "name": "DRAIN_TIME_SECONDS",
+                "value": "15"
+              }
+            ]
+          }
+        ],
+        "terminationGracePeriodSeconds": null
+      }
+    }
+  }
+}'
+kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" rollout status deployment/3scale-kourier-gateway --timeout=300s
+
 echo ">> Set IdleTimeout to 50s"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"stream-idle-timeout":"50s"}}'
 
