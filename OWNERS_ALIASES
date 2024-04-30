@@ -96,18 +96,21 @@ aliases:
   - lance
   - lkingland
   - matejvasek
+  - matzew
   - nainaz
   - salaboy
   function-runtime-approvers:
   - lance
   - lkingland
   - matejvasek
+  - matzew
   - nainaz
   - salaboy
   function-runtime-writers:
   - lance
   - lkingland
   - matejvasek
+  - matzew
   - nainaz
   - salaboy
   homebrew-kn-plugins-approvers:
@@ -187,7 +190,6 @@ aliases:
   - knative-prow-robot
   - knative-prow-updater-robot
   - knative-test-reporter-robot
-  net-certmanager-approvers: []
   net-contour-approvers:
   - KauzClay
   - dprotaso
