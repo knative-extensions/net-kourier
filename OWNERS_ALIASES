@@ -2,6 +2,9 @@
 # Do not modify this file, instead modify peribolos/knative-extensions.yaml
 
 aliases:
+  autoscaler-keda-approvers:
+  - ReToCode
+  - skonto
   backstage-plugins-reviewers:
   - aliok
   - cali0707
