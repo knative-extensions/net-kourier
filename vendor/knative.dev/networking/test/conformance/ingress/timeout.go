@@ -86,13 +86,6 @@ func TestTimeout(t *testing.T) {
 
 func checkTimeout(ctx context.Context, t *testing.T, client *http.Client, name string, code int, initial time.Duration, timeout time.Duration) {
 	t.Helper()
-	if test.NetworkingFlags.RequestDelay < 0 {
-		t.Error("Error creating Request:", fmt.Errorf("request delay value must be greater than or equal to 0, receieved %d", test.NetworkingFlags.RequestDelay))
-	}
-	if test.NetworkingFlags.RequestDelay > 0 {
-		t.Logf("delay of %d before doing the request", test.NetworkingFlags.RequestDelay)
-		time.Sleep(time.Duration(test.NetworkingFlags.RequestDelay) * time.Second)
-	}
 
 	resp, err := client.Get(fmt.Sprintf("http://%s.%s?initialTimeout=%d&timeout=%d",
 		name, test.NetworkingFlags.ServiceDomain, initial.Milliseconds(), timeout.Milliseconds()))
