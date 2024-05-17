@@ -1,4 +1,6 @@
 # Kourier
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fknative-extensions%2Fnet-kourier.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fknative-extensions%2Fnet-kourier?ref=badge_shield)
+
 
 **[This component is GA](https://github.com/knative/community/tree/main/mechanics/MATURITY-LEVELS.md)**
 
@@ -221,3 +223,6 @@ Note: This annotation is an experimental/alpha feature. We may change the annota
 ## License
 
 [Apache 2.0 License](LICENSE)
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fknative-extensions%2Fnet-kourier.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fknative-extensions%2Fnet-kourier?ref=badge_large)
