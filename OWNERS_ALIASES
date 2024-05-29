@@ -166,7 +166,6 @@ aliases:
   - knative-prow-robot
   - knative-prow-updater-robot
   - knative-test-reporter-robot
-  - krsna-m
   - nainaz
   - psschwei
   - salaboy
@@ -202,7 +201,6 @@ aliases:
   - upodroid
   productivity-writers:
   - cardil
-  - krsna-m
   - upodroid
   security-guard-approvers:
   - davidhadas
@@ -246,7 +244,6 @@ aliases:
   - davidhadas
   - dprotaso
   - dsimansk
-  - krsna-m
   - psschwei
   ux-wg-leads:
   - cali0707
