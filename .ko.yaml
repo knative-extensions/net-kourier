@@ -1,2 +1,0 @@
-# Use :nonroot base image for all containers
-defaultBaseImage: gcr.io/distroless/static:nonroot
