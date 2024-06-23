@@ -1559,7 +1559,7 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 						""),
 					},
 					route.WithRetryOnTransientUpstreamFailure(),
-					route.WithExtAuthz(map[string]string{"client": "kourier", "visibility": "ExternalIP"})
+					route.WithExtAuthz(map[string]string{"client": "kourier", "visibility": "ExternalIP"}),
 				),
 			}
 

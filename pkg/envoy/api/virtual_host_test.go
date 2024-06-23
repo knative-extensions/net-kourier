@@ -22,6 +22,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
 )
 
@@ -45,7 +46,7 @@ func TestVirtualHostWithExtAuthz(t *testing.T) {
 	domains := []string{"foo", "bar"}
 	routes := []*route.Route{{Name: "baz"}}
 
-	got := NewVirtualHost(name, domains, routes, route.WithExtAuthz(nil))
+	got := NewVirtualHost(name, domains, routes, WithExtAuthz(nil))
 	want := &route.VirtualHost{
 		Name:    name,
 		Domains: domains,
@@ -63,7 +64,7 @@ func TestVirtualHostWithRetryOnTransientUpstreamFailure(t *testing.T) {
 	domains := []string{"foo", "bar"}
 	routes := []*route.Route{{Name: "baz"}}
 
-	got := NewVirtualHost(name, domains, routes, route.WithRetryOnTransientUpstreamFailure())
+	got := NewVirtualHost(name, domains, routes, WithRetryOnTransientUpstreamFailure())
 	want := &route.VirtualHost{
 		Name:        name,
 		Domains:     domains,

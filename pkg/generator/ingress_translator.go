@@ -256,7 +256,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 		var virtualHost, virtualTLSHost *route.VirtualHost
 		// TODO(norbjd): do we want to enable this by default?
-		virtualHostOptions := []route.VirtualHostOption{
+		virtualHostOptions := []envoy.VirtualHostOption{
 			envoy.WithRetryOnTransientUpstreamFailure(),
 		}
 
