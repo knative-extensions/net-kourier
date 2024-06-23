@@ -1545,7 +1545,6 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
-					map[string]string{"client": "kourier", "visibility": "ExternalIP"},
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{envoy.NewRouteExtAuthzDisabled(
 						"(simplens/simplename).Rules[0].Paths[/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE]",
