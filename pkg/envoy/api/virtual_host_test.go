@@ -66,9 +66,9 @@ func TestVirtualHostWithRetryOnTransientUpstreamFailure(t *testing.T) {
 
 	got := NewVirtualHost(name, domains, routes, WithRetryOnTransientUpstreamFailure())
 	want := &route.VirtualHost{
-		Name:        name,
-		Domains:     domains,
-		Routes:      routes,
+		Name:    name,
+		Domains: domains,
+		Routes:  routes,
 		RetryPolicy: &route.RetryPolicy{
 			RetryOn:    "reset,connect-failure",
 			NumRetries: wrapperspb.UInt32(1),
