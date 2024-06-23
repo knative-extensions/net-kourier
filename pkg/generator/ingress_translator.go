@@ -255,20 +255,22 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		}
 
 		var virtualHost, virtualTLSHost *route.VirtualHost
+		// TODO(norbjd): do we want to enable this by default?
+		virtualHostOptions := []route.VirtualHostOption{
+			envoy.WithRetryOnTransientUpstreamFailure(),
+		}
+
 		if extAuthzEnabled {
 			contextExtensions := kmeta.UnionMaps(map[string]string{
 				"client":     "kourier",
 				"visibility": string(rule.Visibility),
 			}, ingress.GetLabels())
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), routes)
-			if len(tlsRoutes) != 0 {
-				virtualTLSHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), tlsRoutes)
-			}
-		} else {
-			virtualHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), routes)
-			if len(tlsRoutes) != 0 {
-				virtualTLSHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), tlsRoutes)
-			}
+			virtualHostOptions = append(virtualHostOptions, envoy.WithExtAuthz(contextExtensions))
+		}
+
+		virtualHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), routes, virtualHostOptions...)
+		if len(tlsRoutes) != 0 {
+			virtualTLSHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), tlsRoutes, virtualHostOptions...)
 		}
 
 		localHosts = append(localHosts, virtualHost)

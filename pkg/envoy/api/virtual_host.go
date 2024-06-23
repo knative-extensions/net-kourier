@@ -21,39 +21,47 @@ import (
 	extAuthService "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+type VirtualHostOption func(*route.VirtualHost)
+
 // NewVirtualHost creates a new VirtualHost.
-func NewVirtualHost(name string, domains []string, routes []*route.Route) *route.VirtualHost {
-	return &route.VirtualHost{
+func NewVirtualHost(name string, domains []string, routes []*route.Route, options ...VirtualHostOption) *route.VirtualHost {
+	virtualHost := &route.VirtualHost{
 		Name:    name,
 		Domains: domains,
 		Routes:  routes,
+	}
+
+	for _, opt := range options {
+		opt(virtualHost)
+	}
+
+	return virtualHost
+}
+
+func WithExtAuthz(contextExtensions map[string]string) VirtualHostOption {
+	return func(virtualHost *route.VirtualHost) {
+		filter, _ := anypb.New(&extAuthService.ExtAuthzPerRoute{
+			Override: &extAuthService.ExtAuthzPerRoute_CheckSettings{
+				CheckSettings: &extAuthService.CheckSettings{
+					ContextExtensions: contextExtensions,
+				},
+			},
+		})
+
+		virtualHost.TypedPerFilterConfig = map[string]*anypb.Any{
+			wellknown.HTTPExternalAuthorization: filter,
+		}
 	}
 }
 
-// NewVirtualHostWithExtAuthz creates a new VirtualHost with ExtAuthz settings.
-func NewVirtualHostWithExtAuthz(
-	name string,
-	contextExtensions map[string]string,
-	domains []string,
-	routes []*route.Route) *route.VirtualHost {
-
-	filter, _ := anypb.New(&extAuthService.ExtAuthzPerRoute{
-		Override: &extAuthService.ExtAuthzPerRoute_CheckSettings{
-			CheckSettings: &extAuthService.CheckSettings{
-				ContextExtensions: contextExtensions,
-			},
-		},
-	})
-
-	return &route.VirtualHost{
-		Name:    name,
-		Domains: domains,
-		Routes:  routes,
-		TypedPerFilterConfig: map[string]*anypb.Any{
-			wellknown.HTTPExternalAuthorization: filter,
-		},
+func WithRetryOnTransientUpstreamFailure() VirtualHostOption {
+	return func(virtualHost *route.VirtualHost) {
+		virtualHost.RetryPolicy = &route.RetryPolicy{
+			RetryOn:    "reset,connect-failure",
+			NumRetries: wrapperspb.UInt32(1),
+		}
 	}
-
 }
