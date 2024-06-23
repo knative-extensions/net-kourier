@@ -87,7 +87,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -153,7 +153,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -229,7 +229,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -304,7 +304,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 			vHostsRedirect := []*route.VirtualHost{
@@ -325,7 +325,7 @@ func TestIngressTranslator(t *testing.T) {
 						}},
 						"/test"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -402,7 +402,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -526,7 +526,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -603,7 +603,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -664,7 +664,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -726,7 +726,7 @@ func TestIngressTranslator(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -864,7 +864,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 			return &translatedIngress{
@@ -940,7 +940,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"rewritten.example.com"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -1053,7 +1053,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						""),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -1128,7 +1128,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						""),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -1204,7 +1204,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						""),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -1280,7 +1280,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						""),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -1347,7 +1347,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						""),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -1418,7 +1418,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						""),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
@@ -1558,8 +1558,8 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 						nil,
 						""),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
-					route.WithExtAuthz(map[string]string{"client": "kourier", "visibility": "ExternalIP"}),
+					envoy.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithExtAuthz(map[string]string{"client": "kourier", "visibility": "ExternalIP"}),
 				),
 			}
 
@@ -1672,7 +1672,7 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 						map[string]string{"foo": "bar"},
 						"bar.default.svc.cluster.local"),
 					},
-					route.WithRetryOnTransientUpstreamFailure(),
+					envoy.WithRetryOnTransientUpstreamFailure(),
 				),
 			}
 
