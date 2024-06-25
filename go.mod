@@ -1,6 +1,6 @@
 module knative.dev/net-kourier
 
-go 1.21
+go 1.22
 
 require (
 	github.com/envoyproxy/go-control-plane v0.12.0
@@ -22,8 +22,8 @@ require (
 	k8s.io/client-go v0.29.2
 	k8s.io/code-generator v0.29.2
 	knative.dev/hack v0.0.0-20240607132042-09143140a254
-	knative.dev/networking v0.0.0-20240607132834-85e269dff522
-	knative.dev/pkg v0.0.0-20240610120318-15e6cdf2f386
+	knative.dev/networking v0.0.0-20240611072033-3b8764c0bb4c
+	knative.dev/pkg v0.0.0-20240625072707-8535fcc248ae
 )
 
 require (
@@ -87,7 +87,7 @@ require (
 	golang.org/x/tools v0.22.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.183.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240521202816-d264139d666e // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
