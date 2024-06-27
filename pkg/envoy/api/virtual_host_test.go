@@ -22,6 +22,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
 )
 
@@ -45,7 +46,7 @@ func TestVirtualHostWithExtAuthz(t *testing.T) {
 	domains := []string{"foo", "bar"}
 	routes := []*route.Route{{Name: "baz"}}
 
-	got := NewVirtualHostWithExtAuthz(name, nil, domains, routes)
+	got := NewVirtualHost(name, domains, routes, WithExtAuthz(nil))
 	want := &route.VirtualHost{
 		Name:    name,
 		Domains: domains,
@@ -56,4 +57,26 @@ func TestVirtualHostWithExtAuthz(t *testing.T) {
 	assert.DeepEqual(t, got.Domains, want.Domains)
 	assert.DeepEqual(t, got.Routes, want.Routes, protocmp.Transform())
 	assert.Assert(t, got.TypedPerFilterConfig[wellknown.HTTPExternalAuthorization] != nil)
+}
+
+func TestVirtualHostWithRetryOnTransientUpstreamFailure(t *testing.T) {
+	name := "test"
+	domains := []string{"foo", "bar"}
+	routes := []*route.Route{{Name: "baz"}}
+
+	got := NewVirtualHost(name, domains, routes, WithRetryOnTransientUpstreamFailure())
+	want := &route.VirtualHost{
+		Name:    name,
+		Domains: domains,
+		Routes:  routes,
+		RetryPolicy: &route.RetryPolicy{
+			RetryOn:    "reset,connect-failure",
+			NumRetries: wrapperspb.UInt32(1),
+		},
+	}
+
+	assert.Equal(t, got.Name, want.Name)
+	assert.DeepEqual(t, got.Domains, want.Domains)
+	assert.DeepEqual(t, got.Routes, want.Routes, protocmp.Transform())
+	assert.DeepEqual(t, got.RetryPolicy, want.RetryPolicy, protocmp.Transform())
 }
