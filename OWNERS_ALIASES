@@ -149,9 +149,6 @@ aliases:
   - christophd
   - rhuss
   knative-admin:
-  - Cali0707
-  - Leo6Leo
-  - ReToCode
   - aliok
   - cardil
   - davidhadas
@@ -166,14 +163,8 @@ aliases:
   - nainaz
   - psschwei
   - salaboy
-  - skonto
   - upodroid
-  knative-release-leads:
-  - Cali0707
-  - Leo6Leo
-  - ReToCode
-  - dsimansk
-  - skonto
+  knative-release-leads: []
   knative-robots:
   - knative-automation
   - knative-prow-releaser-robot
