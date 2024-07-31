@@ -15,15 +15,15 @@ require (
 	golang.org/x/sync v0.7.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157
 	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 	gotest.tools/v3 v3.0.3
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
 	k8s.io/client-go v0.29.2
 	k8s.io/code-generator v0.29.2
-	knative.dev/hack v0.0.0-20240719133331-9c9eed6f6679
-	knative.dev/networking v0.0.0-20240716111826-bab7f2a3e556
-	knative.dev/pkg v0.0.0-20240716082220-4355f0c73608
+	knative.dev/hack v0.0.0-20240730131549-0a23232167bc
+	knative.dev/networking v0.0.0-20240730152525-543181c32243
+	knative.dev/pkg v0.0.0-20240730131544-0e7ffe491d5e
 )
 
 require (
@@ -67,10 +67,10 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.54.0 // indirect
-	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/prometheus/common v0.55.0 // indirect
+	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/prometheus/statsd_exporter v0.22.7 // indirect
-	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417 // indirect
+	github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
