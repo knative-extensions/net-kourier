@@ -452,8 +452,8 @@ golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20201207232520-09787c993a3a/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
-golang.org/x/sync v0.7.0 h1:YsImfSBoP9QPYL0xyKJPq0gcaJdG3rInoqxTWbfQu9M=
-golang.org/x/sync v0.7.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
+golang.org/x/sync v0.8.0 h1:3NFvSEYkUoMifnESzZl15y791HH1qU2xm6eCJU5ZPXQ=
+golang.org/x/sync v0.8.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
 golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20181116152217-5ac8a444bdc5/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
@@ -711,8 +711,8 @@ knative.dev/hack v0.0.0-20240801232131-441a19fc9ead h1:ViH1OEO0LViKa6W61YKUpLzOp
 knative.dev/hack v0.0.0-20240801232131-441a19fc9ead/go.mod h1:R0ritgYtjLDO9527h5vb5X6gfvt5LCrJ55BNbVDsWiY=
 knative.dev/networking v0.0.0-20240802083044-f1702380495f h1:1mIVNRZELhQLuDDFti6R26ZQXqeL2UkS/K0cMqKzBxw=
 knative.dev/networking v0.0.0-20240802083044-f1702380495f/go.mod h1:FNWuEcSif270xzNwQx5xFvEsv7wKiKGPUKzpAXkajT8=
-knative.dev/pkg v0.0.0-20240802082807-433889b44ec7 h1:s64T+IESVOqH/2aE4XmNjKvWVCwMVs9xoCAN+y/MICo=
-knative.dev/pkg v0.0.0-20240802082807-433889b44ec7/go.mod h1:AjUNSfsVtV6jCU0rQkZGguiC0tzmIQM4YS6RTdtfJBQ=
+knative.dev/pkg v0.0.0-20240805063731-c88d5dad9653 h1:VHUW124ZpkDn4EnIzMuGWvGuJte3ISIoHMmEw2kx0zU=
+knative.dev/pkg v0.0.0-20240805063731-c88d5dad9653/go.mod h1:H+5rS2GEWpAZzrmQoXOEVq/1M77LLMhR7+4jZBMOQ24=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
