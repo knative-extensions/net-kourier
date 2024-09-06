@@ -25,9 +25,12 @@ jobs:
 
         gateway:
         - quay.io/maistra-dev/proxyv2-ubi8:2.4-latest
-        - docker.io/envoyproxy/envoy:v1.26-latest
-        - docker.io/envoyproxy/envoy:v1.27-latest
-        - docker.io/envoyproxy/envoy:v1.28-latest
+        - docker.io/envoyproxy/envoy:distroless-v1.26-latest
+        - docker.io/envoyproxy/envoy:distroless-v1.27-latest
+        - docker.io/envoyproxy/envoy:distroless-v1.28-latest
+        - docker.io/envoyproxy/envoy:distroless-v1.29-latest
+        - docker.io/envoyproxy/envoy:distroless-v1.30-latest
+        - docker.io/envoyproxy/envoy:distroless-v1.31-latest
 
         upstream-tls:
         - plain
