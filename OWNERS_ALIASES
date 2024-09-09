@@ -63,7 +63,6 @@ aliases:
   eventing-natss-approvers:
   - astelmashenko
   - dan-j
-  - zhaojizhuang
   eventing-prometheus-approvers:
   - lberk
   - matzew
@@ -118,33 +117,29 @@ aliases:
   - salaboy
   homebrew-kn-plugins-approvers:
   - dsimansk
-  - maximilien
   - rhuss
   kn-plugin-admin-approvers:
-  - maximilien
+  - dsimansk
   - rhuss
-  - zhanggbj
   kn-plugin-event-approvers:
   - cardil
   - rhuss
   kn-plugin-operator-approvers:
   - dsimansk
   - houshengbo
-  - maximilien
   - rhuss
   kn-plugin-quickstart-approvers:
   - dsimansk
   - psschwei
   - rhuss
   kn-plugin-sample-approvers:
-  - maximilien
+  - dsimansk
   - rhuss
   kn-plugin-service-log-approvers:
   - rhuss
   kn-plugin-source-kafka-approvers:
   - daisy-ycguo
   - dsimansk
-  - maximilien
   - rhuss
   kn-plugin-source-kamelet-approvers:
   - christophd
@@ -199,7 +194,6 @@ aliases:
   - upodroid
   security-guard-approvers:
   - davidhadas
-  - maximilien
   - psschwei
   - rhuss
   security-wg-leads:
