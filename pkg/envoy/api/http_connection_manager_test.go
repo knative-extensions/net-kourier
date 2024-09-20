@@ -148,3 +148,13 @@ func TestNewHTTPConnectionManagerWithTrustedHops(t *testing.T) {
 		})
 	}
 }
+
+func TestNewHTTPConnectionManagerWithUseRemoteAddress(t *testing.T) {
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: false,
+		UseRemoteAddress:           true,
+		IdleTimeout:                0 * time.Second,
+	}
+	connManager := NewHTTPConnectionManager("test", &kourierConfig)
+	assert.Check(t, connManager.UseRemoteAddress.Value == true)
+}

@@ -72,6 +72,7 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 		},
 		StreamIdleTimeout: durationpb.New(idleTimeout),
 		XffNumTrustedHops: kourierConfig.TrustedHopsCount,
+		UseRemoteAddress:  &wrapperspb.BoolValue{Value: kourierConfig.UseRemoteAddress},
 	}
 
 	if enableProxyProtocol {

@@ -144,6 +144,15 @@ func TestKourierConfig(t *testing.T) {
 		data: map[string]string{
 			TracingCollectorFullEndpoint: "",
 		},
+	}, {
+		name: "Enable use remote address",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			UseRemoteAddress:           true,
+		},
+		data: map[string]string{
+			useRemoteAddress: "true",
+		},
 	}}
 
 	for _, tt := range configTests {
