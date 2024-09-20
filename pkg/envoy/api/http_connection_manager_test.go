@@ -40,7 +40,7 @@ func TestNewHTTPConnectionManagerWithoutAccessLogWithoutProxyProtocol(t *testing
 	}
 	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, len(connManager.AccessLog) == 0)
-	assert.Check(t, connManager.UseRemoteAddress == nil)
+	assert.Check(t, connManager.UseRemoteAddress.Value == false)
 }
 
 func TestNewHTTPConnectionManagerWithAccessLogWithoutProxyProtocol(t *testing.T) {
@@ -50,7 +50,7 @@ func TestNewHTTPConnectionManagerWithAccessLogWithoutProxyProtocol(t *testing.T)
 		IdleTimeout:                0 * time.Second,
 	}
 	connManager := NewHTTPConnectionManager("test", &kourierConfig)
-	assert.Check(t, connManager.UseRemoteAddress == nil)
+	assert.Check(t, connManager.UseRemoteAddress.Value == false)
 	accessLog := connManager.AccessLog[0]
 	accessLogPathAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v3.AccessLog_TypedConfig).TypedConfig
 	fileAccesLog := &fileaccesslog.FileAccessLog{}
