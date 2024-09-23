@@ -72,6 +72,10 @@ data:
     # right side of the x-forwarded-for HTTP header to trust.
     trusted-hops-count: "0"
 
+    # Configures the connection manager to use the real remote address
+    # of the client connection when determining internal versus external origin and manipulating various headers.
+    use-remote-address: "false"
+
     # Specifies the cipher suites for TLS external listener.
     # Use ',' separated values like "ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-ECDSA-CHACHA20-POLY1305"
     # The default uses the default cipher suites of the envoy version.

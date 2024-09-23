@@ -69,6 +69,10 @@ const (
 	// right side of the x-forwarded-for HTTP header to trust.
 	trustedHopsCount = "trusted-hops-count"
 
+	// useRemoteAddress Configure the connection manager to use the real remote address
+	// of the client connection when determining internal versus external origin and manipulating various headers.
+	useRemoteAddress = "use-remote-address"
+
 	// CipherSuites is the cipher suites for TLS external listener.
 	cipherSuites = "cipher-suites"
 )

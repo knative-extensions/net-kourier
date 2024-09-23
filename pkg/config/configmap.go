@@ -63,6 +63,7 @@ func DefaultConfig() *Kourier {
 		TrustedHopsCount:           0,
 		CipherSuites:               nil,
 		EnableCryptoMB:             false,
+		UseRemoteAddress:           false,
 	}
 }
 
@@ -76,6 +77,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
 		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
 		cm.AsUint32(trustedHopsCount, &nc.TrustedHopsCount),
+		cm.AsBool(useRemoteAddress, &nc.UseRemoteAddress),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
 		asTracing(TracingCollectorFullEndpoint, &nc.Tracing),
@@ -149,6 +151,9 @@ type Kourier struct {
 	// TrustedHopsCount configures the number of additional ingress proxy hops from the
 	// right side of the x-forwarded-for HTTP header to trust.
 	TrustedHopsCount uint32
+	// UseRemoteAddress configures the connection manager to use the real remote address
+	// of the client connection when determining internal versus external origin and manipulating various headers.
+	UseRemoteAddress bool
 	// EnableCryptoMB specifies whether Kourier enable CryptoMB private provider to accelerate
 	// TLS handshake. The default value is "false".
 	EnableCryptoMB bool
