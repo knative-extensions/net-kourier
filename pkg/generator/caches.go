@@ -59,7 +59,7 @@ type Caches struct {
 	mu                  sync.Mutex
 	translatedIngresses map[types.NamespacedName]*translatedIngress
 	clusters            *ClustersCache
-	domainsInUse        sets.String
+	domainsInUse        sets.Set[string]
 	statusVirtualHost   *route.VirtualHost
 
 	kubeClient kubeclient.Interface
@@ -69,7 +69,7 @@ func NewCaches(kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, e
 	c := &Caches{
 		translatedIngresses: make(map[types.NamespacedName]*translatedIngress),
 		clusters:            newClustersCache(),
-		domainsInUse:        sets.NewString(),
+		domainsInUse:        sets.New[string](),
 		statusVirtualHost:   statusVHost(),
 		kubeClient:          kubernetesClient,
 	}
@@ -80,7 +80,7 @@ func NewCaches(kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, e
 	return c, nil
 }
 
-func (caches *Caches) UpdateIngress(ctx context.Context, ingressTranslation *translatedIngress) error {
+func (caches *Caches) UpdateIngress(_ context.Context, ingressTranslation *translatedIngress) error {
 	// we hold a lock for Updating the ingress, to avoid another worker to generate an snapshot just when we have
 	// deleted the ingress before adding it.
 	caches.mu.Lock()
@@ -187,7 +187,7 @@ func (caches *Caches) ToEnvoySnapshot(ctx context.Context) (*cache.Snapshot, err
 //
 // Notice that the clusters are not deleted. That's handled with the expiration
 // time set in the "ClustersCache" struct.
-func (caches *Caches) DeleteIngressInfo(ctx context.Context, ingressName string, ingressNamespace string) error {
+func (caches *Caches) DeleteIngressInfo(_ context.Context, ingressName string, ingressNamespace string) error {
 	caches.mu.Lock()
 	defer caches.mu.Unlock()
 

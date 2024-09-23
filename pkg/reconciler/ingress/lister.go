@@ -42,7 +42,7 @@ type gatewayPodTargetLister struct {
 	endpointsLister corev1listers.EndpointsLister
 }
 
-func (l *gatewayPodTargetLister) ListProbeTargets(ctx context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
+func (l *gatewayPodTargetLister) ListProbeTargets(_ context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
 	eps, err := l.endpointsLister.Endpoints(config.GatewayNamespace()).Get(config.InternalServiceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get internal service: %w", err)

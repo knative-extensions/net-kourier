@@ -763,7 +763,7 @@ func TestIngressTranslator(t *testing.T) {
 				func(ns, name string) (*corev1.Secret, error) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
-				func(label string) ([]*corev1.ConfigMap, error) {
+				func(_ string) ([]*corev1.ConfigMap, error) {
 					return getConfigmaps(ctx, kubeclient)
 				},
 				func(ns, name string) (*corev1.Endpoints, error) {
@@ -976,7 +976,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				func(ns, name string) (*corev1.Secret, error) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
-				func(label string) ([]*corev1.ConfigMap, error) {
+				func(_ string) ([]*corev1.ConfigMap, error) {
 					return getConfigmaps(ctx, kubeclient)
 				},
 				func(ns, name string) (*corev1.Endpoints, error) {
@@ -1477,7 +1477,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				func(ns, name string) (*corev1.Secret, error) {
 					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 				},
-				func(label string) ([]*corev1.ConfigMap, error) {
+				func(_ string) ([]*corev1.ConfigMap, error) {
 					return getConfigmaps(ctx, kubeclient)
 				},
 				func(ns, name string) (*corev1.Endpoints, error) {
@@ -1579,7 +1579,7 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 			func(ns, name string) (*corev1.Secret, error) {
 				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 			},
-			func(label string) ([]*corev1.ConfigMap, error) {
+			func(_ string) ([]*corev1.ConfigMap, error) {
 				return getConfigmaps(ctx, kubeclient)
 			},
 			func(ns, name string) (*corev1.Endpoints, error) {
@@ -1692,7 +1692,7 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 			func(ns, name string) (*corev1.Secret, error) {
 				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 			},
-			func(label string) ([]*corev1.ConfigMap, error) {
+			func(_ string) ([]*corev1.ConfigMap, error) {
 				return getConfigmaps(ctx, kubeclient)
 			},
 			func(ns, name string) (*corev1.Endpoints, error) {

@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"context"
 	"sort"
 	"testing"
 	"time"
@@ -78,7 +79,7 @@ func TestClustersExpire(t *testing.T) {
 	cache.setExpiration(testCluster1.Name, "some_ingress_name", "some_ingress_namespace")
 
 	// The cluster should eventually disappear.
-	wait.PollImmediate(interval, 5*time.Second, func() (bool, error) {
+	wait.PollUntilContextTimeout(context.Background(), interval, 5*time.Second, true, func(_ context.Context) (bool, error) {
 		return len(cache.list()) == 0, nil
 	})
 	assert.Assert(t, is.Len(cache.list(), 0))

@@ -25,13 +25,13 @@ import (
 	netconfig "knative.dev/networking/pkg/config"
 	logtesting "knative.dev/pkg/logging/testing"
 
-	. "knative.dev/pkg/configmap/testing"
+	pkgtesting "knative.dev/pkg/configmap/testing"
 )
 
 func TestStoreLoadWithContext(t *testing.T) {
 	store := NewStore(logtesting.TestLogger(t))
-	kourierConfig := ConfigMapFromTestFile(t, config.ConfigName)
-	networkConfig := ConfigMapFromTestFile(t, netconfig.ConfigMapName)
+	kourierConfig := pkgtesting.ConfigMapFromTestFile(t, config.ConfigName)
+	networkConfig := pkgtesting.ConfigMapFromTestFile(t, netconfig.ConfigMapName)
 	store.OnConfigChanged(kourierConfig)
 	store.OnConfigChanged(networkConfig)
 
@@ -56,8 +56,8 @@ func TestStoreLoadWithDefaults(t *testing.T) {
 
 func TestStoreImmutableConfig(t *testing.T) {
 	store := NewStore(logtesting.TestLogger(t))
-	store.OnConfigChanged(ConfigMapFromTestFile(t, config.ConfigName))
-	store.OnConfigChanged(ConfigMapFromTestFile(t, netconfig.ConfigMapName))
+	store.OnConfigChanged(pkgtesting.ConfigMapFromTestFile(t, config.ConfigName))
+	store.OnConfigChanged(pkgtesting.ConfigMapFromTestFile(t, netconfig.ConfigMapName))
 	config := store.Load()
 
 	config.Kourier.EnableServiceAccessLogging = false

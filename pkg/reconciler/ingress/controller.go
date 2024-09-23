@@ -177,7 +177,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	r.statusManager = statusProber
 	statusProber.Start(ctx.Done())
 
-	r.caches.SetOnEvicted(func(key types.NamespacedName, value interface{}) {
+	r.caches.SetOnEvicted(func(key types.NamespacedName, _ interface{}) {
 		logger.Debug("Evicted", key.String())
 		// We enqueue the ingress name and namespace as if it was a new event, to force
 		// a config refresh.
@@ -333,7 +333,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		FilterFunc: reconciler.ChainFilterFuncs(
 			reconciler.LabelExistsFilterFunc(networking.TrustBundleLabelKey),
 		),
-		Handler: controller.HandleAll(func(obj interface{}) {
+		Handler: controller.HandleAll(func(_ interface{}) {
 			logger.Info("Doing a global resync due to CA bundle Configmap changes")
 			impl.FilteredGlobalResync(isKourierIngress, ingressInformer.Informer())
 		}),
@@ -359,7 +359,7 @@ func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.Ne
 	return ingressesToWarm, nil
 }
 
-func readyAddresses(eps *corev1.Endpoints) sets.String {
+func readyAddresses(eps *corev1.Endpoints) sets.Set[string] {
 	var count int
 	for _, subset := range eps.Subsets {
 		count += len(subset.Addresses)
@@ -369,7 +369,7 @@ func readyAddresses(eps *corev1.Endpoints) sets.String {
 		return nil
 	}
 
-	ready := make(sets.String, count)
+	ready := make(sets.Set[string], count)
 	for _, subset := range eps.Subsets {
 		for _, address := range subset.Addresses {
 			ready.Insert(address.IP)
