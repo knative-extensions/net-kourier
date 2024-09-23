@@ -97,7 +97,7 @@ func TestTracing(t *testing.T) {
 		t.Fatal("No load balancer ingress ready for jaeger, cannot continue")
 	}
 
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		fmt.Sprintf("%s:%d",
 			jaegerQueryService.Status.LoadBalancer.Ingress[0].IP,
 			jaegerQueryService.Spec.Ports[0].Port,

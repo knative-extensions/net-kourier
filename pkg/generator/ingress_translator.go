@@ -191,7 +191,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					// If the service is of type ExternalName, we add a single endpoint.
 					typ = v3.Cluster_LOGICAL_DNS
 					publicLbEndpoints = []*endpoint.LbEndpoint{
-						envoy.NewLBEndpoint(service.Spec.ExternalName, uint32(externalPort)),
+						envoy.NewLBEndpoint(service.Spec.ExternalName, uint32(externalPort)), //#nosec G115
 					}
 				} else {
 					// For all other types, fetch the endpoints object.
@@ -224,7 +224,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				logger.Debugf("adding cluster: %v", cluster)
 				clusters = append(clusters, cluster)
 
-				weightedCluster := envoy.NewWeightedCluster(splitName, uint32(split.Percent), split.AppendHeaders)
+				weightedCluster := envoy.NewWeightedCluster(splitName, uint32(split.Percent), split.AppendHeaders) //#nosec G115
 				wrs = append(wrs, weightedCluster)
 			}
 
@@ -474,7 +474,7 @@ func lbEndpointsForKubeEndpoints(kubeEndpoints *corev1.Endpoints, targetPort int
 	eps := make([]*endpoint.LbEndpoint, 0, readyAddressCount)
 	for _, subset := range kubeEndpoints.Subsets {
 		for _, address := range subset.Addresses {
-			eps = append(eps, envoy.NewLBEndpoint(address.IP, uint32(targetPort)))
+			eps = append(eps, envoy.NewLBEndpoint(address.IP, uint32(targetPort))) //#nosec G115
 		}
 	}
 

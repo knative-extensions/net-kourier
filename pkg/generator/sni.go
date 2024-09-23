@@ -26,7 +26,7 @@ import (
 // optimize lookup times for hosts to add.
 type dedupedSNIMatch struct {
 	sniMatch *envoy.SNIMatch
-	hosts    sets.String
+	hosts    sets.Set[string]
 }
 
 // sniMatches is a collection of deduplicated sni matches that can be used to deduplicate
@@ -41,7 +41,7 @@ func (s sniMatches) consume(match *envoy.SNIMatch) {
 	if state == nil {
 		state = &dedupedSNIMatch{
 			sniMatch: match,
-			hosts:    sets.NewString(match.Hosts...),
+			hosts:    sets.New[string](match.Hosts...),
 		}
 		s[match.CertSource] = state
 		return

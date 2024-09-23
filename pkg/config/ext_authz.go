@@ -114,7 +114,7 @@ func init() {
 
 	ExternalAuthz = &ExternalAuthzConfig{
 		Enabled:    true,
-		Cluster:    extAuthzCluster(host, uint32(port), env.Protocol),
+		Cluster:    extAuthzCluster(host, uint32(port), env.Protocol), //#nosec G115
 		HTTPFilter: externalAuthZFilter(&env),
 	}
 }

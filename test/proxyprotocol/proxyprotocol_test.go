@@ -205,7 +205,7 @@ func createDialContextProxyProtocol(ctx context.Context, t *testing.T, ing *v1al
 	name, namespace := parts[0], parts[1]
 
 	var svc *corev1.Service
-	err := reconciler.RetryTestErrors(func(attempts int) (err error) {
+	err := reconciler.RetryTestErrors(func(_ int) (err error) {
 		svc, err = clients.KubeClient.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 		return err
 	})
@@ -269,10 +269,10 @@ func createDialContextProxyProtocol(ctx context.Context, t *testing.T, ing *v1al
 			}
 			return nil, errors.New("service ingress does not contain dialing information")
 		}
-	} else {
-		t.Fatal("Service does not have a supported shape (not type LoadBalancer? missing --ingressendpoint?).")
-		return nil // Unreachable
 	}
+
+	t.Fatal("Service does not have a supported shape (not type LoadBalancer? missing --ingressendpoint?).")
+	return nil // Unreachable
 }
 
 func createExternalNameService(ctx context.Context, t *testing.T, clients *test.Clients, target, gatewayDomain string) context.CancelFunc {

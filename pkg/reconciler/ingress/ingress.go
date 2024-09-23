@@ -136,7 +136,7 @@ func (r *Reconciler) ObserveDeletion(ctx context.Context, key types.NamespacedNa
 	return nil
 }
 
-func (r *Reconciler) FinalizeKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+func (r *Reconciler) FinalizeKind(_ context.Context, _ *v1alpha1.Ingress) reconciler.Event {
 	// Keeping this for now to keep finalizer based logic intact.
 	return nil
 }
