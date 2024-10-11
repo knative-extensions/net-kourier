@@ -58,8 +58,6 @@ aliases:
   - Leo6Leo
   - cali0707
   eventing-kafka-writers: []
-  eventing-kogito-approvers:
-  - ricardozanini
   eventing-natss-approvers:
   - astelmashenko
   - dan-j
