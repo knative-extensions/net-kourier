@@ -46,7 +46,7 @@ func TestNewHTTPListener(t *testing.T) {
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
-	l, err := NewHTTPListener(manager, 8080, false)
+	l, err := NewHTTPListener(manager, 8080, false, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
@@ -66,7 +66,7 @@ func TestNewHTTPListenerWithProxyProtocol(t *testing.T) {
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
-	l, err := NewHTTPListener(manager, 8080, true)
+	l, err := NewHTTPListener(manager, 8080, true, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
@@ -76,6 +76,24 @@ func TestNewHTTPListenerWithProxyProtocol(t *testing.T) {
 
 	// check proxy protocol is configured
 	assertListenerHasProxyProtocolConfigured(t, l.ListenerFilters[0])
+}
+
+func TestNewHTTPListenerWithIPv6(t *testing.T) {
+	kourierConfig := config.Kourier{
+		EnableIPv6Listeners: true,
+		IdleTimeout:         0 * time.Second,
+	}
+	manager := NewHTTPConnectionManager("test", &kourierConfig)
+
+	l, err := NewHTTPListener(manager, 8080, false, true)
+	assert.NilError(t, err)
+
+	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
+	assert.Equal(t, uint32(8080), l.Address.GetSocketAddress().GetPortValue())
+	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) // TLS not configured
+
+	// Check if listening on ipv6
+	assert.Equal(t, "::", l.Address.GetSocketAddress().Address)
 }
 
 var c = Certificate{
@@ -101,7 +119,7 @@ func TestNewHTTPSListener(t *testing.T) {
 	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, &c)
 	assert.NilError(t, err)
 
-	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false)
+	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
@@ -141,7 +159,7 @@ func TestNewHTTPSListenerWithPrivatekeyProvider(t *testing.T) {
 	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, &crypto)
 	assert.NilError(t, err)
 
-	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false)
+	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, false, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)
@@ -205,7 +223,7 @@ func TestNewHTTPSListenerWithProxyProtocol(t *testing.T) {
 	filterChain, err := CreateFilterChainFromCertificateAndPrivateKey(manager, &c)
 	assert.NilError(t, err)
 
-	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, true)
+	l, err := NewHTTPSListener(8081, []*envoy_api_v3.FilterChain{filterChain}, true, false)
 	assert.NilError(t, err)
 
 	assert.Equal(t, core.SocketAddress_TCP, l.Address.GetSocketAddress().Protocol)

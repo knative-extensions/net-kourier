@@ -48,7 +48,7 @@ type SNIMatch struct {
 }
 
 // NewHTTPListener creates a new Listener at the given port, backed by the given manager.
-func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProxyProtocol bool) (*listener.Listener, error) {
+func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProxyProtocol bool, enableIPv6Listeners bool) (*listener.Listener, error) {
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProx
 
 	return &listener.Listener{
 		Name:            CreateListenerName(port),
-		Address:         createAddress(port),
+		Address:         createAddress(port, enableIPv6Listeners),
 		ListenerFilters: listenerFilter,
 		FilterChains: []*listener.FilterChain{{
 			Filters: filters,
@@ -74,7 +74,7 @@ func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProx
 }
 
 // NewHTTPSListener creates a new Listener at the given port with a given filter chain
-func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enableProxyProtocol bool) (*listener.Listener, error) {
+func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enableProxyProtocol bool, enableIPv6Listeners bool) (*listener.Listener, error) {
 	var listenerFilter []*listener.ListenerFilter
 	if enableProxyProtocol {
 		proxyProtocolListenerFilter, err := createProxyProtocolListenerFilter()
@@ -86,7 +86,7 @@ func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enablePr
 
 	return &listener.Listener{
 		Name:            CreateListenerName(port),
-		Address:         createAddress(port),
+		Address:         createAddress(port, enableIPv6Listeners),
 		ListenerFilters: listenerFilter,
 		FilterChains:    filterChain,
 	}, nil
@@ -159,7 +159,7 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 
 	return &listener.Listener{
 		Name:            CreateListenerName(port),
-		Address:         createAddress(port),
+		Address:         createAddress(port, kourierConfig.EnableIPv6Listeners),
 		FilterChains:    filterChains,
 		ListenerFilters: listenerFilter,
 	}, nil
@@ -170,12 +170,18 @@ func CreateListenerName(port uint32) string {
 	return fmt.Sprintf("listener_%d", port)
 }
 
-func createAddress(port uint32) *core.Address {
+func createAddress(port uint32, ipv6 bool) *core.Address {
+	var address string
+	if ipv6 {
+		address = "::"
+	} else {
+		address = "0.0.0.0"
+	}
 	return &core.Address{
 		Address: &core.Address_SocketAddress{
 			SocketAddress: &core.SocketAddress{
 				Protocol: core.SocketAddress_TCP,
-				Address:  "0.0.0.0",
+				Address:  address,
 				PortSpecifier: &core.SocketAddress_PortValue{
 					PortValue: port,
 				},
