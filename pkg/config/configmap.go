@@ -50,6 +50,9 @@ const (
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
+	// enableIPv6Listeners is the config map for enabling listeners on IPv6.
+	enableIPv6Listeners = "enable-ipv6-listeners"
+
 	// TracingCollectorFullEndpoint is the config map key to configure tracing at kourier gateway level
 	TracingCollectorFullEndpoint = "tracing-collector-full-endpoint"
 )
@@ -63,6 +66,7 @@ func DefaultConfig() *Kourier {
 		TrustedHopsCount:           0,
 		CipherSuites:               nil,
 		EnableCryptoMB:             false,
+		EnableIPv6Listeners:        false,
 		UseRemoteAddress:           false,
 	}
 }
@@ -80,6 +84,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(useRemoteAddress, &nc.UseRemoteAddress),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
+		cm.AsBool(enableIPv6Listeners, &nc.EnableIPv6Listeners),
 		asTracing(TracingCollectorFullEndpoint, &nc.Tracing),
 	); err != nil {
 		return nil, err
@@ -157,6 +162,8 @@ type Kourier struct {
 	// EnableCryptoMB specifies whether Kourier enable CryptoMB private provider to accelerate
 	// TLS handshake. The default value is "false".
 	EnableCryptoMB bool
+	// Create Listeners on ipv6.
+	EnableIPv6Listeners bool
 	// CipherSuites specifies the cipher suites for TLS external listener.
 	CipherSuites sets.Set[string]
 	// Tracing specifies the configuration for gateway tracing
