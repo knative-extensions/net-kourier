@@ -65,7 +65,6 @@ aliases:
   - lberk
   - matzew
   eventing-rabbitmq-approvers:
-  - Zerpet
   - ikavgo
   - mkuratczyk
   eventing-redis-approvers:
