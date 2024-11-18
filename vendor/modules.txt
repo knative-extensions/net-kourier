@@ -462,7 +462,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.35.1
+# google.golang.org/protobuf v1.35.2
 ## explicit; go 1.21
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
@@ -1035,7 +1035,7 @@ k8s.io/utils/trace
 # knative.dev/hack v0.0.0-20241106013728-b7995315deb5
 ## explicit; go 1.21
 knative.dev/hack
-# knative.dev/networking v0.0.0-20241115112044-5272a36dd4e5
+# knative.dev/networking v0.0.0-20241118132247-bbd3279aa3a4
 ## explicit; go 1.22.7
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -1076,7 +1076,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20241115112044-215048add14b
+# knative.dev/pkg v0.0.0-20241118074447-a7fd9b10bb9f
 ## explicit; go 1.22.7
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck

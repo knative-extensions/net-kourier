@@ -15,15 +15,15 @@ require (
 	golang.org/x/sync v0.9.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1
 	google.golang.org/grpc v1.68.0
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.35.2
 	gotest.tools/v3 v3.0.3
 	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
 	k8s.io/client-go v0.30.3
 	k8s.io/code-generator v0.30.3
 	knative.dev/hack v0.0.0-20241106013728-b7995315deb5
-	knative.dev/networking v0.0.0-20241115112044-5272a36dd4e5
-	knative.dev/pkg v0.0.0-20241115112044-215048add14b
+	knative.dev/networking v0.0.0-20241118132247-bbd3279aa3a4
+	knative.dev/pkg v0.0.0-20241118074447-a7fd9b10bb9f
 )
 
 require (
