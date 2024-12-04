@@ -17,6 +17,7 @@ limitations under the License.
 package envoy
 
 import (
+	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"math"
 	"testing"
 	"time"
@@ -157,4 +158,38 @@ func TestNewHTTPConnectionManagerWithUseRemoteAddress(t *testing.T) {
 	}
 	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, connManager.UseRemoteAddress.Value == true)
+}
+
+func TestNewHTTPConnectionManagerWithDisableEnvoyServerHeader(t *testing.T) {
+	tests := []struct {
+		name                             string
+		configKourer                     config.Kourier
+		wantedServerHeaderTransformation hcm.HttpConnectionManager_ServerHeaderTransformation
+	}{
+		{
+			name: "test disable envoy server header",
+			configKourer: config.Kourier{
+				DisableEnvoyServerHeader: true,
+			},
+			wantedServerHeaderTransformation: hcm.HttpConnectionManager_PASS_THROUGH,
+		},
+		{
+			name: "test allow envoy server header",
+			configKourer: config.Kourier{
+				DisableEnvoyServerHeader: false,
+			},
+			wantedServerHeaderTransformation: hcm.HttpConnectionManager_OVERWRITE,
+		},
+		{
+			name:                             "test allow envoy server header, no setting",
+			configKourer:                     config.Kourier{},
+			wantedServerHeaderTransformation: hcm.HttpConnectionManager_OVERWRITE,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			connManager := NewHTTPConnectionManager("test", &test.configKourer)
+			assert.Equal(t, test.wantedServerHeaderTransformation, connManager.ServerHeaderTransformation)
+		})
+	}
 }
