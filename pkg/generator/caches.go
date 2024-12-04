@@ -240,11 +240,11 @@ func generateListenersAndRouteConfigsAndClusters(
 	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier)
 	localManager := envoy.NewHTTPConnectionManager(localRouteConfig.Name, cfg.Kourier)
 
-	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol)
+	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol, cfg.Kourier.EnableIPv6Listeners)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	localEnvoyListener, err := envoy.NewHTTPListener(localManager, config.HTTPPortLocal, false)
+	localEnvoyListener, err := envoy.NewHTTPListener(localManager, config.HTTPPortLocal, false, cfg.Kourier.EnableIPv6Listeners)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -254,7 +254,7 @@ func generateListenersAndRouteConfigsAndClusters(
 	clusters := make([]cachetypes.Resource, 0, 1)
 
 	// create probe listeners
-	probHTTPListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortProb, false)
+	probHTTPListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortProb, false, cfg.Kourier.EnableIPv6Listeners)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -372,7 +372,7 @@ func generateListenersAndRouteConfigsAndClusters(
 		}
 
 		// create https prob listener
-		probHTTPSListener, err := envoy.NewHTTPSListener(config.HTTPSPortProb, externalHTTPSEnvoyListener.FilterChains, false)
+		probHTTPSListener, err := envoy.NewHTTPSListener(config.HTTPSPortProb, externalHTTPSEnvoyListener.FilterChains, false, cfg.Kourier.EnableIPv6Listeners)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -454,7 +454,7 @@ func newExternalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnm
 		return nil, err
 	}
 
-	return envoy.NewHTTPSListener(config.HTTPSPortExternal, []*v3.FilterChain{filterChain}, cfg.EnableProxyProtocol)
+	return envoy.NewHTTPSListener(config.HTTPSPortExternal, []*v3.FilterChain{filterChain}, cfg.EnableProxyProtocol, cfg.EnableIPv6Listeners)
 }
 
 func newLocalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, cfg *config.Kourier) (*v3.FilterChain, error) {
@@ -475,7 +475,7 @@ func newLocalEnvoyListenerWithOneCert(ctx context.Context, manager *httpconnmana
 	if err != nil {
 		return nil, err
 	}
-	return envoy.NewHTTPSListener(config.HTTPSPortLocal, []*v3.FilterChain{filterChain}, cfg.EnableProxyProtocol)
+	return envoy.NewHTTPSListener(config.HTTPSPortLocal, []*v3.FilterChain{filterChain}, cfg.EnableProxyProtocol, cfg.EnableIPv6Listeners)
 }
 
 func privateKeyProvider(mbEnabled bool) string {
