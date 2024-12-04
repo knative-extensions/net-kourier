@@ -24,6 +24,7 @@ import (
 	envoy_config_filter_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	fileaccesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -157,4 +158,38 @@ func TestNewHTTPConnectionManagerWithUseRemoteAddress(t *testing.T) {
 	}
 	connManager := NewHTTPConnectionManager("test", &kourierConfig)
 	assert.Check(t, connManager.UseRemoteAddress.Value == true)
+}
+
+func TestNewHTTPConnectionManagerWithDisableEnvoyServerHeader(t *testing.T) {
+	tests := []struct {
+		name                             string
+		configKourer                     config.Kourier
+		wantedServerHeaderTransformation hcm.HttpConnectionManager_ServerHeaderTransformation
+	}{
+		{
+			name: "test disable envoy server header",
+			configKourer: config.Kourier{
+				DisableEnvoyServerHeader: true,
+			},
+			wantedServerHeaderTransformation: hcm.HttpConnectionManager_PASS_THROUGH,
+		},
+		{
+			name: "test allow envoy server header",
+			configKourer: config.Kourier{
+				DisableEnvoyServerHeader: false,
+			},
+			wantedServerHeaderTransformation: hcm.HttpConnectionManager_OVERWRITE,
+		},
+		{
+			name:                             "test allow envoy server header, no setting",
+			configKourer:                     config.Kourier{},
+			wantedServerHeaderTransformation: hcm.HttpConnectionManager_OVERWRITE,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			connManager := NewHTTPConnectionManager("test", &test.configKourer)
+			assert.Equal(t, test.wantedServerHeaderTransformation, connManager.ServerHeaderTransformation)
+		})
+	}
 }

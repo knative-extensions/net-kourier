@@ -52,6 +52,8 @@ const (
 
 	// TracingCollectorFullEndpoint is the config map key to configure tracing at kourier gateway level
 	TracingCollectorFullEndpoint = "tracing-collector-full-endpoint"
+
+	disableEnvoyServerHeader = "disable-envoy-server-header"
 )
 
 func DefaultConfig() *Kourier {
@@ -64,6 +66,7 @@ func DefaultConfig() *Kourier {
 		CipherSuites:               nil,
 		EnableCryptoMB:             false,
 		UseRemoteAddress:           false,
+		DisableEnvoyServerHeader:   false,
 	}
 }
 
@@ -81,6 +84,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
 		asTracing(TracingCollectorFullEndpoint, &nc.Tracing),
+		cm.AsBool(disableEnvoyServerHeader, &nc.DisableEnvoyServerHeader),
 	); err != nil {
 		return nil, err
 	}
@@ -161,4 +165,6 @@ type Kourier struct {
 	CipherSuites sets.Set[string]
 	// Tracing specifies the configuration for gateway tracing
 	Tracing Tracing
+	// Disable Server Header
+	DisableEnvoyServerHeader bool
 }
