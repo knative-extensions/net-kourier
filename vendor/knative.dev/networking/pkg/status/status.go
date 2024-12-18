@@ -23,8 +23,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
@@ -55,6 +57,19 @@ const (
 	// It gives times for the change to propagate and prevents unnecessary retries.
 	initialDelay = 200 * time.Millisecond
 )
+
+var (
+	// probeMaxRetryDelay defines the maximum delay between retries in the backoff of probing
+	probeMaxRetryDelay = 30 * time.Second
+)
+
+func init() {
+	if val, ok := os.LookupEnv("PROBE_MAX_RETRY_DELAY_SECONDS"); ok {
+		if durationSeconds, err := strconv.Atoi(val); err == nil && durationSeconds > 0 {
+			probeMaxRetryDelay = time.Duration(durationSeconds) * time.Second
+		}
+	}
+}
 
 var dialContext = (&net.Dialer{Timeout: probeTimeout}).DialContext
 
@@ -144,7 +159,7 @@ func NewProber(
 		workQueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewMaxOfRateLimiter(
 				// Per item exponential backoff
-				workqueue.NewItemExponentialFailureRateLimiter(50*time.Millisecond, 30*time.Second),
+				workqueue.NewItemExponentialFailureRateLimiter(50*time.Millisecond, probeMaxRetryDelay),
 				// Global rate limiter
 				&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(50), 100)},
 			),
