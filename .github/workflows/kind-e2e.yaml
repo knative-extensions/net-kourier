@@ -20,12 +20,11 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.28.x
         - v1.29.x
+        - v1.30.x
 
         gateway:
         - quay.io/maistra-dev/proxyv2-ubi8:2.4-latest
-        - docker.io/envoyproxy/envoy:v1.28-latest
         - docker.io/envoyproxy/envoy:v1.29-latest
         - docker.io/envoyproxy/envoy:v1.30-latest
         - docker.io/envoyproxy/envoy:v1.31-latest
