@@ -20,13 +20,11 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.28.x
-        - v1.29.x
+        - v1.30.x
+        - v1.31.x
 
         gateway:
         - quay.io/maistra-dev/proxyv2-ubi8:2.4-latest
-        - docker.io/envoyproxy/envoy:v1.28-latest
-        - docker.io/envoyproxy/envoy:v1.29-latest
         - docker.io/envoyproxy/envoy:v1.30-latest
         - docker.io/envoyproxy/envoy:v1.31-latest
 
@@ -48,7 +46,7 @@ jobs:
     - uses: ko-build/setup-ko@v0.6
 
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: ./src/knative.dev/net-kourier
 
