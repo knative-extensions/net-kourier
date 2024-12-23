@@ -46,7 +46,7 @@ jobs:
     - uses: ko-build/setup-ko@v0.6
 
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: ./src/knative.dev/net-kourier
 
