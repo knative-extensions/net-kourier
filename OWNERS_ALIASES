@@ -3,7 +3,6 @@
 
 aliases:
   autoscaler-keda-approvers:
-  - ReToCode
   - skonto
   backstage-plugins-reviewers:
   - aliok
@@ -25,7 +24,6 @@ aliases:
   - lberk
   docs-writers:
   - csantanapr
-  - retocode
   - skonto
   eventing-autoscaler-keda-approvers: []
   eventing-awssqs-approvers:
@@ -200,7 +198,6 @@ aliases:
   - davidhadas
   - evankanderson
   serving-approvers:
-  - ReToCode
   - skonto
   serving-progressive-rollout-approvers:
   - alexagriffith
@@ -209,16 +206,13 @@ aliases:
   - yuzisun
   serving-reviewers:
   - izabelacg
-  - retocode
   - skonto
   serving-triage:
   - izabelacg
-  - retocode
   - skonto
   serving-wg-leads:
   - dprotaso
   serving-writers:
-  - ReToCode
   - dprotaso
   - skonto
   steering-committee:
