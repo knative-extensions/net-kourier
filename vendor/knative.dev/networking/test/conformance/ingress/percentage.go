@@ -44,7 +44,7 @@ func TestPercentage(t *testing.T) {
 	// Double the percentage of the split each iteration until it would overflow, and then
 	// give the last route the remainder.
 	percent, total := 1, 0
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 		backends = append(backends, v1alpha1.IngressBackendSplit{
 			IngressBackend: v1alpha1.IngressBackend{

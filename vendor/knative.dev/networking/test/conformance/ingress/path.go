@@ -127,7 +127,6 @@ func TestPath(t *testing.T) {
 	}
 
 	for path, want := range tests {
-		path, want := path, want
 		t.Run(path, func(t *testing.T) {
 			t.Parallel()
 
@@ -215,7 +214,7 @@ func TestPathAndPercentageSplit(t *testing.T) {
 	var g errgroup.Group
 	g.SetLimit(8)
 
-	for i := 0; i < total; i++ {
+	for range total {
 		g.Go(func() error {
 			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain+"/foo")
 			if ri == nil {

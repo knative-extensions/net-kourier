@@ -60,18 +60,17 @@ func TestIngressClass(t *testing.T) {
 	}}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
 			verifyIngressWithAnnotations(ctx, t, clients, test.annotations, ingressBackend)
 		})
 	}
-
 }
 
 func verifyIngressWithAnnotations(ctx context.Context, t *testing.T, clients *test.Clients,
-	annotations map[string]string, backend *v1alpha1.IngressBackend) {
+	annotations map[string]string, backend *v1alpha1.IngressBackend,
+) {
 	t.Helper()
 
 	// createIngress internally sets hooks to delete the ingress,

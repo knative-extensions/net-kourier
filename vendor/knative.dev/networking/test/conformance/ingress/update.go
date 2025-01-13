@@ -80,7 +80,7 @@ func TestUpdate(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// First test with only sentinel changes.
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		sentinel := test.ObjectNameForTest(t)
 
 		t.Logf("Rolling out %q w/ %q", firstName, sentinel)
@@ -122,7 +122,7 @@ func TestUpdate(t *testing.T) {
 		t.Logf("Tearing down %q", firstName)
 		firstCancel()
 	}
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		sentinel := test.ObjectNameForTest(t)
 		nextName, nextPort, nextCancel := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 

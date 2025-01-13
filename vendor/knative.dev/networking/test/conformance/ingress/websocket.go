@@ -70,13 +70,14 @@ func TestWebsocket(t *testing.T) {
 	}
 
 	u := url.URL{Scheme: "ws", Host: domain, Path: "/"}
+	//nolint:bodyclose
 	conn, _, err := dialer.Dial(u.String(), http.Header{"Host": {domain}})
 	if err != nil {
 		t.Fatal("Dial() =", err)
 	}
 	defer conn.Close()
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		checkWebsocketRoundTrip(t, conn, suffix)
 	}
 }
@@ -133,7 +134,8 @@ func TestWebsocketSplit(t *testing.T) {
 
 	const maxRequests = 100
 	got := sets.New[string]()
-	for i := 0; i < maxRequests; i++ {
+	for range maxRequests {
+		//nolint:bodyclose
 		conn, _, err := dialer.Dial(u.String(), http.Header{"Host": {domain}})
 		if err != nil {
 			t.Fatal("Dial() =", err)
@@ -146,7 +148,7 @@ func TestWebsocketSplit(t *testing.T) {
 		}
 		got.Insert(suffix)
 
-		for j := 0; j < 10; j++ {
+		for range 10 {
 			checkWebsocketRoundTrip(t, conn, suffix)
 		}
 

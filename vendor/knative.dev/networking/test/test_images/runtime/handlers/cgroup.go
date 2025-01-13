@@ -30,7 +30,8 @@ var cgroupPaths = []string{
 	"/sys/fs/cgroup/memory/memory.limit_in_bytes",
 	"/sys/fs/cgroup/cpu/cpu.cfs_period_us",
 	"/sys/fs/cgroup/cpu/cpu.cfs_quota_us",
-	"/sys/fs/cgroup/cpu/cpu.shares"}
+	"/sys/fs/cgroup/cpu/cpu.shares",
+}
 
 var (
 	yes = true
@@ -60,7 +61,7 @@ func cgroups(paths ...string) []*types.Cgroup {
 		// Try to write to the Cgroup. We expect this to fail as a cheap
 		// method for read-only validation
 		newValue := []byte{'9'}
-		err = os.WriteFile(path, newValue, 0644)
+		err = os.WriteFile(path, newValue, 0o644)
 		if err != nil {
 			cgroups = append(cgroups, &types.Cgroup{Name: path, Value: &ic, ReadOnly: &yes})
 		} else {
