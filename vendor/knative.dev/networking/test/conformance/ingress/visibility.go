@@ -40,7 +40,7 @@ func TestVisibility(t *testing.T) {
 	name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 
 	// Generate a different hostname for each of these tests, so that they do not fail when run concurrently.
-	var privateHostNames = map[string]string{
+	privateHostNames := map[string]string{
 		"fqdn":     test.ObjectNameForTest(t) + "." + test.ServingNamespace + ".svc." + test.NetworkingFlags.ClusterSuffix,
 		"short":    test.ObjectNameForTest(t) + "." + test.ServingNamespace + ".svc",
 		"shortest": test.ObjectNameForTest(t) + "." + test.ServingNamespace,
@@ -79,7 +79,6 @@ func TestVisibility(t *testing.T) {
 }
 
 func testProxyToHelloworld(ctx context.Context, t *testing.T, ingress *v1alpha1.Ingress, clients *test.Clients, privateHostName string) {
-
 	loadbalancerAddress := ingress.Status.PrivateLoadBalancer.Ingress[0].DomainInternal
 	proxyName, proxyPort, _ := CreateProxyService(ctx, t, clients, privateHostName, loadbalancerAddress)
 
@@ -122,7 +121,7 @@ func TestVisibilitySplit(t *testing.T) {
 	// Double the percentage of the split each iteration until it would overflow, and then
 	// give the last route the remainder.
 	percent, total := 1, 0
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 		backends = append(backends, v1alpha1.IngressBackendSplit{
 			IngressBackend: v1alpha1.IngressBackend{
@@ -365,16 +364,13 @@ func TestVisibilityPath(t *testing.T) {
 		t.Run(path, func(t *testing.T) {
 			t.Parallel()
 
-			//nolint:all
 			ri := RuntimeRequest(ctx, t, client, "http://"+publicHostName+path)
 			if ri == nil {
 				return
 			}
 
-			//nolint:all
 			got := ri.Request.Headers.Get(headerName)
 
-			//nolint:all
 			if got != want {
 				t.Errorf("Header[%q] = %q, wanted %q", headerName, got, want)
 			}

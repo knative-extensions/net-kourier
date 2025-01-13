@@ -18,6 +18,7 @@ package ingress
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"testing"
@@ -71,7 +72,7 @@ func TestProbeHeaders(t *testing.T) {
 	}{{
 		name: "kingress generates hash",
 		req:  header.HashValueOverride,
-		want: fmt.Sprintf("%x", bytes),
+		want: hex.EncodeToString(bytes[:]),
 	}, {
 		name: "request overrides hash",
 		req:  "2701a1b241db6af811992c57a5e11171847148ac3d2e1a8cc992a62f9e4fa111", // random hash to override.
@@ -79,11 +80,10 @@ func TestProbeHeaders(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s.%s", name, test.NetworkingFlags.ServiceDomain), nil)
+			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s.%s", name, test.NetworkingFlags.ServiceDomain), nil)
 			if err != nil {
 				t.Fatal("Error creating request:", err)
 			}
@@ -106,7 +106,6 @@ func TestProbeHeaders(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 // TestTagHeaders verifies that an Ingress properly dispatches to backends based on the tag header
@@ -187,7 +186,6 @@ func TestTagHeaders(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 
@@ -210,7 +208,6 @@ func TestTagHeaders(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 // TestPreSplitSetHeaders verifies that an Ingress that specified AppendHeaders pre-split has the appropriate header(s) set.
@@ -288,7 +285,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 
 	backends := make([]v1alpha1.IngressBackendSplit, 0, splits)
 	names := make(sets.Set[string], splits)
-	for i := 0; i < splits; i++ {
+	for range splits {
 		name, port, _ := CreateRuntimeService(ctx, t, clients, networking.ServicePortNameHTTP1)
 		backends = append(backends, v1alpha1.IngressBackendSplit{
 			IngressBackend: v1alpha1.IngressBackend{
@@ -327,7 +324,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 		// but don't check the distribution of requests, as that isn't the point of this
 		// particular test.
 		seen := make(sets.Set[string], len(names))
-		for i := 0; i < maxRequests; i++ {
+		for range maxRequests {
 			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain)
 			if ri == nil {
 				return
@@ -350,7 +347,7 @@ func TestPostSplitSetHeaders(t *testing.T) {
 		// but don't check the distribution of requests, as that isn't the point of this
 		// particular test.
 		seen := make(sets.Set[string], len(names))
-		for i := 0; i < maxRequests; i++ {
+		for range maxRequests {
 			ri := RuntimeRequest(ctx, t, client, "http://"+name+"."+test.NetworkingFlags.ServiceDomain, func(req *http.Request) {
 				// Specify a value for the header to verify that implementations
 				// use set vs. append semantics.

@@ -146,7 +146,8 @@ func CreateRuntimeService(ctx context.Context, t *testing.T, clients *test.Clien
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: secretName,
 					Optional:   ptr.Bool(false),
-				}}),
+				},
+			}),
 		)
 	}
 
@@ -256,6 +257,9 @@ func CreateProxyService(ctx context.Context, t *testing.T, clients *test.Clients
 					Name:  "TARGET_HOST",
 					Value: target,
 				}, {
+					Name:  "GATEWAY_HOST",
+					Value: gatewayDomain,
+				}, {
 					Name:  "PORT",
 					Value: strconv.Itoa(containerPort),
 				}},
@@ -270,19 +274,23 @@ func CreateProxyService(ctx context.Context, t *testing.T, clients *test.Clients
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: secretName,
 					Optional:   ptr.Bool(false),
-				}}),
+				},
+			}),
 		)
 	}
 
 	if caSecretName := os.Getenv("UPSTREAM_CA_CERT"); caSecretName != "" {
 		pod = PodWithOption(pod,
-			WithEnv([]corev1.EnvVar{{Name: "CA_CERT", Value: caCertPath},
-				{Name: "SERVER_NAME", Value: os.Getenv("SERVER_NAME")}}...),
+			WithEnv([]corev1.EnvVar{
+				{Name: "CA_CERT", Value: caCertPath},
+				{Name: "SERVER_NAME", Value: os.Getenv("SERVER_NAME")},
+			}...),
 			WithVolume("ca-certs", caCertDirectory, corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: caSecretName,
 					Optional:   ptr.Bool(false),
-				}}),
+				},
+			}),
 		)
 	}
 
@@ -306,13 +314,7 @@ func CreateProxyService(ctx context.Context, t *testing.T, clients *test.Clients
 		},
 	}
 	proxyServiceCancel := createPodAndService(ctx, t, clients, pod, svc)
-
-	externalNameServiceCancel := createExternalNameService(ctx, t, clients, target, gatewayDomain)
-
-	return name, port, func() {
-		externalNameServiceCancel()
-		proxyServiceCancel()
-	}
+	return name, port, proxyServiceCancel
 }
 
 // CreateTimeoutService creates a Kubernetes service that will respond to the protocol
@@ -372,7 +374,8 @@ func CreateTimeoutService(ctx context.Context, t *testing.T, clients *test.Clien
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: secretName,
 					Optional:   ptr.Bool(false),
-				}}),
+				},
+			}),
 		)
 	}
 
@@ -459,7 +462,8 @@ func CreateWebsocketService(ctx context.Context, t *testing.T, clients *test.Cli
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: secretName,
 					Optional:   ptr.Bool(false),
-				}}),
+				},
+			}),
 		)
 	}
 
@@ -544,7 +548,8 @@ func CreateGRPCService(ctx context.Context, t *testing.T, clients *test.Clients,
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: secretName,
 					Optional:   ptr.Bool(false),
-				}}),
+				},
+			}),
 		)
 	}
 
@@ -626,7 +631,8 @@ func CreateRetryService(ctx context.Context, t *testing.T, clients *test.Clients
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: secretName,
 					Optional:   ptr.Bool(false),
-				}}),
+				},
+			}),
 		)
 	}
 
@@ -1075,7 +1081,7 @@ func CreateDialContext(ctx context.Context, t *testing.T, ing *v1alpha1.Ingress,
 					return nil, err
 				}
 				for _, sp := range svc.Spec.Ports {
-					if fmt.Sprint(sp.Port) == port {
+					if strconv.Itoa(int(sp.Port)) == port {
 						return dial(ctx, "tcp", fmt.Sprintf("%s:%d", pkgTest.Flags.IngressEndpoint, sp.NodePort))
 					}
 				}
@@ -1116,8 +1122,10 @@ func CreateDialContext(ctx context.Context, t *testing.T, ing *v1alpha1.Ingress,
 	return nil // Unreachable
 }
 
-type RequestOption func(*http.Request)
-type ResponseExpectation func(response *http.Response) error
+type (
+	RequestOption       func(*http.Request)
+	ResponseExpectation func(response *http.Response) error
+)
 
 func RuntimeRequest(ctx context.Context, t *testing.T, client *http.Client, url string, opts ...RequestOption) *types.RuntimeInfo {
 	return RuntimeRequestWithExpectations(ctx, t, client, url,
@@ -1132,7 +1140,8 @@ func RuntimeRequest(ctx context.Context, t *testing.T, client *http.Client, url 
 func RuntimeRequestWithExpectations(ctx context.Context, t *testing.T, client *http.Client, url string,
 	responseExpectations []ResponseExpectation,
 	allowDialError bool,
-	opts ...RequestOption) *types.RuntimeInfo {
+	opts ...RequestOption,
+) *types.RuntimeInfo {
 	t.Helper()
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -1146,7 +1155,6 @@ func RuntimeRequestWithExpectations(ctx context.Context, t *testing.T, client *h
 	}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
 		if !allowDialError || !IsDialError(err) {
 			t.Error("Error making GET request:", err)

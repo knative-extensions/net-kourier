@@ -40,8 +40,10 @@ func main() {
 	args := flag.Args()
 	if len(args) > 0 && args[0] == "probe" {
 		url := "http://localhost:" + port
-		if _, err := http.Get(url); err != nil {
+		if resp, err := http.Get(url); err != nil {
 			log.Fatal("Failed to probe ", err)
+		} else {
+			resp.Body.Close()
 		}
 		return
 	}
