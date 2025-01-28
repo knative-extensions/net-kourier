@@ -142,7 +142,6 @@ aliases:
   knative-admin:
   - aliok
   - cardil
-  - davidhadas
   - dprotaso
   - dsimansk
   - evankanderson
@@ -151,9 +150,8 @@ aliases:
   - knative-prow-robot
   - knative-prow-updater-robot
   - knative-test-reporter-robot
-  - nainaz
-  - psschwei
-  - salaboy
+  - matzew
+  - nrrso
   - skonto
   - upodroid
   knative-release-leads:
@@ -209,10 +207,8 @@ aliases:
   - sukumargaonkar
   - yuzisun
   serving-reviewers:
-  - izabelacg
   - skonto
   serving-triage:
-  - izabelacg
   - skonto
   serving-wg-leads:
   - dprotaso
@@ -221,22 +217,10 @@ aliases:
   - skonto
   steering-committee:
   - aliok
-  - davidhadas
   - dprotaso
-  - dsimansk
   - evankanderson
-  - nainaz
-  - psschwei
-  - salaboy
-  technical-oversight-committee:
-  - aliok
-  - davidhadas
-  - dprotaso
-  - dsimansk
-  - evankanderson
-  - nainaz
-  - psschwei
-  - salaboy
+  - matzew
+  - nrrso
   ux-wg-leads:
   - cali0707
   - leo6leo
