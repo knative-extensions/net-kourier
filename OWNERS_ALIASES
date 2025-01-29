@@ -125,7 +125,6 @@ aliases:
   - rhuss
   kn-plugin-quickstart-approvers:
   - dsimansk
-  - psschwei
   - rhuss
   kn-plugin-sample-approvers:
   - dsimansk
@@ -191,7 +190,6 @@ aliases:
   - upodroid
   security-guard-approvers:
   - davidhadas
-  - psschwei
   - rhuss
   security-wg-leads:
   - davidhadas
