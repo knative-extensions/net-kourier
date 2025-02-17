@@ -17,7 +17,7 @@
 source $(dirname $0)/e2e-common.sh
 
 # Script entry point.
-initialize "$@" --cluster-version=1.30
+initialize "$@" --cluster-version=1.31
 
 failed=0
 
