@@ -11,10 +11,6 @@ steps detailed here.
 - (OPTIONAL) Deploy a local Kubernetes test environment with Knative Serving and
   Kourier if needed:
 
-```bash
-make local-setup
-```
-
 - We need to export a couple of envs to indicate that we are using Kourier as
   the ingress:
 
