@@ -198,6 +198,7 @@ aliases:
   - davidhadas
   - evankanderson
   serving-approvers:
+  - dsimansk
   - skonto
   serving-progressive-rollout-approvers:
   - alexagriffith
@@ -212,6 +213,7 @@ aliases:
   - dprotaso
   serving-writers:
   - dprotaso
+  - dsimansk
   - skonto
   steering-committee:
   - aliok
