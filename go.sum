@@ -710,8 +710,8 @@ k8s.io/kube-openapi v0.0.0-20240808142205-8e686545bdb8 h1:1Wof1cGQgA5pqgo8MxKPtf
 k8s.io/kube-openapi v0.0.0-20240808142205-8e686545bdb8/go.mod h1:Os6V6dZwLNii3vxFpxcNaTmH8LJJBkOTg1N0tOA0fvA=
 k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 h1:pUdcCO1Lk/tbT5ztQWOBi5HBgbBP1J8+AsQnQCKsi8A=
 k8s.io/utils v0.0.0-20240711033017-18e509b52bc8/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-knative.dev/hack v0.0.0-20250114120502-30344aeba756 h1:WOZy3XeC4frTOCHmmPjPj70ojyeAjO8MtNfO02nMq0w=
-knative.dev/hack v0.0.0-20250114120502-30344aeba756/go.mod h1:R0ritgYtjLDO9527h5vb5X6gfvt5LCrJ55BNbVDsWiY=
+knative.dev/hack v0.0.0-20250220110655-b5e4ff820460 h1:N82WjXiv6RlXnA+qV4cA2tUbTnE3B6C3BWE+dcM/F9A=
+knative.dev/hack v0.0.0-20250220110655-b5e4ff820460/go.mod h1:R0ritgYtjLDO9527h5vb5X6gfvt5LCrJ55BNbVDsWiY=
 knative.dev/networking v0.0.0-20241022012959-60e29ff520dc h1:0d9XXRLlyuHfINZLlYqo/BYe/+chqqNBMLKJldjTbtw=
 knative.dev/networking v0.0.0-20241022012959-60e29ff520dc/go.mod h1:G56j6VCLzfaN9yZ4IqfNyN4c3U1czvhUmKeZX4UjQ8Q=
 knative.dev/pkg v0.0.0-20241021183759-9b9d535af5ad h1:Nrjtr2H168rJeamH4QdyLMV1lEKHejNhaj1ymgQMfLk=
