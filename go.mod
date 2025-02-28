@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/envoyproxy/go-control-plane v0.13.1
 	github.com/golang/protobuf v1.5.4
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/jaegertracing/jaeger v1.47.0
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -22,8 +22,8 @@ require (
 	k8s.io/client-go v0.32.2
 	k8s.io/code-generator v0.32.2
 	knative.dev/hack v0.0.0-20250219013704-306ce745e077
-	knative.dev/networking v0.0.0-20250219154947-1aaade762e12
-	knative.dev/pkg v0.0.0-20250219013713-9e265611c097
+	knative.dev/networking v0.0.0-20250226145929-863b7af736fb
+	knative.dev/pkg v0.0.0-20250226145529-0372c089c78f
 )
 
 require (
