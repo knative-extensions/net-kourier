@@ -113,7 +113,7 @@ data:
                 endpoint:
                   address:
                     socket_address:
-                      address: "net-kourier-controller.knative-serving"
+                      address: "net-kourier-controller"
                       port_value: 18000
           type: STRICT_DNS
     admin:
