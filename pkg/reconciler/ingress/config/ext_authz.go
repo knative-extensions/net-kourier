@@ -45,7 +45,7 @@ type ExternalAuthz struct {
 }
 
 func (e *ExternalAuthz) Cluster() *v3Cluster.Cluster {
-	return extAuthzCluster(e.Config.Host, uint32(e.Config.Port), e.Config.Protocol)
+	return extAuthzCluster(e.Config.Host, e.Config.Port, e.Config.Protocol)
 }
 
 func (e *ExternalAuthz) HTTPFilter() *hcm.HttpFilter {
@@ -73,7 +73,7 @@ func isValidExtAuthzProtocol(protocol extAuthzProtocol) bool {
 
 type externalAuthzConfig struct {
 	Host             string
-	Port             int
+	Port             uint32
 	FailureModeAllow bool
 	MaxRequestBytes  uint32           `default:"8192"`
 	Timeout          int              `default:"2000"`

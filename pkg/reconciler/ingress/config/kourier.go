@@ -193,10 +193,11 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 			return fmt.Errorf("port %d bigger than %d", port, unixMaxPort)
 		}
 
-		// When using enviroments to get a host with port,
+		// When using environments to get a host with port,
 		// it should be overwritten by a host without port.
 		config.Host = host
-		config.Port = port
+		// nolint:gosec // port is below unixMaxPort
+		config.Port = uint32(port)
 
 		externalAuthz.Enabled = true
 		externalAuthz.Config = config
