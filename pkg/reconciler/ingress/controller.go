@@ -422,7 +422,7 @@ func getInitialConfig(ctx context.Context) (*store.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch kourier config: %w", err)
 	}
-	kourierConfig, err := config.NewConfigFromMap(kourierCM.Data)
+	kourierConfig, err := config.NewKourierConfigFromMap(kourierCM.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct kourier config: %w", err)
 	}

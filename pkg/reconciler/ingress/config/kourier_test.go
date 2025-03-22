@@ -36,7 +36,7 @@ func TestKourierConfig(t *testing.T) {
 		data    map[string]string
 	}{{
 		name: "default configuration",
-		want: DefaultConfig(),
+		want: defaultKourierConfig(),
 		data: map[string]string{},
 	}, {
 		name: "disable logging",
@@ -157,7 +157,7 @@ func TestKourierConfig(t *testing.T) {
 
 	for _, tt := range configTests {
 		t.Run(tt.name, func(t *testing.T) {
-			actualCM, err := NewConfigFromConfigMap(&corev1.ConfigMap{
+			actualCM, err := NewKourierConfigFromConfigMap(&corev1.ConfigMap{
 				Data: tt.data,
 			})
 			if (err != nil) != tt.wantErr {
@@ -167,7 +167,7 @@ func TestKourierConfig(t *testing.T) {
 				t.Errorf("Config mismatch: diff(-want,+got):\n%s", diff)
 			}
 
-			actualCfg, err := NewConfigFromMap(tt.data)
+			actualCfg, err := NewKourierConfigFromMap(tt.data)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("NewConfigFromMap() error = %v, WantErr %v", err, tt.wantErr)
 			}

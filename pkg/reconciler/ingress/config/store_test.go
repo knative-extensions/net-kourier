@@ -36,7 +36,7 @@ func TestStoreLoadWithContext(t *testing.T) {
 
 	cfg := FromContext(store.ToContext(context.Background()))
 
-	expected, _ := NewConfigFromConfigMap(kourierConfig)
+	expected, _ := NewKourierConfigFromConfigMap(kourierConfig)
 	if diff := cmp.Diff(expected, cfg.Kourier); diff != "" {
 		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
 	}
@@ -45,10 +45,10 @@ func TestStoreLoadWithContext(t *testing.T) {
 func TestStoreLoadWithDefaults(t *testing.T) {
 	cfg := FromContextOrDefaults(context.Background())
 
-	if diff := cmp.Diff(DefaultConfig(), cfg.Kourier); diff != "" {
+	if diff := cmp.Diff(defaultKourierConfig(), cfg.Kourier); diff != "" {
 		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
 	}
-	if diff := cmp.Diff(defaultConfig(), cfg.Network); diff != "" {
+	if diff := cmp.Diff(defaultNetworkConfig(), cfg.Network); diff != "" {
 		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
 	}
 }

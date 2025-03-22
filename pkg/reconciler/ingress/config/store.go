@@ -43,12 +43,12 @@ func FromContextOrDefaults(ctx context.Context) *Config {
 		return cfg
 	}
 	return &Config{
-		Kourier: DefaultConfig(),
-		Network: defaultConfig(),
+		Kourier: defaultKourierConfig(),
+		Network: defaultNetworkConfig(),
 	}
 }
 
-func defaultConfig() *netconfig.Config {
+func defaultNetworkConfig() *netconfig.Config {
 	return &netconfig.Config{
 		SystemInternalTLS: netconfig.EncryptionDisabled,
 	}
@@ -72,7 +72,7 @@ func NewStore(logger configmap.Logger, onAfterStore ...func(name string, value i
 			"kourier",
 			logger,
 			configmap.Constructors{
-				ConfigName:              NewConfigFromConfigMap,
+				ConfigName:              NewKourierConfigFromConfigMap,
 				netconfig.ConfigMapName: network.NewConfigFromConfigMap,
 			},
 			onAfterStore...,

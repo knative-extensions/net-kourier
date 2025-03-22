@@ -67,7 +67,7 @@ const (
 	extauthzPackAsBytesKey         = "extauthz-pack-as-bytes"
 )
 
-func DefaultConfig() *Kourier {
+func defaultKourierConfig() *Kourier {
 	return &Kourier{
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 		EnableProxyProtocol:        false,
@@ -84,9 +84,9 @@ func DefaultConfig() *Kourier {
 	}
 }
 
-// NewConfigFromMap creates a DeploymentConfig from the supplied Map.
-func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
-	nc := DefaultConfig()
+// NewKourierConfigFromMap creates a KourierConfig from the supplied Map.
+func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
+	nc := defaultKourierConfig()
 
 	if err := cm.Parse(configMap,
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
@@ -206,8 +206,8 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 }
 
 // NewConfigFromConfigMap creates a Kourier from the supplied configMap.
-func NewConfigFromConfigMap(config *corev1.ConfigMap) (*Kourier, error) {
-	return NewConfigFromMap(config.Data)
+func NewKourierConfigFromConfigMap(config *corev1.ConfigMap) (*Kourier, error) {
+	return NewKourierConfigFromMap(config.Data)
 }
 
 // Kourier includes the configuration for Kourier.
