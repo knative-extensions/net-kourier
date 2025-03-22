@@ -45,11 +45,11 @@ type ExternalAuthz struct {
 }
 
 func (e *ExternalAuthz) Cluster() *v3Cluster.Cluster {
-	return extAuthzCluster(e.Config.Host, e.Config.Port, e.Config.Protocol)
+	return externalAuthzCluster(e.Config.Host, e.Config.Port, e.Config.Protocol)
 }
 
 func (e *ExternalAuthz) HTTPFilter() *hcm.HttpFilter {
-	return externalAuthZFilter(&e.Config)
+	return externalAuthzFilter(&e.Config)
 }
 
 type extAuthzProtocol string
@@ -84,7 +84,7 @@ type externalAuthzConfig struct {
 
 const extAuthzClusterTypedExtensionProtocolOptionsHTTP = "envoy.extensions.upstreams.http.v3.HttpProtocolOptions"
 
-func extAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *v3Cluster.Cluster {
+func externalAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *v3Cluster.Cluster {
 	var explicitHTTPConfig *httpOptions.HttpProtocolOptions_ExplicitHttpConfig
 
 	switch protocol {
@@ -141,7 +141,7 @@ func extAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *v3Clu
 
 var errPackAsBytesInvalidWithProtocolHTTP = errors.New("pack as bytes option cannot be set when using http protocol")
 
-func externalAuthZFilter(conf *externalAuthzConfig) *hcm.HttpFilter {
+func externalAuthzFilter(conf *externalAuthzConfig) *hcm.HttpFilter {
 	timeout := durationpb.New(time.Duration(conf.Timeout) * time.Millisecond)
 
 	extAuthConfig := &extAuthService.ExtAuthz{

@@ -149,14 +149,15 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 	return func(data map[string]string) error {
 
 		var config externalAuthzConfig
+		var host string
 
 		// For backward compatibility, if KOURIER_EXTAUTHZ_HOST is set, use it.
-		if host := os.Getenv("KOURIER_EXTAUTHZ_HOST"); host != "" {
+		if host = os.Getenv("KOURIER_EXTAUTHZ_HOST"); host != "" {
 			if err := envconfig.Process("KOURIER_EXTAUTHZ", &config); err != nil {
 				return fmt.Errorf("failed to parse config: %w", err)
 			}
 		} else {
-			host := data[extauthzHostKey]
+			host = data[extauthzHostKey]
 			if host == "" {
 				return nil
 			}
@@ -178,9 +179,9 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 			}
 		}
 
-		host, portStr, err := net.SplitHostPort(config.Host)
+		h, portStr, err := net.SplitHostPort(host)
 		if err != nil {
-			return fmt.Errorf("failed to split host and port from %s: %w", config.Host, err)
+			return fmt.Errorf("failed to split host and port from %s: %w", host, err)
 		}
 
 		port, err := strconv.Atoi(portStr)
@@ -195,7 +196,7 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 
 		// When using environments to get a host with port,
 		// it should be overwritten by a host without port.
-		config.Host = host
+		config.Host = h
 		// nolint:gosec // port is below unixMaxPort
 		config.Port = uint32(port)
 

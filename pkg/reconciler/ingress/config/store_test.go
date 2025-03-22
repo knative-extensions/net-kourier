@@ -40,6 +40,13 @@ func TestStoreLoadWithContext(t *testing.T) {
 	if diff := cmp.Diff(expected, cfg.Kourier); diff != "" {
 		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
 	}
+
+	cfg = FromContextOrDefaults(store.ToContext(context.Background()))
+
+	expected, _ = NewKourierConfigFromConfigMap(kourierConfig)
+	if diff := cmp.Diff(expected, cfg.Kourier); diff != "" {
+		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
+	}
 }
 
 func TestStoreLoadWithDefaults(t *testing.T) {

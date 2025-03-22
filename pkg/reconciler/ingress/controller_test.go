@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"context"
 	"testing"
 
 	_ "knative.dev/networking/pkg/client/injection/client/fake"
@@ -30,6 +31,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	networkcfg "knative.dev/networking/pkg/config"
 	kubeclient "knative.dev/pkg/client/injection/kube/client/fake"
 	"knative.dev/pkg/configmap"
@@ -71,5 +73,71 @@ func TestNew(t *testing.T) {
 
 	if c == nil {
 		t.Fatal("Expected NewController to return a non-nil value")
+	}
+}
+
+func TestGetInitialConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		objects []runtime.Object
+		wantErr bool
+	}{
+		{
+			name: "both configmaps exist",
+			objects: []runtime.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: system.Namespace(),
+						Name:      networkcfg.ConfigMapName,
+					},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: system.Namespace(),
+						Name:      config.ConfigName,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "no configmaps exist",
+			objects: []runtime.Object{},
+			wantErr: true,
+		},
+		{
+			name: "only network configmap exists",
+			objects: []runtime.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: system.Namespace(),
+						Name:      networkcfg.ConfigMapName,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "only kourier configmap exists",
+			objects: []runtime.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: system.Namespace(),
+						Name:      config.ConfigName,
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, _ := kubeclient.With(context.Background(), tt.objects...)
+			_, err := getInitialConfig(ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getInitialConfig() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }

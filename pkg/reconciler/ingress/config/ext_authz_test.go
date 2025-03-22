@@ -50,21 +50,16 @@ func Test_isValidProtocol(t *testing.T) {
 }
 
 func Test_extAuthzCluster_httpProtocolOptions(t *testing.T) {
-	type args struct {
-		host     string
-		port     uint32
-		protocol extAuthzProtocol
-	}
 	tests := []struct {
 		name                      string
-		args                      args
+		config                    externalAuthzConfig
 		httpProtocolOptionsWanted *httpOptions.HttpProtocolOptions
 	}{{
 		name: "grpc",
-		args: args{
-			host:     "example.com",
-			port:     50051,
-			protocol: "grpc",
+		config: externalAuthzConfig{
+			Host:     "example.com",
+			Port:     50051,
+			Protocol: "grpc",
 		},
 		httpProtocolOptionsWanted: &httpOptions.HttpProtocolOptions{
 			UpstreamProtocolOptions: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_{
@@ -75,10 +70,10 @@ func Test_extAuthzCluster_httpProtocolOptions(t *testing.T) {
 		},
 	}, {
 		name: "http",
-		args: args{
-			host:     "example.com",
-			port:     8080,
-			protocol: "http",
+		config: externalAuthzConfig{
+			Host:     "example.com",
+			Port:     8080,
+			Protocol: "http",
 		},
 		httpProtocolOptionsWanted: &httpOptions.HttpProtocolOptions{
 			UpstreamProtocolOptions: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_{
@@ -89,10 +84,10 @@ func Test_extAuthzCluster_httpProtocolOptions(t *testing.T) {
 		},
 	}, {
 		name: "https",
-		args: args{
-			host:     "example.com",
-			port:     8443,
-			protocol: "https",
+		config: externalAuthzConfig{
+			Host:     "example.com",
+			Port:     8443,
+			Protocol: "https",
 		},
 		httpProtocolOptionsWanted: &httpOptions.HttpProtocolOptions{
 			UpstreamProtocolOptions: &httpOptions.HttpProtocolOptions_ExplicitHttpConfig_{
@@ -104,7 +99,13 @@ func Test_extAuthzCluster_httpProtocolOptions(t *testing.T) {
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := extAuthzCluster(tt.args.host, tt.args.port, tt.args.protocol)
+
+			ea := &ExternalAuthz{
+				Enabled: true,
+				Config:  tt.config,
+			}
+
+			got := ea.Cluster()
 			httpProtocolOptionsGot, ok := got.TypedExtensionProtocolOptions[extAuthzClusterTypedExtensionProtocolOptionsHTTP]
 
 			if !ok {
@@ -346,8 +347,12 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 					t.Errorf("externalAuthZFilter() extAuthz have panicked with \"%v\", want \"%v\"", r, tt.panicErrWanted)
 				}
 			}()
+			e := &ExternalAuthz{
+				Enabled: true,
+				Config:  *tt.conf,
+			}
 
-			got := externalAuthZFilter(tt.conf)
+			got := e.HTTPFilter()
 
 			extAuthzWantedAny, err := anypb.New(tt.extAuthzWanted)
 			if err != nil {
