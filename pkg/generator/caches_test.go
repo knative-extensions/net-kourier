@@ -49,9 +49,10 @@ import (
 
 func TestDeleteIngressInfo(t *testing.T) {
 	kubeClient := fake.Clientset{}
-	ctx := context.Background()
 
-	caches, err := NewCaches(&kubeClient, false)
+	ctx := rconfig.ToContext(context.Background(), rconfig.FromContextOrDefaults(context.Background()))
+
+	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
 
 	// Add info for an ingress
@@ -115,9 +116,9 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	// If the ingress does not exist, nothing should be deleted from the caches
 	// instance.
 	kubeClient := fake.Clientset{}
-	ctx := context.Background()
+	ctx := rconfig.ToContext(context.Background(), rconfig.FromContextOrDefaults(context.Background()))
 
-	caches, err := NewCaches(&kubeClient, false)
+	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
 
 	// Add info for an ingress
@@ -171,9 +172,9 @@ func TestExternalTLSListener(t *testing.T) {
 	t.Setenv(envCertsSecretName, "secretname")
 
 	kubeClient := fake.Clientset{}
-	ctx := context.Background()
+	ctx := rconfig.ToContext(context.Background(), rconfig.FromContextOrDefaults(context.Background()))
 
-	caches, err := NewCaches(&kubeClient, false)
+	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
 
 	fooSNIMatch := &envoy.SNIMatch{
@@ -300,7 +301,7 @@ func TestLocalTLSListener(t *testing.T) {
 	_, err := kubeClient.CoreV1().Secrets("knative-serving").Create(ctx, oneCertSecret, metav1.CreateOptions{})
 	assert.NilError(t, err)
 
-	caches, err := NewCaches(&kubeClient, false)
+	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
 
 	t.Run("without SNI matches", func(t *testing.T) {
@@ -392,7 +393,7 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 	cfg := testConfig.DeepCopy()
 	ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
 
-	caches, err := NewCaches(&kubeClient, false)
+	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
 
 	t.Run("check a tracing cluster exist, and tracing is configured on listeners", func(t *testing.T) {
@@ -504,7 +505,9 @@ func createTestDataForIngress(
 func TestValidateIngress(t *testing.T) {
 	kubeClient := fake.Clientset{}
 
-	caches, err := NewCaches(&kubeClient, false)
+	ctx := rconfig.ToContext(context.Background(), rconfig.FromContextOrDefaults(context.Background()))
+
+	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
 
 	createTestDataForIngress(

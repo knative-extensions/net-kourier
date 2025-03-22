@@ -39,6 +39,7 @@ import (
 	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	store "knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/certificates"
 	"knative.dev/pkg/system"
 )
@@ -65,7 +66,7 @@ type Caches struct {
 	kubeClient kubeclient.Interface
 }
 
-func NewCaches(kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
+func NewCaches(ctx context.Context, kubernetesClient kubeclient.Interface) (*Caches, error) {
 	c := &Caches{
 		translatedIngresses: make(map[types.NamespacedName]*translatedIngress),
 		clusters:            newClustersCache(),
@@ -74,8 +75,8 @@ func NewCaches(kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, e
 		kubeClient:          kubernetesClient,
 	}
 
-	if extAuthz {
-		c.clusters.set(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
+	if store.FromContext(ctx).Kourier.ExternalAuthz.Enabled {
+		c.clusters.set(store.FromContext(ctx).Kourier.ExternalAuthz.Cluster(), "__extAuthZCluster", "_internal")
 	}
 	return c, nil
 }

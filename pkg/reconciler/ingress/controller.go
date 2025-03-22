@@ -87,15 +87,19 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	secretInformer := getSecretInformer(ctx)
 	nsConfigmapInformer := nsconfigmapinformer.Get(ctx) // this is filtered to SYSTEM_NAMESPACE
 
+	// startupTranslator will read the configuration from ctx, so we need to wait until
+	// the ConfigMaps are present or die
+	ctx = ensureCtxWithConfigOrDie(ctx)
+
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
-	caches, err := generator.NewCaches(kubernetesClient, config.ExternalAuthz.Enabled)
+	caches, err := generator.NewCaches(ctx, kubernetesClient)
 	if err != nil {
 		logger.Fatalw("Failed create new caches", zap.Error(err))
 	}
 
 	r := &Reconciler{
 		caches:   caches,
-		extAuthz: config.ExternalAuthz.Enabled,
+		extAuthz: store.FromContext(ctx).Kourier.ExternalAuthz.Enabled,
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
@@ -221,10 +225,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 	logger.Infof("Priming the config with %d ingresses", len(ingressesToSync))
 
-	// startupTranslator will read the configuration from ctx, so we need to wait until
-	// the ConfigMaps are present or die
-	ctx = ensureCtxWithConfigOrDie(ctx)
-
 	// The startup translator uses clients instead of listeners to correctly list all
 	// resources at startup.
 	startupTranslator := generator.NewIngressTranslator(
@@ -248,7 +248,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	for _, ingress := range ingressesToSync {
 		if err := generator.UpdateInfoForIngress(
-			ctx, caches, ingress, &startupTranslator, config.ExternalAuthz.Enabled); err != nil {
+			ctx, caches, ingress, &startupTranslator, store.FromContext(ctx).Kourier.ExternalAuthz.Enabled); err != nil {
 			logger.Fatalw("Failed prewarm ingress", zap.Error(err))
 		}
 	}

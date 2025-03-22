@@ -39,8 +39,8 @@ import (
 func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kourier) *hcm.HttpConnectionManager {
 	filters := make([]*hcm.HttpFilter, 0, 1)
 
-	if config.ExternalAuthz.Enabled {
-		filters = append(filters, config.ExternalAuthz.HTTPFilter)
+	if kourierConfig.ExternalAuthz.Enabled {
+		filters = append(filters, kourierConfig.ExternalAuthz.HTTPFilter())
 	}
 
 	// Append the Router filter at the end.

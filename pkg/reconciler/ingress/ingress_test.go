@@ -145,7 +145,9 @@ func TestReconcile(t *testing.T) {
 		rtesting.PrependGenerateNameReactor(&client.Fake)
 		rtesting.PrependGenerateNameReactor(&kubeclient.Fake)
 
-		c, _ := generator.NewCaches(kubeclient, false)
+		ctx = config.ToContext(ctx, config.FromContextOrDefaults(ctx))
+
+		c, _ := generator.NewCaches(ctx, kubeclient)
 
 		r := &Reconciler{
 			xdsServer:         server.NewXdsServer(18000, &xds.CallbackFuncs{}),
