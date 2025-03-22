@@ -41,15 +41,15 @@ const (
 // ExternalAuthzConfig specifies parameters for external authorization configuration.
 type ExternalAuthz struct {
 	Enabled bool
-	config  externalAuthzConfig
+	Config  externalAuthzConfig
 }
 
 func (e *ExternalAuthz) Cluster() *v3Cluster.Cluster {
-	return extAuthzCluster(e.config.Host, uint32(e.config.Port), e.config.Protocol)
+	return extAuthzCluster(e.Config.Host, uint32(e.Config.Port), e.Config.Protocol)
 }
 
 func (e *ExternalAuthz) HTTPFilter() *hcm.HttpFilter {
-	return externalAuthZFilter(&e.config)
+	return externalAuthZFilter(&e.Config)
 }
 
 type extAuthzProtocol string

@@ -19,7 +19,6 @@ package config
 import (
 	"context"
 
-	"knative.dev/net-kourier/pkg/config"
 	network "knative.dev/networking/pkg"
 	netconfig "knative.dev/networking/pkg/config"
 	"knative.dev/pkg/configmap"
@@ -30,7 +29,7 @@ type cfgKey struct{}
 // Config contains the configmaps requires for revision reconciliation.
 // +k8s:deepcopy-gen=true
 type Config struct {
-	Kourier *config.Kourier
+	Kourier *Kourier
 	Network *netconfig.Config
 }
 
@@ -44,7 +43,7 @@ func FromContextOrDefaults(ctx context.Context) *Config {
 		return cfg
 	}
 	return &Config{
-		Kourier: config.DefaultConfig(),
+		Kourier: DefaultConfig(),
 		Network: defaultConfig(),
 	}
 }
@@ -73,7 +72,7 @@ func NewStore(logger configmap.Logger, onAfterStore ...func(name string, value i
 			"kourier",
 			logger,
 			configmap.Constructors{
-				config.ConfigName:       config.NewConfigFromConfigMap,
+				ConfigName:              NewConfigFromConfigMap,
 				netconfig.ConfigMapName: network.NewConfigFromConfigMap,
 			},
 			onAfterStore...,
@@ -90,7 +89,7 @@ func (s *Store) ToContext(ctx context.Context) context.Context {
 // Load returns the config from the store.
 func (s *Store) Load() *Config {
 	return &Config{
-		Kourier: s.UntypedLoad(config.ConfigName).(*config.Kourier).DeepCopy(),
+		Kourier: s.UntypedLoad(ConfigName).(*Kourier).DeepCopy(),
 		Network: s.UntypedLoad(netconfig.ConfigMapName).(*netconfig.Config).DeepCopy(),
 	}
 }

@@ -40,9 +40,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
-	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
-	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/certificates"
 	netconfig "knative.dev/networking/pkg/config"
 )
@@ -50,7 +49,7 @@ import (
 func TestDeleteIngressInfo(t *testing.T) {
 	kubeClient := fake.Clientset{}
 
-	ctx := rconfig.ToContext(context.Background(), rconfig.FromContextOrDefaults(context.Background()))
+	ctx := config.ToContext(context.Background(), config.FromContextOrDefaults(context.Background()))
 
 	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
@@ -116,7 +115,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	// If the ingress does not exist, nothing should be deleted from the caches
 	// instance.
 	kubeClient := fake.Clientset{}
-	ctx := rconfig.ToContext(context.Background(), rconfig.FromContextOrDefaults(context.Background()))
+	ctx := config.ToContext(context.Background(), config.FromContextOrDefaults(context.Background()))
 
 	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
@@ -172,7 +171,7 @@ func TestExternalTLSListener(t *testing.T) {
 	t.Setenv(envCertsSecretName, "secretname")
 
 	kubeClient := fake.Clientset{}
-	ctx := rconfig.ToContext(context.Background(), rconfig.FromContextOrDefaults(context.Background()))
+	ctx := config.ToContext(context.Background(), config.FromContextOrDefaults(context.Background()))
 
 	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
@@ -264,7 +263,7 @@ func TestExternalTLSListener(t *testing.T) {
 // TestLocalTLSListener verifies that
 // filter is added when secret name is specified by cluster-cert-secret.
 func TestLocalTLSListener(t *testing.T) {
-	testConfig := &rconfig.Config{
+	testConfig := &config.Config{
 		Network: &netconfig.Config{},
 		Kourier: &config.Kourier{
 			ClusterCertSecret:   "test-ca",
@@ -378,7 +377,7 @@ func TestLocalTLSListener(t *testing.T) {
 // TestListenersAndClustersWithTracing verifies that when we enable tracing
 // a cluster is added for the tracing backend, and tracing configuration is added to all listeners.
 func TestListenersAndClustersWithTracing(t *testing.T) {
-	testConfig := &rconfig.Config{
+	testConfig := &config.Config{
 		Kourier: &config.Kourier{
 			Tracing: config.Tracing{
 				Enabled:           true,
@@ -505,7 +504,7 @@ func createTestDataForIngress(
 func TestValidateIngress(t *testing.T) {
 	kubeClient := fake.Clientset{}
 
-	ctx := rconfig.ToContext(context.Background(), rconfig.FromContextOrDefaults(context.Background()))
+	ctx := config.ToContext(context.Background(), config.FromContextOrDefaults(context.Background()))
 
 	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)

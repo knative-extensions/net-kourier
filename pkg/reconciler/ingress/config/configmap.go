@@ -199,7 +199,7 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 		config.Port = port
 
 		externalAuthz.Enabled = true
-		externalAuthz.config = config
+		externalAuthz.Config = config
 
 		return nil
 	}

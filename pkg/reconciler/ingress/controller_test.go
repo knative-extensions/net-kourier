@@ -36,8 +36,8 @@ import (
 	rtesting "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/system"
 
-	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 )
 
 func TestNew(t *testing.T) {
