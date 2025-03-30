@@ -148,13 +148,13 @@ func asTracing(collectorFullEndpoint string, tracing *Tracing) cm.ParseFunc {
 func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 	return func(data map[string]string) error {
 
-		var config externalAuthzConfig
+		config := defaultExternalAuthzConfig()
 		var host string
 
 		// For backward compatibility, if KOURIER_EXTAUTHZ_HOST is set, use it.
 		if host = os.Getenv("KOURIER_EXTAUTHZ_HOST"); host != "" {
 			if err := envconfig.Process("KOURIER_EXTAUTHZ", &config); err != nil {
-				return fmt.Errorf("failed to parse config: %w", err)
+				return fmt.Errorf("failed to parse external authz config: %w", err)
 			}
 		} else {
 			host = data[extauthzHostKey]
@@ -175,7 +175,7 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 				cm.AsString(extauthzPathPrefixKey, &config.PathPrefix),
 				cm.AsBool(extauthzPackAsBytesKey, &config.PackAsBytes),
 			); err != nil {
-				return fmt.Errorf("failed to parse config: %w", err)
+				return fmt.Errorf("failed to parse external authz config: %w", err)
 			}
 		}
 

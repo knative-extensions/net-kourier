@@ -192,10 +192,12 @@ func TestAsExternalAuthz(t *testing.T) {
 		},
 		want: ExternalAuthz{
 			Enabled: true,
-			Config: externalAuthzConfig{
-				Host:     "auth.default.svc.cluster.local",
-				Port:     9000,
-				Protocol: "grpc",
+			Config: ExternalAuthzConfig{
+				Host:            "auth.default.svc.cluster.local",
+				Port:            9000,
+				MaxRequestBytes: 8192,
+				Timeout:         2000,
+				Protocol:        "grpc",
 			},
 		},
 	}, {
@@ -211,7 +213,7 @@ func TestAsExternalAuthz(t *testing.T) {
 		},
 		want: ExternalAuthz{
 			Enabled: true,
-			Config: externalAuthzConfig{
+			Config: ExternalAuthzConfig{
 				Host:             "auth.default.svc.cluster.local",
 				Port:             9000,
 				Protocol:         "grpc",
