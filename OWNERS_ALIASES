@@ -74,6 +74,7 @@ aliases:
   - cali0707
   - creydr
   eventing-wg-leads:
+  - creydr
   - pierDipi
   eventing-writers:
   - Leo6Leo
@@ -125,6 +126,7 @@ aliases:
   - rhuss
   kn-plugin-quickstart-approvers:
   - dsimansk
+  - psschwei
   - rhuss
   kn-plugin-sample-approvers:
   - dsimansk
