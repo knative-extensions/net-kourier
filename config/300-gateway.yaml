@@ -55,7 +55,7 @@ spec:
           env:
             - name: DRAIN_TIME_SECONDS
               value: "15"
-          image: docker.io/envoyproxy/envoy:v1.31-latest
+          image: docker.io/envoyproxy/envoy:v1.34-latest
           name: kourier-gateway
           ports:
             - name: http2-external
