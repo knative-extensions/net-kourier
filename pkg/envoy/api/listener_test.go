@@ -33,7 +33,7 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 )
 
 const urlPrefix = "type.googleapis.com/"

@@ -17,9 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/reconciler/informerfiltering"
 	kourierIngressController "knative.dev/net-kourier/pkg/reconciler/ingress"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/pkg/signals"
 
 	// This defines the shared main for injected controllers.
