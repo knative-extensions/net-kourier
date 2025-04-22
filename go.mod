@@ -1,6 +1,6 @@
 module knative.dev/net-kourier
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/envoyproxy/go-control-plane v0.13.4
