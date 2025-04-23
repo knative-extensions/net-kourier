@@ -16,10 +16,8 @@ aliases:
   - pierdipi
   client-wg-leads:
   - dsimansk
-  - rhuss
   client-writers:
   - dsimansk
-  - rhuss
   discovery-approvers:
   - lberk
   docs-writers:
@@ -113,33 +111,25 @@ aliases:
   - salaboy
   homebrew-kn-plugins-approvers:
   - dsimansk
-  - rhuss
   kn-plugin-admin-approvers:
   - dsimansk
-  - rhuss
   kn-plugin-event-approvers:
   - cardil
-  - rhuss
   kn-plugin-operator-approvers:
   - dsimansk
   - houshengbo
-  - rhuss
   kn-plugin-quickstart-approvers:
   - dsimansk
   - psschwei
-  - rhuss
   kn-plugin-sample-approvers:
   - dsimansk
-  - rhuss
   kn-plugin-service-log-approvers:
-  - rhuss
+  - dsimansk
   kn-plugin-source-kafka-approvers:
   - daisy-ycguo
   - dsimansk
-  - rhuss
   kn-plugin-source-kamelet-approvers:
   - christophd
-  - rhuss
   knative-admin:
   - aliok
   - cardil
@@ -194,7 +184,6 @@ aliases:
   - upodroid
   security-guard-approvers:
   - davidhadas
-  - rhuss
   security-wg-leads:
   - davidhadas
   - evankanderson
