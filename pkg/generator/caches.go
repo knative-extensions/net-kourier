@@ -36,9 +36,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclient "k8s.io/client-go/kubernetes"
-	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
-	rconfig "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/certificates"
 	"knative.dev/pkg/system"
 )
@@ -65,7 +64,7 @@ type Caches struct {
 	kubeClient kubeclient.Interface
 }
 
-func NewCaches(kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, error) {
+func NewCaches(ctx context.Context, kubernetesClient kubeclient.Interface) (*Caches, error) {
 	c := &Caches{
 		translatedIngresses: make(map[types.NamespacedName]*translatedIngress),
 		clusters:            newClustersCache(),
@@ -74,8 +73,8 @@ func NewCaches(kubernetesClient kubeclient.Interface, extAuthz bool) (*Caches, e
 		kubeClient:          kubernetesClient,
 	}
 
-	if extAuthz {
-		c.clusters.set(config.ExternalAuthz.Cluster, "__extAuthZCluster", "_internal")
+	if config.FromContext(ctx).Kourier.ExternalAuthz.Enabled {
+		c.clusters.set(config.FromContext(ctx).Kourier.ExternalAuthz.Cluster(), "__extAuthZCluster", "_internal")
 	}
 	return c, nil
 }
@@ -228,7 +227,7 @@ func generateListenersAndRouteConfigsAndClusters(
 	// This has to be "OrDefaults" because this path is called before the informers are
 	// running when booting the controller up and prefilling the config before making it
 	// ready.
-	cfg := rconfig.FromContextOrDefaults(ctx)
+	cfg := config.FromContextOrDefaults(ctx)
 
 	// First, we save the RouteConfigs with the proper name and all the virtualhosts etc. into the cache.
 	externalRouteConfig := envoy.NewRouteConfig(externalRouteConfigName, externalVirtualHosts)

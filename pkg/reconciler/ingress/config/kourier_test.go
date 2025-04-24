@@ -36,7 +36,7 @@ func TestKourierConfig(t *testing.T) {
 		data    map[string]string
 	}{{
 		name: "default configuration",
-		want: DefaultConfig(),
+		want: defaultKourierConfig(),
 		data: map[string]string{},
 	}, {
 		name: "disable logging",
@@ -157,7 +157,7 @@ func TestKourierConfig(t *testing.T) {
 
 	for _, tt := range configTests {
 		t.Run(tt.name, func(t *testing.T) {
-			actualCM, err := NewConfigFromConfigMap(&corev1.ConfigMap{
+			actualCM, err := NewKourierConfigFromConfigMap(&corev1.ConfigMap{
 				Data: tt.data,
 			})
 			if (err != nil) != tt.wantErr {
@@ -167,12 +167,119 @@ func TestKourierConfig(t *testing.T) {
 				t.Errorf("Config mismatch: diff(-want,+got):\n%s", diff)
 			}
 
-			actualCfg, err := NewConfigFromMap(tt.data)
+			actualCfg, err := NewKourierConfigFromMap(tt.data)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("NewConfigFromMap() error = %v, WantErr %v", err, tt.wantErr)
 			}
 			if diff := cmp.Diff(actualCfg, actualCM); diff != "" {
 				t.Errorf("Config mismatch: diff(-want,+got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestAsExternalAuthz(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    map[string]string
+		want    ExternalAuthz
+		wantErr bool
+	}{{
+		name: "basic config",
+		data: map[string]string{
+			extauthzHostKey:     "auth.default.svc.cluster.local:9000",
+			extauthzProtocolKey: "grpc",
+		},
+		want: ExternalAuthz{
+			Enabled: true,
+			Config: ExternalAuthzConfig{
+				Host:            "auth.default.svc.cluster.local",
+				Port:            9000,
+				MaxRequestBytes: 8192,
+				Timeout:         2000,
+				Protocol:        "grpc",
+			},
+		},
+	}, {
+		name: "full config",
+		data: map[string]string{
+			extauthzHostKey:                "auth.default.svc.cluster.local:9000",
+			extauthzProtocolKey:            "grpc",
+			extauthzFailureModeAllowKey:    "true",
+			extauthzMaxRequestBodyBytesKey: "1024",
+			extauthzTimeoutKey:             "2",
+			extauthzPathPrefixKey:          "/check",
+			extauthzPackAsBytesKey:         "true",
+		},
+		want: ExternalAuthz{
+			Enabled: true,
+			Config: ExternalAuthzConfig{
+				Host:             "auth.default.svc.cluster.local",
+				Port:             9000,
+				Protocol:         "grpc",
+				FailureModeAllow: true,
+				MaxRequestBytes:  1024,
+				Timeout:          2,
+				PathPrefix:       "/check",
+				PackAsBytes:      true,
+			},
+		},
+	}, {
+		name: "failed to parse config",
+		data: map[string]string{
+			extauthzHostKey:             "auth.default.svc.cluster.local:9000",
+			extauthzProtocolKey:         "grpc",
+			extauthzFailureModeAllowKey: "invalid",
+		},
+		wantErr: true,
+	}, {
+		name: "invalid protocol",
+		data: map[string]string{
+			extauthzHostKey:     "auth.default.svc.cluster.local:9000",
+			extauthzProtocolKey: "invalid",
+		},
+		wantErr: true,
+	}, {
+		name: "invalid port",
+		data: map[string]string{
+			extauthzHostKey:     "auth.default.svc.cluster.local:invalid",
+			extauthzProtocolKey: "grpc",
+		},
+		wantErr: true,
+	}, {
+		name: "port above unixMaxPort",
+		data: map[string]string{
+			extauthzHostKey:     "auth.default.svc.cluster.local:99999",
+			extauthzProtocolKey: "grpc",
+		},
+		wantErr: true,
+	}, {
+		name: "empty port",
+		data: map[string]string{
+			extauthzHostKey:     "auth.default.svc.cluster.local",
+			extauthzProtocolKey: "grpc",
+		},
+		wantErr: true,
+	}, {
+		name: "empty host",
+		data: map[string]string{},
+		want: ExternalAuthz{
+			Enabled: false,
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got ExternalAuthz
+			err := asExternalAuthz(&got)(tt.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("asExternalAuthz() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("asExternalAuthz() diff(-want,+got):\n%s", diff)
+				}
 			}
 		})
 	}

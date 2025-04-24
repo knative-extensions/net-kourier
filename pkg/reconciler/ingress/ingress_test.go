@@ -43,7 +43,6 @@ import (
 	rtesting "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/tracker"
 
-	kourierconfig "knative.dev/net-kourier/pkg/config"
 	"knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
@@ -82,8 +81,8 @@ func TestReconcile(t *testing.T) {
 			ing("name", "ns", withBasicSpec, withKourier),
 			&corev1.Endpoints{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      kourierconfig.InternalServiceName,
-					Namespace: kourierconfig.GatewayNamespace(),
+					Name:      config.InternalServiceName,
+					Namespace: config.GatewayNamespace(),
 				},
 				Subsets: []corev1.EndpointSubset{{
 					Addresses: []corev1.EndpointAddress{{IP: "2.2.2.2"}},
@@ -145,7 +144,9 @@ func TestReconcile(t *testing.T) {
 		rtesting.PrependGenerateNameReactor(&client.Fake)
 		rtesting.PrependGenerateNameReactor(&kubeclient.Fake)
 
-		c, _ := generator.NewCaches(kubeclient, false)
+		ctx = config.ToContext(ctx, config.FromContextOrDefaults(ctx))
+
+		c, _ := generator.NewCaches(ctx, kubeclient)
 
 		r := &Reconciler{
 			xdsServer:         server.NewXdsServer(18000, &xds.CallbackFuncs{}),
@@ -160,7 +161,7 @@ func TestReconcile(t *testing.T) {
 
 		rr := ingressreconciler.NewReconciler(ctx,
 			logging.FromContext(ctx), fakenetworkingclient.Get(ctx),
-			ls.GetIngressLister(), controller.GetEventRecorder(ctx), r, kourierconfig.KourierIngressClassName,
+			ls.GetIngressLister(), controller.GetEventRecorder(ctx), r, config.KourierIngressClassName,
 			controller.Options{
 				ConfigStore: &testConfigStore{
 					config: ReconcilerTestConfig(),
@@ -196,7 +197,7 @@ var _ reconciler.ConfigStore = (*testConfigStore)(nil)
 
 func ReconcilerTestConfig() *config.Config {
 	return &config.Config{
-		Kourier: &kourierconfig.Kourier{},
+		Kourier: &config.Kourier{},
 		Network: &netconfig.Config{
 			ExternalDomainTLS: false,
 		},
