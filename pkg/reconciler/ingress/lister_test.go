@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"

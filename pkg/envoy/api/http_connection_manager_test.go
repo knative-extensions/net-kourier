@@ -30,7 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
-	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 )
 
 func TestNewHTTPConnectionManagerWithoutAccessLogWithoutProxyProtocol(t *testing.T) {

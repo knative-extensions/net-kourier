@@ -35,10 +35,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	v1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"knative.dev/net-kourier/pkg/config"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
-	store "knative.dev/net-kourier/pkg/reconciler/ingress/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
@@ -87,15 +86,19 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	secretInformer := getSecretInformer(ctx)
 	nsConfigmapInformer := nsconfigmapinformer.Get(ctx) // this is filtered to SYSTEM_NAMESPACE
 
+	// startupTranslator will read the configuration from ctx, so we need to wait until
+	// the ConfigMaps are present or die
+	ctx = ensureCtxWithConfigOrDie(ctx)
+
 	// Create a new Cache, with the Readiness endpoint enabled, and the list of current Ingresses.
-	caches, err := generator.NewCaches(kubernetesClient, config.ExternalAuthz.Enabled)
+	caches, err := generator.NewCaches(ctx, kubernetesClient)
 	if err != nil {
 		logger.Fatalw("Failed create new caches", zap.Error(err))
 	}
 
 	r := &Reconciler{
 		caches:   caches,
-		extAuthz: config.ExternalAuthz.Enabled,
+		extAuthz: config.FromContext(ctx).Kourier.ExternalAuthz.Enabled,
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
@@ -106,7 +109,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		resync := configmap.TypeFilter(configsToResync...)(func(string, interface{}) {
 			impl.FilteredGlobalResync(isKourierIngress, ingressInformer.Informer())
 		})
-		configStore := store.NewStore(logger.Named("config-store"), resync)
+		configStore := config.NewStore(logger.Named("config-store"), resync)
 		configStore.WatchConfigs(cmw)
 		return controller.Options{
 			ConfigStore:       configStore,
@@ -221,10 +224,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 	logger.Infof("Priming the config with %d ingresses", len(ingressesToSync))
 
-	// startupTranslator will read the configuration from ctx, so we need to wait until
-	// the ConfigMaps are present or die
-	ctx = ensureCtxWithConfigOrDie(ctx)
-
 	// The startup translator uses clients instead of listeners to correctly list all
 	// resources at startup.
 	startupTranslator := generator.NewIngressTranslator(
@@ -248,7 +247,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	for _, ingress := range ingressesToSync {
 		if err := generator.UpdateInfoForIngress(
-			ctx, caches, ingress, &startupTranslator, config.ExternalAuthz.Enabled); err != nil {
+			ctx, caches, ingress, &startupTranslator, config.FromContext(ctx).Kourier.ExternalAuthz.Enabled); err != nil {
 			logger.Fatalw("Failed prewarm ingress", zap.Error(err))
 		}
 	}
@@ -295,9 +294,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	endpointsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    viaTracker,
 		DeleteFunc: viaTracker,
-		UpdateFunc: func(old interface{}, new interface{}) {
-			before := readyAddresses(old.(*corev1.Endpoints))
-			after := readyAddresses(new.(*corev1.Endpoints))
+		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			before := readyAddresses(oldObj.(*corev1.Endpoints))
+			after := readyAddresses(newObj.(*corev1.Endpoints))
 
 			// If the ready addresses have not changed, there is no reason for us to
 			// reconcile this endpoint, so why bother?
@@ -305,7 +304,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 				return
 			}
 
-			viaTracker(new)
+			viaTracker(newObj)
 		},
 	})
 
@@ -396,7 +395,7 @@ func getLabelSelector(label string) (labels.Selector, error) {
 
 func ensureCtxWithConfigOrDie(ctx context.Context) context.Context {
 	var err error
-	var cfg *store.Config
+	var cfg *config.Config
 	if pollErr := wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(context.Context) (bool, error) {
 		cfg, err = getInitialConfig(ctx)
 		return err == nil, nil
@@ -404,11 +403,11 @@ func ensureCtxWithConfigOrDie(ctx context.Context) context.Context {
 		log.Fatalf("Timed out waiting for configuration in ConfigMaps: %v", err)
 	}
 
-	ctx = store.ToContext(ctx, cfg)
+	ctx = config.ToContext(ctx, cfg)
 	return ctx
 }
 
-func getInitialConfig(ctx context.Context) (*store.Config, error) {
+func getInitialConfig(ctx context.Context) (*config.Config, error) {
 	networkCM, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, netconfig.ConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch network config: %w", err)
@@ -422,12 +421,12 @@ func getInitialConfig(ctx context.Context) (*store.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch kourier config: %w", err)
 	}
-	kourierConfig, err := config.NewConfigFromMap(kourierCM.Data)
+	kourierConfig, err := config.NewKourierConfigFromMap(kourierCM.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct kourier config: %w", err)
 	}
 
-	return &store.Config{
+	return &config.Config{
 		Kourier: kourierConfig,
 		Network: networkConfig,
 	}, nil

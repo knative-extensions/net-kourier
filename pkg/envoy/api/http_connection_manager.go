@@ -30,8 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 )
 
 // NewHTTPConnectionManager creates a new HttpConnectionManager that points to the given
@@ -39,8 +38,8 @@ import (
 func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kourier) *hcm.HttpConnectionManager {
 	filters := make([]*hcm.HttpFilter, 0, 1)
 
-	if config.ExternalAuthz.Enabled {
-		filters = append(filters, config.ExternalAuthz.HTTPFilter)
+	if kourierConfig.ExternalAuthz.Enabled {
+		filters = append(filters, kourierConfig.ExternalAuthz.HTTPFilter())
 	}
 
 	// Append the Router filter at the end.

@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"knative.dev/net-kourier/pkg/config"
 	netconfig "knative.dev/networking/pkg/config"
 	logtesting "knative.dev/pkg/logging/testing"
 
@@ -30,14 +29,21 @@ import (
 
 func TestStoreLoadWithContext(t *testing.T) {
 	store := NewStore(logtesting.TestLogger(t))
-	kourierConfig := pkgtesting.ConfigMapFromTestFile(t, config.ConfigName)
+	kourierConfig := pkgtesting.ConfigMapFromTestFile(t, ConfigName)
 	networkConfig := pkgtesting.ConfigMapFromTestFile(t, netconfig.ConfigMapName)
 	store.OnConfigChanged(kourierConfig)
 	store.OnConfigChanged(networkConfig)
 
 	cfg := FromContext(store.ToContext(context.Background()))
 
-	expected, _ := config.NewConfigFromConfigMap(kourierConfig)
+	expected, _ := NewKourierConfigFromConfigMap(kourierConfig)
+	if diff := cmp.Diff(expected, cfg.Kourier); diff != "" {
+		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
+	}
+
+	cfg = FromContextOrDefaults(store.ToContext(context.Background()))
+
+	expected, _ = NewKourierConfigFromConfigMap(kourierConfig)
 	if diff := cmp.Diff(expected, cfg.Kourier); diff != "" {
 		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
 	}
@@ -46,17 +52,17 @@ func TestStoreLoadWithContext(t *testing.T) {
 func TestStoreLoadWithDefaults(t *testing.T) {
 	cfg := FromContextOrDefaults(context.Background())
 
-	if diff := cmp.Diff(config.DefaultConfig(), cfg.Kourier); diff != "" {
+	if diff := cmp.Diff(defaultKourierConfig(), cfg.Kourier); diff != "" {
 		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
 	}
-	if diff := cmp.Diff(defaultConfig(), cfg.Network); diff != "" {
+	if diff := cmp.Diff(defaultNetworkConfig(), cfg.Network); diff != "" {
 		t.Errorf("Unexpected defaults config (-want, +got):\n%v", diff)
 	}
 }
 
 func TestStoreImmutableConfig(t *testing.T) {
 	store := NewStore(logtesting.TestLogger(t))
-	store.OnConfigChanged(pkgtesting.ConfigMapFromTestFile(t, config.ConfigName))
+	store.OnConfigChanged(pkgtesting.ConfigMapFromTestFile(t, ConfigName))
 	store.OnConfigChanged(pkgtesting.ConfigMapFromTestFile(t, netconfig.ConfigMapName))
 	config := store.Load()
 
