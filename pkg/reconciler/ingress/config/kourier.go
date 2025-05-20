@@ -147,7 +147,6 @@ func asTracing(collectorFullEndpoint string, tracing *Tracing) cm.ParseFunc {
 
 func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 	return func(data map[string]string) error {
-
 		config := defaultExternalAuthzConfig()
 		var host string
 
@@ -197,7 +196,7 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 		// When using environments to get a host with port,
 		// it should be overwritten by a host without port.
 		config.Host = h
-		// nolint:gosec // port is below unixMaxPort
+		//nolint:gosec // port is below unixMaxPort
 		config.Port = uint32(port)
 
 		externalAuthz.Enabled = true
