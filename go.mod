@@ -16,7 +16,7 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.14.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a
-	google.golang.org/grpc v1.72.0
+	google.golang.org/grpc v1.72.1
 	google.golang.org/protobuf v1.36.6
 	gotest.tools/v3 v3.0.3
 	k8s.io/api v0.32.2
@@ -24,8 +24,8 @@ require (
 	k8s.io/client-go v0.32.2
 	k8s.io/code-generator v0.32.2
 	knative.dev/hack v0.0.0-20250514121446-f525e187efdc
-	knative.dev/networking v0.0.0-20250514104946-6f71a2510f86
-	knative.dev/pkg v0.0.0-20250514120547-19a13830745a
+	knative.dev/networking v0.0.0-20250515023348-eea9fd8d72f2
+	knative.dev/pkg v0.0.0-20250520014526-44579e9ce5ed
 )
 
 require (

@@ -423,7 +423,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 ## explicit; go 1.22
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.72.0
+# google.golang.org/grpc v1.72.1
 ## explicit; go 1.23
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1085,7 +1085,7 @@ k8s.io/utils/trace
 # knative.dev/hack v0.0.0-20250514121446-f525e187efdc
 ## explicit; go 1.21
 knative.dev/hack
-# knative.dev/networking v0.0.0-20250514104946-6f71a2510f86
+# knative.dev/networking v0.0.0-20250515023348-eea9fd8d72f2
 ## explicit; go 1.23.0
 knative.dev/networking/config
 knative.dev/networking/pkg
@@ -1131,7 +1131,7 @@ knative.dev/networking/test/test_images/runtime/handlers
 knative.dev/networking/test/test_images/timeout
 knative.dev/networking/test/test_images/wsserver
 knative.dev/networking/test/types
-# knative.dev/pkg v0.0.0-20250514120547-19a13830745a
+# knative.dev/pkg v0.0.0-20250520014526-44579e9ce5ed
 ## explicit; go 1.23.0
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
