@@ -83,3 +83,29 @@ data:
 
     # Disable the Envoy server header injection in the response when response has no such header.
     disable-envoy-server-header: "false"
+
+    # The external authorization service and port, my-auth:2222.
+    extauthz-host: ""
+
+    # The protocol used to query the ext auth service. Can be one of : grpc, http, https. Defaults to grpc
+    extauthz-protocol: "grpc"
+
+    # Allow traffic to go through if the ext auth service is down. Accepts true/false.
+    extauthz-failure-mode-allow: ""
+
+    # Max request bytes, if not set, defaults to 8192 Bytes. More info Envoy Docs
+    # see: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html#extensions-filters-http-ext-authz-v3-buffersettings
+    extauthz-max-request-body-bytes: 8192
+
+    # Max time in ms to wait for the ext authz service. Defaults to 2000 ms
+    extauthz-timeout: 2000
+
+    # If extauthz-protocol is equal to http or https, path to query the ext auth service.
+    # Example : if set to /verify, it will query /verify/ (notice the trailing /). If not set, it will query /
+    extauthz-path-prefix: ""
+
+    # If extauthz-protocol is equal to grpc, sends the body as raw bytes instead of a UTF-8 string.
+    # Accepts only true/false, t/f or 1/0. Attempting to set another value will throw an error.
+    # Defaults to false. More info Envoy Docs.
+    # see: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html#extensions-filters-http-ext-authz-v3-buffersettings
+    extauthz-pack-as-byte: "false"
