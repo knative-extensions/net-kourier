@@ -12,7 +12,6 @@ Kourier is passing the knative serving e2e and conformance tests:
 - [**Getting started**](#getting-started)
 - [**Features**](#features)
 - [**Deployment**](#deployment)
-- [**Development**](#development)
 - [**License**](#license)
 
 ## Getting started
