@@ -19,10 +19,13 @@ package config
 import (
 	"fmt"
 	"math"
+	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
+	"github.com/kelseyhightower/envconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -54,9 +57,17 @@ const (
 	TracingCollectorFullEndpoint = "tracing-collector-full-endpoint"
 
 	disableEnvoyServerHeader = "disable-envoy-server-header"
+
+	extauthzHostKey                = "extauthz-host"
+	extauthzProtocolKey            = "extauthz-protocol"
+	extauthzFailureModeAllowKey    = "extauthz-failure-mode-allow"
+	extauthzMaxRequestBodyBytesKey = "extauthz-max-request-body-bytes"
+	extauthzTimeoutKey             = "extauthz-timeout"
+	extauthzPathPrefixKey          = "extauthz-path-prefix"
+	extauthzPackAsBytesKey         = "extauthz-pack-as-bytes"
 )
 
-func DefaultConfig() *Kourier {
+func defaultKourierConfig() *Kourier {
 	return &Kourier{
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
 		EnableProxyProtocol:        false,
@@ -67,12 +78,15 @@ func DefaultConfig() *Kourier {
 		EnableCryptoMB:             false,
 		UseRemoteAddress:           false,
 		DisableEnvoyServerHeader:   false,
+		ExternalAuthz: ExternalAuthz{
+			Enabled: false,
+		},
 	}
 }
 
-// NewConfigFromMap creates a DeploymentConfig from the supplied Map.
-func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
-	nc := DefaultConfig()
+// NewKourierConfigFromMap creates a KourierConfig from the supplied Map.
+func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
+	nc := defaultKourierConfig()
 
 	if err := cm.Parse(configMap,
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
@@ -84,6 +98,7 @@ func NewConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
 		asTracing(TracingCollectorFullEndpoint, &nc.Tracing),
+		asExternalAuthz(&nc.ExternalAuthz),
 		cm.AsBool(disableEnvoyServerHeader, &nc.DisableEnvoyServerHeader),
 	); err != nil {
 		return nil, err
@@ -130,9 +145,70 @@ func asTracing(collectorFullEndpoint string, tracing *Tracing) cm.ParseFunc {
 	}
 }
 
+func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
+	return func(data map[string]string) error {
+		config := defaultExternalAuthzConfig()
+		var host string
+
+		// For backward compatibility, if KOURIER_EXTAUTHZ_HOST is set, use it.
+		if host = os.Getenv("KOURIER_EXTAUTHZ_HOST"); host != "" {
+			if err := envconfig.Process("KOURIER_EXTAUTHZ", &config); err != nil {
+				return fmt.Errorf("failed to parse external authz config: %w", err)
+			}
+		} else {
+			host = data[extauthzHostKey]
+			if host == "" {
+				return nil
+			}
+
+			protocol := extAuthzProtocol(data[extauthzProtocolKey])
+			if !isValidExtAuthzProtocol(protocol) {
+				return fmt.Errorf("protocol %s is invalid, must be in %+v", protocol, extAuthzProtocols)
+			}
+			config.Protocol = protocol
+
+			if err := cm.Parse(data,
+				cm.AsBool(extauthzFailureModeAllowKey, &config.FailureModeAllow),
+				cm.AsUint32(extauthzMaxRequestBodyBytesKey, &config.MaxRequestBytes),
+				cm.AsInt(extauthzTimeoutKey, &config.Timeout),
+				cm.AsString(extauthzPathPrefixKey, &config.PathPrefix),
+				cm.AsBool(extauthzPackAsBytesKey, &config.PackAsBytes),
+			); err != nil {
+				return fmt.Errorf("failed to parse external authz config: %w", err)
+			}
+		}
+
+		h, portStr, err := net.SplitHostPort(host)
+		if err != nil {
+			return fmt.Errorf("failed to split host and port from %s: %w", host, err)
+		}
+
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			return fmt.Errorf("failed to convert port %s to int: %w", portStr, err)
+		}
+
+		if port > unixMaxPort {
+			// Bail out if we exceed the maximum port number.
+			return fmt.Errorf("port %d bigger than %d", port, unixMaxPort)
+		}
+
+		// When using environments to get a host with port,
+		// it should be overwritten by a host without port.
+		config.Host = h
+		//nolint:gosec // port is below unixMaxPort
+		config.Port = uint32(port)
+
+		externalAuthz.Enabled = true
+		externalAuthz.Config = config
+
+		return nil
+	}
+}
+
 // NewConfigFromConfigMap creates a Kourier from the supplied configMap.
-func NewConfigFromConfigMap(config *corev1.ConfigMap) (*Kourier, error) {
-	return NewConfigFromMap(config.Data)
+func NewKourierConfigFromConfigMap(config *corev1.ConfigMap) (*Kourier, error) {
+	return NewKourierConfigFromMap(config.Data)
 }
 
 // Kourier includes the configuration for Kourier.
@@ -167,4 +243,6 @@ type Kourier struct {
 	Tracing Tracing
 	// Disable Server Header
 	DisableEnvoyServerHeader bool
+	// ExternalAuthz is the configuration for external authorization.
+	ExternalAuthz ExternalAuthz
 }

@@ -19,9 +19,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"net"
-	"os"
-	"strconv"
 	"time"
 
 	v3Cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -31,7 +28,6 @@ import (
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	httpOptions "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
@@ -42,16 +38,18 @@ const (
 	unixMaxPort = 65535
 )
 
-// ExternalAuthz is the configuration of external authorization.
-var ExternalAuthz = &ExternalAuthzConfig{
-	Enabled: false,
+// ExternalAuthz specifies parameters for external authorization configuration.
+type ExternalAuthz struct {
+	Enabled bool
+	Config  ExternalAuthzConfig
 }
 
-// ExternalAuthzConfig specifies parameters for external authorization configuration.
-type ExternalAuthzConfig struct {
-	Enabled    bool
-	Cluster    *v3Cluster.Cluster
-	HTTPFilter *hcm.HttpFilter
+func (e *ExternalAuthz) Cluster() *v3Cluster.Cluster {
+	return externalAuthzCluster(e.Config.Host, e.Config.Port, e.Config.Protocol)
+}
+
+func (e *ExternalAuthz) HTTPFilter() *hcm.HttpFilter {
+	return externalAuthzFilter(&e.Config)
 }
 
 type extAuthzProtocol string
@@ -73,55 +71,29 @@ func isValidExtAuthzProtocol(protocol extAuthzProtocol) bool {
 	return ok
 }
 
-type config struct {
+type ExternalAuthzConfig struct {
 	Host             string
+	Port             uint32
 	FailureModeAllow bool
-	MaxRequestBytes  uint32           `default:"8192"`
-	Timeout          int              `default:"2000"`
-	Protocol         extAuthzProtocol `default:"grpc"`
-	PackAsBytes      bool             `default:"false"`
+	MaxRequestBytes  uint32
+	Timeout          int
+	Protocol         extAuthzProtocol
+	PackAsBytes      bool
 	PathPrefix       string
 }
 
-func init() {
-	if host := os.Getenv("KOURIER_EXTAUTHZ_HOST"); host == "" {
-		// No ExtAuthz setup.
-		return
-	}
-
-	var env config
-	envconfig.MustProcess("KOURIER_EXTAUTHZ", &env)
-
-	if !isValidExtAuthzProtocol(env.Protocol) {
-		err := fmt.Errorf("protocol %s is invalid, must be in %+v", env.Protocol, extAuthzProtocols)
-		panic(err)
-	}
-
-	host, portStr, err := net.SplitHostPort(env.Host)
-	if err != nil {
-		panic(err)
-	}
-
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		panic(err)
-	}
-
-	if port > unixMaxPort {
-		// Bail out if we exceed the maximum port number.
-		panic(fmt.Sprintf("port %d bigger than %d", port, unixMaxPort))
-	}
-
-	ExternalAuthz = &ExternalAuthzConfig{
-		Enabled:    true,
-		Cluster:    extAuthzCluster(host, uint32(port), env.Protocol), //#nosec G115
-		HTTPFilter: externalAuthZFilter(&env),
+func defaultExternalAuthzConfig() ExternalAuthzConfig {
+	return ExternalAuthzConfig{
+		MaxRequestBytes: 8192,
+		Timeout:         2000,
+		Protocol:        extAuthzProtocolGRPC,
+		PackAsBytes:     false,
 	}
 }
 
 const extAuthzClusterTypedExtensionProtocolOptionsHTTP = "envoy.extensions.upstreams.http.v3.HttpProtocolOptions"
 
-func extAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *v3Cluster.Cluster {
+func externalAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *v3Cluster.Cluster {
 	var explicitHTTPConfig *httpOptions.HttpProtocolOptions_ExplicitHttpConfig
 
 	switch protocol {
@@ -178,7 +150,7 @@ func extAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *v3Clu
 
 var errPackAsBytesInvalidWithProtocolHTTP = errors.New("pack as bytes option cannot be set when using http protocol")
 
-func externalAuthZFilter(conf *config) *hcm.HttpFilter {
+func externalAuthzFilter(conf *ExternalAuthzConfig) *hcm.HttpFilter {
 	timeout := durationpb.New(time.Duration(conf.Timeout) * time.Millisecond)
 
 	extAuthConfig := &extAuthService.ExtAuthz{
@@ -219,7 +191,7 @@ func externalAuthZFilter(conf *config) *hcm.HttpFilter {
 		extAuthConfig.Services = &extAuthService.ExtAuthz_HttpService{
 			HttpService: &extAuthService.HttpService{
 				ServerUri: &core.HttpUri{
-					Uri: fmt.Sprintf("%s://%s", conf.Protocol, conf.Host),
+					Uri: fmt.Sprintf("%s://%s:%d", conf.Protocol, conf.Host, conf.Port),
 					HttpUpstreamType: &core.HttpUri_Cluster{
 						Cluster: extAuthzClusterName,
 					},

@@ -35,7 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 )
 
 // SNIMatch represents an SNI match, including the hosts to match, the certificates and

@@ -25,7 +25,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/sets"
 	corev1listers "k8s.io/client-go/listers/core/v1"
-	"knative.dev/net-kourier/pkg/config"
+	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
 )
