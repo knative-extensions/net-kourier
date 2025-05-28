@@ -127,12 +127,16 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, fmt.Errorf("failed to build trust-chain, as no valid CA certificate was provided. Please make sure to provide a valid trust-bundle before enabling `system-internal-tls`")
 		}
 	}
-
+	serviceCache := map[string]*corev1.Service{}
+	endpointsCache := map[string]*corev1.Endpoints{}
 	for i, rule := range ingress.Spec.Rules {
 		ruleName := fmt.Sprintf("(%s/%s).Rules[%d]", ingress.Namespace, ingress.Name, i)
+		logger.Infof("===== START OF PROCESSING =====")
 
+		logger.Infof("Processing ruleName: %s", ruleName)
 		routes := make([]*route.Route, 0, len(rule.HTTP.Paths))
 		tlsRoutes := make([]*route.Route, 0, len(rule.HTTP.Paths))
+		logger.Infof("Iterations to be processed: %d", len(rule.HTTP.Paths))
 		for _, httpPath := range rule.HTTP.Paths {
 			// Default the path to "/" if none is passed.
 			path := httpPath.Path
@@ -141,8 +145,9 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			}
 
 			pathName := fmt.Sprintf("%s.Paths[%s]", ruleName, path)
-
+			logger.Infof("Processing path: %s", pathName)
 			wrs := make([]*route.WeightedCluster_ClusterWeight, 0, len(httpPath.Splits))
+			logger.Infof("Iterations to be processed: %d", len(httpPath.Splits))
 			for _, split := range httpPath.Splits {
 				// The FQN of the service is sufficient here, as clusters towards the
 				// same service are supposed to be deduplicated anyway.
@@ -152,14 +157,20 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					return nil, err
 				}
 
-				service, err := translator.serviceGetter(split.ServiceNamespace, split.ServiceName)
-				if apierrors.IsNotFound(err) {
-					logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-					// TODO(markusthoemmes): Find out if we should actually `continue` here.
-					return nil, nil
-				} else if err != nil {
-					return nil, fmt.Errorf("failed to fetch service '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
+				logger.Infof("Getting service: %s/%s", split.ServiceNamespace, split.ServiceName)
+				if serviceCache[split.ServiceNamespace+"/"+split.ServiceName] == nil {
+					logger.Infof("Fetching service from API servers")
+					svc, err := translator.serviceGetter(split.ServiceNamespace, split.ServiceName)
+					if apierrors.IsNotFound(err) {
+						logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+						// TODO(markusthoemmes): Find out if we should actually `continue` here.
+						return nil, nil
+					} else if err != nil {
+						return nil, fmt.Errorf("failed to fetch service '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
+					}
+					serviceCache[split.ServiceNamespace+"/"+split.ServiceName] = svc
 				}
+				service := serviceCache[split.ServiceNamespace+"/"+split.ServiceName]
 
 				// Match the ingress' port with a port on the Service to find the target.
 				// Also find out if the target supports HTTP2.
@@ -195,14 +206,20 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 					}
 				} else {
 					// For all other types, fetch the endpoints object.
-					endpoints, err := translator.endpointsGetter(split.ServiceNamespace, split.ServiceName)
-					if apierrors.IsNotFound(err) {
-						logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
-						// TODO(markusthoemmes): Find out if we should actually `continue` here.
-						return nil, nil
-					} else if err != nil {
-						return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
+					logger.Infof("Getting endpoint: %s/%s", split.ServiceNamespace, split.ServiceName)
+					if endpointsCache[split.ServiceNamespace+"/"+split.ServiceName] == nil {
+						logger.Infof("Fetching endpoint from API servers")
+						endpoints, err := translator.endpointsGetter(split.ServiceNamespace, split.ServiceName)
+						if apierrors.IsNotFound(err) {
+							logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+							// TODO(markusthoemmes): Find out if we should actually `continue` here.
+							return nil, nil
+						} else if err != nil {
+							return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
+						}
+						endpointsCache[split.ServiceNamespace+"/"+split.ServiceName] = endpoints
 					}
+					endpoints := endpointsCache[split.ServiceNamespace+"/"+split.ServiceName]
 
 					typ = v3.Cluster_STATIC
 					publicLbEndpoints = lbEndpointsForKubeEndpoints(endpoints, targetPort)
@@ -280,6 +297,8 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				externalTLSHosts = append(externalTLSHosts, virtualTLSHost)
 			}
 		}
+		println(ruleName)
+		logger.Infof("===== END OF PROCESSING =====")
 	}
 
 	return &translatedIngress{
