@@ -90,5 +90,5 @@ jobs:
       if: ${{ failure() }}
       with:
         cluster-resources: nodes,namespaces,crds
-        namespace-resources: configmaps,pods,svc,ksvc,route,configuration,revision,king,${{ matrix.namespace-resources || '' }}
+        namespace-resources: configmaps,pods,svc,ksvc,route,configuration,revision,king
         artifact-name: logs-${{ matrix.k8s-version}}-${{ matrix.gateway }}-${{ matrix.upstream-tls }}

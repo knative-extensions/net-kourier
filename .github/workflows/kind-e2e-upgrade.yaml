@@ -39,7 +39,7 @@ jobs:
     - uses: ko-build/setup-ko@v0.6
 
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: ./src/knative.dev/net-kourier
         # Fetch all tags to determine the latest release version.
@@ -69,5 +69,5 @@ jobs:
       if: ${{ failure() }}
       with:
         cluster-resources: nodes,namespaces,crds
-        namespace-resources: configmaps,pods,svc,ksvc,route,configuration,revision,king,${{ matrix.namespace-resources || '' }}
-        artifact-name: logs-${{ matrix.k8s-version}}-${{ matrix.gateway }}-${{ matrix.upstream-tls }}
+        namespace-resources: configmaps,pods,svc,ksvc,route,configuration,revision,king
+        artifact-name: logs-${{ matrix.k8s-version}}-${{ matrix.upstream-traffic }}
