@@ -66,3 +66,11 @@ jobs:
     - name: Run upgrade tests
       run: |
         ./test/e2e-upgrade-kind.sh
+
+    # Collect debug logs on failure
+    - uses: chainguard-dev/actions/kind-diag@main
+      if: ${{ failure() }}
+      with:
+        cluster-resources: nodes,namespaces,crds
+        namespace-resources: configmaps,pods,svc,ksvc,route,configuration,revision,king,${{ matrix.namespace-resources || '' }}
+        artifact-name: logs-${{ matrix.k8s-version}}-${{ matrix.gateway }}-${{ matrix.upstream-tls }}
