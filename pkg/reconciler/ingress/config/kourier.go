@@ -40,6 +40,9 @@ const (
 	// access logging.
 	enableServiceAccessLoggingKey = "enable-service-access-logging"
 
+	// serviceAccessLogTemplateKey is the config map key for the access log template.
+	serviceAccessLogTemplateKey = "service-access-log-template"
+
 	// enableProxyProtocol is the config map key for enabling proxy protocol
 	enableProxyProtocol = "enable-proxy-protocol"
 
@@ -70,6 +73,7 @@ const (
 func defaultKourierConfig() *Kourier {
 	return &Kourier{
 		EnableServiceAccessLogging: true, // true is the default for backwards-compat
+		ServiceAccessLogTemplate:   "",
 		EnableProxyProtocol:        false,
 		ClusterCertSecret:          "",
 		IdleTimeout:                0 * time.Second, // default value
@@ -90,6 +94,7 @@ func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
 
 	if err := cm.Parse(configMap,
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
+		cm.AsString(serviceAccessLogTemplateKey, &nc.ServiceAccessLogTemplate),
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
 		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
@@ -217,6 +222,10 @@ type Kourier struct {
 	// EnableServiceAccessLogging specifies whether requests reaching the Kourier gateway
 	// should be logged.
 	EnableServiceAccessLogging bool
+	// ServiceAccessLogTemplate specifies the format of the access log used by the Kourier gateway.
+	// This template follows the envoy format.
+	// see: https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#access-logging
+	ServiceAccessLogTemplate string
 	// EnableProxyProtocol specifies whether proxy protocol feature is enabled
 	EnableProxyProtocol bool
 	// ClusterCertSecret specifies the secret name for the server certificates of

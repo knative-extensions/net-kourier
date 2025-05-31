@@ -87,14 +87,29 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 
 	if enableAccessLog {
 		// Write access logs to stdout by default.
-		accessLog, _ := anypb.New(&accesslog_file_v3.FileAccessLog{
-			Path: "/dev/stdout",
-		})
 
+		accessLog := &accesslog_file_v3.FileAccessLog{
+			Path: "/dev/stdout",
+		}
+
+		if kourierConfig.ServiceAccessLogTemplate != "" {
+			accessLog.AccessLogFormat = &accesslog_file_v3.FileAccessLog_LogFormat{
+				LogFormat: &envoy_api_v3_core.SubstitutionFormatString{
+					Format: &envoy_api_v3_core.SubstitutionFormatString_TextFormatSource{
+						TextFormatSource: &envoy_api_v3_core.DataSource{
+							Specifier: &envoy_api_v3_core.DataSource_InlineString{
+								InlineString: kourierConfig.ServiceAccessLogTemplate,
+							},
+						},
+					},
+				},
+			}
+		}
+		al, _ := anypb.New(accessLog)
 		mgr.AccessLog = []*accesslog_v3.AccessLog{{
 			Name: "envoy.file_access_log",
 			ConfigType: &accesslog_v3.AccessLog_TypedConfig{
-				TypedConfig: accessLog,
+				TypedConfig: al,
 			},
 		}}
 	}

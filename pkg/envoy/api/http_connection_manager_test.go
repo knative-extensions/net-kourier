@@ -22,6 +22,7 @@ import (
 	"time"
 
 	envoy_config_filter_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	envoy_api_v3_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	fileaccesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -95,6 +96,34 @@ func TestNewHTTPConnectionManagerWithAccessLogWithProxyProtocol(t *testing.T) {
 	}
 
 	assert.Equal(t, "/dev/stdout", fileAccesLog.Path)
+}
+
+// Test that ServiceAccessLogTemplate is correctly set as the InlineString in AccessLogFormat.
+func TestNewHTTPConnectionManagerWithAccessLogFormat(t *testing.T) {
+	const logFormat = "test-log-format"
+	kourierConfig := config.Kourier{
+		EnableServiceAccessLogging: true,
+		ServiceAccessLogTemplate:   logFormat,
+		EnableProxyProtocol:        false,
+		IdleTimeout:                0 * time.Second,
+	}
+	connManager := NewHTTPConnectionManager("test", &kourierConfig)
+	assert.Check(t, len(connManager.AccessLog) == 1)
+
+	accessLog := connManager.AccessLog[0]
+	accessLogAny := accessLog.ConfigType.(*envoy_config_filter_accesslog_v3.AccessLog_TypedConfig).TypedConfig
+	fileAccessLog := &fileaccesslog.FileAccessLog{}
+	err := anypb.UnmarshalTo(accessLogAny, fileAccessLog, proto.UnmarshalOptions{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	logFormatMsg := fileAccessLog.GetLogFormat()
+	textFormatSource, ok := logFormatMsg.Format.(*envoy_api_v3_core.SubstitutionFormatString_TextFormatSource)
+	assert.Assert(t, ok)
+
+	formatString := textFormatSource.TextFormatSource.GetInlineString()
+	assert.Equal(t, logFormat, formatString)
 }
 
 func TestNewRouteConfig(t *testing.T) {
