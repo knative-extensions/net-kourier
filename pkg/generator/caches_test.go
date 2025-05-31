@@ -167,11 +167,12 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 }
 
 func TestExternalTLSListener(t *testing.T) {
-	t.Setenv(envCertsSecretNamespace, "certns")
-	t.Setenv(envCertsSecretName, "secretname")
-
 	kubeClient := fake.Clientset{}
-	ctx := config.ToContext(context.Background(), config.FromContextOrDefaults(context.Background()))
+	c := config.FromContextOrDefaults(context.Background())
+	c.Kourier.CertsSecretName = "secretname"
+	c.Kourier.CertsSecretNamespace = "certns"
+
+	ctx := config.ToContext(context.Background(), c)
 
 	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)

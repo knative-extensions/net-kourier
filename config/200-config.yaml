@@ -109,3 +109,7 @@ data:
     # Defaults to false. More info Envoy Docs.
     # see: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html#extensions-filters-http-ext-authz-v3-buffersettings
     extauthz-pack-as-byte: "false"
+
+    # Specifies the secret that contains the TLS certificate and key pair when using HTTPS communication with Kourier Ingress.
+    certs-secret-name: ""
+    certs-secret-namespace: ""
