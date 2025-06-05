@@ -68,6 +68,9 @@ const (
 
 	certsSecretNameKey      = "certs-secret-name"
 	certsSecretNamespaceKey = "certs-secret-namespace"
+
+	EnvCertsSecretName      = "CERTS_SECRET_NAME"
+	EnvCertsSecretNamespace = "CERTS_SECRET_NAMESPACE"
 )
 
 func defaultKourierConfig() *Kourier {
@@ -85,8 +88,8 @@ func defaultKourierConfig() *Kourier {
 			Enabled: false,
 		},
 		// For backward compatibility, if CERTS_SECRET_NAME and CERTS_SECRET_NAMESPACE is set, use it.
-		CertsSecretName:      os.Getenv("CERTS_SECRET_NAME"),
-		CertsSecretNamespace: os.Getenv("CERTS_SECRET_NAMESPACE"),
+		CertsSecretName:      os.Getenv(EnvCertsSecretName),
+		CertsSecretNamespace: os.Getenv(EnvCertsSecretNamespace),
 	}
 }
 

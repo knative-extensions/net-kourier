@@ -34,6 +34,7 @@ func TestKourierConfig(t *testing.T) {
 		wantErr bool
 		want    *Kourier
 		data    map[string]string
+		envs    *map[string]string
 	}{{
 		name: "default configuration",
 		want: defaultKourierConfig(),
@@ -145,7 +146,7 @@ func TestKourierConfig(t *testing.T) {
 			TracingCollectorFullEndpoint: "",
 		},
 	}, {
-		name: "Enable use remote address",
+		name: "enable use remote address",
 		want: &Kourier{
 			EnableServiceAccessLogging: true,
 			UseRemoteAddress:           true,
@@ -153,10 +154,52 @@ func TestKourierConfig(t *testing.T) {
 		data: map[string]string{
 			useRemoteAddress: "true",
 		},
+	}, {
+		name: "enable use certs",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			CertsSecretName:            "cert",
+			CertsSecretNamespace:       "certns",
+		},
+		data: map[string]string{
+			certsSecretNameKey:      "cert",
+			certsSecretNamespaceKey: "certns",
+		},
+	}, {
+		name: "enable use certs from env",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			CertsSecretName:            "env-cert",
+			CertsSecretNamespace:       "env-certns",
+		},
+		envs: &map[string]string{
+			EnvCertsSecretName:      "env-cert",
+			EnvCertsSecretNamespace: "env-certns",
+		},
+	}, {
+		name: "override when set via configmap",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			CertsSecretName:            "cert",
+			CertsSecretNamespace:       "certns",
+		},
+		data: map[string]string{
+			certsSecretNameKey:      "cert",
+			certsSecretNamespaceKey: "certns",
+		},
+		envs: &map[string]string{
+			EnvCertsSecretName:      "env-cert",
+			EnvCertsSecretNamespace: "env-certns",
+		},
 	}}
 
 	for _, tt := range configTests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.envs != nil {
+				for k, v := range *tt.envs {
+					t.Setenv(k, v)
+				}
+			}
 			actualCM, err := NewKourierConfigFromConfigMap(&corev1.ConfigMap{
 				Data: tt.data,
 			})

@@ -74,8 +74,22 @@ go test -v -tags=e2e ./test/tls/... \
 
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"cipher-suites":""}}'
 
-echo ">> Setup one wildcard certificate from configmap"
+echo ">> Setup one wildcard certificate from environment variable"
 $(dirname $0)/generate-wildcard-cert.sh
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+
+echo ">> Running OneTLSCert tests"
+go test -race -count=1 -timeout=20m -tags=e2e ./test/cert/... \
+  --ingressendpoint="${IPS[0]}" \
+  --ingressClass=kourier.ingress.networking.knative.dev \
+  --cluster-suffix="$CLUSTER_SUFFIX"
+
+echo ">> Unset one wildcard certificate from environment variable"
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE- CERTS_SECRET_NAME-
+kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+
+echo ">> Setup one wildcard certificate from configmap"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p "{
   \"data\":{
     \"certs-secret-name\": \"wildcard-certs\",
@@ -99,16 +113,6 @@ kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmaps/config-kourier --type
 
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout restart -n knative-serving deployment/net-kourier-controller
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
-
-echo ">> Setup one wildcard certificate from environment variable"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-
-echo ">> Running OneTLSCert tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/cert/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
 
 export "KOURIER_EXTAUTHZ_PROTOCOL=grpc"
 

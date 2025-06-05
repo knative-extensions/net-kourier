@@ -45,6 +45,8 @@ spec:
         - image: ko://knative.dev/net-kourier/cmd/kourier
           name: controller
           env:
+            # CERTS_SECRET_NAMESPACE and CERTS_SECRET_NAME can also be configured from a ConfigMap.
+            # Settings configured in a configmap take precedence over environment variable settings.
             - name: CERTS_SECRET_NAMESPACE
               value: ""
             - name: CERTS_SECRET_NAME
