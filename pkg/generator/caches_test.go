@@ -166,16 +166,7 @@ func TestDeleteIngressInfoWhenDoesNotExist(t *testing.T) {
 	assert.DeepEqual(t, listenersBeforeDelete, listenersAfterDelete, protocmp.Transform())
 }
 
-func TestExternalTLSListener(t *testing.T) {
-	t.Setenv(envCertsSecretNamespace, "certns")
-	t.Setenv(envCertsSecretName, "secretname")
-
-	kubeClient := fake.Clientset{}
-	ctx := config.ToContext(context.Background(), config.FromContextOrDefaults(context.Background()))
-
-	caches, err := NewCaches(ctx, &kubeClient)
-	assert.NilError(t, err)
-
+func runExternalTLSListenerTests(t *testing.T, ctx context.Context, caches *Caches) {
 	fooSNIMatch := &envoy.SNIMatch{
 		Hosts:            []string{"foo.example.com"},
 		CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname1"},
@@ -257,6 +248,32 @@ func TestExternalTLSListener(t *testing.T) {
 		assert.Check(t, filterChainsByServerName["foo.example.com"] != nil)
 		assert.Check(t, filterChainsByServerName["bar.example.com"] != nil)
 		assert.Check(t, filterChainsByServerName[""] != nil) // filter chain without server name, "default" one
+	})
+}
+
+func TestExternalTLSListener(t *testing.T) {
+	t.Run("set via environment variables", func(t *testing.T) {
+		t.Setenv(config.EnvCertsSecretName, "secretname")
+		t.Setenv(config.EnvCertsSecretNamespace, "certns")
+		c := config.FromContextOrDefaults(context.Background())
+
+		kubeClient := fake.Clientset{}
+		ctx := config.ToContext(context.Background(), c)
+		caches, err := NewCaches(ctx, &kubeClient)
+		assert.NilError(t, err)
+		runExternalTLSListenerTests(t, ctx, caches)
+	})
+
+	t.Run("set via config", func(t *testing.T) {
+		c := config.FromContextOrDefaults(context.Background())
+		c.Kourier.CertsSecretName = "secretname"
+		c.Kourier.CertsSecretNamespace = "certns"
+
+		kubeClient := fake.Clientset{}
+		ctx := config.ToContext(context.Background(), c)
+		caches, err := NewCaches(ctx, &kubeClient)
+		assert.NilError(t, err)
+		runExternalTLSListenerTests(t, ctx, caches)
 	})
 }
 

@@ -68,6 +68,12 @@ const (
 	extauthzTimeoutKey             = "extauthz-timeout"
 	extauthzPathPrefixKey          = "extauthz-path-prefix"
 	extauthzPackAsBytesKey         = "extauthz-pack-as-bytes"
+
+	certsSecretNameKey      = "certs-secret-name"
+	certsSecretNamespaceKey = "certs-secret-namespace"
+
+	EnvCertsSecretName      = "CERTS_SECRET_NAME"
+	EnvCertsSecretNamespace = "CERTS_SECRET_NAMESPACE"
 )
 
 func defaultKourierConfig() *Kourier {
@@ -85,6 +91,9 @@ func defaultKourierConfig() *Kourier {
 		ExternalAuthz: ExternalAuthz{
 			Enabled: false,
 		},
+		// For backward compatibility, if CERTS_SECRET_NAME and CERTS_SECRET_NAMESPACE is set, use it.
+		CertsSecretName:      os.Getenv(EnvCertsSecretName),
+		CertsSecretNamespace: os.Getenv(EnvCertsSecretNamespace),
 	}
 }
 
@@ -105,6 +114,8 @@ func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		asTracing(TracingCollectorFullEndpoint, &nc.Tracing),
 		asExternalAuthz(&nc.ExternalAuthz),
 		cm.AsBool(disableEnvoyServerHeader, &nc.DisableEnvoyServerHeader),
+		cm.AsString(certsSecretNameKey, &nc.CertsSecretName),
+		cm.AsString(certsSecretNamespaceKey, &nc.CertsSecretNamespace),
 	); err != nil {
 		return nil, err
 	}
@@ -254,4 +265,14 @@ type Kourier struct {
 	DisableEnvoyServerHeader bool
 	// ExternalAuthz is the configuration for external authorization.
 	ExternalAuthz ExternalAuthz
+	// CertsSecretName is the name of the secret containing the TLS certificates for the Kourier gateway.
+	CertsSecretName string
+	// CertsSecretNamespace is the namespace of the secret containing the TLS certificates for the Kourier gateway.
+	CertsSecretNamespace string
+}
+
+// Returns true if we need to modify the HTTPS listener with just one cert
+// instead of one per ingress
+func (k *Kourier) UseHTTPSListenerWithOneCert() bool {
+	return k.CertsSecretName != "" && k.CertsSecretNamespace != ""
 }

@@ -795,11 +795,13 @@ func (t *testConfigStore) ToContext(ctx context.Context) context.Context {
 
 var (
 	defaultConfig = &config.Config{
+		Kourier: &config.Kourier{},
 		Network: &netconfig.Config{
 			ExternalDomainTLS: false,
 		},
 	}
 	upstreamTLSConfig = &config.Config{
+		Kourier: &config.Kourier{},
 		Network: &netconfig.Config{
 			ExternalDomainTLS: false,
 			SystemInternalTLS: netconfig.EncryptionEnabled,

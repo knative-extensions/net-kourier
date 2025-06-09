@@ -19,7 +19,6 @@ package generator
 import (
 	"context"
 	"errors"
-	"os"
 	"sync"
 
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -43,8 +42,6 @@ import (
 )
 
 const (
-	envCertsSecretNamespace    = "CERTS_SECRET_NAMESPACE"
-	envCertsSecretName         = "CERTS_SECRET_NAME"
 	externalRouteConfigName    = "external_services"
 	externalTLSRouteConfigName = "external_tls_services"
 	localRouteConfigName       = "internal_services"
@@ -345,7 +342,7 @@ func generateListenersAndRouteConfigsAndClusters(
 		}
 
 		// if a single certificate is additionally configured, add a new filter chain to TLS listener
-		if useHTTPSListenerWithOneCert() {
+		if cfg.Kourier.UseHTTPSListenerWithOneCert() {
 			externalHTTPSEnvoyListenerWithOneCertFilterChain, err := newExternalEnvoyListenerWithOneCertFilterChain(
 				ctx, externalTLSManager, kubeclient, cfg.Kourier,
 			)
@@ -361,7 +358,7 @@ func generateListenersAndRouteConfigsAndClusters(
 
 		listeners = append(listeners, externalHTTPSEnvoyListener, probHTTPSListener)
 		routes = append(routes, externalTLSRouteConfig)
-	} else if useHTTPSListenerWithOneCert() {
+	} else if cfg.Kourier.UseHTTPSListenerWithOneCert() {
 		externalHTTPSEnvoyListener, err := newExternalEnvoyListenerWithOneCert(
 			ctx, externalTLSManager, kubeclient,
 			cfg.Kourier,
@@ -415,13 +412,6 @@ func generateListenersAndRouteConfigsAndClusters(
 	return listeners, routes, clusters, nil
 }
 
-// Returns true if we need to modify the HTTPS listener with just one cert
-// instead of one per ingress
-func useHTTPSListenerWithOneCert() bool {
-	return os.Getenv(envCertsSecretNamespace) != "" &&
-		os.Getenv(envCertsSecretName) != ""
-}
-
 func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamespace string, secretName string) (certificateChain []byte, privateKey []byte, err error) {
 	secret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
 	if err != nil {
@@ -433,7 +423,7 @@ func sslCreds(ctx context.Context, kubeClient kubeclient.Interface, secretNamesp
 
 func newExternalEnvoyListenerWithOneCertFilterChain(ctx context.Context, manager *httpconnmanagerv3.HttpConnectionManager, kubeClient kubeclient.Interface, cfg *config.Kourier) (*v3.FilterChain, error) {
 	certificateChain, privateKey, err := sslCreds(
-		ctx, kubeClient, os.Getenv(envCertsSecretNamespace), os.Getenv(envCertsSecretName),
+		ctx, kubeClient, cfg.CertsSecretNamespace, cfg.CertsSecretName,
 	)
 	if err != nil {
 		return nil, err
