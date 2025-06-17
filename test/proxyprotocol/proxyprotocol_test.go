@@ -76,9 +76,8 @@ func TestProxyProtocol(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint: bodyclose
 	assert.Check(t, err != nil)
-	defer resp.Body.Close()
 	assert.Check(t, resp == nil)
 
 	// testing with proxy protocol
