@@ -18,6 +18,7 @@ package ingress
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -55,7 +56,7 @@ func (l *gatewayPodTargetLister) ListProbeTargets(_ context.Context, ing *v1alph
 		}
 	}
 	if len(readyIPs) == 0 {
-		return nil, fmt.Errorf("no gateway pods available")
+		return nil, errors.New("no gateway pods available")
 	}
 	return l.getIngressUrls(ing, readyIPs)
 }
@@ -93,7 +94,6 @@ func (l *gatewayPodTargetLister) getIngressUrls(ing *v1alpha1.Ingress, gatewayIp
 		}
 
 		targets = append(targets, target)
-
 	}
 	return targets, nil
 }

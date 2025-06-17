@@ -130,15 +130,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		managementPort,
 		&xds.CallbackFuncs{
 			StreamRequestFunc: func(_ int64, req *v3.DiscoveryRequest) error {
-				if req.ErrorDetail == nil {
+				if req.GetErrorDetail() == nil {
 					return nil
 				}
-				logger.Warnf("Error pushing snapshot to gateway: code: %v message %s", req.ErrorDetail.Code, req.ErrorDetail.Message)
+				logger.Warnf("Error pushing snapshot to gateway: code: %v message %s", req.GetErrorDetail().GetCode(), req.GetErrorDetail().GetMessage())
 
 				// We know we can handle this error without a global resync.
-				if strings.HasPrefix(req.ErrorDetail.Message, unknownWeightedClusterPrefix) {
+				if strings.HasPrefix(req.GetErrorDetail().GetMessage(), unknownWeightedClusterPrefix) {
 					// The error message contains the service name as referenced by the ingress.
-					svc := strings.TrimPrefix(strings.TrimSuffix(req.ErrorDetail.Message, "'"), unknownWeightedClusterPrefix)
+					svc := strings.TrimPrefix(strings.TrimSuffix(req.GetErrorDetail().GetMessage(), "'"), unknownWeightedClusterPrefix)
 					ns, name, err := cache.SplitMetaNamespaceKey(svc)
 					if err != nil {
 						logger.Errorw("Failed to parse service name from error", zap.Error(err))

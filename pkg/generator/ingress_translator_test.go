@@ -68,24 +68,26 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(simplens/simplename).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
-								}},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+							},
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -132,25 +134,26 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -207,25 +210,26 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.ns.svc.cluster.local", "foo.ns.svc.cluster.local:*", "foo.ns.svc", "foo.ns.svc:*", "foo.ns", "foo.ns:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -281,25 +285,26 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -307,19 +312,20 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRedirectRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRedirectRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
-							},
-						}},
-						"/test"),
+							}},
+							"/test"),
 					},
 				),
 			}
@@ -377,25 +383,26 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -498,27 +505,28 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 33, map[string]string{"baz": "gna"}),
+								envoy.NewWeightedCluster("servicens2/servicename2", 33, nil),
+								envoy.NewWeightedCluster("servicens3/servicename3", 34, nil),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 33, map[string]string{"baz": "gna"}),
-							envoy.NewWeightedCluster("servicens2/servicename2", 33, nil),
-							envoy.NewWeightedCluster("servicens3/servicename3", 34, nil),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -576,25 +584,26 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -636,25 +645,26 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -697,25 +707,26 @@ func TestIngressTranslator(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -836,25 +847,26 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -911,25 +923,26 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(testspace/testname).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(testspace/testname).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(testspace/testname).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"rewritten.example.com"),
+							0,
+							map[string]string{"foo": "bar"},
+							"rewritten.example.com"),
 					},
 				),
 			}
@@ -1011,7 +1024,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "simple",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
@@ -1023,25 +1036,26 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(simplens/simplename).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						""),
+							0,
+							map[string]string{"foo": "bar"},
+							""),
 					},
 				),
 			}
@@ -1076,7 +1090,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "http2",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename", func(service *corev1.Service) {
@@ -1097,25 +1111,26 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(simplens/simplename).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						""),
+							0,
+							map[string]string{"foo": "bar"},
+							""),
 					},
 				),
 			}
@@ -1150,7 +1165,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "http and https",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename", func(service *corev1.Service) {
@@ -1172,25 +1187,26 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(simplens/simplename).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						""),
+							0,
+							map[string]string{"foo": "bar"},
+							""),
 					},
 				),
 			}
@@ -1225,7 +1241,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "http2 and https",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename", func(service *corev1.Service) {
@@ -1247,25 +1263,26 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(simplens/simplename).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						""),
+							0,
+							map[string]string{"foo": "bar"},
+							""),
 					},
 				),
 			}
@@ -1300,7 +1317,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "valid CAs from secret and configmap",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
@@ -1313,25 +1330,26 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(simplens/simplename).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						""),
+							0,
+							map[string]string{"foo": "bar"},
+							""),
 					},
 				),
 			}
@@ -1366,7 +1384,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "valid CA from configmap",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
@@ -1383,25 +1401,26 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(simplens/simplename).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						""),
+							0,
+							map[string]string{"foo": "bar"},
+							""),
 					},
 				),
 			}
@@ -1436,7 +1455,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "invalid CA from configmap",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
@@ -1453,7 +1472,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		name: "partially valid CA from configmap",
 		in: ing("simplens", "simplename", func(ing *v1alpha1.Ingress) {
 			ing.Spec.Rules[0].HTTP.Paths[0].RewriteHost = ""
-			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].IngressBackend.ServicePort = intstr.FromInt(443)
+			ing.Spec.Rules[0].HTTP.Paths[0].Splits[0].ServicePort = intstr.FromInt(443)
 		}),
 		state: []runtime.Object{
 			svc("servicens", "servicename"),
@@ -1531,16 +1550,17 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 					"(simplens/simplename).Rules[0]",
 					map[string]string{"client": "kourier", "visibility": "ExternalIP"},
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRouteExtAuthzDisabled(
-						"(simplens/simplename).Rules[0].Paths[/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE]",
-						nil,
-						"/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("simplens/cm-acme-http-solver", 100, nil),
-						},
-						0,
-						nil,
-						""),
+					[]*route.Route{
+						envoy.NewRouteExtAuthzDisabled(
+							"(simplens/simplename).Rules[0].Paths[/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE]",
+							nil,
+							"/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("simplens/cm-acme-http-solver", 100, nil),
+							},
+							0,
+							nil,
+							""),
 					},
 				),
 			}
@@ -1634,25 +1654,26 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 				envoy.NewVirtualHost(
 					"(simplens/simplename).Rules[0]",
 					[]string{"foo.example.com", "foo.example.com:*"},
-					[]*route.Route{envoy.NewRoute(
-						"(simplens/simplename).Rules[0].Paths[/test]",
-						[]*route.HeaderMatcher{{
-							Name: "testheader",
-							HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-								StringMatch: &envoymatcherv3.StringMatcher{
-									MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-										Exact: "foo",
+					[]*route.Route{
+						envoy.NewRoute(
+							"(simplens/simplename).Rules[0].Paths[/test]",
+							[]*route.HeaderMatcher{{
+								Name: "testheader",
+								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+									StringMatch: &envoymatcherv3.StringMatcher{
+										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+											Exact: "foo",
+										},
 									},
 								},
+							}},
+							"/test",
+							[]*route.WeightedCluster_ClusterWeight{
+								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
 							},
-						}},
-						"/test",
-						[]*route.WeightedCluster_ClusterWeight{
-							envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-						},
-						0,
-						map[string]string{"foo": "bar"},
-						"bar.default.svc.cluster.local"),
+							0,
+							map[string]string{"foo": "bar"},
+							"bar.default.svc.cluster.local"),
 					},
 				),
 			}
@@ -1832,13 +1853,15 @@ func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alp
 				HTTP: &v1alpha1.HTTPIngressRuleValue{
 					Paths: []v1alpha1.HTTPIngressPath{{
 						Path: "/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE",
-						Splits: []v1alpha1.IngressBackendSplit{{
-							Percent: 100,
-							IngressBackend: v1alpha1.IngressBackend{
-								ServiceNamespace: ns,
-								ServiceName:      "cm-acme-http-solver",
-								ServicePort:      intstr.FromString("http01-challenge"),
-							}},
+						Splits: []v1alpha1.IngressBackendSplit{
+							{
+								Percent: 100,
+								IngressBackend: v1alpha1.IngressBackend{
+									ServiceNamespace: ns,
+									ServiceName:      "cm-acme-http-solver",
+									ServicePort:      intstr.FromString("http01-challenge"),
+								},
+							},
 						},
 					}},
 				},

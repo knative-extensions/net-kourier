@@ -69,5 +69,4 @@ func TestConflictingDomains(t *testing.T) {
 		t.Name()); err != nil {
 		t.Fatalf("Error waiting for ingress %q state: %v", ing.Name, err)
 	}
-
 }

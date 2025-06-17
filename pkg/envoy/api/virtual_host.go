@@ -37,8 +37,8 @@ func NewVirtualHostWithExtAuthz(
 	name string,
 	contextExtensions map[string]string,
 	domains []string,
-	routes []*route.Route) *route.VirtualHost {
-
+	routes []*route.Route,
+) *route.VirtualHost {
 	filter, _ := anypb.New(&extAuthService.ExtAuthzPerRoute{
 		Override: &extAuthService.ExtAuthzPerRoute_CheckSettings{
 			CheckSettings: &extAuthService.CheckSettings{
@@ -55,5 +55,4 @@ func NewVirtualHostWithExtAuthz(
 			wellknown.HTTPExternalAuthorization: filter,
 		},
 	}
-
 }

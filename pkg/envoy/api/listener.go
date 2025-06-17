@@ -95,8 +95,8 @@ func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enablePr
 // CreateFilterChainFromCertificateAndPrivateKey creates a new filter chain from a certificate and a private key
 func CreateFilterChainFromCertificateAndPrivateKey(
 	manager *hcm.HttpConnectionManager,
-	cert *Certificate) (*listener.FilterChain, error) {
-
+	cert *Certificate,
+) (*listener.FilterChain, error) {
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
@@ -249,7 +249,6 @@ func messageToAny(msg proto.Message) (*anypb.Any, error) {
 		return nil, err
 	}
 	return &anypb.Any{
-		// nolint: staticcheck
 		TypeUrl: "type.googleapis.com/" + string(msg.ProtoReflect().Descriptor().FullName()),
 		Value:   b,
 	}, nil
@@ -296,7 +295,8 @@ func (c Certificate) createTLScertificates() (*auth.TlsCertificate, error) {
 			},
 			PrivateKey: &core.DataSource{
 				Specifier: &core.DataSource_InlineBytes{InlineBytes: c.PrivateKey},
-			}}, nil
+			},
+		}, nil
 	case "cryptomb":
 		msg, err := c.createCryptoMbMessaage()
 		if err != nil {
@@ -311,7 +311,8 @@ func (c Certificate) createTLScertificates() (*auth.TlsCertificate, error) {
 				ConfigType: &auth.PrivateKeyProvider_TypedConfig{
 					TypedConfig: msg,
 				},
-			}}, nil
+			},
+		}, nil
 	default:
 		return nil, errors.New("Unsupported private key provider: " + c.PrivateKeyProvider)
 	}

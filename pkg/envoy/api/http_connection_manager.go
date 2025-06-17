@@ -76,12 +76,12 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 	}
 
 	if enableProxyProtocol {
-		//Force the connection manager to use the real remote address of the client connection.
+		// Force the connection manager to use the real remote address of the client connection.
 		mgr.UseRemoteAddress = &wrapperspb.BoolValue{Value: true}
 	}
 
 	if disableEnvoyServerHeader {
-		//Force the connection manager to skip envoy's server header if none is present
+		// Force the connection manager to skip envoy's server header if none is present
 		mgr.ServerHeaderTransformation = hcm.HttpConnectionManager_PASS_THROUGH
 	}
 

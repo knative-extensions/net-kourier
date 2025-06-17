@@ -82,7 +82,6 @@ func main() {
 	// For old envoy version such as proxyv2-ubi8:2.0.x, register auth server v2.
 	authZ_v2.RegisterAuthorizationServer(server, AuthV2{})
 
-	//nolint: gosec // Test image, so it's fine to bind to everything.
 	lis, err := net.Listen("tcp", ":6000")
 	if err != nil {
 		panic(err)

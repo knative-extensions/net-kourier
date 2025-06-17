@@ -17,7 +17,7 @@ limitations under the License.
 package envoy
 
 import (
-	"fmt"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -323,7 +323,7 @@ func getTLSCreds(filterChain *envoy_api_v3.FilterChain) (certChain []byte, priva
 	}
 
 	if len(downstreamTLSContext.CommonTlsContext.TlsCertificates) > 1 {
-		return nil, nil, nil, fmt.Errorf("more than one certificate configured")
+		return nil, nil, nil, errors.New("more than one certificate configured")
 	}
 
 	certs := downstreamTLSContext.CommonTlsContext.TlsCertificates[0]

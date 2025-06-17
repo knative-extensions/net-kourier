@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -74,7 +75,8 @@ func NewIngressTranslator(
 	nsConfigmapGetter func(label string) ([]*corev1.ConfigMap, error),
 	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
-	tracker tracker.Interface) IngressTranslator {
+	tracker tracker.Interface,
+) IngressTranslator {
 	return IngressTranslator{
 		secretGetter:      secretGetter,
 		nsConfigmapGetter: nsConfigmapGetter,
@@ -123,7 +125,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 			return nil, err
 		}
 		if trustChain == nil {
-			return nil, fmt.Errorf("failed to build trust-chain, as no valid CA certificate was provided. Please make sure to provide a valid trust-bundle before enabling `system-internal-tls`")
+			return nil, errors.New("failed to build trust-chain, as no valid CA certificate was provided. Please make sure to provide a valid trust-bundle before enabling `system-internal-tls`")
 		}
 	}
 
@@ -488,7 +490,6 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 			Name: header,
 		}
 		if matchType.Exact != "" {
-
 			matchHeader.HeaderMatchSpecifier = &route.HeaderMatcher_StringMatch{
 				StringMatch: &envoymatcherv3.StringMatcher{
 					MatchPattern: &envoymatcherv3.StringMatcher_Exact{

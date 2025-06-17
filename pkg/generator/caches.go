@@ -88,7 +88,7 @@ func (caches *Caches) UpdateIngress(_ context.Context, ingressTranslation *trans
 
 func (caches *Caches) validateIngress(translatedIngress *translatedIngress) error {
 	for _, vhost := range translatedIngress.localVirtualHosts {
-		if caches.domainsInUse.HasAny(vhost.Domains...) {
+		if caches.domainsInUse.HasAny(vhost.GetDomains()...) {
 			return ErrDomainConflict
 		}
 	}
@@ -102,7 +102,7 @@ func (caches *Caches) addTranslatedIngress(translatedIngress *translatedIngress)
 	}
 
 	for _, vhost := range translatedIngress.localVirtualHosts {
-		caches.domainsInUse.Insert(vhost.Domains...)
+		caches.domainsInUse.Insert(vhost.GetDomains()...)
 	}
 
 	caches.translatedIngresses[translatedIngress.name] = translatedIngress
@@ -200,11 +200,11 @@ func (caches *Caches) deleteTranslatedIngress(ingressName, ingressNamespace stri
 	// Set to expire all the clusters belonging to that Ingress.
 	if translated := caches.translatedIngresses[key]; translated != nil {
 		for _, cluster := range translated.clusters {
-			caches.clusters.setExpiration(cluster.Name, ingressName, ingressNamespace)
+			caches.clusters.setExpiration(cluster.GetName(), ingressName, ingressNamespace)
 		}
 
 		for _, vhost := range translated.localVirtualHosts {
-			caches.domainsInUse.Delete(vhost.Domains...)
+			caches.domainsInUse.Delete(vhost.GetDomains()...)
 		}
 
 		delete(caches.translatedIngresses, key)
@@ -219,8 +219,8 @@ func generateListenersAndRouteConfigsAndClusters(
 	localTLSVirtualHosts []*route.VirtualHost,
 	localSNIMatches []*envoy.SNIMatch,
 	externalSNIMatches []*envoy.SNIMatch,
-	kubeclient kubeclient.Interface) ([]cachetypes.Resource, []cachetypes.Resource, []cachetypes.Resource, error) {
-
+	kubeclient kubeclient.Interface,
+) ([]cachetypes.Resource, []cachetypes.Resource, []cachetypes.Resource, error) {
 	// This has to be "OrDefaults" because this path is called before the informers are
 	// running when booting the controller up and prefilling the config before making it
 	// ready.
@@ -232,9 +232,9 @@ func generateListenersAndRouteConfigsAndClusters(
 	localRouteConfig := envoy.NewRouteConfig(localRouteConfigName, localVirtualHosts)
 
 	// Now we setup connection managers, that reference the routeconfigs via RDS.
-	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.Name, cfg.Kourier)
-	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.Name, cfg.Kourier)
-	localManager := envoy.NewHTTPConnectionManager(localRouteConfig.Name, cfg.Kourier)
+	externalManager := envoy.NewHTTPConnectionManager(externalRouteConfig.GetName(), cfg.Kourier)
+	externalTLSManager := envoy.NewHTTPConnectionManager(externalTLSRouteConfig.GetName(), cfg.Kourier)
+	localManager := envoy.NewHTTPConnectionManager(localRouteConfig.GetName(), cfg.Kourier)
 
 	externalHTTPEnvoyListener, err := envoy.NewHTTPListener(externalManager, config.HTTPPortExternal, cfg.Kourier.EnableProxyProtocol)
 	if err != nil {
@@ -261,7 +261,7 @@ func generateListenersAndRouteConfigsAndClusters(
 	// If there is not, TLS will be configured using a single cert for all the services when the certificate is configured.
 	if len(localSNIMatches) > 0 {
 		localTLSRouteConfig := envoy.NewRouteConfig(localTLSRouteConfigName, localTLSVirtualHosts)
-		localTLSManager := envoy.NewHTTPConnectionManager(localTLSRouteConfig.Name, cfg.Kourier)
+		localTLSManager := envoy.NewHTTPConnectionManager(localTLSRouteConfig.GetName(), cfg.Kourier)
 
 		localHTTPSEnvoyListener, err := envoy.NewHTTPSListenerWithSNI(
 			localTLSManager, config.HTTPSPortLocal,
@@ -302,13 +302,12 @@ func generateListenersAndRouteConfigsAndClusters(
 		routes = append(routes, localTLSRouteConfig)
 	} else if cfg.Kourier.ClusterCertSecret != "" {
 		localTLSRouteConfig := envoy.NewRouteConfig(localTLSRouteConfigName, localVirtualHosts)
-		localTLSManager := envoy.NewHTTPConnectionManager(localTLSRouteConfig.Name, cfg.Kourier)
+		localTLSManager := envoy.NewHTTPConnectionManager(localTLSRouteConfig.GetName(), cfg.Kourier)
 
 		localHTTPSEnvoyListener, err := newLocalEnvoyListenerWithOneCert(
 			ctx, localTLSManager, kubeclient,
 			cfg.Kourier,
 		)
-
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -368,7 +367,7 @@ func generateListenersAndRouteConfigsAndClusters(
 		}
 
 		// create https prob listener
-		probHTTPSListener, err := envoy.NewHTTPSListener(config.HTTPSPortProb, externalHTTPSEnvoyListener.FilterChains, false)
+		probHTTPSListener, err := envoy.NewHTTPSListener(config.HTTPSPortProb, externalHTTPSEnvoyListener.GetFilterChains(), false)
 		if err != nil {
 			return nil, nil, nil, err
 		}
