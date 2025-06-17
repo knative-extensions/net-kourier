@@ -2,10 +2,7 @@ name: KinD e2e tests
 
 on:
   pull_request:
-    branches: [ 'main' ]
-
-  push:
-    branches: [ 'main' ]
+    branches: [ 'main', 'release-*' ]
 
 defaults:
   run:
@@ -88,17 +85,10 @@ jobs:
       run: |
         ./test/e2e-kind.sh
 
-    - name: Post failure notice to Slack
-      uses: rtCamp/action-slack-notify@v2.1.0
-      if: ${{ failure() && github.event_name != 'pull_request' }}
-      env:
-        SLACK_ICON: http://github.com/knative.png?size=48
-        SLACK_USERNAME: github-actions
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-
-        SLACK_CHANNEL: 'net-kourier'
-        SLACK_COLOR: '#8E1600'
-        MSG_MINIMAL: 'true'
-        SLACK_TITLE: Periodic ${{ matrix.k8s-version }} failed.
-        SLACK_MESSAGE: |
-          For detailed logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    # Collect debug logs on failure
+    - uses: chainguard-dev/actions/kind-diag@main
+      if: ${{ failure() }}
+      with:
+        cluster-resources: nodes,namespaces,crds
+        namespace-resources: configmaps,pods,svc,king
+        artifact-name: logs-${{ matrix.k8s-version}}-${{ matrix.gateway }}-${{ matrix.upstream-tls }}

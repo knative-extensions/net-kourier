@@ -2,10 +2,7 @@ name: KinD e2e upgrade tests
 
 on:
   pull_request:
-    branches: [ 'main' ]
-
-  push:
-    branches: [ 'main' ]
+    branches: [ 'main', 'release-*' ]
 
 defaults:
   run:
@@ -42,7 +39,7 @@ jobs:
     - uses: ko-build/setup-ko@v0.6
 
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: ./src/knative.dev/net-kourier
         # Fetch all tags to determine the latest release version.
@@ -66,3 +63,11 @@ jobs:
     - name: Run upgrade tests
       run: |
         ./test/e2e-upgrade-kind.sh
+
+    # Collect debug logs on failure
+    - uses: chainguard-dev/actions/kind-diag@main
+      if: ${{ failure() }}
+      with:
+        cluster-resources: nodes,namespaces,crds
+        namespace-resources: configmaps,pods,svc,king
+        artifact-name: logs-${{ matrix.k8s-version}}-${{ matrix.upstream-traffic }}
