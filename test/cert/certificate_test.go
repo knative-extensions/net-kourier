@@ -68,7 +68,7 @@ func TestOneTLScerts(t *testing.T) {
 	}, tlsConfig)
 
 	// Check with http
-	req, err := http.NewRequest("GET", "http://"+name+".example.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "http://"+name+".example.com", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestOneTLScerts(t *testing.T) {
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 
 	// Check with https
-	req, err = http.NewRequest("GET", "https://"+name+".example.com", nil)
+	req, err = http.NewRequest(http.MethodGet, "https://"+name+".example.com", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,6 @@ func TestOneTLScerts(t *testing.T) {
 	}
 	defer resp.Body.Close()
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
-
 }
 
 // pemDataFromSecret gets pem data from secret.

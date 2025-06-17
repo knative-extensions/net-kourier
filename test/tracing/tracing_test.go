@@ -75,7 +75,7 @@ func TestTracing(t *testing.T) {
 		}},
 	})
 
-	req, err := http.NewRequest("GET", "http://"+name+".example.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "http://"+name+".example.com", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

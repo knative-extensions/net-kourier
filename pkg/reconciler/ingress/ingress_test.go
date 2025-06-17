@@ -170,7 +170,7 @@ func TestReconcile(t *testing.T) {
 		)
 
 		// Update the context with the stuff we decorated it with.
-		tr.Ctx = ctx //nolint:fatcontext
+		tr.Ctx = ctx
 
 		if la, ok := rr.(reconciler.LeaderAware); ok {
 			la.Promote(reconciler.UniversalBucket(), func(reconciler.Bucket, types.NamespacedName) {})
@@ -180,9 +180,7 @@ func TestReconcile(t *testing.T) {
 		eventList := rtesting.EventList{Recorder: eventRecorder}
 
 		return rr, actionRecorderList, eventList
-
 	})
-
 }
 
 type testConfigStore struct {

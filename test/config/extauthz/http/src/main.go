@@ -20,7 +20,6 @@ package main
 // Authorizes requests with the path "$PATH_PREFIX/success" denies all the others.
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -29,7 +28,7 @@ import (
 var pathPrefix = os.Getenv("PATH_PREFIX")
 
 func check(w http.ResponseWriter, req *http.Request) {
-	if req.URL.Path == fmt.Sprintf("%s/success", pathPrefix) || req.URL.Path == fmt.Sprintf("%s/healthz", pathPrefix) {
+	if req.URL.Path == pathPrefix+"/success" || req.URL.Path == pathPrefix+"/healthz" {
 		log.Print("TRUE")
 		w.WriteHeader(http.StatusOK)
 		return
@@ -40,10 +39,10 @@ func check(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	http.HandleFunc(fmt.Sprintf("%s/", pathPrefix), check)
+	http.HandleFunc(pathPrefix+"/", check)
 
 	log.Printf("Running the External Authz service.")
-	//nolint // ignore G114: Use of net/http serve function that has no support for setting timeouts (gosec)
+
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}

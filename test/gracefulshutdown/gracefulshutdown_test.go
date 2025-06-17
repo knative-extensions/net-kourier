@@ -152,7 +152,7 @@ func TestGracefulShutdown(t *testing.T) {
 
 func sendRequest(client *http.Client, name string, requestTimeout time.Duration) (statusCode int, err error) {
 	reqURL := fmt.Sprintf("http://%s.example.com?initialTimeout=%d", name, requestTimeout.Milliseconds())
-	req, err := http.NewRequest("GET", reqURL, nil)
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
 		return 0, fmt.Errorf("error making GET request: %w", err)
 	}

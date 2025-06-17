@@ -49,10 +49,12 @@ type Reconciler struct {
 	resyncConflicts func()
 }
 
-var _ ingress.Interface = (*Reconciler)(nil)
-var _ ingress.ReadOnlyInterface = (*Reconciler)(nil)
-var _ ingress.Finalizer = (*Reconciler)(nil)
-var _ reconciler.OnDeletionInterface = (*Reconciler)(nil)
+var (
+	_ ingress.Interface              = (*Reconciler)(nil)
+	_ ingress.ReadOnlyInterface      = (*Reconciler)(nil)
+	_ ingress.Finalizer              = (*Reconciler)(nil)
+	_ reconciler.OnDeletionInterface = (*Reconciler)(nil)
+)
 
 func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
 	ing.SetDefaults(ctx)

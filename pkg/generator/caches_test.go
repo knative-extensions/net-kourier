@@ -497,8 +497,8 @@ func createTestDataForIngress(
 	clusterName string,
 	localVHostName string,
 	externalVHostName string,
-	externalTLSVHostName string) {
-
+	externalTLSVHostName string,
+) {
 	translatedIngress := &translatedIngress{
 		name: types.NamespacedName{
 			Namespace: ingressNamespace,
@@ -512,7 +512,8 @@ func createTestDataForIngress(
 			Hosts:            []string{"foo.example.com"},
 			CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname"},
 			CertificateChain: secretCert,
-			PrivateKey:       privateKey}},
+			PrivateKey:       privateKey,
+		}},
 	}
 
 	caches.addTranslatedIngress(translatedIngress)
@@ -544,13 +545,14 @@ func TestValidateIngress(t *testing.T) {
 		clusters:                []*v3.Cluster{{Name: "cluster_for_ingress_2"}},
 		externalVirtualHosts:    []*route.VirtualHost{{Name: "external_host_for_ingress_2", Domains: []string{"external_host_for_ingress_2"}}},
 		externalTLSVirtualHosts: []*route.VirtualHost{{Name: "external_tls_host_for_ingress_2", Domains: []string{"external__tlshost_for_ingress_2"}}},
-		//This domain should clash with the cached ingress.
+		// This domain should clash with the cached ingress.
 		localVirtualHosts: []*route.VirtualHost{{Name: "internal_host_for_ingress_2", Domains: []string{"internal_host_for_ingress_1"}}},
 		externalSNIMatches: []*envoy.SNIMatch{{
 			Hosts:            []string{"foo.example.com"},
 			CertSource:       types.NamespacedName{Namespace: "secretns", Name: "secretname"},
 			CertificateChain: secretCert,
-			PrivateKey:       privateKey}},
+			PrivateKey:       privateKey,
+		}},
 	}
 
 	err = caches.validateIngress(&translatedIngress)

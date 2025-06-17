@@ -70,13 +70,12 @@ func TestIdleTimeout(t *testing.T) {
 	}
 
 	checkTimeout(t, client, name, test.initialDelay, test.delay)
-
 }
 
 func checkTimeout(t *testing.T, client *http.Client, name string, initial time.Duration, timeout time.Duration) {
 	reqURL := fmt.Sprintf("http://%s.example.com?initialTimeout=%d&timeout=%d",
 		name, initial.Milliseconds(), timeout.Milliseconds())
-	req, err := http.NewRequest("GET", reqURL, nil)
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
 		t.Fatal("Error making GET request:", err)
 	}

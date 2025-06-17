@@ -35,8 +35,8 @@ func NewRoute(name string,
 	wrs []*route.WeightedCluster_ClusterWeight,
 	routeTimeout time.Duration,
 	headers map[string]string,
-	hostRewrite string) *route.Route {
-
+	hostRewrite string,
+) *route.Route {
 	routeAction := &route.RouteAction{
 		ClusterSpecifier: &route.RouteAction_WeightedClusters{
 			WeightedClusters: &route.WeightedCluster{
@@ -99,8 +99,8 @@ func NewRouteExtAuthzDisabled(name string,
 	wrs []*route.WeightedCluster_ClusterWeight,
 	routeTimeout time.Duration,
 	headers map[string]string,
-	hostRewrite string) *route.Route {
-
+	hostRewrite string,
+) *route.Route {
 	newRoute := NewRoute(name, headersMatch, path, wrs, routeTimeout, headers, hostRewrite)
 	extAuthzDisabled, _ := anypb.New(&extAuthService.ExtAuthzPerRoute{
 		Override: &extAuthService.ExtAuthzPerRoute_Disabled{

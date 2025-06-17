@@ -34,8 +34,8 @@ func NewCluster(
 	connectTimeout time.Duration,
 	endpoints []*endpoint.LbEndpoint,
 	isHTTP2 bool, transportSocket *envoycorev3.TransportSocket,
-	discoveryType envoyclusterv3.Cluster_DiscoveryType) *envoyclusterv3.Cluster {
-
+	discoveryType envoyclusterv3.Cluster_DiscoveryType,
+) *envoyclusterv3.Cluster {
 	cluster := &envoyclusterv3.Cluster{
 		Name: name,
 		ClusterDiscoveryType: &envoyclusterv3.Cluster_Type{

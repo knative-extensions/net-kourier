@@ -231,7 +231,6 @@ func TestListProveTargets(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 type fakeEndpointsLister struct {

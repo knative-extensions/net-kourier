@@ -56,7 +56,7 @@ func TestExtAuthz(t *testing.T) {
 		}},
 	})
 
-	req, err := http.NewRequest("GET", "http://"+name+".example.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "http://"+name+".example.com", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestExtAuthz(t *testing.T) {
 	assert.Equal(t, resp.StatusCode, http.StatusForbidden)
 
 	// Prepare the request, this one should succeed
-	req, err = http.NewRequest("GET", "http://"+name+".example.com/success", nil)
+	req, err = http.NewRequest(http.MethodGet, "http://"+name+".example.com/success", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,11 +82,11 @@ func TestExtAuthz(t *testing.T) {
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 
 	postBody := make([]byte, 256)
-	for i := 0; i < 256; i++ {
+	for i := range 256 {
 		postBody[i] = byte(i)
 	}
 
-	req, err = http.NewRequest("POST", "http://"+name+".example.com/success", bytes.NewReader(postBody))
+	req, err = http.NewRequest(http.MethodPost, "http://"+name+".example.com/success", bytes.NewReader(postBody))
 	if err != nil {
 		t.Fatal(err)
 	}

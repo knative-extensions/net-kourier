@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -70,7 +71,7 @@ func TestProxyProtocol(t *testing.T) {
 	})
 
 	// testing without proxy protocol headers
-	req, err := http.NewRequest("GET", "http://"+name+".example.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "http://"+name+".example.com", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +158,7 @@ func TestProxyProtocolWithSNI(t *testing.T) {
 		TLSClientConfig: tlsConfig,
 	}
 
-	req, err := http.NewRequest("GET", "https://"+publicHostname, nil)
+	req, err := http.NewRequest(http.MethodGet, "https://"+publicHostname, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +214,7 @@ func createDialContextProxyProtocol(ctx context.Context, t *testing.T, ing *v1al
 		t.Fatalf("Unable to retrieve Kubernetes service %s/%s: %v", namespace, name, err)
 	}
 
-	var dialBackoff = wait.Backoff{
+	dialBackoff := wait.Backoff{
 		Duration: 50 * time.Millisecond,
 		Factor:   1.4,
 		Jitter:   0.1, // At most 10% jitter.
@@ -233,7 +234,7 @@ func createDialContextProxyProtocol(ctx context.Context, t *testing.T, ing *v1al
 				return nil, err
 			}
 			for _, sp := range svc.Spec.Ports {
-				if fmt.Sprint(sp.Port) == port {
+				if strconv.Itoa(int(sp.Port)) == port {
 					conn, err := dial(ctx, "tcp", fmt.Sprintf("%s:%d", pkgTest.Flags.IngressEndpoint, sp.NodePort))
 					if err != nil {
 						return nil, err
