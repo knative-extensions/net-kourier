@@ -249,7 +249,6 @@ func messageToAny(msg proto.Message) (*anypb.Any, error) {
 		return nil, err
 	}
 	return &anypb.Any{
-		// nolint: staticcheck
 		TypeUrl: "type.googleapis.com/" + string(msg.ProtoReflect().Descriptor().FullName()),
 		Value:   b,
 	}, nil

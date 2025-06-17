@@ -77,8 +77,9 @@ func TestProxyProtocol(t *testing.T) {
 	}
 
 	resp, err := client.Do(req)
-	assert.Check(t, resp == nil)
 	assert.Check(t, err != nil)
+	defer resp.Body.Close()
+	assert.Check(t, resp == nil)
 
 	// testing with proxy protocol
 	client.Transport = &http.Transport{

@@ -87,7 +87,7 @@ func TestDeleteIngressInfo(t *testing.T) {
 	assert.NilError(t, err)
 
 	routeConfigsR := snapshot.GetResources(resource.RouteType)
-	routeConfigs := make([]*route.RouteConfiguration, len(routeConfigsR))
+	routeConfigs := make([]*route.RouteConfiguration, 0, len(routeConfigsR))
 	for _, r := range routeConfigsR {
 		routeConfigs = append(routeConfigs, r.(*route.RouteConfiguration))
 	}
