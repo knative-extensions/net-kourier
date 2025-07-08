@@ -5,15 +5,15 @@ aliases:
   autoscaler-keda-approvers:
   - skonto
   backstage-plugins-reviewers:
+  - Leo6Leo
   - aliok
   - cali0707
-  - leo6leo
-  - pierdipi
+  - pierDipi
   backstage-plugins-writers:
+  - Leo6Leo
   - aliok
   - cali0707
-  - leo6leo
-  - pierdipi
+  - pierDipi
   client-wg-leads:
   - dsimansk
   client-writers:
@@ -215,12 +215,12 @@ aliases:
   - matzew
   - nrrso
   ux-wg-leads:
+  - Leo6Leo
   - cali0707
-  - leo6leo
   - mmejia02
   - zainabhusain227
   ux-writers:
+  - Leo6Leo
   - cali0707
-  - leo6leo
   - mmejia02
   - zainabhusain227
