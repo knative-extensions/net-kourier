@@ -784,7 +784,7 @@ func TestIngressTranslator(t *testing.T) {
 
 			translator := newTestIngressTranslator(ctx, kubeclient)
 
-			got, err := translator.translateIngress(ctx, test.in, false)
+			got, err := translator.translateIngress(ctx, test.in)
 			assert.Equal(t, err != nil, test.wantErr)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
@@ -987,7 +987,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 
 			translator := newTestIngressTranslator(ctx, kubeclient)
 
-			got, err := translator.translateIngress(ctx, test.in, false)
+			got, err := translator.translateIngress(ctx, test.in)
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
@@ -1480,7 +1480,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 
 			translator := newTestIngressTranslator(ctx, kubeclient)
 
-			got, err := translator.translateIngress(ctx, test.in, false)
+			got, err := translator.translateIngress(ctx, test.in)
 			assert.Equal(t, err != nil, test.wantErr)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
@@ -1566,13 +1566,14 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 	t.Run(test.name, func(t *testing.T) {
 		ctx, _ := pkgtest.SetupFakeContext(t)
 		cfg := defaultConfig.DeepCopy()
+		cfg.Kourier.ExternalAuthz.Enabled = true
 		ctx = (&testConfigStore{config: cfg}).ToContext(ctx)
 
 		kubeclient := fake.NewSimpleClientset(test.state...)
 
 		translator := newTestIngressTranslator(ctx, kubeclient)
 
-		got, err := translator.translateIngress(ctx, test.in, true)
+		got, err := translator.translateIngress(ctx, test.in)
 
 		assert.NilError(t, err)
 		assert.DeepEqual(t, got, test.want,
@@ -1672,7 +1673,7 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 
 		translator := newTestIngressTranslator(ctx, kubeclient)
 
-		got, err := translator.translateIngress(ctx, test.in, false)
+		got, err := translator.translateIngress(ctx, test.in)
 		assert.NilError(t, err)
 		assert.DeepEqual(t, got, test.want,
 			cmp.AllowUnexported(translatedIngress{}),
@@ -2144,7 +2145,7 @@ func TestTranslateIngress_EndpointsNotReady(t *testing.T) {
 		&pkgtest.FakeTracker{})
 
 	// Translate the ingress
-	result, err := translator.translateIngress(ctx, ingress, false)
+	result, err := translator.translateIngress(ctx, ingress)
 	// Should return nil, nil when endpoints are not ready
 	if err != nil {
 		t.Errorf("Expected nil error, got %v", err)
@@ -2231,7 +2232,7 @@ func TestTranslateIngressWithDuplicateDomains(t *testing.T) {
 		},
 		&pkgtest.FakeTracker{})
 
-	result, err := translator.translateIngress(ctx, ingress, false)
+	result, err := translator.translateIngress(ctx, ingress)
 	if err != nil {
 		t.Fatalf("translateIngress() error = %v", err)
 	}
@@ -2355,7 +2356,7 @@ func TestTranslateIngressWithMultipleDomainsAndPaths(t *testing.T) {
 		},
 		&pkgtest.FakeTracker{})
 
-	result, err := translator.translateIngress(ctx, ingress, false)
+	result, err := translator.translateIngress(ctx, ingress)
 	if err != nil {
 		t.Fatalf("translateIngress() error = %v", err)
 	}
@@ -2471,7 +2472,7 @@ func TestTranslateIngressWithMixedVisibility(t *testing.T) {
 		},
 		&pkgtest.FakeTracker{})
 
-	result, err := translator.translateIngress(ctx, ingress, false)
+	result, err := translator.translateIngress(ctx, ingress)
 	if err != nil {
 		t.Fatalf("translateIngress() error = %v", err)
 	}

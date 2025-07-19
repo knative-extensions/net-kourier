@@ -166,7 +166,6 @@ func TestReconcile(t *testing.T) {
 			xdsServer:         server.NewXdsServer(18000, &xds.CallbackFuncs{}),
 			caches:            c,
 			ingressTranslator: &it,
-			extAuthz:          false,
 			resyncConflicts:   func() {},
 			statusManager: status.NewProber(
 				nil, NewProbeTargetLister(logging.FromContext(ctx), ls.GetEndpointSlicesLister()), nil,

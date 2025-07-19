@@ -42,7 +42,6 @@ type Reconciler struct {
 	caches            *generator.Caches
 	statusManager     *status.Prober
 	ingressTranslator *generator.IngressTranslator
-	extAuthz          bool
 
 	// resyncConflicts triggers a filtered global resync to reenqueue all ingresses in
 	// a "Conflict" state.
@@ -148,7 +147,7 @@ func (r *Reconciler) updateIngress(ctx context.Context, ingress *v1alpha1.Ingres
 	logger.Infof("Updating Ingress")
 
 	if err := generator.UpdateInfoForIngress(
-		ctx, r.caches, ingress, r.ingressTranslator, r.extAuthz); err != nil {
+		ctx, r.caches, ingress, r.ingressTranslator); err != nil {
 		return err
 	}
 
