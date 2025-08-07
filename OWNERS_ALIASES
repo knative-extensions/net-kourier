@@ -20,9 +20,6 @@ aliases:
   - dsimansk
   discovery-approvers:
   - lberk
-  docs-writers:
-  - csantanapr
-  - skonto
   eventing-autoscaler-keda-approvers: []
   eventing-awssqs-approvers:
   - lberk
@@ -32,7 +29,6 @@ aliases:
   - matzew
   eventing-couchdb-approvers:
   - lberk
-  - lionelvillard
   - matzew
   eventing-github-approvers:
   - lberk
@@ -40,7 +36,6 @@ aliases:
   eventing-gitlab-approvers:
   - lberk
   - matzew
-  - sebgoa
   eventing-kafka-approvers:
   - aliok
   - lberk
@@ -62,10 +57,8 @@ aliases:
   - matzew
   eventing-rabbitmq-approvers:
   - ikavgo
-  - mkuratczyk
   eventing-redis-approvers:
   - aavarghese
-  - lionelvillard
   - matzew
   eventing-reviewers:
   - Leo6Leo
@@ -79,31 +72,26 @@ aliases:
   - aliok
   - cali0707
   - creydr
-  - lionelvillard
   - matzew
   - pierDipi
   func-tastic-approvers:
-  - lance
   - lkingland
   - matejvasek
   - nainaz
   - salaboy
   functastic-writers:
-  - lance
   - lkingland
   - matejvasek
   - matzew
   - nainaz
   - salaboy
   function-runtime-approvers:
-  - lance
   - lkingland
   - matejvasek
   - matzew
   - nainaz
   - salaboy
   function-runtime-writers:
-  - lance
   - lkingland
   - matejvasek
   - matzew
@@ -126,12 +114,12 @@ aliases:
   kn-plugin-service-log-approvers:
   - dsimansk
   kn-plugin-source-kafka-approvers:
-  - daisy-ycguo
   - dsimansk
   kn-plugin-source-kamelet-approvers:
   - christophd
   knative-admin:
   - aliok
+  - arsenetar
   - cardil
   - dprotaso
   - dsimansk
@@ -143,7 +131,6 @@ aliases:
   - knative-prow-updater-robot
   - knative-test-reporter-robot
   - matzew
-  - nrrso
   - skonto
   - upodroid
   knative-release-leads:
@@ -158,11 +145,9 @@ aliases:
   - knative-prow-updater-robot
   - knative-test-reporter-robot
   net-contour-approvers:
-  - KauzClay
   - dprotaso
   net-gateway-api-approvers:
   - dprotaso
-  net-http01-approvers: []
   net-istio-approvers:
   - skonto
   net-kourier-approvers:
@@ -194,9 +179,7 @@ aliases:
   - dsimansk
   - skonto
   serving-progressive-rollout-approvers:
-  - alexagriffith
   - houshengbo
-  - sukumargaonkar
   - yuzisun
   serving-reviewers:
   - skonto
@@ -210,10 +193,10 @@ aliases:
   - skonto
   steering-committee:
   - aliok
+  - arsenetar
   - dprotaso
   - evankanderson
   - matzew
-  - nrrso
   ux-wg-leads:
   - Leo6Leo
   - cali0707
