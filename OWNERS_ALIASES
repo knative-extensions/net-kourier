@@ -178,9 +178,6 @@ aliases:
   serving-approvers:
   - dsimansk
   - skonto
-  serving-progressive-rollout-approvers:
-  - houshengbo
-  - yuzisun
   serving-reviewers:
   - skonto
   serving-triage:
