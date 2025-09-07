@@ -249,6 +249,15 @@ func TestKourierConfig(t *testing.T) {
 			EnvCertsSecretName:      "env-cert",
 			EnvCertsSecretNamespace: "env-certns",
 		},
+	}, {
+		name: "service-access-log-template: trailing newline is not removed",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			ServiceAccessLogTemplate:   "\"requestMethod\": \"%REQ(:METHOD)%\"\n",
+		},
+		data: map[string]string{
+			serviceAccessLogTemplateKey: "\"requestMethod\": \"%REQ(:METHOD)%\"\n",
+		},
 	}}
 
 	for _, tt := range configTests {
