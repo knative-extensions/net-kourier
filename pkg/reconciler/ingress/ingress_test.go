@@ -208,7 +208,9 @@ var _ reconciler.ConfigStore = (*testConfigStore)(nil)
 
 func ReconcilerTestConfig() *config.Config {
 	return &config.Config{
-		Kourier: &config.Kourier{},
+		Kourier: &config.Kourier{
+			ListenIPAddresses: []string{"0.0.0.0"},
+		},
 		Network: &netconfig.Config{
 			ExternalDomainTLS: false,
 		},

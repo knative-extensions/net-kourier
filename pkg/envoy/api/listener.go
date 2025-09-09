@@ -48,7 +48,7 @@ type SNIMatch struct {
 }
 
 // NewHTTPListener creates a new Listener at the given port, backed by the given manager.
-func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProxyProtocol bool) (*listener.Listener, error) {
+func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProxyProtocol bool, listenIPAddresses []string) (*listener.Listener, error) {
 	filters, err := createFilters(manager)
 	if err != nil {
 		return nil, err
@@ -63,10 +63,16 @@ func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProx
 		listenerFilter = append(listenerFilter, proxyProtocolListenerFilter)
 	}
 
+	if len(listenIPAddresses) < 1 {
+		err = fmt.Errorf("there must be at least 1 ip address to listen")
+		return nil, err
+	}
+
 	return &listener.Listener{
-		Name:            CreateListenerName(port),
-		Address:         createAddress(port),
-		ListenerFilters: listenerFilter,
+		Name:                CreateListenerName(port),
+		Address:             createAddress(port, listenIPAddresses[0]),
+		AdditionalAddresses: createAdditionalAddresses(port, listenIPAddresses[1:]),
+		ListenerFilters:     listenerFilter,
 		FilterChains: []*listener.FilterChain{{
 			Filters: filters,
 		}},
@@ -74,7 +80,7 @@ func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProx
 }
 
 // NewHTTPSListener creates a new Listener at the given port with a given filter chain
-func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enableProxyProtocol bool) (*listener.Listener, error) {
+func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enableProxyProtocol bool, listenIPAddresses []string) (*listener.Listener, error) {
 	var listenerFilter []*listener.ListenerFilter
 	if enableProxyProtocol {
 		proxyProtocolListenerFilter, err := createProxyProtocolListenerFilter()
@@ -84,11 +90,18 @@ func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enablePr
 		listenerFilter = append(listenerFilter, proxyProtocolListenerFilter)
 	}
 
+	if len(listenIPAddresses) < 1 {
+		err := fmt.Errorf("there must be at least 1 ip address to listen")
+		return nil, err
+	}
+
+
 	return &listener.Listener{
-		Name:            CreateListenerName(port),
-		Address:         createAddress(port),
-		ListenerFilters: listenerFilter,
-		FilterChains:    filterChain,
+		Name:                CreateListenerName(port),
+		Address:             createAddress(port, listenIPAddresses[0]),
+		AdditionalAddresses: createAdditionalAddresses(port, listenIPAddresses[1:]),
+		ListenerFilters:     listenerFilter,
+		FilterChains:        filterChain,
 	}, nil
 }
 
@@ -157,11 +170,18 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 
 	listenerFilter = append(listenerFilter, listenerFilterForTLS)
 
+	listenIPAddresses := kourierConfig.ListenIPAddresses
+	if len(listenIPAddresses) < 1 {
+		err := fmt.Errorf("there must be at least 1 ip address to listen")
+		return nil, err
+	}
+
 	return &listener.Listener{
-		Name:            CreateListenerName(port),
-		Address:         createAddress(port),
-		FilterChains:    filterChains,
-		ListenerFilters: listenerFilter,
+		Name:                CreateListenerName(port),
+		Address:             createAddress(port, listenIPAddresses[0]),
+		AdditionalAddresses: createAdditionalAddresses(port, listenIPAddresses[1:]),
+		FilterChains:        filterChains,
+		ListenerFilters:     listenerFilter,
 	}, nil
 }
 
@@ -170,12 +190,12 @@ func CreateListenerName(port uint32) string {
 	return fmt.Sprintf("listener_%d", port)
 }
 
-func createAddress(port uint32) *core.Address {
+func createAddress(port uint32, address string) *core.Address {
 	return &core.Address{
 		Address: &core.Address_SocketAddress{
 			SocketAddress: &core.SocketAddress{
 				Protocol: core.SocketAddress_TCP,
-				Address:  "0.0.0.0",
+				Address:  address,
 				PortSpecifier: &core.SocketAddress_PortValue{
 					PortValue: port,
 				},
@@ -331,4 +351,15 @@ func createProxyProtocolListenerFilter() (listenerFilter *listener.ListenerFilte
 			TypedConfig: listenerFilterConfig,
 		},
 	}, nil
+}
+
+func createAdditionalAddresses(port uint32, ips []string) []*listener.AdditionalAddress {
+	var additional []*listener.AdditionalAddress
+	for _, ip := range ips {
+		add := &listener.AdditionalAddress{
+			Address: createAddress(port, ip),
+		}
+		additional = append(additional, add)
+	}
+	return additional
 }
