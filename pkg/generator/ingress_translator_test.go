@@ -786,7 +786,7 @@ func TestIngressTranslator(t *testing.T) {
 				&pkgtest.FakeTracker{},
 			)
 
-			got, err := translator.translateIngress(ctx, test.in, false)
+			got, err := translator.translateIngress(ctx, test.in)
 			assert.Equal(t, err != nil, test.wantErr)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
@@ -1003,7 +1003,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 				&pkgtest.FakeTracker{},
 			)
 
-			got, err := translator.translateIngress(ctx, test.in, false)
+			got, err := translator.translateIngress(ctx, test.in)
 			assert.NilError(t, err)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
@@ -1510,7 +1510,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 				&pkgtest.FakeTracker{},
 			)
 
-			got, err := translator.translateIngress(ctx, test.in, false)
+			got, err := translator.translateIngress(ctx, test.in)
 			assert.Equal(t, err != nil, test.wantErr)
 			assert.DeepEqual(t, got, test.want,
 				cmp.AllowUnexported(translatedIngress{}),
@@ -1593,6 +1593,7 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 	t.Run(test.name, func(t *testing.T) {
 		ctx, _ := pkgtest.SetupFakeContext(t)
 		cfg := defaultConfig.DeepCopy()
+		cfg.Kourier.ExternalAuthz.Enabled = true
 		ctx = (&testConfigStore{config: cfg}).ToContext(ctx)
 
 		kubeclient := fake.NewSimpleClientset(test.state...)
@@ -1613,7 +1614,7 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 			&pkgtest.FakeTracker{},
 		)
 
-		got, err := translator.translateIngress(ctx, test.in, true)
+		got, err := translator.translateIngress(ctx, test.in)
 
 		assert.NilError(t, err)
 		assert.DeepEqual(t, got, test.want,
@@ -1727,7 +1728,7 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 			&pkgtest.FakeTracker{},
 		)
 
-		got, err := translator.translateIngress(ctx, test.in, false)
+		got, err := translator.translateIngress(ctx, test.in)
 		assert.NilError(t, err)
 		assert.DeepEqual(t, got, test.want,
 			cmp.AllowUnexported(translatedIngress{}),
