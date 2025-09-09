@@ -24,6 +24,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/kelseyhightower/envconfig"
 	corev1 "k8s.io/api/core/v1"
@@ -56,6 +57,9 @@ const (
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
+        // listenIPAddress receives a the list of IP addresses to listen to.
+	listenIPAddresses = "listen-ip-addresses"
+
 	// TracingCollectorFullEndpoint is the config map key to configure tracing at kourier gateway level
 	TracingCollectorFullEndpoint = "tracing-collector-full-endpoint"
 
@@ -86,6 +90,7 @@ func defaultKourierConfig() *Kourier {
 		TrustedHopsCount:           0,
 		CipherSuites:               nil,
 		EnableCryptoMB:             false,
+		ListenIPAddresses:          []string{"0.0.0.0"},
 		UseRemoteAddress:           false,
 		DisableEnvoyServerHeader:   false,
 		ExternalAuthz: ExternalAuthz{
@@ -111,6 +116,7 @@ func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(useRemoteAddress, &nc.UseRemoteAddress),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
+		AsStringList(listenIPAddresses, &nc.ListenIPAddresses),
 		asTracing(TracingCollectorFullEndpoint, &nc.Tracing),
 		asExternalAuthz(&nc.ExternalAuthz),
 		cm.AsBool(disableEnvoyServerHeader, &nc.DisableEnvoyServerHeader),
@@ -257,6 +263,8 @@ type Kourier struct {
 	// EnableCryptoMB specifies whether Kourier enable CryptoMB private provider to accelerate
 	// TLS handshake. The default value is "false".
 	EnableCryptoMB bool
+	// The main IP address to listen to
+	ListenIPAddresses []string
 	// CipherSuites specifies the cipher suites for TLS external listener.
 	CipherSuites sets.Set[string]
 	// Tracing specifies the configuration for gateway tracing
@@ -275,4 +283,19 @@ type Kourier struct {
 // instead of one per ingress
 func (k *Kourier) UseHTTPSListenerWithOneCert() bool {
 	return k.CertsSecretName != "" && k.CertsSecretNamespace != ""
+}
+
+// AsStringSet parses the value at key as a []string (split by ',') into the target, if it exists.
+// In contrast with AsStringSet it preserves order
+func AsStringList(key string, target *[]string) cm.ParseFunc {
+	return func(data map[string]string) error {
+		if raw, ok := data[key]; ok {
+			splitted := strings.Split(raw, ",")
+			for i, v := range splitted {
+				splitted[i] = strings.TrimSpace(v)
+			}
+			*target = splitted
+		}
+		return nil
+	}
 }
