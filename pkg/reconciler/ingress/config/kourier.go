@@ -21,8 +21,8 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	corev1 "k8s.io/api/core/v1"
