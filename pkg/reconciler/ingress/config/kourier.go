@@ -23,8 +23,8 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	corev1 "k8s.io/api/core/v1"
@@ -57,7 +57,7 @@ const (
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
-        // listenIPAddress receives a the list of IP addresses to listen to.
+	// listenIPAddress receives a the list of IP addresses to listen to.
 	listenIPAddresses = "listen-ip-addresses"
 
 	// TracingCollectorFullEndpoint is the config map key to configure tracing at kourier gateway level

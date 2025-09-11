@@ -41,7 +41,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "disable logging",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: false,
 			IdleTimeout:                0 * time.Second,
 		},
@@ -57,7 +57,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "enable proxy protocol, logging and internal cert",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			EnableProxyProtocol:        true,
 			ClusterCertSecret:          "my-cert",
@@ -71,7 +71,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "enable proxy protocol and disable logging, empty internal cert",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: false,
 			EnableProxyProtocol:        true,
 			ClusterCertSecret:          "",
@@ -91,7 +91,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "set cipher suites",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: false,
 			CipherSuites:               sets.New("foo", "bar"),
 		},
@@ -102,7 +102,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "set timeout to 200",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			EnableProxyProtocol:        false,
 			ClusterCertSecret:          "",
@@ -117,7 +117,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "add 3 trusted hops",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: false,
 			TrustedHopsCount:           3,
 		},
@@ -128,7 +128,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "configure tracing",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			Tracing: Tracing{
 				Enabled:           true,
@@ -143,7 +143,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "do not enable tracing",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			Tracing: Tracing{
 				Enabled: false,
@@ -155,7 +155,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "enable use remote address",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			UseRemoteAddress:           true,
 		},
@@ -165,7 +165,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "enable use certs",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			CertsSecretName:            "cert",
 			CertsSecretNamespace:       "certns",
@@ -177,7 +177,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "enable use certs from env",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			CertsSecretName:            "env-cert",
 			CertsSecretNamespace:       "env-certns",
@@ -189,7 +189,7 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "override when set via configmap",
 		want: &Kourier{
-			ListenIPAddresses: []string{"0.0.0.0"},
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			CertsSecretName:            "cert",
 			CertsSecretNamespace:       "certns",

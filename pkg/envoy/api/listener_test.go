@@ -83,8 +83,8 @@ func TestNewHTTPListenerWithProxyProtocol(t *testing.T) {
 
 func TestNewHTTPListenerWithIPv6(t *testing.T) {
 	kourierConfig := config.Kourier{
-		ListenIPAddresses:   []string{"::"},
-		IdleTimeout:         0 * time.Second,
+		ListenIPAddresses: []string{"::"},
+		IdleTimeout:       0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
@@ -102,8 +102,8 @@ func TestNewHTTPListenerWithIPv6(t *testing.T) {
 
 func TestNewHTTPListenerWithIPv4AndIPv6(t *testing.T) {
 	kourierConfig := config.Kourier{
-		ListenIPAddresses:   []string{"0.0.0.0", "::"},
-		IdleTimeout:         0 * time.Second,
+		ListenIPAddresses: []string{"0.0.0.0", "::"},
+		IdleTimeout:       0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
@@ -117,13 +117,13 @@ func TestNewHTTPListenerWithIPv4AndIPv6(t *testing.T) {
 
 	// Check if listening on ipv6
 	assert.Equal(t, "0.0.0.0", l.Address.GetSocketAddress().Address)
-        assert.Equal(t, "::", l.AdditionalAddresses[0].Address.GetSocketAddress().Address)
+	assert.Equal(t, "::", l.AdditionalAddresses[0].Address.GetSocketAddress().Address)
 }
 
 func TestNewHTTPListenerWithIPv6AndIPv4(t *testing.T) {
 	kourierConfig := config.Kourier{
-		ListenIPAddresses:   []string{"::", "0.0.0.0"},
-		IdleTimeout:         0 * time.Second,
+		ListenIPAddresses: []string{"::", "0.0.0.0"},
+		IdleTimeout:       0 * time.Second,
 	}
 	manager := NewHTTPConnectionManager("test", &kourierConfig)
 
@@ -136,8 +136,8 @@ func TestNewHTTPListenerWithIPv6AndIPv4(t *testing.T) {
 	assert.Assert(t, is.Nil(l.FilterChains[0].TransportSocket)) // TLS not configured
 
 	// Check if listening on ipv6
-        assert.Equal(t, "::", l.Address.GetSocketAddress().Address)
-        assert.Equal(t, "0.0.0.0", l.AdditionalAddresses[0].Address.GetSocketAddress().Address)
+	assert.Equal(t, "::", l.Address.GetSocketAddress().Address)
+	assert.Equal(t, "0.0.0.0", l.AdditionalAddresses[0].Address.GetSocketAddress().Address)
 }
 
 var c = Certificate{
@@ -303,7 +303,7 @@ func TestNewHTTPSListenerWithSNI(t *testing.T) {
 	}}
 
 	kourierConfig := config.Kourier{
-                ListenIPAddresses:          []string{"0.0.0.0"},
+		ListenIPAddresses:          []string{"0.0.0.0"},
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        false,
 		IdleTimeout:                0 * time.Second,
@@ -336,7 +336,7 @@ func TestNewHTTPSListenerWithSNIWithProxyProtocol(t *testing.T) {
 		PrivateKey:       []byte("key2"),
 	}}
 	kourierConfig := config.Kourier{
-                ListenIPAddresses:          []string{"0.0.0.0"},
+		ListenIPAddresses:          []string{"0.0.0.0"},
 		EnableServiceAccessLogging: true,
 		EnableProxyProtocol:        true,
 		IdleTimeout:                0 * time.Second,

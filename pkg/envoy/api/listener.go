@@ -64,7 +64,7 @@ func NewHTTPListener(manager *hcm.HttpConnectionManager, port uint32, enableProx
 	}
 
 	if len(listenIPAddresses) < 1 {
-		err = fmt.Errorf("there must be at least 1 ip address to listen")
+		err = errors.New("there must be at least 1 ip address to listen")
 		return nil, err
 	}
 
@@ -91,10 +91,9 @@ func NewHTTPSListener(port uint32, filterChain []*listener.FilterChain, enablePr
 	}
 
 	if len(listenIPAddresses) < 1 {
-		err := fmt.Errorf("there must be at least 1 ip address to listen")
+		err := errors.New("there must be at least 1 ip address to listen")
 		return nil, err
 	}
-
 
 	return &listener.Listener{
 		Name:                CreateListenerName(port),
@@ -172,7 +171,7 @@ func NewHTTPSListenerWithSNI(manager *hcm.HttpConnectionManager, port uint32, sn
 
 	listenIPAddresses := kourierConfig.ListenIPAddresses
 	if len(listenIPAddresses) < 1 {
-		err := fmt.Errorf("there must be at least 1 ip address to listen")
+		err := errors.New("there must be at least 1 ip address to listen")
 		return nil, err
 	}
 
@@ -354,12 +353,12 @@ func createProxyProtocolListenerFilter() (listenerFilter *listener.ListenerFilte
 }
 
 func createAdditionalAddresses(port uint32, ips []string) []*listener.AdditionalAddress {
-	var additional []*listener.AdditionalAddress
-	for _, ip := range ips {
+	additional := make([]*listener.AdditionalAddress, len(ips))
+	for i, ip := range ips {
 		add := &listener.AdditionalAddress{
 			Address: createAddress(port, ip),
 		}
-		additional = append(additional, add)
+		additional[i] = add
 	}
 	return additional
 }
