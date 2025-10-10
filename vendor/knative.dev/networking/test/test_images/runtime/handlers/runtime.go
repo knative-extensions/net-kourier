@@ -49,7 +49,7 @@ func runtimeHandler(w http.ResponseWriter, r *http.Request) {
 			EnvVars:    env(),
 			Files:      fileInfo(filePaths...),
 			FileAccess: fileAccessAttempt(excludeFilePaths(filePaths, fileAccessExclusions)...),
-			Cgroups:    cgroups(cgroupPaths...),
+			Cgroups:    cgroups(cgroupPaths()...),
 			Mounts:     mounts(),
 			Stdin:      stdin(),
 			User:       userInfo(),
@@ -60,7 +60,7 @@ func runtimeHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, k)
 }
 
-func excludeFilePaths(filePaths []string, excludedPaths []string) []string {
+func excludeFilePaths(filePaths, excludedPaths []string) []string {
 	var paths []string
 	for _, path := range filePaths {
 		excluded := false
