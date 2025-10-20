@@ -108,7 +108,6 @@ aliases:
   - houshengbo
   kn-plugin-quickstart-approvers:
   - dsimansk
-  - psschwei
   kn-plugin-sample-approvers:
   - dsimansk
   kn-plugin-service-log-approvers:
