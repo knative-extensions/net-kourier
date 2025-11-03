@@ -77,25 +77,21 @@ aliases:
   func-tastic-approvers:
   - lkingland
   - matejvasek
-  - nainaz
   - salaboy
   functastic-writers:
   - lkingland
   - matejvasek
   - matzew
-  - nainaz
   - salaboy
   function-runtime-approvers:
   - lkingland
   - matejvasek
   - matzew
-  - nainaz
   - salaboy
   function-runtime-writers:
   - lkingland
   - matejvasek
   - matzew
-  - nainaz
   - salaboy
   homebrew-kn-plugins-approvers:
   - dsimansk
