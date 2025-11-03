@@ -103,7 +103,8 @@ func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
 
 	if err := cm.Parse(configMap,
 		cm.AsBool(enableServiceAccessLoggingKey, &nc.EnableServiceAccessLogging),
-		cm.AsString(serviceAccessLogTemplateKey, &nc.ServiceAccessLogTemplate),
+		// Avoid using cm.AsString, as it also removes newline characters at the end.
+		asServiceAccessLogTemplate(serviceAccessLogTemplateKey, &nc.ServiceAccessLogTemplate),
 		cm.AsBool(enableProxyProtocol, &nc.EnableProxyProtocol),
 		cm.AsString(clusterCert, &nc.ClusterCertSecret),
 		cm.AsDuration(IdleTimeoutKey, &nc.IdleTimeout),
@@ -130,6 +131,15 @@ type Tracing struct {
 	CollectorHost     string
 	CollectorPort     uint16
 	CollectorEndpoint string
+}
+
+func asServiceAccessLogTemplate(key string, v *string) cm.ParseFunc {
+	return func(data map[string]string) error {
+		if raw, ok := data[key]; ok {
+			*v = raw
+		}
+		return nil
+	}
 }
 
 func asTracing(collectorFullEndpoint string, tracing *Tracing) cm.ParseFunc {
