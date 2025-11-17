@@ -3,9 +3,9 @@ module knative.dev/net-kourier
 go 1.24.0
 
 require (
-	github.com/envoyproxy/go-control-plane v0.13.4
+	github.com/envoyproxy/go-control-plane v0.14.0
 	github.com/envoyproxy/go-control-plane/contrib v1.32.4
-	github.com/envoyproxy/go-control-plane/envoy v1.32.4
+	github.com/envoyproxy/go-control-plane/envoy v1.36.0
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
@@ -16,8 +16,8 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.17.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5
-	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.8
+	google.golang.org/grpc v1.75.1
+	google.golang.org/protobuf v1.36.10
 	gotest.tools/v3 v3.0.3
 	k8s.io/api v0.33.5
 	k8s.io/apimachinery v0.33.5

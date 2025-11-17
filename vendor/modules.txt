@@ -30,8 +30,8 @@ github.com/davecgh/go-spew/spew
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
-# github.com/envoyproxy/go-control-plane v0.13.4
-## explicit; go 1.22
+# github.com/envoyproxy/go-control-plane v0.14.0
+## explicit; go 1.23.0
 github.com/envoyproxy/go-control-plane/pkg/cache/types
 github.com/envoyproxy/go-control-plane/pkg/cache/v3
 github.com/envoyproxy/go-control-plane/pkg/log
@@ -46,12 +46,13 @@ github.com/envoyproxy/go-control-plane/pkg/wellknown
 # github.com/envoyproxy/go-control-plane/contrib v1.32.4
 ## explicit; go 1.22
 github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/private_key_providers/cryptomb/v3alpha
-# github.com/envoyproxy/go-control-plane/envoy v1.32.4
-## explicit; go 1.22
+# github.com/envoyproxy/go-control-plane/envoy v1.36.0
+## explicit; go 1.23.0
 github.com/envoyproxy/go-control-plane/envoy/annotations
 github.com/envoyproxy/go-control-plane/envoy/api/v2/core
 github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3
 github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3
+github.com/envoyproxy/go-control-plane/envoy/config/common/matcher/v3
 github.com/envoyproxy/go-control-plane/envoy/config/common/mutation_rules/v3
 github.com/envoyproxy/go-control-plane/envoy/config/core/v3
 github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3
@@ -486,7 +487,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.75.0
+# google.golang.org/grpc v1.75.1
 ## explicit; go 1.23.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -550,7 +551,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.8
+# google.golang.org/protobuf v1.36.10
 ## explicit; go 1.23
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
