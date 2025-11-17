@@ -283,6 +283,7 @@ func TestLocalTLSListener(t *testing.T) {
 	testConfig := &config.Config{
 		Network: &netconfig.Config{},
 		Kourier: &config.Kourier{
+			ListenIPAddresses:   []string{"0.0.0.0"},
 			ClusterCertSecret:   "test-ca",
 			EnableProxyProtocol: true,
 		},
@@ -396,6 +397,7 @@ func TestLocalTLSListener(t *testing.T) {
 func TestListenersAndClustersWithTracing(t *testing.T) {
 	testConfig := &config.Config{
 		Kourier: &config.Kourier{
+			ListenIPAddresses: []string{"0.0.0.0"},
 			Tracing: config.Tracing{
 				Enabled:           true,
 				CollectorHost:     "jaeger.default.svc.cluster.local",
