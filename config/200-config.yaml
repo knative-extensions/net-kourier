@@ -126,3 +126,8 @@ data:
     # This value overrides environment variable if defined.
     certs-secret-name: ""
     certs-secret-namespace: ""
+
+    # Trace context propagation format for distributed tracing (default: "b3"):
+    # - "b3": B3 headers only (x-b3-traceid, x-b3-spanid, etc.)
+    # - "b3-w3c": B3 + W3C traceparent headers (extracts B3 first, injects both) - requires Envoy 1.36+
+    tracing-context-option: "b3"

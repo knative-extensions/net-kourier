@@ -36,6 +36,11 @@ const (
 	// ConfigName is the name of config map for Kourier.
 	ConfigName = "config-kourier"
 
+	// Trace context option values
+	TraceContextOptionB3      = "b3"
+	TraceContextOptionB3W3C   = "b3-w3c"
+	DefaultTraceContextOption = TraceContextOptionB3
+
 	// enableServiceAccessLoggingKey is the config map key for enabling service related
 	// access logging.
 	enableServiceAccessLoggingKey = "enable-service-access-logging"
@@ -58,6 +63,9 @@ const (
 
 	// TracingCollectorFullEndpoint is the config map key to configure tracing at kourier gateway level
 	TracingCollectorFullEndpoint = "tracing-collector-full-endpoint"
+
+	// TracingContextOptionKey is the config map key to configure trace context propagation format
+	TracingContextOptionKey = "tracing-context-option"
 
 	disableEnvoyServerHeader = "disable-envoy-server-header"
 
@@ -130,31 +138,51 @@ type Tracing struct {
 	CollectorHost     string
 	CollectorPort     uint16
 	CollectorEndpoint string
+	// TraceContextOption controls trace context header propagation format.
+	// Valid values: "b3", "b3-w3c" (default: "b3")
+	// - "b3": Use B3 headers only (x-b3-traceid, x-b3-spanid, etc.)
+	// - "b3-w3c": Use both B3 and W3C traceparent headers for compatibility - requires Envoy 1.36+
+	TraceContextOption string
 }
 
 func asTracing(collectorFullEndpoint string, tracing *Tracing) cm.ParseFunc {
 	return func(data map[string]string) error {
-		if raw, ok := data[collectorFullEndpoint]; ok && raw != "" {
-			tracing.Enabled = true
+		rawEndpoint, ok := data[collectorFullEndpoint]
+		if !ok || rawEndpoint == "" {
+			return nil
+		}
 
-			// We add a random scheme to be able to use url.ParseRequestURI.
-			parsedURL, err := url.ParseRequestURI("scheme://" + raw)
-			if err != nil {
-				return fmt.Errorf("%q is not a valid URL: %w", raw, err)
+		tracing.Enabled = true
+
+		// We add a random scheme to be able to use url.ParseRequestURI.
+		parsedURL, err := url.ParseRequestURI("scheme://" + rawEndpoint)
+		if err != nil {
+			return fmt.Errorf("%q is not a valid URL: %w", rawEndpoint, err)
+		}
+
+		tracing.CollectorHost = parsedURL.Hostname()
+		collectorPortUint64, err := strconv.ParseUint(parsedURL.Port(), 10, 32)
+		if err != nil {
+			return fmt.Errorf("%q is not a valid port: %w", parsedURL.Port(), err)
+		}
+
+		if collectorPortUint64 > math.MaxUint16 {
+			return fmt.Errorf("port %d must be a valid port", collectorPortUint64)
+		}
+
+		tracing.CollectorPort = uint16(collectorPortUint64)
+		tracing.CollectorEndpoint = parsedURL.Path
+
+		// Parse trace context option (defaults to b3-w3c)
+		if contextOption, ok := data[TracingContextOptionKey]; ok && contextOption != "" {
+			switch contextOption {
+			case TraceContextOptionB3, TraceContextOptionB3W3C:
+				tracing.TraceContextOption = contextOption
+			default:
+				return fmt.Errorf("invalid trace context option %q, must be one of: %s, %s", contextOption, TraceContextOptionB3, TraceContextOptionB3W3C)
 			}
-
-			tracing.CollectorHost = parsedURL.Hostname()
-			collectorPortUint64, err := strconv.ParseUint(parsedURL.Port(), 10, 32)
-			if err != nil {
-				return fmt.Errorf("%q is not a valid port: %w", parsedURL.Port(), err)
-			}
-
-			if collectorPortUint64 > math.MaxUint16 {
-				return fmt.Errorf("port %d must be a valid port", collectorPortUint64)
-			}
-
-			tracing.CollectorPort = uint16(collectorPortUint64)
-			tracing.CollectorEndpoint = parsedURL.Path
+		} else {
+			tracing.TraceContextOption = DefaultTraceContextOption
 		}
 
 		return nil

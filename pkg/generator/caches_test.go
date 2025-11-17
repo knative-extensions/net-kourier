@@ -397,10 +397,11 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 	testConfig := &config.Config{
 		Kourier: &config.Kourier{
 			Tracing: config.Tracing{
-				Enabled:           true,
-				CollectorHost:     "jaeger.default.svc.cluster.local",
-				CollectorPort:     9411,
-				CollectorEndpoint: "/api/v2/spans",
+				Enabled:            true,
+				CollectorHost:      "jaeger.default.svc.cluster.local",
+				CollectorPort:      9411,
+				CollectorEndpoint:  "/api/v2/spans",
+				TraceContextOption: config.TraceContextOptionB3W3C,
 			},
 		},
 	}
@@ -469,6 +470,7 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 				CollectorEndpoint:        testConfig.Kourier.Tracing.CollectorEndpoint,
 				SharedSpanContext:        wrapperspb.Bool(false),
 				CollectorEndpointVersion: tracev3.ZipkinConfig_HTTP_JSON,
+				TraceContextOption:       tracev3.ZipkinConfig_USE_B3_WITH_W3C_PROPAGATION,
 			}
 
 			httpConnectionManagerFilter := currentListener.FilterChains[0].Filters[0]

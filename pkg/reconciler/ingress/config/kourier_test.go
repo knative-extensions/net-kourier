@@ -124,10 +124,11 @@ func TestKourierConfig(t *testing.T) {
 		want: &Kourier{
 			EnableServiceAccessLogging: true,
 			Tracing: Tracing{
-				Enabled:           true,
-				CollectorHost:     "jaeger.default.svc.cluster.local",
-				CollectorPort:     9411,
-				CollectorEndpoint: "/api/v2/spans",
+				Enabled:            true,
+				CollectorHost:      "jaeger.default.svc.cluster.local",
+				CollectorPort:      9411,
+				CollectorEndpoint:  "/api/v2/spans",
+				TraceContextOption: TraceContextOptionB3,
 			},
 		},
 		data: map[string]string{
@@ -143,6 +144,45 @@ func TestKourierConfig(t *testing.T) {
 		},
 		data: map[string]string{
 			TracingCollectorFullEndpoint: "",
+		},
+	}, {
+		name: "configure tracing with B3 only",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			Tracing: Tracing{
+				Enabled:            true,
+				CollectorHost:      "jaeger.default.svc.cluster.local",
+				CollectorPort:      9411,
+				CollectorEndpoint:  "/api/v2/spans",
+				TraceContextOption: TraceContextOptionB3,
+			},
+		},
+		data: map[string]string{
+			TracingCollectorFullEndpoint: "jaeger.default.svc.cluster.local:9411/api/v2/spans",
+			TracingContextOptionKey:      "b3",
+		},
+	}, {
+		name: "configure tracing with explicit B3-W3C",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			Tracing: Tracing{
+				Enabled:            true,
+				CollectorHost:      "jaeger.default.svc.cluster.local",
+				CollectorPort:      9411,
+				CollectorEndpoint:  "/api/v2/spans",
+				TraceContextOption: TraceContextOptionB3W3C,
+			},
+		},
+		data: map[string]string{
+			TracingCollectorFullEndpoint: "jaeger.default.svc.cluster.local:9411/api/v2/spans",
+			TracingContextOptionKey:      "b3-w3c",
+		},
+	}, {
+		name:    "invalid trace context option",
+		wantErr: true,
+		data: map[string]string{
+			TracingCollectorFullEndpoint: "jaeger.default.svc.cluster.local:9411/api/v2/spans",
+			TracingContextOptionKey:      "invalid",
 		},
 	}, {
 		name: "enable use remote address",
