@@ -117,11 +117,17 @@ func NewHTTPConnectionManager(routeConfigName string, kourierConfig *config.Kour
 	if kourierConfig.Tracing.Enabled {
 		mgr.GenerateRequestId = wrapperspb.Bool(true)
 
+		traceContextOption := envoy_config_trace_v3.ZipkinConfig_USE_B3
+		if kourierConfig.Tracing.TraceContextOption == config.TraceContextOptionB3W3C {
+			traceContextOption = envoy_config_trace_v3.ZipkinConfig_USE_B3_WITH_W3C_PROPAGATION
+		}
+
 		zipkinConfig, _ := anypb.New(&envoy_config_trace_v3.ZipkinConfig{
 			CollectorCluster:         "tracing-collector",
 			CollectorEndpoint:        kourierConfig.Tracing.CollectorEndpoint,
 			SharedSpanContext:        wrapperspb.Bool(false),
 			CollectorEndpointVersion: envoy_config_trace_v3.ZipkinConfig_HTTP_JSON,
+			TraceContextOption:       traceContextOption,
 		})
 
 		mgr.Tracing = &hcm.HttpConnectionManager_Tracing{
