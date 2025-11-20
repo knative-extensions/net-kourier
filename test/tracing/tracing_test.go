@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	jaegerAPI "github.com/jaegertracing/jaeger/proto-gen/api_v2"
+	jaegerAPI "github.com/jaegertracing/jaeger-idl/proto-gen/api_v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"gotest.tools/v3/assert"
@@ -165,6 +165,8 @@ func getNumberOfTraces(ctx context.Context, t *testing.T, queryClient jaegerAPI.
 			OperationName: operationName,
 			Tags:          tags,
 			StartTimeMin:  startTime,
+			StartTimeMax:  time.Now(),
+			SearchDepth:   100, // Maximum number of traces to return
 		},
 	}
 
