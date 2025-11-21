@@ -21,9 +21,6 @@ import (
 	"errors"
 	"sync"
 
-	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	httpconnmanagerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -376,36 +373,8 @@ func generateListenersAndRouteConfigsAndClusters(
 		routes = append(routes, externalTLSRouteConfig)
 	}
 
-	if cfg.Kourier.Tracing.Enabled {
-		jaegerCluster := &envoyclusterv3.Cluster{
-			Name:                 "tracing-collector",
-			ClusterDiscoveryType: &envoyclusterv3.Cluster_Type{Type: envoyclusterv3.Cluster_STRICT_DNS},
-			LoadAssignment: &endpoint.ClusterLoadAssignment{
-				ClusterName: "tracing-collector",
-				Endpoints: []*endpoint.LocalityLbEndpoints{{
-					LbEndpoints: []*endpoint.LbEndpoint{{
-						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-							Endpoint: &endpoint.Endpoint{
-								Address: &core.Address{
-									Address: &core.Address_SocketAddress{
-										SocketAddress: &core.SocketAddress{
-											Protocol: core.SocketAddress_TCP,
-											Address:  cfg.Kourier.Tracing.CollectorHost,
-											PortSpecifier: &core.SocketAddress_PortValue{
-												PortValue: uint32(cfg.Kourier.Tracing.CollectorPort),
-											},
-											Ipv4Compat: true,
-										},
-									},
-								},
-							},
-						},
-					}},
-				}},
-			},
-		}
-
-		clusters = append(clusters, jaegerCluster)
+	if cluster := cfg.Kourier.Tracing.Cluster(); cluster != nil {
+		clusters = append(clusters, cluster)
 	}
 
 	return listeners, routes, clusters, nil
