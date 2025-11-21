@@ -157,6 +157,31 @@ vars in the `net-kourier-controller` deployment:
 
 `*` Required
 
+## Distributed Tracing Configuration
+
+Kourier supports distributed tracing via OpenTelemetry Protocol (OTLP). To enable tracing, configure the `config-kourier` ConfigMap:
+
+```bash
+kubectl patch configmap/config-kourier \
+  -n knative-serving \
+  --type merge \
+  -p '{"data":{
+    "tracing-endpoint":"http://otel-collector.observability.svc:4317",
+    "tracing-protocol":"grpc",
+    "tracing-sampling-rate":"1.0"
+  }}'
+```
+
+### Configuration Options
+
+- **`tracing-endpoint`**: The OTLP collector endpoint (e.g., `http://otel-collector.observability.svc:4317` for gRPC or `http://otel-collector.observability.svc:4318` for HTTP)
+- **`tracing-protocol`**: The protocol to use for sending traces. Supported values:
+  - `grpc`: OTLP over gRPC (default, typically port 4317)
+  - `http/protobuf`: OTLP over HTTP with protobuf encoding (typically port 4318)
+- **`tracing-sampling-rate`**: Sampling rate for traces, ranging from `0.0` (no sampling) to `1.0` (sample all requests). Default is `1.0`
+
+Kourier propagates W3C trace context headers (`traceparent`, `tracestate`, and `baggage`) to enable distributed tracing across services.
+
 ## Proxy Protocol Configuration
 Note: this is an experimental/alpha feature.
 

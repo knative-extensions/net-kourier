@@ -18,9 +18,7 @@ package config
 
 import (
 	"fmt"
-	"math"
 	"net"
-	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -30,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	cm "knative.dev/pkg/configmap"
+	"knative.dev/pkg/observability/metrics"
 )
 
 const (
@@ -56,8 +55,10 @@ const (
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
-	// TracingCollectorFullEndpoint is the config map key to configure tracing at kourier gateway level
-	TracingCollectorFullEndpoint = "tracing-collector-full-endpoint"
+	TracingEndpointKey     = "tracing-endpoint"
+	TracingProtocolKey     = "tracing-protocol"
+	TracingSamplingRateKey = "tracing-sampling-rate"
+	TracingServiceNameKey  = "tracing-service-name"
 
 	disableEnvoyServerHeader = "disable-envoy-server-header"
 
@@ -111,7 +112,7 @@ func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(useRemoteAddress, &nc.UseRemoteAddress),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
-		asTracing(TracingCollectorFullEndpoint, &nc.Tracing),
+		asTracing(&nc.Tracing),
 		asExternalAuthz(&nc.ExternalAuthz),
 		cm.AsBool(disableEnvoyServerHeader, &nc.DisableEnvoyServerHeader),
 		cm.AsString(certsSecretNameKey, &nc.CertsSecretName),
@@ -123,38 +124,56 @@ func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
 	return nc, nil
 }
 
-// Tracing contains all fields required to configure tracing at kourier gateway level.
-// This object is mostly filled by the asTracing method, using TracingCollectorFullEndpoint value as the source.
-type Tracing struct {
-	Enabled           bool
-	CollectorHost     string
-	CollectorPort     uint16
-	CollectorEndpoint string
-}
-
-func asTracing(collectorFullEndpoint string, tracing *Tracing) cm.ParseFunc {
+func asTracing(tracing *Tracing) cm.ParseFunc {
 	return func(data map[string]string) error {
-		if raw, ok := data[collectorFullEndpoint]; ok && raw != "" {
-			tracing.Enabled = true
+		otlpEndpoint := data[TracingEndpointKey]
+		if otlpEndpoint == "" {
+			return nil
+		}
 
-			// We add a random scheme to be able to use url.ParseRequestURI.
-			parsedURL, err := url.ParseRequestURI("scheme://" + raw)
+		tracing.Enabled = true
+		tracing.Endpoint = otlpEndpoint
+
+		// Parse endpoint to extract host, port, and path
+		host, port, path, err := parseOtlpEndpoint(otlpEndpoint)
+		if err != nil {
+			return fmt.Errorf("invalid tracing endpoint %q: %w", otlpEndpoint, err)
+		}
+		tracing.OTLPHost = host
+		tracing.OTLPPort = port
+		tracing.OTLPPath = path
+
+		// Parse protocol
+		protocol := data[TracingProtocolKey]
+		if protocol == "" {
+			tracing.Protocol = DefaultTracingProtocol
+		} else if protocol != metrics.ProtocolHTTPProtobuf && protocol != metrics.ProtocolGRPC {
+			return fmt.Errorf("invalid tracing protocol %q, must be %q or %q", protocol, metrics.ProtocolHTTPProtobuf, metrics.ProtocolGRPC)
+		} else {
+			tracing.Protocol = protocol
+		}
+
+		// Parse sampling rate
+		samplingRateStr := data[TracingSamplingRateKey]
+		if samplingRateStr == "" {
+			tracing.SamplingRate = DefaultTracingSamplingRate
+		} else {
+			samplingRate, err := strconv.ParseFloat(samplingRateStr, 64)
 			if err != nil {
-				return fmt.Errorf("%q is not a valid URL: %w", raw, err)
+				return fmt.Errorf("invalid tracing sampling rate %q: %w", samplingRateStr, err)
 			}
-
-			tracing.CollectorHost = parsedURL.Hostname()
-			collectorPortUint64, err := strconv.ParseUint(parsedURL.Port(), 10, 32)
-			if err != nil {
-				return fmt.Errorf("%q is not a valid port: %w", parsedURL.Port(), err)
+			if samplingRate < 0.0 || samplingRate > 1.0 {
+				return fmt.Errorf("tracing sampling rate %f must be between 0.0 and 1.0", samplingRate)
 			}
+			tracing.SamplingRate = samplingRate
+		}
 
-			if collectorPortUint64 > math.MaxUint16 {
-				return fmt.Errorf("port %d must be a valid port", collectorPortUint64)
-			}
-
-			tracing.CollectorPort = uint16(collectorPortUint64)
-			tracing.CollectorEndpoint = parsedURL.Path
+		// Parse service name
+		serviceName := data[TracingServiceNameKey]
+		if serviceName == "" {
+			tracing.ServiceName = DefaultTracingServiceName
+		} else {
+			tracing.ServiceName = serviceName
 		}
 
 		return nil
