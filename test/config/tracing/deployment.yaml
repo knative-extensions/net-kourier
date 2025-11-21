@@ -49,7 +49,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: jaeger-query
+  name: jaeger
   namespace: tracing
 spec:
   type: LoadBalancer # because we want to reach it from the e2e tests (that are not running inside Kubernetes)
