@@ -120,20 +120,6 @@ func TestKourierConfig(t *testing.T) {
 			trustedHopsCount:              "3",
 		},
 	}, {
-		name: "configure tracing",
-		want: &Kourier{
-			EnableServiceAccessLogging: true,
-			Tracing: Tracing{
-				Enabled:           true,
-				CollectorHost:     "jaeger.default.svc.cluster.local",
-				CollectorPort:     9411,
-				CollectorEndpoint: "/api/v2/spans",
-			},
-		},
-		data: map[string]string{
-			TracingCollectorFullEndpoint: "jaeger.default.svc.cluster.local:9411/api/v2/spans",
-		},
-	}, {
 		name: "do not enable tracing",
 		want: &Kourier{
 			EnableServiceAccessLogging: true,
@@ -142,7 +128,79 @@ func TestKourierConfig(t *testing.T) {
 			},
 		},
 		data: map[string]string{
-			TracingCollectorFullEndpoint: "",
+			TracingEndpointKey: "",
+		},
+	}, {
+		name: "configure OTLP tracing with defaults",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			Tracing: Tracing{
+				Enabled:      true,
+				Endpoint:     "http://otel-collector.observability.svc:4317",
+				Protocol:     TracingProtocolGRPC,
+				SamplingRate: DefaultTracingSamplingRate,
+				ServiceName:  DefaultTracingServiceName,
+				OTLPHost:     "otel-collector.observability.svc",
+				OTLPPort:     4317,
+				OTLPPath:     "",
+			},
+		},
+		data: map[string]string{
+			TracingEndpointKey: "http://otel-collector.observability.svc:4317",
+		},
+	}, {
+		name: "configure OTLP tracing with all fields",
+		want: &Kourier{
+			EnableServiceAccessLogging: true,
+			Tracing: Tracing{
+				Enabled:      true,
+				Endpoint:     "http://otel-collector.observability.svc:4318/v1/traces",
+				Protocol:     TracingProtocolHTTP,
+				SamplingRate: 0.5,
+				ServiceName:  "my-gateway",
+				OTLPHost:     "otel-collector.observability.svc",
+				OTLPPort:     4318,
+				OTLPPath:     "/v1/traces",
+			},
+		},
+		data: map[string]string{
+			TracingEndpointKey:     "http://otel-collector.observability.svc:4318/v1/traces",
+			TracingProtocolKey:     "http",
+			TracingSamplingRateKey: "0.5",
+			TracingServiceNameKey:  "my-gateway",
+		},
+	}, {
+		name:    "invalid tracing protocol",
+		wantErr: true,
+		data: map[string]string{
+			TracingEndpointKey: "http://otel-collector:4317",
+			TracingProtocolKey: "invalid",
+		},
+	}, {
+		name:    "invalid tracing sampling rate - not a number",
+		wantErr: true,
+		data: map[string]string{
+			TracingEndpointKey:     "http://otel-collector:4317",
+			TracingSamplingRateKey: "invalid",
+		},
+	}, {
+		name:    "invalid tracing sampling rate - out of range",
+		wantErr: true,
+		data: map[string]string{
+			TracingEndpointKey:     "http://otel-collector:4317",
+			TracingSamplingRateKey: "1.5",
+		},
+	}, {
+		name:    "invalid tracing endpoint - missing port",
+		wantErr: true,
+		data: map[string]string{
+			TracingEndpointKey: "http://otel-collector/v1/traces",
+		},
+	}, {
+		name:    "invalid tracing endpoint - no port in host:port format",
+		wantErr: true,
+		data: map[string]string{
+			TracingEndpointKey: "otel-collector",
 		},
 	}, {
 		name: "enable use remote address",
