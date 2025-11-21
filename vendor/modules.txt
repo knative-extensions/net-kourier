@@ -49,7 +49,6 @@ github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/private_key_prov
 # github.com/envoyproxy/go-control-plane/envoy v1.36.0
 ## explicit; go 1.23.0
 github.com/envoyproxy/go-control-plane/envoy/annotations
-github.com/envoyproxy/go-control-plane/envoy/api/v2/core
 github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3
 github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3
 github.com/envoyproxy/go-control-plane/envoy/config/common/matcher/v3
@@ -66,7 +65,6 @@ github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/proxy_p
 github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3
-github.com/envoyproxy/go-control-plane/envoy/service/auth/v2
 github.com/envoyproxy/go-control-plane/envoy/service/auth/v3
 github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3
 github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3
@@ -76,9 +74,7 @@ github.com/envoyproxy/go-control-plane/envoy/service/listener/v3
 github.com/envoyproxy/go-control-plane/envoy/service/route/v3
 github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3
 github.com/envoyproxy/go-control-plane/envoy/service/secret/v3
-github.com/envoyproxy/go-control-plane/envoy/type
 github.com/envoyproxy/go-control-plane/envoy/type/http/v3
-github.com/envoyproxy/go-control-plane/envoy/type/matcher
 github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3
 github.com/envoyproxy/go-control-plane/envoy/type/metadata/v3
 github.com/envoyproxy/go-control-plane/envoy/type/tracing/v3
