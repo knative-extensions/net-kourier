@@ -23,12 +23,14 @@ import (
 
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	fakenetworkingclient "knative.dev/networking/pkg/client/injection/client/fake"
@@ -79,14 +81,23 @@ func TestReconcile(t *testing.T) {
 		Key:  "ns/name",
 		Objects: []runtime.Object{
 			ing("name", "ns", withBasicSpec, withKourier),
-			&corev1.Endpoints{
+			&discoveryv1.EndpointSlice{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      config.InternalServiceName,
+					Name:      config.InternalServiceName + "-abc",
 					Namespace: config.GatewayNamespace(),
+					Labels: map[string]string{
+						discoveryv1.LabelServiceName: config.InternalServiceName,
+					},
 				},
-				Subsets: []corev1.EndpointSubset{{
-					Addresses: []corev1.EndpointAddress{{IP: "2.2.2.2"}},
-				}},
+				AddressType: discoveryv1.AddressTypeIPv4,
+				Endpoints: []discoveryv1.Endpoint{
+					{
+						Addresses: []string{"2.2.2.2"},
+						Conditions: discoveryv1.EndpointConditions{
+							Ready: ptr.To(true),
+						},
+					},
+				},
 			},
 		},
 		WantEvents: []string{
@@ -121,8 +132,11 @@ func TestReconcile(t *testing.T) {
 			func(_ string) ([]*corev1.ConfigMap, error) {
 				return ls.GetConfigMapLister().List(labels.NewSelector())
 			},
-			func(ns, name string) (*corev1.Endpoints, error) {
-				return ls.GetEndpointsLister().Endpoints(ns).Get(name)
+			func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+				selector := labels.SelectorFromSet(labels.Set{
+					discoveryv1.LabelServiceName: name,
+				})
+				return ls.GetEndpointSlicesLister().EndpointSlices(ns).List(selector)
 			},
 			func(ns, name string) (*corev1.Service, error) {
 				return ls.GetK8sServiceLister().Services(ns).Get(name)
@@ -155,7 +169,7 @@ func TestReconcile(t *testing.T) {
 			extAuthz:          false,
 			resyncConflicts:   func() {},
 			statusManager: status.NewProber(
-				nil, NewProbeTargetLister(logging.FromContext(ctx), ls.GetEndpointsLister()), nil,
+				nil, NewProbeTargetLister(logging.FromContext(ctx), ls.GetEndpointSlicesLister()), nil,
 			),
 		}
 
