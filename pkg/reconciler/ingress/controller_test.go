@@ -22,10 +22,10 @@ import (
 
 	_ "knative.dev/networking/pkg/client/injection/client/fake"
 	_ "knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress/fake"
-	_ "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints/fake"
 	_ "knative.dev/pkg/client/injection/kube/informers/core/v1/pod/fake"
 	_ "knative.dev/pkg/client/injection/kube/informers/core/v1/secret/filtered/fake"
 	_ "knative.dev/pkg/client/injection/kube/informers/core/v1/service/fake"
+	_ "knative.dev/pkg/client/injection/kube/informers/discovery/v1/endpointslice/fake"
 	_ "knative.dev/pkg/client/injection/kube/informers/factory/filtered/fake"
 	_ "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/configmap/fake"
 

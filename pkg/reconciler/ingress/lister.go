@@ -24,40 +24,51 @@ import (
 	"strconv"
 
 	"go.uber.org/zap"
+	discoveryv1 "k8s.io/api/discovery/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
-	corev1listers "k8s.io/client-go/listers/core/v1"
+	discoveryv1listers "k8s.io/client-go/listers/discovery/v1"
+	"knative.dev/net-kourier/pkg/endpointslice"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
 )
 
-func NewProbeTargetLister(logger *zap.SugaredLogger, endpointsLister corev1listers.EndpointsLister) status.ProbeTargetLister {
+func NewProbeTargetLister(logger *zap.SugaredLogger, endpointSlicesLister discoveryv1listers.EndpointSliceLister) status.ProbeTargetLister {
 	return &gatewayPodTargetLister{
-		logger:          logger,
-		endpointsLister: endpointsLister,
+		logger:               logger,
+		endpointSlicesLister: endpointSlicesLister,
 	}
 }
 
 type gatewayPodTargetLister struct {
-	logger          *zap.SugaredLogger
-	endpointsLister corev1listers.EndpointsLister
+	logger               *zap.SugaredLogger
+	endpointSlicesLister discoveryv1listers.EndpointSliceLister
 }
 
 func (l *gatewayPodTargetLister) ListProbeTargets(_ context.Context, ing *v1alpha1.Ingress) ([]status.ProbeTarget, error) {
-	eps, err := l.endpointsLister.Endpoints(config.GatewayNamespace()).Get(config.InternalServiceName)
+	selector := labels.SelectorFromSet(labels.Set{
+		discoveryv1.LabelServiceName: config.InternalServiceName,
+	})
+	slices, err := l.endpointSlicesLister.EndpointSlices(config.GatewayNamespace()).List(selector)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get internal service: %w", err)
+		return nil, fmt.Errorf("failed to list endpointslices for internal service: %w", err)
 	}
 
-	var readyIPs []string
-	for _, sub := range eps.Subsets {
-		for _, address := range sub.Addresses {
-			readyIPs = append(readyIPs, address.IP)
+	// Aggregate ready IPv4 addresses from all slices
+	allAddresses := sets.New[string]()
+	for _, slice := range slices {
+		addresses := endpointslice.ReadyAddressesFromSlice(slice)
+		if addresses != nil {
+			allAddresses = allAddresses.Union(addresses)
 		}
 	}
-	if len(readyIPs) == 0 {
+
+	if allAddresses.Len() == 0 {
 		return nil, errors.New("no gateway pods available")
 	}
+
+	readyIPs := sets.List(allAddresses)
 	return l.getIngressUrls(ing, readyIPs)
 }
 
