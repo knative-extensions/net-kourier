@@ -139,6 +139,9 @@ aliases:
   - dprotaso
   net-gateway-api-approvers:
   - dprotaso
+  net-gateway-api-reviewers:
+  - dprotaso
+  - kahirokunn
   net-istio-approvers:
   - skonto
   net-kourier-approvers:
