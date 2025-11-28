@@ -207,6 +207,14 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 					typ = v3.Cluster_STATIC
 					publicLbEndpoints = lbEndpointsForKubeEndpoints(endpoints, targetPort)
+
+					// If endpoints exist but have no ready addresses, skip this ingress.
+					// The tracker will trigger reconciliation when endpoints become ready.
+					if len(publicLbEndpoints) == 0 {
+						logger.Warnf("Endpoints '%s/%s' exist but have no ready addresses, skipping ingress translation",
+							split.ServiceNamespace, split.ServiceName)
+						return nil, nil
+					}
 				}
 
 				connectTimeout := 5 * time.Second

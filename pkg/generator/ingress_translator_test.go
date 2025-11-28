@@ -2084,3 +2084,60 @@ func combineCerts(cert1 []byte, cert2 []byte) []byte {
 	result = append(result, cert2...)
 	return result
 }
+
+func TestTranslateIngress_EndpointsNotReady(t *testing.T) {
+	ctx := context.Background()
+	ctx = config.ToContext(ctx, &config.Config{
+		Kourier: &config.Kourier{},
+		Network: &netconfig.Config{},
+	})
+
+	// Create ingress pointing to a service
+	ingress := ing("test-ns", "test-ingress")
+	service := svc("service-ns", "service-name")
+
+	// Create endpoints with only NotReadyAddresses
+	endpointsNotReady := &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "service-ns",
+			Name:      "service-name",
+		},
+		Subsets: []corev1.EndpointSubset{{
+			NotReadyAddresses: []corev1.EndpointAddress{{
+				IP: "10.1.1.1",
+			}},
+			Ports: []corev1.EndpointPort{{
+				Name:     "http",
+				Port:     80,
+				Protocol: corev1.ProtocolTCP,
+			}},
+		}},
+	}
+
+	// Create translator with mocks
+	translator := NewIngressTranslator(
+		func(ns, name string) (*corev1.Secret, error) {
+			return nil, nil
+		},
+		func(label string) ([]*corev1.ConfigMap, error) {
+			return nil, nil
+		},
+		func(ns, name string) (*corev1.Endpoints, error) {
+			return endpointsNotReady, nil
+		},
+		func(ns, name string) (*corev1.Service, error) {
+			return service, nil
+		},
+		&pkgtest.FakeTracker{})
+
+	// Translate the ingress
+	result, err := translator.translateIngress(ctx, ingress, false)
+	// Should return nil, nil when endpoints are not ready
+	if err != nil {
+		t.Errorf("Expected nil error, got %v", err)
+	}
+
+	if result != nil {
+		t.Errorf("Expected nil result for ingress with not-ready endpoints, got %v", result)
+	}
+}
