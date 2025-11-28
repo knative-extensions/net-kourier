@@ -75,6 +75,7 @@ func (envoyXdsServer *XdsServer) RunManagementServer() error {
 		grpc.MaxConcurrentStreams(grpcMaxConcurrentStreams),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{MinTime: 20 * time.Second, PermitWithoutStream: true}),
 	)
+	//nolint:noctx // context.Done is handled below explicitly
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
