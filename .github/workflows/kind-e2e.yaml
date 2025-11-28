@@ -21,10 +21,9 @@ jobs:
         - v1.33.x
 
         gateway:
-        - quay.io/maistra-dev/proxyv2-ubi8:2.4-latest
-        - docker.io/envoyproxy/envoy:v1.32-latest
-        - docker.io/envoyproxy/envoy:v1.33-latest
         - docker.io/envoyproxy/envoy:v1.34-latest
+        - docker.io/envoyproxy/envoy:v1.35-latest
+        - docker.io/envoyproxy/envoy:v1.36-latest
 
         upstream-tls:
         - plain

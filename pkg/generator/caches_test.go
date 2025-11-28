@@ -22,19 +22,14 @@ import (
 	"testing"
 
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	tracev3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
 	http_connection_managerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,6 +39,7 @@ import (
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/certificates"
 	netconfig "knative.dev/networking/pkg/config"
+	"knative.dev/pkg/observability/metrics"
 )
 
 func TestDeleteIngressInfo(t *testing.T) {
@@ -397,10 +393,14 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 	testConfig := &config.Config{
 		Kourier: &config.Kourier{
 			Tracing: config.Tracing{
-				Enabled:           true,
-				CollectorHost:     "jaeger.default.svc.cluster.local",
-				CollectorPort:     9411,
-				CollectorEndpoint: "/api/v2/spans",
+				Enabled:      true,
+				Endpoint:     "http://otel-collector.default.svc.cluster.local:4318/v1/traces",
+				Protocol:     metrics.ProtocolHTTPProtobuf,
+				SamplingRate: 0.67,
+				ServiceName:  "kourier-knative",
+				OTLPHost:     "otel-collector.default.svc.cluster.local",
+				OTLPPort:     4318,
+				OTLPPath:     "/v1/traces",
 			},
 		},
 	}
@@ -412,51 +412,24 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 	caches, err := NewCaches(ctx, &kubeClient)
 	assert.NilError(t, err)
 
-	t.Run("check a tracing cluster exist, and tracing is configured on listeners", func(t *testing.T) {
-		translatedIngress := &translatedIngress{}
-		err := caches.addTranslatedIngress(translatedIngress)
-		assert.NilError(t, err)
+	translatedIngress := &translatedIngress{}
+	err = caches.addTranslatedIngress(translatedIngress)
+	assert.NilError(t, err)
 
-		snapshot, err := caches.ToEnvoySnapshot(ctx)
-		assert.NilError(t, err)
+	snapshot, err := caches.ToEnvoySnapshot(ctx)
+	assert.NilError(t, err)
 
-		tracingCollectorCluster := snapshot.GetResources(resource.ClusterType)["tracing-collector"].(*v3.Cluster)
+	t.Run("tracing cluster is created", func(t *testing.T) {
+		tracingCluster := snapshot.GetResources(resource.ClusterType)[config.OtelCollectorClusterName].(*v3.Cluster)
+		assert.Assert(t, tracingCluster != nil, "tracing cluster should exist when tracing is enabled")
 
-		expectedTracingCollectorCluster := &v3.Cluster{
-			Name:                 "tracing-collector",
-			ClusterDiscoveryType: &v3.Cluster_Type{Type: v3.Cluster_STRICT_DNS},
-			LoadAssignment: &endpoint.ClusterLoadAssignment{
-				ClusterName: "tracing-collector",
-				Endpoints: []*endpoint.LocalityLbEndpoints{{
-					LbEndpoints: []*endpoint.LbEndpoint{{
-						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-							Endpoint: &endpoint.Endpoint{
-								Address: &core.Address{
-									Address: &core.Address_SocketAddress{
-										SocketAddress: &core.SocketAddress{
-											Protocol: core.SocketAddress_TCP,
-											Address:  testConfig.Kourier.Tracing.CollectorHost,
-											PortSpecifier: &core.SocketAddress_PortValue{
-												PortValue: uint32(testConfig.Kourier.Tracing.CollectorPort),
-											},
-											Ipv4Compat: true,
-										},
-									},
-								},
-							},
-						},
-					}},
-				}},
-			},
-		}
+		// Verify cluster endpoint configuration
+		socketAddr := tracingCluster.LoadAssignment.Endpoints[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress()
+		assert.Equal(t, testConfig.Kourier.Tracing.OTLPHost, socketAddr.Address)
+		assert.Equal(t, testConfig.Kourier.Tracing.OTLPPort, socketAddr.GetPortValue())
+	})
 
-		assert.DeepEqual(t, expectedTracingCollectorCluster, tracingCollectorCluster,
-			cmpopts.IgnoreUnexported(
-				v3.Cluster{}, endpoint.ClusterLoadAssignment{}, endpoint.LocalityLbEndpoints{}, endpoint.LbEndpoint{},
-				endpoint.Endpoint{}, core.Address{}, core.SocketAddress{},
-			),
-		)
-
+	t.Run("tracing is configured on all HTTP listeners", func(t *testing.T) {
 		listenersPorts := []uint32{
 			config.HTTPPortExternal, config.HTTPPortLocal, config.HTTPPortProb,
 		}
@@ -464,28 +437,61 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 		for _, listenerPort := range listenersPorts {
 			currentListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(listenerPort)].(*listener.Listener)
 
-			expectedTracingConfig := &tracev3.ZipkinConfig{
-				CollectorCluster:         "tracing-collector",
-				CollectorEndpoint:        testConfig.Kourier.Tracing.CollectorEndpoint,
-				SharedSpanContext:        wrapperspb.Bool(false),
-				CollectorEndpointVersion: tracev3.ZipkinConfig_HTTP_JSON,
-			}
-
 			httpConnectionManagerFilter := currentListener.FilterChains[0].Filters[0]
-			assert.Equal(t, wellknown.HTTPConnectionManager, httpConnectionManagerFilter.Name)
-
 			httpConnectionManagerConfig := &http_connection_managerv3.HttpConnectionManager{}
 			err = anypb.UnmarshalTo(httpConnectionManagerFilter.GetTypedConfig(), httpConnectionManagerConfig, proto.UnmarshalOptions{})
 			assert.NilError(t, err)
 
+			// Verify tracing is enabled and request ID generation is on
+			assert.Assert(t, httpConnectionManagerConfig.Tracing != nil, "listener %d should have tracing configured", listenerPort)
 			assert.Equal(t, true, httpConnectionManagerConfig.GenerateRequestId.GetValue())
-
-			tracingConfig := &tracev3.ZipkinConfig{}
-			err = anypb.UnmarshalTo(httpConnectionManagerConfig.Tracing.Provider.GetTypedConfig(), tracingConfig, proto.UnmarshalOptions{})
-			assert.NilError(t, err)
-			assert.DeepEqual(t, expectedTracingConfig, tracingConfig, cmpopts.IgnoreUnexported(tracev3.ZipkinConfig{}, wrapperspb.BoolValue{}))
+			assert.Equal(t, float64(67), httpConnectionManagerConfig.Tracing.OverallSampling.Value)
 		}
 	})
+}
+
+func TestTracingDisabled(t *testing.T) {
+	testConfig := &config.Config{
+		Kourier: &config.Kourier{
+			Tracing: config.Tracing{
+				Enabled: false,
+			},
+		},
+	}
+
+	kubeClient := fake.Clientset{}
+	cfg := testConfig.DeepCopy()
+	ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
+
+	caches, err := NewCaches(ctx, &kubeClient)
+	assert.NilError(t, err)
+
+	translatedIngress := &translatedIngress{}
+	err = caches.addTranslatedIngress(translatedIngress)
+	assert.NilError(t, err)
+
+	snapshot, err := caches.ToEnvoySnapshot(ctx)
+	assert.NilError(t, err)
+
+	// Verify tracing cluster does not exist
+	_, exists := snapshot.GetResources(resource.ClusterType)[config.OtelCollectorClusterName]
+	assert.Assert(t, !exists, "tracing cluster should not exist when tracing is disabled")
+
+	// Verify listeners do not have tracing configured
+	listenersPorts := []uint32{
+		config.HTTPPortExternal, config.HTTPPortLocal, config.HTTPPortProb,
+	}
+
+	for _, listenerPort := range listenersPorts {
+		currentListener := snapshot.GetResources(resource.ListenerType)[envoy.CreateListenerName(listenerPort)].(*listener.Listener)
+
+		httpConnectionManagerFilter := currentListener.FilterChains[0].Filters[0]
+		httpConnectionManagerConfig := &http_connection_managerv3.HttpConnectionManager{}
+		err = anypb.UnmarshalTo(httpConnectionManagerFilter.GetTypedConfig(), httpConnectionManagerConfig, proto.UnmarshalOptions{})
+		assert.NilError(t, err)
+
+		assert.Assert(t, httpConnectionManagerConfig.Tracing == nil, "listener %d should not have tracing configured when disabled", listenerPort)
+	}
 }
 
 // Creates an ingress translation and listeners from the given names an
