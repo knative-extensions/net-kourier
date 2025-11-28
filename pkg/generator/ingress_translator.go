@@ -86,7 +86,7 @@ func NewIngressTranslator(
 	}
 }
 
-func (translator *IngressTranslator) translateIngress(ctx context.Context, ingress *v1alpha1.Ingress, extAuthzEnabled bool) (*translatedIngress, error) {
+func (translator *IngressTranslator) translateIngress(ctx context.Context, ingress *v1alpha1.Ingress) (*translatedIngress, error) {
 	logger := logging.FromContext(ctx)
 
 	localIngressTLS := ingress.GetIngressTLSForVisibility(v1alpha1.IngressVisibilityClusterLocal)
@@ -231,7 +231,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 
 			if len(wrs) != 0 {
 				// disable ext_authz filter for HTTP01 challenge when the feature is enabled
-				if extAuthzEnabled && strings.HasPrefix(path, "/.well-known/acme-challenge/") {
+				if cfg.Kourier.ExternalAuthz.Enabled && strings.HasPrefix(path, "/.well-known/acme-challenge/") {
 					routes = append(routes, envoy.NewRouteExtAuthzDisabled(
 						pathName, matchHeadersFromHTTPPath(httpPath), path, wrs, 0, httpPath.AppendHeaders, httpPath.RewriteHost))
 				} else if _, ok := os.LookupEnv("KOURIER_HTTPOPTION_DISABLED"); !ok && ingress.Spec.HTTPOption == v1alpha1.HTTPOptionRedirected && rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
@@ -256,7 +256,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		}
 
 		var virtualHost, virtualTLSHost *route.VirtualHost
-		if extAuthzEnabled {
+		if cfg.Kourier.ExternalAuthz.Enabled {
 			contextExtensions := kmeta.UnionMaps(map[string]string{
 				"client":     "kourier",
 				"visibility": string(rule.Visibility),
