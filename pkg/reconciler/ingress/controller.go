@@ -27,14 +27,15 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	v1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"knative.dev/net-kourier/pkg/endpointslice"
 	envoy "knative.dev/net-kourier/pkg/envoy/server"
 	"knative.dev/net-kourier/pkg/generator"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
@@ -47,10 +48,10 @@ import (
 	netconfig "knative.dev/networking/pkg/config"
 	"knative.dev/networking/pkg/status"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
-	endpointsinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/endpoints"
 	podinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/pod"
 	secretfilteredinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/secret/filtered"
 	serviceinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/service"
+	endpointsliceinformer "knative.dev/pkg/client/injection/kube/informers/discovery/v1/endpointslice"
 	filteredFactory "knative.dev/pkg/client/injection/kube/informers/factory/filtered"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
@@ -80,7 +81,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	kubernetesClient := kubeclient.Get(ctx)
 	knativeClient := knativeclient.Get(ctx)
 	ingressInformer := ingressinformer.Get(ctx)
-	endpointsInformer := endpointsinformer.Get(ctx)
+	endpointSliceInformer := endpointsliceinformer.Get(ctx)
 	serviceInformer := serviceinformer.Get(ctx)
 	podInformer := podinformer.Get(ctx)
 	secretInformer := getSecretInformer(ctx)
@@ -172,7 +173,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	statusProber := status.NewProber(
 		logger.Named("status-manager"),
-		NewProbeTargetLister(logger, endpointsInformer.Lister()),
+		NewProbeTargetLister(logger, endpointSliceInformer.Lister()),
 		func(ing *v1alpha1.Ingress) {
 			logger.Debugf("Ready callback triggered for ingress: %s/%s", ing.Namespace, ing.Name)
 			impl.EnqueueKey(types.NamespacedName{Namespace: ing.Namespace, Name: ing.Name})
@@ -198,8 +199,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			}
 			return nsConfigmapInformer.Lister().List(selector)
 		},
-		func(ns, name string) (*corev1.Endpoints, error) {
-			return endpointsInformer.Lister().Endpoints(ns).Get(name)
+		func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+			selector := labels.SelectorFromSet(labels.Set{
+				discoveryv1.LabelServiceName: name,
+			})
+			return endpointSliceInformer.Lister().EndpointSlices(ns).List(selector)
 		},
 		func(ns, name string) (*corev1.Service, error) {
 			return serviceInformer.Lister().Services(ns).Get(name)
@@ -237,8 +241,21 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			}
 			return nsConfigmapInformer.Lister().List(selector)
 		},
-		func(ns, name string) (*corev1.Endpoints, error) {
-			return kubernetesClient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+		func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+			selector := labels.SelectorFromSet(labels.Set{
+				discoveryv1.LabelServiceName: name,
+			})
+			sliceList, err := kubernetesClient.DiscoveryV1().EndpointSlices(ns).List(ctx, metav1.ListOptions{
+				LabelSelector: selector.String(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			slices := make([]*discoveryv1.EndpointSlice, len(sliceList.Items))
+			for i := range sliceList.Items {
+				slices[i] = &sliceList.Items[i]
+			}
+			return slices, nil
 		},
 		func(ns, name string) (*corev1.Service, error) {
 			return kubernetesClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
@@ -290,13 +307,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	viaTracker := controller.EnsureTypeMeta(
 		impl.Tracker.OnChanged,
-		corev1.SchemeGroupVersion.WithKind("Endpoints"))
-	endpointsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		discoveryv1.SchemeGroupVersion.WithKind("EndpointSlice"))
+	endpointSliceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    viaTracker,
 		DeleteFunc: viaTracker,
 		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-			before := readyAddresses(oldObj.(*corev1.Endpoints))
-			after := readyAddresses(newObj.(*corev1.Endpoints))
+			before := endpointslice.ReadyAddressesFromSlice(oldObj.(*discoveryv1.EndpointSlice))
+			after := endpointslice.ReadyAddressesFromSlice(newObj.(*discoveryv1.EndpointSlice))
 
 			// If the ready addresses have not changed, there is no reason for us to
 			// reconcile this endpoint, so why bother?
@@ -356,26 +373,6 @@ func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.Ne
 		}
 	}
 	return ingressesToWarm, nil
-}
-
-func readyAddresses(eps *corev1.Endpoints) sets.Set[string] {
-	var count int
-	for _, subset := range eps.Subsets {
-		count += len(subset.Addresses)
-	}
-
-	if count == 0 {
-		return nil
-	}
-
-	ready := make(sets.Set[string], count)
-	for _, subset := range eps.Subsets {
-		for _, address := range subset.Addresses {
-			ready.Insert(address.IP)
-		}
-	}
-
-	return ready
 }
 
 func getSecretInformer(ctx context.Context) v1.SecretInformer {

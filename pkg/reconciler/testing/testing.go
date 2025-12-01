@@ -18,9 +18,11 @@ package testing
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	fakekubeclientset "k8s.io/client-go/kubernetes/fake"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	discoveryv1listers "k8s.io/client-go/listers/discovery/v1"
 	"k8s.io/client-go/tools/cache"
 	networking "knative.dev/networking/pkg/apis/networking/v1alpha1"
 	fakenetworkingclientset "knative.dev/networking/pkg/client/clientset/versioned/fake"
@@ -85,9 +87,9 @@ func (l *Listers) GetK8sServiceLister() corev1listers.ServiceLister {
 	return corev1listers.NewServiceLister(l.IndexerFor(&corev1.Service{}))
 }
 
-// GetEndpointsLister get lister for K8s Endpoints resource.
-func (l *Listers) GetEndpointsLister() corev1listers.EndpointsLister {
-	return corev1listers.NewEndpointsLister(l.IndexerFor(&corev1.Endpoints{}))
+// GetEndpointSlicesLister get lister for K8s EndpointSlice resource.
+func (l *Listers) GetEndpointSlicesLister() discoveryv1listers.EndpointSliceLister {
+	return discoveryv1listers.NewEndpointSliceLister(l.IndexerFor(&discoveryv1.EndpointSlice{}))
 }
 
 // GetConfigMapLister get lister for K8s ConfigMap resource.

@@ -38,7 +38,9 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
@@ -64,26 +66,26 @@ type translatedIngress struct {
 }
 
 type IngressTranslator struct {
-	secretGetter      func(ns, name string) (*corev1.Secret, error)
-	nsConfigmapGetter func(label string) ([]*corev1.ConfigMap, error)
-	endpointsGetter   func(ns, name string) (*corev1.Endpoints, error)
-	serviceGetter     func(ns, name string) (*corev1.Service, error)
-	tracker           tracker.Interface
+	secretGetter         func(ns, name string) (*corev1.Secret, error)
+	nsConfigmapGetter    func(label string) ([]*corev1.ConfigMap, error)
+	endpointSlicesGetter func(ns, name string) ([]*discoveryv1.EndpointSlice, error)
+	serviceGetter        func(ns, name string) (*corev1.Service, error)
+	tracker              tracker.Interface
 }
 
 func NewIngressTranslator(
 	secretGetter func(ns, name string) (*corev1.Secret, error),
 	nsConfigmapGetter func(label string) ([]*corev1.ConfigMap, error),
-	endpointsGetter func(ns, name string) (*corev1.Endpoints, error),
+	endpointSlicesGetter func(ns, name string) ([]*discoveryv1.EndpointSlice, error),
 	serviceGetter func(ns, name string) (*corev1.Service, error),
 	tracker tracker.Interface,
 ) IngressTranslator {
 	return IngressTranslator{
-		secretGetter:      secretGetter,
-		nsConfigmapGetter: nsConfigmapGetter,
-		endpointsGetter:   endpointsGetter,
-		serviceGetter:     serviceGetter,
-		tracker:           tracker,
+		secretGetter:         secretGetter,
+		nsConfigmapGetter:    nsConfigmapGetter,
+		endpointSlicesGetter: endpointSlicesGetter,
+		serviceGetter:        serviceGetter,
+		tracker:              tracker,
 	}
 }
 
@@ -205,23 +207,25 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 						envoy.NewLBEndpoint(service.Spec.ExternalName, uint32(externalPort)), //#nosec G115
 					}
 				} else {
-					// For all other types, fetch the endpoints object.
-					endpoints, err := translator.endpointsGetter(split.ServiceNamespace, split.ServiceName)
-					if apierrors.IsNotFound(err) {
-						logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
+					// For all other types, fetch the endpointslices object.
+					slices, err := translator.endpointSlicesGetter(split.ServiceNamespace, split.ServiceName)
+					if err != nil {
+						return nil, fmt.Errorf("failed to fetch endpointslices '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
+					}
+
+					if len(slices) == 0 {
+						logger.Warnf("EndpointSlices '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 						// TODO(markusthoemmes): Find out if we should actually `continue` here.
 						return nil, nil
-					} else if err != nil {
-						return nil, fmt.Errorf("failed to fetch endpoints '%s/%s': %w", split.ServiceNamespace, split.ServiceName, err)
 					}
 
 					typ = v3.Cluster_STATIC
-					publicLbEndpoints = lbEndpointsForKubeEndpoints(endpoints, targetPort)
+					publicLbEndpoints = lbEndpointsForKubeEndpointSlices(slices, targetPort)
 
-					// If endpoints exist but have no ready addresses, skip this ingress.
+					// If endpointslices exist but have no ready addresses, skip this ingress.
 					// The tracker will trigger reconciliation when endpoints become ready.
 					if len(publicLbEndpoints) == 0 {
-						logger.Warnf("Endpoints '%s/%s' exist but have no ready addresses, skipping ingress translation",
+						logger.Warnf("EndpointSlices '%s/%s' exist but have no ready addresses, skipping ingress translation",
 							split.ServiceNamespace, split.ServiceName)
 						return nil, nil
 					}
@@ -488,34 +492,18 @@ func trackService(t tracker.Interface, svcNs, svcName string, ingress *v1alpha1.
 	}
 
 	if err := t.TrackReference(tracker.Reference{
-		Kind:       "Endpoints",
-		APIVersion: "v1",
+		Kind:       "EndpointSlice",
+		APIVersion: "discovery.k8s.io/v1",
 		Namespace:  svcNs,
-		Name:       svcName,
+		Selector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				discoveryv1.LabelServiceName: svcName,
+			},
+		},
 	}, ingress); err != nil {
-		return fmt.Errorf("could not track endpoints reference: %w", err)
+		return fmt.Errorf("could not track endpointslices reference: %w", err)
 	}
 	return nil
-}
-
-func lbEndpointsForKubeEndpoints(kubeEndpoints *corev1.Endpoints, targetPort int32) []*endpoint.LbEndpoint {
-	var readyAddressCount int
-	for _, subset := range kubeEndpoints.Subsets {
-		readyAddressCount += len(subset.Addresses)
-	}
-
-	if readyAddressCount == 0 {
-		return nil
-	}
-
-	eps := make([]*endpoint.LbEndpoint, 0, readyAddressCount)
-	for _, subset := range kubeEndpoints.Subsets {
-		for _, address := range subset.Addresses {
-			eps = append(eps, envoy.NewLBEndpoint(address.IP, uint32(targetPort))) //#nosec G115
-		}
-	}
-
-	return eps
 }
 
 func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.HeaderMatcher {

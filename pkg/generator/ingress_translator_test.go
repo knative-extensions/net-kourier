@@ -34,11 +34,13 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/utils/ptr"
 	envoy "knative.dev/net-kourier/pkg/envoy/api"
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking"
@@ -780,21 +782,7 @@ func TestIngressTranslator(t *testing.T) {
 
 			kubeclient := fake.NewSimpleClientset(test.state...)
 
-			translator := NewIngressTranslator(
-				func(ns, name string) (*corev1.Secret, error) {
-					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				func(_ string) ([]*corev1.ConfigMap, error) {
-					return getConfigmaps(ctx, kubeclient)
-				},
-				func(ns, name string) (*corev1.Endpoints, error) {
-					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				func(ns, name string) (*corev1.Service, error) {
-					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				&pkgtest.FakeTracker{},
-			)
+			translator := newTestIngressTranslator(ctx, kubeclient)
 
 			got, err := translator.translateIngress(ctx, test.in, false)
 			assert.Equal(t, err != nil, test.wantErr)
@@ -997,21 +985,7 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 			ctx := (&testConfigStore{config: cfg}).ToContext(context.Background())
 			kubeclient := fake.NewSimpleClientset(test.state...)
 
-			translator := NewIngressTranslator(
-				func(ns, name string) (*corev1.Secret, error) {
-					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				func(_ string) ([]*corev1.ConfigMap, error) {
-					return getConfigmaps(ctx, kubeclient)
-				},
-				func(ns, name string) (*corev1.Endpoints, error) {
-					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				func(ns, name string) (*corev1.Service, error) {
-					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				&pkgtest.FakeTracker{},
-			)
+			translator := newTestIngressTranslator(ctx, kubeclient)
 
 			got, err := translator.translateIngress(ctx, test.in, false)
 			assert.NilError(t, err)
@@ -1504,21 +1478,7 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 
 			kubeclient := fake.NewSimpleClientset(test.state...)
 
-			translator := NewIngressTranslator(
-				func(ns, name string) (*corev1.Secret, error) {
-					return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				func(_ string) ([]*corev1.ConfigMap, error) {
-					return getConfigmaps(ctx, kubeclient)
-				},
-				func(ns, name string) (*corev1.Endpoints, error) {
-					return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				func(ns, name string) (*corev1.Service, error) {
-					return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
-				},
-				&pkgtest.FakeTracker{},
-			)
+			translator := newTestIngressTranslator(ctx, kubeclient)
 
 			got, err := translator.translateIngress(ctx, test.in, false)
 			assert.Equal(t, err != nil, test.wantErr)
@@ -1546,12 +1506,15 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 					TargetPort: intstr.FromInt(8089),
 				}}
 			}),
-			eps("simplens", "cm-acme-http-solver", func(endpoint *corev1.Endpoints) {
-				endpoint.Subsets = []corev1.EndpointSubset{{
-					Addresses: []corev1.EndpointAddress{{
-						IP: "2.2.2.2",
-					}},
-				}}
+			eps("simplens", "cm-acme-http-solver", func(slice *discoveryv1.EndpointSlice) {
+				slice.Endpoints = []discoveryv1.Endpoint{
+					{
+						Addresses: []string{"2.2.2.2"},
+						Conditions: discoveryv1.EndpointConditions{
+							Ready: ptr.To(true),
+						},
+					},
+				}
 			}),
 		},
 		want: func() *translatedIngress {
@@ -1607,21 +1570,7 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 
 		kubeclient := fake.NewSimpleClientset(test.state...)
 
-		translator := NewIngressTranslator(
-			func(ns, name string) (*corev1.Secret, error) {
-				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			func(_ string) ([]*corev1.ConfigMap, error) {
-				return getConfigmaps(ctx, kubeclient)
-			},
-			func(ns, name string) (*corev1.Endpoints, error) {
-				return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			func(ns, name string) (*corev1.Service, error) {
-				return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			&pkgtest.FakeTracker{},
-		)
+		translator := newTestIngressTranslator(ctx, kubeclient)
 
 		got, err := translator.translateIngress(ctx, test.in, true)
 
@@ -1721,21 +1670,7 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 
 		kubeclient := fake.NewSimpleClientset(test.state...)
 
-		translator := NewIngressTranslator(
-			func(ns, name string) (*corev1.Secret, error) {
-				return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			func(_ string) ([]*corev1.ConfigMap, error) {
-				return getConfigmaps(ctx, kubeclient)
-			},
-			func(ns, name string) (*corev1.Endpoints, error) {
-				return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			func(ns, name string) (*corev1.Service, error) {
-				return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			&pkgtest.FakeTracker{},
-		)
+		translator := newTestIngressTranslator(ctx, kubeclient)
 
 		got, err := translator.translateIngress(ctx, test.in, false)
 		assert.NilError(t, err)
@@ -1822,32 +1757,49 @@ func svc(ns, name string, opts ...func(*corev1.Service)) *corev1.Service {
 	return service
 }
 
-func eps(ns, name string, opts ...func(endpoint *corev1.Endpoints)) *corev1.Endpoints {
-	serviceEndpoint := &corev1.Endpoints{
+func eps(ns, name string, opts ...func(slice *discoveryv1.EndpointSlice)) *discoveryv1.EndpointSlice {
+	endpointSlice := &discoveryv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Name:      name,
+			Name:      name + "-abc",
+			Labels: map[string]string{
+				discoveryv1.LabelServiceName: name,
+			},
 		},
-		Subsets: []corev1.EndpointSubset{{
-			Addresses: []corev1.EndpointAddress{{
-				IP: "2.2.2.2",
-			}, {
-				IP: "3.3.3.3",
-			}},
-		}, {
-			Addresses: []corev1.EndpointAddress{{
-				IP: "4.4.4.4",
-			}, {
-				IP: "5.5.5.5",
-			}},
-		}},
+		AddressType: discoveryv1.AddressTypeIPv4,
+		Endpoints: []discoveryv1.Endpoint{
+			{
+				Addresses: []string{"2.2.2.2"},
+				Conditions: discoveryv1.EndpointConditions{
+					Ready: ptr.To(true),
+				},
+			},
+			{
+				Addresses: []string{"3.3.3.3"},
+				Conditions: discoveryv1.EndpointConditions{
+					Ready: ptr.To(true),
+				},
+			},
+			{
+				Addresses: []string{"4.4.4.4"},
+				Conditions: discoveryv1.EndpointConditions{
+					Ready: ptr.To(true),
+				},
+			},
+			{
+				Addresses: []string{"5.5.5.5"},
+				Conditions: discoveryv1.EndpointConditions{
+					Ready: ptr.To(true),
+				},
+			},
+		},
 	}
 
 	for _, opt := range opts {
-		opt(serviceEndpoint)
+		opt(endpointSlice)
 	}
 
-	return serviceEndpoint
+	return endpointSlice
 }
 
 func ingHTTP01Challenge(ns, name string, opts ...func(*v1alpha1.Ingress)) *v1alpha1.Ingress {
@@ -1897,6 +1849,46 @@ func getConfigmaps(ctx context.Context, kubeclient *fake.Clientset) ([]*corev1.C
 		result = append(result, &ci)
 	}
 	return result, nil
+}
+
+func getEndpointSlicesForService(ctx context.Context, kubeclient *fake.Clientset, ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+	labelSelector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			discoveryv1.LabelServiceName: name,
+		},
+	}
+	selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
+	if err != nil {
+		return nil, err
+	}
+	slices, err := kubeclient.DiscoveryV1().EndpointSlices(ns).List(ctx, metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*discoveryv1.EndpointSlice, 0)
+	for _, s := range slices.Items {
+		si := s
+		result = append(result, &si)
+	}
+	return result, nil
+}
+
+func newTestIngressTranslator(ctx context.Context, kubeclient *fake.Clientset) IngressTranslator {
+	return NewIngressTranslator(
+		func(ns, name string) (*corev1.Secret, error) {
+			return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(_ string) ([]*corev1.ConfigMap, error) {
+			return getConfigmaps(ctx, kubeclient)
+		},
+		func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+			return getEndpointSlicesForService(ctx, kubeclient, ns, name)
+		},
+		func(ns, name string) (*corev1.Service, error) {
+			return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		&pkgtest.FakeTracker{},
+	)
 }
 
 var lbEndpoints = []*endpoint.LbEndpoint{
@@ -2106,22 +2098,33 @@ func TestTranslateIngress_EndpointsNotReady(t *testing.T) {
 	ingress := ing("test-ns", "test-ingress")
 	service := svc("service-ns", "service-name")
 
-	// Create endpoints with only NotReadyAddresses
-	endpointsNotReady := &corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "service-ns",
-			Name:      "service-name",
+	// Create endpoint slices with only not-ready endpoints
+	endpointSlicesNotReady := []*discoveryv1.EndpointSlice{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "service-ns",
+				Name:      "service-name-abc",
+				Labels: map[string]string{
+					discoveryv1.LabelServiceName: "service-name",
+				},
+			},
+			AddressType: discoveryv1.AddressTypeIPv4,
+			Endpoints: []discoveryv1.Endpoint{
+				{
+					Addresses: []string{"10.1.1.1"},
+					Conditions: discoveryv1.EndpointConditions{
+						Ready: ptr.To(false),
+					},
+				},
+			},
+			Ports: []discoveryv1.EndpointPort{
+				{
+					Name:     ptr.To("http"),
+					Port:     ptr.To(int32(80)),
+					Protocol: ptr.To(corev1.ProtocolTCP),
+				},
+			},
 		},
-		Subsets: []corev1.EndpointSubset{{
-			NotReadyAddresses: []corev1.EndpointAddress{{
-				IP: "10.1.1.1",
-			}},
-			Ports: []corev1.EndpointPort{{
-				Name:     "http",
-				Port:     80,
-				Protocol: corev1.ProtocolTCP,
-			}},
-		}},
 	}
 
 	// Create translator with mocks
@@ -2132,8 +2135,8 @@ func TestTranslateIngress_EndpointsNotReady(t *testing.T) {
 		func(label string) ([]*corev1.ConfigMap, error) {
 			return nil, nil
 		},
-		func(ns, name string) (*corev1.Endpoints, error) {
-			return endpointsNotReady, nil
+		func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+			return endpointSlicesNotReady, nil
 		},
 		func(ns, name string) (*corev1.Service, error) {
 			return service, nil
@@ -2220,8 +2223,8 @@ func TestTranslateIngressWithDuplicateDomains(t *testing.T) {
 		func(_ string) ([]*corev1.ConfigMap, error) {
 			return getConfigmaps(ctx, kubeclient)
 		},
-		func(ns, name string) (*corev1.Endpoints, error) {
-			return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+		func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+			return getEndpointSlicesForService(ctx, kubeclient, ns, name)
 		},
 		func(ns, name string) (*corev1.Service, error) {
 			return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
@@ -2344,8 +2347,8 @@ func TestTranslateIngressWithMultipleDomainsAndPaths(t *testing.T) {
 		func(_ string) ([]*corev1.ConfigMap, error) {
 			return getConfigmaps(ctx, kubeclient)
 		},
-		func(ns, name string) (*corev1.Endpoints, error) {
-			return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+		func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+			return getEndpointSlicesForService(ctx, kubeclient, ns, name)
 		},
 		func(ns, name string) (*corev1.Service, error) {
 			return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
@@ -2460,8 +2463,8 @@ func TestTranslateIngressWithMixedVisibility(t *testing.T) {
 		func(_ string) ([]*corev1.ConfigMap, error) {
 			return getConfigmaps(ctx, kubeclient)
 		},
-		func(ns, name string) (*corev1.Endpoints, error) {
-			return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+		func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
+			return getEndpointSlicesForService(ctx, kubeclient, ns, name)
 		},
 		func(ns, name string) (*corev1.Service, error) {
 			return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
