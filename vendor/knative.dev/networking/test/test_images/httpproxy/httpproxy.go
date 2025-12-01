@@ -130,7 +130,7 @@ func newDNSCachingTransport() http.RoundTripper {
 				break
 			}
 		}
-		return
+		return conn, err
 	}
 
 	if caCert := os.Getenv("CA_CERT"); caCert != "" {
