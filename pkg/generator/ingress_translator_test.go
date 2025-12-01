@@ -66,11 +66,11 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(simplens/simplename).Rules[0].Paths[/test]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -132,11 +132,11 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -206,31 +206,41 @@ func TestIngressTranslator(t *testing.T) {
 			secret,
 		},
 		want: func() *translatedIngress {
+			testRoute := envoy.NewRoute(
+				"(testspace/testname).Domain[foo.ns.svc.cluster.local].Paths[/test]",
+				[]*route.HeaderMatcher{{
+					Name: "testheader",
+					HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+						StringMatch: &envoymatcherv3.StringMatcher{
+							MatchPattern: &envoymatcherv3.StringMatcher_Exact{
+								Exact: "foo",
+							},
+						},
+					},
+				}},
+				"/test",
+				[]*route.WeightedCluster_ClusterWeight{
+					envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
+				},
+				0,
+				map[string]string{"foo": "bar"},
+				"rewritten.example.com")
+
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
-					[]string{"foo.ns.svc.cluster.local", "foo.ns.svc.cluster.local:*", "foo.ns.svc", "foo.ns.svc:*", "foo.ns", "foo.ns:*"},
-					[]*route.Route{
-						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
-							[]*route.HeaderMatcher{{
-								Name: "testheader",
-								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-									StringMatch: &envoymatcherv3.StringMatcher{
-										MatchPattern: &envoymatcherv3.StringMatcher_Exact{
-											Exact: "foo",
-										},
-									},
-								},
-							}},
-							"/test",
-							[]*route.WeightedCluster_ClusterWeight{
-								envoy.NewWeightedCluster("servicens/servicename", 100, map[string]string{"baz": "gna"}),
-							},
-							0,
-							map[string]string{"foo": "bar"},
-							"rewritten.example.com"),
-					},
+					"(testspace/testname).Domain[foo.ns]",
+					[]string{"foo.ns", "foo.ns:*"},
+					[]*route.Route{testRoute},
+				),
+				envoy.NewVirtualHost(
+					"(testspace/testname).Domain[foo.ns.svc]",
+					[]string{"foo.ns.svc", "foo.ns.svc:*"},
+					[]*route.Route{testRoute},
+				),
+				envoy.NewVirtualHost(
+					"(testspace/testname).Domain[foo.ns.svc.cluster.local]",
+					[]string{"foo.ns.svc.cluster.local", "foo.ns.svc.cluster.local:*"},
+					[]*route.Route{testRoute},
 				),
 			}
 
@@ -283,11 +293,11 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -310,11 +320,11 @@ func TestIngressTranslator(t *testing.T) {
 			}
 			vHostsRedirect := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRedirectRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -381,11 +391,11 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -503,11 +513,11 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -582,11 +592,11 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -643,11 +653,11 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -705,11 +715,11 @@ func TestIngressTranslator(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -845,11 +855,11 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -921,11 +931,11 @@ func TestIngressTranslatorWithHTTPOptionDisabled(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(testspace/testname).Rules[0]",
+					"(testspace/testname).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(testspace/testname).Rules[0].Paths[/test]",
+							"(testspace/testname).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -1034,11 +1044,11 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(simplens/simplename).Rules[0].Paths[/test]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -1109,11 +1119,11 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(simplens/simplename).Rules[0].Paths[/test]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -1185,11 +1195,11 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(simplens/simplename).Rules[0].Paths[/test]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -1261,11 +1271,11 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(simplens/simplename).Rules[0].Paths[/test]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -1328,11 +1338,11 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(simplens/simplename).Rules[0].Paths[/test]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -1399,11 +1409,11 @@ func TestIngressTranslatorWithUpstreamTLS(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(simplens/simplename).Rules[0].Paths[/test]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -1547,12 +1557,12 @@ func TestIngressTranslatorHTTP01Challenge(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHostWithExtAuthz(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					map[string]string{"client": "kourier", "visibility": "ExternalIP"},
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRouteExtAuthzDisabled(
-							"(simplens/simplename).Rules[0].Paths[/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE]",
 							nil,
 							"/.well-known/acme-challenge/-VwB1vAXWaN6mVl3-6JVFTEvf7acguaFDUxsP9UzRkE",
 							[]*route.WeightedCluster_ClusterWeight{
@@ -1652,11 +1662,11 @@ func TestIngressTranslatorDomainMappingDisableHTTP2(t *testing.T) {
 		want: func() *translatedIngress {
 			vHosts := []*route.VirtualHost{
 				envoy.NewVirtualHost(
-					"(simplens/simplename).Rules[0]",
+					"(simplens/simplename).Domain[foo.example.com]",
 					[]string{"foo.example.com", "foo.example.com:*"},
 					[]*route.Route{
 						envoy.NewRoute(
-							"(simplens/simplename).Rules[0].Paths[/test]",
+							"(simplens/simplename).Domain[foo.example.com].Paths[/test]",
 							[]*route.HeaderMatcher{{
 								Name: "testheader",
 								HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -2139,5 +2149,381 @@ func TestTranslateIngress_EndpointsNotReady(t *testing.T) {
 
 	if result != nil {
 		t.Errorf("Expected nil result for ingress with not-ready endpoints, got %v", result)
+	}
+}
+
+// TestTranslateIngressWithDuplicateDomains verifies that when multiple Ingress rules
+// share the same domain (e.g., app traffic + ACME challenges), domains are deduplicated
+// and routes are merged into a single VirtualHost per domain.
+func TestTranslateIngressWithDuplicateDomains(t *testing.T) {
+	ingress := &v1alpha1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "testns",
+			Name:      "testname",
+		},
+		Spec: v1alpha1.IngressSpec{
+			Rules: []v1alpha1.IngressRule{
+				{
+					Hosts:      []string{"example.com"},
+					Visibility: v1alpha1.IngressVisibilityExternalIP,
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{{
+							Path: "/",
+							Splits: []v1alpha1.IngressBackendSplit{{
+								Percent: 100,
+								IngressBackend: v1alpha1.IngressBackend{
+									ServiceNamespace: "testns",
+									ServiceName:      "app-svc",
+									ServicePort:      intstr.FromInt(80),
+								},
+							}},
+						}},
+					},
+				},
+				{
+					Hosts:      []string{"example.com"}, // Duplicate domain
+					Visibility: v1alpha1.IngressVisibilityExternalIP,
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{{
+							Path: "/.well-known/acme-challenge/token",
+							Splits: []v1alpha1.IngressBackendSplit{{
+								Percent: 100,
+								IngressBackend: v1alpha1.IngressBackend{
+									ServiceNamespace: "testns",
+									ServiceName:      "solver-svc",
+									ServicePort:      intstr.FromInt(8089),
+								},
+							}},
+						}},
+					},
+				},
+			},
+		},
+	}
+
+	state := []runtime.Object{
+		svc("testns", "app-svc"),
+		eps("testns", "app-svc"),
+		svc("testns", "solver-svc"),
+		eps("testns", "solver-svc"),
+	}
+
+	ctx, cancel, _ := pkgtest.SetupFakeContextWithCancel(t)
+	defer cancel()
+	ctx = (&testConfigStore{config: defaultConfig}).ToContext(ctx)
+
+	kubeclient := fake.NewSimpleClientset(state...)
+	translator := NewIngressTranslator(
+		func(ns, name string) (*corev1.Secret, error) {
+			return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(_ string) ([]*corev1.ConfigMap, error) {
+			return getConfigmaps(ctx, kubeclient)
+		},
+		func(ns, name string) (*corev1.Endpoints, error) {
+			return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(ns, name string) (*corev1.Service, error) {
+			return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		&pkgtest.FakeTracker{})
+
+	result, err := translator.translateIngress(ctx, ingress, false)
+	if err != nil {
+		t.Fatalf("translateIngress() error = %v", err)
+	}
+
+	// Verify no duplicate domains across VirtualHosts
+	domainCount := make(map[string]int)
+	for _, vhost := range result.externalVirtualHosts {
+		for _, domain := range vhost.GetDomains() {
+			domainCount[domain]++
+		}
+	}
+
+	for domain, count := range domainCount {
+		if count > 1 {
+			t.Errorf("Domain %q appears in %d VirtualHosts, expected 1 (Envoy requires unique domains)", domain, count)
+		}
+	}
+
+	// Verify both routes are present
+	var totalRoutes int
+	for _, vhost := range result.externalVirtualHosts {
+		totalRoutes += len(vhost.GetRoutes())
+	}
+	if totalRoutes != 2 {
+		t.Errorf("Expected 2 routes total (app + ACME), got %d", totalRoutes)
+	}
+}
+
+// TestTranslateIngressWithMultipleDomainsAndPaths verifies that when an Ingress has
+// multiple rules with different domains, each having multiple paths, domains are
+// correctly separated and routes are properly grouped.
+func TestTranslateIngressWithMultipleDomainsAndPaths(t *testing.T) {
+	ingress := &v1alpha1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "testns",
+			Name:      "testname",
+		},
+		Spec: v1alpha1.IngressSpec{
+			Rules: []v1alpha1.IngressRule{
+				{
+					Hosts:      []string{"example.com"},
+					Visibility: v1alpha1.IngressVisibilityExternalIP,
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{{
+							Path: "/",
+							Splits: []v1alpha1.IngressBackendSplit{{
+								Percent: 100,
+								IngressBackend: v1alpha1.IngressBackend{
+									ServiceNamespace: "testns",
+									ServiceName:      "app-svc",
+									ServicePort:      intstr.FromInt(80),
+								},
+							}},
+						}},
+					},
+				},
+				{
+					Hosts:      []string{"example.com"}, // Same domain, different path
+					Visibility: v1alpha1.IngressVisibilityExternalIP,
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{{
+							Path: "/api",
+							Splits: []v1alpha1.IngressBackendSplit{{
+								Percent: 100,
+								IngressBackend: v1alpha1.IngressBackend{
+									ServiceNamespace: "testns",
+									ServiceName:      "api-svc",
+									ServicePort:      intstr.FromInt(80),
+								},
+							}},
+						}},
+					},
+				},
+				{
+					Hosts:      []string{"other.example.com"}, // Different domain
+					Visibility: v1alpha1.IngressVisibilityExternalIP,
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{{
+							Path: "/",
+							Splits: []v1alpha1.IngressBackendSplit{{
+								Percent: 100,
+								IngressBackend: v1alpha1.IngressBackend{
+									ServiceNamespace: "testns",
+									ServiceName:      "other-svc",
+									ServicePort:      intstr.FromInt(80),
+								},
+							}},
+						}},
+					},
+				},
+			},
+		},
+	}
+
+	state := []runtime.Object{
+		svc("testns", "app-svc"),
+		eps("testns", "app-svc"),
+		svc("testns", "api-svc"),
+		eps("testns", "api-svc"),
+		svc("testns", "other-svc"),
+		eps("testns", "other-svc"),
+	}
+
+	ctx, cancel, _ := pkgtest.SetupFakeContextWithCancel(t)
+	defer cancel()
+	ctx = (&testConfigStore{config: defaultConfig}).ToContext(ctx)
+
+	kubeclient := fake.NewSimpleClientset(state...)
+	translator := NewIngressTranslator(
+		func(ns, name string) (*corev1.Secret, error) {
+			return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(_ string) ([]*corev1.ConfigMap, error) {
+			return getConfigmaps(ctx, kubeclient)
+		},
+		func(ns, name string) (*corev1.Endpoints, error) {
+			return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(ns, name string) (*corev1.Service, error) {
+			return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		&pkgtest.FakeTracker{})
+
+	result, err := translator.translateIngress(ctx, ingress, false)
+	if err != nil {
+		t.Fatalf("translateIngress() error = %v", err)
+	}
+
+	// Verify no duplicate domains across VirtualHosts
+	domainCount := make(map[string]int)
+	for _, vhost := range result.externalVirtualHosts {
+		for _, domain := range vhost.GetDomains() {
+			domainCount[domain]++
+		}
+	}
+
+	for domain, count := range domainCount {
+		if count > 1 {
+			t.Errorf("Domain %q appears in %d VirtualHosts, expected 1", domain, count)
+		}
+	}
+
+	// Verify we have exactly 2 VirtualHosts (example.com and other.example.com)
+	if len(result.externalVirtualHosts) != 2 {
+		t.Errorf("Expected 2 VirtualHosts, got %d", len(result.externalVirtualHosts))
+	}
+
+	// Find the VirtualHost for example.com and verify it has 2 routes
+	var exampleComRoutes int
+	for _, vhost := range result.externalVirtualHosts {
+		for _, domain := range vhost.GetDomains() {
+			if domain == "example.com" || domain == "example.com:*" {
+				exampleComRoutes = len(vhost.GetRoutes())
+				break
+			}
+		}
+	}
+
+	if exampleComRoutes != 2 {
+		t.Errorf("Expected 2 routes for example.com (/ and /api), got %d", exampleComRoutes)
+	}
+}
+
+// TestTranslateIngressWithMixedVisibility verifies that routes for the same domain
+// with different visibility settings are correctly separated into different gateway
+// configurations (local vs external).
+func TestTranslateIngressWithMixedVisibility(t *testing.T) {
+	ingress := &v1alpha1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "testns",
+			Name:      "testname",
+		},
+		Spec: v1alpha1.IngressSpec{
+			Rules: []v1alpha1.IngressRule{
+				{
+					Hosts:      []string{"example.com"},
+					Visibility: v1alpha1.IngressVisibilityExternalIP,
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{{
+							Path: "/public",
+							Splits: []v1alpha1.IngressBackendSplit{{
+								Percent: 100,
+								IngressBackend: v1alpha1.IngressBackend{
+									ServiceNamespace: "testns",
+									ServiceName:      "public-svc",
+									ServicePort:      intstr.FromInt(80),
+								},
+							}},
+						}},
+					},
+				},
+				{
+					Hosts:      []string{"example.com"}, // Same domain
+					Visibility: v1alpha1.IngressVisibilityClusterLocal,
+					HTTP: &v1alpha1.HTTPIngressRuleValue{
+						Paths: []v1alpha1.HTTPIngressPath{{
+							Path: "/internal",
+							Splits: []v1alpha1.IngressBackendSplit{{
+								Percent: 100,
+								IngressBackend: v1alpha1.IngressBackend{
+									ServiceNamespace: "testns",
+									ServiceName:      "internal-svc",
+									ServicePort:      intstr.FromInt(80),
+								},
+							}},
+						}},
+					},
+				},
+			},
+		},
+	}
+
+	state := []runtime.Object{
+		svc("testns", "public-svc"),
+		eps("testns", "public-svc"),
+		svc("testns", "internal-svc"),
+		eps("testns", "internal-svc"),
+	}
+
+	ctx, cancel, _ := pkgtest.SetupFakeContextWithCancel(t)
+	defer cancel()
+	ctx = (&testConfigStore{config: defaultConfig}).ToContext(ctx)
+
+	kubeclient := fake.NewSimpleClientset(state...)
+	translator := NewIngressTranslator(
+		func(ns, name string) (*corev1.Secret, error) {
+			return kubeclient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(_ string) ([]*corev1.ConfigMap, error) {
+			return getConfigmaps(ctx, kubeclient)
+		},
+		func(ns, name string) (*corev1.Endpoints, error) {
+			return kubeclient.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		func(ns, name string) (*corev1.Service, error) {
+			return kubeclient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+		},
+		&pkgtest.FakeTracker{})
+
+	result, err := translator.translateIngress(ctx, ingress, false)
+	if err != nil {
+		t.Fatalf("translateIngress() error = %v", err)
+	}
+
+	// Verify external VirtualHosts have no duplicate domains
+	externalDomainCount := make(map[string]int)
+	for _, vhost := range result.externalVirtualHosts {
+		for _, domain := range vhost.GetDomains() {
+			externalDomainCount[domain]++
+		}
+	}
+
+	for domain, count := range externalDomainCount {
+		if count > 1 {
+			t.Errorf("Domain %q appears in %d external VirtualHosts, expected 1", domain, count)
+		}
+	}
+
+	// Verify local VirtualHosts have no duplicate domains
+	localDomainCount := make(map[string]int)
+	for _, vhost := range result.localVirtualHosts {
+		for _, domain := range vhost.GetDomains() {
+			localDomainCount[domain]++
+		}
+	}
+
+	for domain, count := range localDomainCount {
+		if count > 1 {
+			t.Errorf("Domain %q appears in %d local VirtualHosts, expected 1", domain, count)
+		}
+	}
+
+	// Verify that localVirtualHosts has both /public and /internal paths (both added to local)
+	// but externalVirtualHosts only has /public
+	var localRouteCount, externalRouteCount int
+	for _, vhost := range result.localVirtualHosts {
+		for _, domain := range vhost.GetDomains() {
+			if domain == "example.com" || domain == "example.com:*" {
+				localRouteCount = len(vhost.GetRoutes())
+			}
+		}
+	}
+	for _, vhost := range result.externalVirtualHosts {
+		for _, domain := range vhost.GetDomains() {
+			if domain == "example.com" || domain == "example.com:*" {
+				externalRouteCount = len(vhost.GetRoutes())
+			}
+		}
+	}
+
+	if localRouteCount != 2 {
+		t.Errorf("Expected 2 routes in local VirtualHost (both paths), got %d", localRouteCount)
+	}
+
+	if externalRouteCount != 1 {
+		t.Errorf("Expected 1 route in external VirtualHost (only /public), got %d", externalRouteCount)
 	}
 }

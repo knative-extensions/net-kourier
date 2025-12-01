@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -109,10 +110,12 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		localSNIMatches = append(localSNIMatches, sniMatch)
 	}
 
-	localHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
-	localTLSHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
-	externalHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
-	externalTLSHosts := make([]*route.VirtualHost, 0, len(ingress.Spec.Rules))
+	// Use maps to group routes by domain, preventing duplicate domains across VirtualHosts.
+	// Envoy requires each domain to appear in exactly one VirtualHost.
+	localHosts := make(map[string]*route.VirtualHost)
+	localTLSHosts := make(map[string]*route.VirtualHost)
+	externalHosts := make(map[string]*route.VirtualHost)
+	externalTLSHosts := make(map[string]*route.VirtualHost)
 	clusters := make([]*v3.Cluster, 0, len(ingress.Spec.Rules))
 
 	cfg := config.FromContext(ctx)
@@ -129,8 +132,15 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		}
 	}
 
-	for i, rule := range ingress.Spec.Rules {
-		ruleName := fmt.Sprintf("(%s/%s).Rules[%d]", ingress.Namespace, ingress.Name, i)
+	for _, rule := range ingress.Spec.Rules {
+		// If no hosts specified, use "*" as catch-all domain
+		hosts := rule.Hosts
+		if len(hosts) == 0 {
+			hosts = []string{"*"}
+		}
+
+		// Use first host for route naming (all hosts in this rule will share these routes)
+		routeNamePrefix := fmt.Sprintf("(%s/%s).Domain[%s]", ingress.Namespace, ingress.Name, hosts[0])
 
 		routes := make([]*route.Route, 0, len(rule.HTTP.Paths))
 		tlsRoutes := make([]*route.Route, 0, len(rule.HTTP.Paths))
@@ -141,7 +151,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 				path = "/"
 			}
 
-			pathName := fmt.Sprintf("%s.Paths[%s]", ruleName, path)
+			pathName := fmt.Sprintf("%s.Paths[%s]", routeNamePrefix, path)
 
 			wrs := make([]*route.WeightedCluster_ClusterWeight, 0, len(httpPath.Splits))
 			for _, split := range httpPath.Splits {
@@ -259,34 +269,36 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		}
 
 		if len(routes) == 0 {
-			// Return nothing if there are not routes to generate.
-			return nil, nil
+			// Skip this rule if it has no routes to generate.
+			continue
 		}
 
-		var virtualHost, virtualTLSHost *route.VirtualHost
-		if extAuthzEnabled {
-			contextExtensions := kmeta.UnionMaps(map[string]string{
-				"client":     "kourier",
-				"visibility": string(rule.Visibility),
-			}, ingress.GetLabels())
-			virtualHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), routes)
-			if len(tlsRoutes) != 0 {
-				virtualTLSHost = envoy.NewVirtualHostWithExtAuthz(ruleName, contextExtensions, domainsForRule(rule), tlsRoutes)
+		// Group routes by domain instead of by rule to prevent duplicate domains
+		for _, host := range hosts {
+			var contextExtensions map[string]string
+			if extAuthzEnabled {
+				contextExtensions = kmeta.UnionMaps(map[string]string{
+					"client":     "kourier",
+					"visibility": string(rule.Visibility),
+				}, ingress.GetLabels())
 			}
-		} else {
-			virtualHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), routes)
-			if len(tlsRoutes) != 0 {
-				virtualTLSHost = envoy.NewVirtualHost(ruleName, domainsForRule(rule), tlsRoutes)
-			}
-		}
 
-		localHosts = append(localHosts, virtualHost)
-		if rule.Visibility == v1alpha1.IngressVisibilityClusterLocal && virtualTLSHost != nil {
-			localTLSHosts = append(localTLSHosts, virtualTLSHost)
-		} else if rule.Visibility == v1alpha1.IngressVisibilityExternalIP {
-			externalHosts = append(externalHosts, virtualHost)
-			if virtualTLSHost != nil {
-				externalTLSHosts = append(externalTLSHosts, virtualTLSHost)
+			vhostName := fmt.Sprintf("(%s/%s).Domain[%s]", ingress.Namespace, ingress.Name, host)
+			domains := domainsForHost(host)
+
+			// All rules are added to local hosts (internal gateway)
+			addOrAppendVirtualHost(localHosts, host, vhostName, domains, routes, extAuthzEnabled, contextExtensions)
+
+			switch rule.Visibility {
+			case v1alpha1.IngressVisibilityClusterLocal:
+				if len(tlsRoutes) != 0 {
+					addOrAppendVirtualHost(localTLSHosts, host, vhostName, domains, tlsRoutes, extAuthzEnabled, contextExtensions)
+				}
+			case v1alpha1.IngressVisibilityExternalIP:
+				addOrAppendVirtualHost(externalHosts, host, vhostName, domains, routes, extAuthzEnabled, contextExtensions)
+				if len(tlsRoutes) != 0 {
+					addOrAppendVirtualHost(externalTLSHosts, host, vhostName, domains, tlsRoutes, extAuthzEnabled, contextExtensions)
+				}
 			}
 		}
 	}
@@ -299,11 +311,27 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		localSNIMatches:         localSNIMatches,
 		externalSNIMatches:      externalSNIMatches,
 		clusters:                clusters,
-		externalVirtualHosts:    externalHosts,
-		externalTLSVirtualHosts: externalTLSHosts,
-		localVirtualHosts:       localHosts,
-		localTLSVirtualHosts:    localTLSHosts,
+		externalVirtualHosts:    virtualHostMapToSlice(externalHosts),
+		externalTLSVirtualHosts: virtualHostMapToSlice(externalTLSHosts),
+		localVirtualHosts:       virtualHostMapToSlice(localHosts),
+		localTLSVirtualHosts:    virtualHostMapToSlice(localTLSHosts),
 	}, nil
+}
+
+// virtualHostMapToSlice converts a map of VirtualHosts to a sorted slice for deterministic output.
+func virtualHostMapToSlice(m map[string]*route.VirtualHost) []*route.VirtualHost {
+	// Sort by hostname for deterministic Envoy configuration
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+
+	result := make([]*route.VirtualHost, 0, len(m))
+	for _, k := range keys {
+		result = append(result, m[k])
+	}
+	return result
 }
 
 func (translator *IngressTranslator) translateIngressTLS(ingressTLS v1alpha1.IngressTLS, ingress *v1alpha1.Ingress) (*envoy.SNIMatch, error) {
@@ -511,22 +539,33 @@ func matchHeadersFromHTTPPath(httpPath v1alpha1.HTTPIngressPath) []*route.Header
 	return matchHeaders
 }
 
-// domainsForRule returns all domains for the given rule.
-//
-// For example, external domains returns domains with the following formats:
-//   - sub-route_host.namespace.example.com
-//   - sub-route_host.namespace.example.com:*
-//
-// Somehow envoy doesn't match properly gRPC authorities with ports.
-// The fix is to include ":*" in the domains.
-// This applies both for local and external domains.
-// More info https://github.com/envoyproxy/envoy/issues/886
-func domainsForRule(rule v1alpha1.IngressRule) []string {
-	domains := make([]string, 0, 2*len(rule.Hosts))
-	for _, host := range rule.Hosts {
-		domains = append(domains, host, host+":*")
+// domainsForHost returns the domain entries for a given host.
+// Envoy doesn't match gRPC authorities with ports properly, so we include ":*" as a wildcard.
+// See https://github.com/envoyproxy/envoy/issues/886
+func domainsForHost(host string) []string {
+	return []string{host, host + ":*"}
+}
+
+// addOrAppendVirtualHost adds routes to an existing VirtualHost or creates a new one.
+// This prevents duplicate domains across VirtualHosts, which Envoy requires to be unique.
+func addOrAppendVirtualHost(
+	hostMap map[string]*route.VirtualHost,
+	host, vhostName string,
+	domains []string,
+	routes []*route.Route,
+	extAuthzEnabled bool,
+	contextExtensions map[string]string,
+) {
+	if existing := hostMap[host]; existing != nil {
+		existing.Routes = append(existing.Routes, routes...)
+		return
 	}
-	return domains
+
+	if extAuthzEnabled {
+		hostMap[host] = envoy.NewVirtualHostWithExtAuthz(vhostName, contextExtensions, domains, routes)
+	} else {
+		hostMap[host] = envoy.NewVirtualHost(vhostName, domains, routes)
+	}
 }
 
 func checkCertBundle(certs []byte) error {
