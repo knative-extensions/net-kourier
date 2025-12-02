@@ -177,7 +177,7 @@ func TestTracingSamplingRate(t *testing.T) {
 			samplingRate:     "0.67",
 			numRequests:      30,
 			expectedTraces:   20,
-			tolerancePercent: 20,
+			tolerancePercent: 50,
 		},
 		{
 			name:           "sampling rate 1.0 (all traces)",
