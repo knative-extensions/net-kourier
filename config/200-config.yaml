@@ -126,3 +126,24 @@ data:
     # This value overrides environment variable if defined.
     certs-secret-name: ""
     certs-secret-namespace: ""
+
+    # Specifies the OTLP collector endpoint for distributed tracing.
+    # The endpoint format depends on the protocol (see tracing-protocol).
+    # Examples:
+    # - For HTTP: "http://otel-collector.observability.svc:4318/v1/traces"
+    # - For gRPC: "http://otel-collector.observability.svc:4317"
+    # Use an empty value to disable distributed tracing (default).
+    tracing-endpoint: ""
+
+    # Protocol for tracing collector communication.
+    # Valid values: http/protobuf, grpc
+    tracing-protocol: "grpc"
+
+    # Tracing sampling rate (0.0 to 1.0)
+    # Controls the percentage of requests that are traced.
+    # Example: "1.0" traces 100% of requests.
+    tracing-sampling-rate: "1.0"
+
+    # Service name for traces
+    # This identifies the Kourier gateway in your tracing system.
+    tracing-service-name: "kourier-knative"
