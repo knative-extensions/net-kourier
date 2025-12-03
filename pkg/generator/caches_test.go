@@ -455,6 +455,7 @@ func TestListenersAndClustersWithTracing(t *testing.T) {
 func TestTracingDisabled(t *testing.T) {
 	testConfig := &config.Config{
 		Kourier: &config.Kourier{
+			ListenIPAddresses: []string{"0.0.0.0"},
 			Tracing: config.Tracing{
 				Enabled: false,
 			},

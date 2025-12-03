@@ -56,8 +56,8 @@ const (
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
-	// listenIPAddress receives a the list of IP addresses to listen to.
-	listenIPAddresses = "listen-ip-addresses"
+	// listenIPAddressesKey receives the list of IP addresses to listen to.
+	listenIPAddressesKey = "listen-ip-addresses"
 
 	TracingEndpointKey     = "tracing-endpoint"
 	TracingProtocolKey     = "tracing-protocol"
@@ -118,7 +118,7 @@ func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(useRemoteAddress, &nc.UseRemoteAddress),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
-		AsStringList(listenIPAddresses, &nc.ListenIPAddresses),
+		asListenIPAddresses(&nc.ListenIPAddresses),
 		asTracing(&nc.Tracing),
 		asExternalAuthz(&nc.ExternalAuthz),
 		cm.AsBool(disableEnvoyServerHeader, &nc.DisableEnvoyServerHeader),
@@ -257,7 +257,7 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 	}
 }
 
-// NewConfigFromConfigMap creates a Kourier from the supplied configMap.
+// NewKourierConfigFromConfigMap creates a Kourier from the supplied configMap.
 func NewKourierConfigFromConfigMap(config *corev1.ConfigMap) (*Kourier, error) {
 	return NewKourierConfigFromMap(config.Data)
 }
@@ -308,23 +308,36 @@ type Kourier struct {
 	CertsSecretNamespace string
 }
 
-// Returns true if we need to modify the HTTPS listener with just one cert
-// instead of one per ingress
+// UseHTTPSListenerWithOneCert returns true if we need to modify the HTTPS listener with just one cert
+// instead of one per ingress.
 func (k *Kourier) UseHTTPSListenerWithOneCert() bool {
 	return k.CertsSecretName != "" && k.CertsSecretNamespace != ""
 }
 
-// AsStringSet parses the value at key as a []string (split by ',') into the target, if it exists.
-// In contrast with AsStringSet it preserves order
-func AsStringList(key string, target *[]string) cm.ParseFunc {
+// asListenIPAddresses parses and validates a comma-separated list of IP addresses.
+func asListenIPAddresses(target *[]string) cm.ParseFunc {
 	return func(data map[string]string) error {
-		if raw, ok := data[key]; ok {
-			splitted := strings.Split(raw, ",")
-			for i, v := range splitted {
-				splitted[i] = strings.TrimSpace(v)
-			}
-			*target = splitted
+		raw, ok := data[listenIPAddressesKey]
+		if !ok {
+			return nil
 		}
+
+		ips := strings.Split(raw, ",")
+		for i, v := range ips {
+			ips[i] = strings.TrimSpace(v)
+		}
+
+		if len(ips) == 0 {
+			return fmt.Errorf("%s must contain at least one IP address", listenIPAddressesKey)
+		}
+
+		for _, ip := range ips {
+			if net.ParseIP(ip) == nil {
+				return fmt.Errorf("invalid IP address %q in %s", ip, listenIPAddressesKey)
+			}
+		}
+
+		*target = ips
 		return nil
 	}
 }

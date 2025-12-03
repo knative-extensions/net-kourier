@@ -265,11 +265,33 @@ func TestKourierConfig(t *testing.T) {
 	}, {
 		name: "service-access-log-template: trailing newline is not removed",
 		want: &Kourier{
+			ListenIPAddresses:          []string{"0.0.0.0"},
 			EnableServiceAccessLogging: true,
 			ServiceAccessLogTemplate:   "\"requestMethod\": \"%REQ(:METHOD)%\"\n",
 		},
 		data: map[string]string{
 			serviceAccessLogTemplateKey: "\"requestMethod\": \"%REQ(:METHOD)%\"\n",
+		},
+	}, {
+		name: "configure custom listen IP addresses",
+		want: &Kourier{
+			ListenIPAddresses:          []string{"127.0.0.1", "::1"},
+			EnableServiceAccessLogging: true,
+		},
+		data: map[string]string{
+			listenIPAddressesKey: "127.0.0.1, ::1",
+		},
+	}, {
+		name:    "invalid IP address in listen-ip-addresses",
+		wantErr: true,
+		data: map[string]string{
+			listenIPAddressesKey: "not-an-ip",
+		},
+	}, {
+		name:    "empty string in listen-ip-addresses",
+		wantErr: true,
+		data: map[string]string{
+			listenIPAddressesKey: "",
 		},
 	}}
 
