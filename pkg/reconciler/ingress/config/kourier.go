@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -55,6 +56,9 @@ const (
 	// enableCryptoMB is the config map for enabling CryptoMB private key provider.
 	enableCryptoMB = "enable-cryptomb"
 
+	// listenIPAddressesKey receives the list of IP addresses to listen to.
+	listenIPAddressesKey = "listen-ip-addresses"
+
 	TracingEndpointKey     = "tracing-endpoint"
 	TracingProtocolKey     = "tracing-protocol"
 	TracingSamplingRateKey = "tracing-sampling-rate"
@@ -87,6 +91,7 @@ func defaultKourierConfig() *Kourier {
 		TrustedHopsCount:           0,
 		CipherSuites:               nil,
 		EnableCryptoMB:             false,
+		ListenIPAddresses:          []string{"0.0.0.0"},
 		UseRemoteAddress:           false,
 		DisableEnvoyServerHeader:   false,
 		ExternalAuthz: ExternalAuthz{
@@ -113,6 +118,7 @@ func NewKourierConfigFromMap(configMap map[string]string) (*Kourier, error) {
 		cm.AsBool(useRemoteAddress, &nc.UseRemoteAddress),
 		cm.AsStringSet(cipherSuites, &nc.CipherSuites),
 		cm.AsBool(enableCryptoMB, &nc.EnableCryptoMB),
+		asListenIPAddresses(&nc.ListenIPAddresses),
 		asTracing(&nc.Tracing),
 		asExternalAuthz(&nc.ExternalAuthz),
 		cm.AsBool(disableEnvoyServerHeader, &nc.DisableEnvoyServerHeader),
@@ -251,7 +257,7 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 	}
 }
 
-// NewConfigFromConfigMap creates a Kourier from the supplied configMap.
+// NewKourierConfigFromConfigMap creates a Kourier from the supplied configMap.
 func NewKourierConfigFromConfigMap(config *corev1.ConfigMap) (*Kourier, error) {
 	return NewKourierConfigFromMap(config.Data)
 }
@@ -286,6 +292,8 @@ type Kourier struct {
 	// EnableCryptoMB specifies whether Kourier enable CryptoMB private provider to accelerate
 	// TLS handshake. The default value is "false".
 	EnableCryptoMB bool
+	// The main IP address to listen to
+	ListenIPAddresses []string
 	// CipherSuites specifies the cipher suites for TLS external listener.
 	CipherSuites sets.Set[string]
 	// Tracing specifies the configuration for gateway tracing
@@ -300,8 +308,36 @@ type Kourier struct {
 	CertsSecretNamespace string
 }
 
-// Returns true if we need to modify the HTTPS listener with just one cert
-// instead of one per ingress
+// UseHTTPSListenerWithOneCert returns true if we need to modify the HTTPS listener with just one cert
+// instead of one per ingress.
 func (k *Kourier) UseHTTPSListenerWithOneCert() bool {
 	return k.CertsSecretName != "" && k.CertsSecretNamespace != ""
+}
+
+// asListenIPAddresses parses and validates a comma-separated list of IP addresses.
+func asListenIPAddresses(target *[]string) cm.ParseFunc {
+	return func(data map[string]string) error {
+		raw, ok := data[listenIPAddressesKey]
+		if !ok {
+			return nil
+		}
+
+		ips := strings.Split(raw, ",")
+		for i, v := range ips {
+			ips[i] = strings.TrimSpace(v)
+		}
+
+		if len(ips) == 0 {
+			return fmt.Errorf("%s must contain at least one IP address", listenIPAddressesKey)
+		}
+
+		for _, ip := range ips {
+			if net.ParseIP(ip) == nil {
+				return fmt.Errorf("invalid IP address %q in %s", ip, listenIPAddressesKey)
+			}
+		}
+
+		*target = ips
+		return nil
+	}
 }
