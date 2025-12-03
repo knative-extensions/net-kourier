@@ -98,8 +98,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	r := &Reconciler{
-		caches:   caches,
-		extAuthz: config.FromContext(ctx).Kourier.ExternalAuthz.Enabled,
+		caches: caches,
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
@@ -264,7 +263,8 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	for _, ingress := range ingressesToSync {
 		if err := generator.UpdateInfoForIngress(
-			ctx, caches, ingress, &startupTranslator, config.FromContext(ctx).Kourier.ExternalAuthz.Enabled); err != nil {
+			ctx, caches, ingress, &startupTranslator,
+		); err != nil {
 			logger.Fatalw("Failed prewarm ingress", zap.Error(err))
 		}
 	}

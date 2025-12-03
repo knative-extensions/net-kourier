@@ -26,13 +26,13 @@ import (
 
 // UpdateInfoForIngress translates an Ingress into envoy configuration and updates the
 // respective caches.
-func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, translator *IngressTranslator, extAuthzEnabled bool) error {
+func UpdateInfoForIngress(ctx context.Context, caches *Caches, ing *v1alpha1.Ingress, translator *IngressTranslator) error {
 	// Adds a header with the ingress Hash and a random value header to force the config reload.
 	if _, err := ingress.InsertProbe(ing); err != nil {
 		return fmt.Errorf("failed to add knative probe header: %w", err)
 	}
 
-	ingressTranslation, err := translator.translateIngress(ctx, ing, extAuthzEnabled)
+	ingressTranslation, err := translator.translateIngress(ctx, ing)
 	if err != nil {
 		return fmt.Errorf("failed to translate ingress: %w", err)
 	}
