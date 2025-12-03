@@ -145,6 +145,7 @@ aliases:
   net-istio-approvers:
   - skonto
   net-kourier-approvers:
+  - linkvt
   - skonto
   operations-wg-leads:
   - houshengbo
