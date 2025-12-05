@@ -105,6 +105,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 5
             failureThreshold: 3
+            timeoutSeconds: 3
           livenessProbe:
             httpGet:
               httpHeaders:
@@ -116,6 +117,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 5
             failureThreshold: 6
+            timeoutSeconds: 3
           resources:
             requests:
               cpu: 200m
