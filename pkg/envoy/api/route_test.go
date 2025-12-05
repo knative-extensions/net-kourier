@@ -63,3 +63,32 @@ func TestNewRouteExtAuthzDisabled(t *testing.T) {
 	assert.Assert(t, len(r.TypedPerFilterConfig) != 0)
 	assert.Assert(t, r.TypedPerFilterConfig[wellknown.HTTPExternalAuthorization] != nil)
 }
+
+// TestRoutesUsePrefixMatching verifies all route creation functions use prefix matching.
+// This is critical because ingress_translator.go sorts routes by prefix path length.
+// If you change the path matching type, you must also update getRoutePrefix() in
+// pkg/generator/ingress_translator.go to extract paths from the new type.
+func TestRoutesUsePrefixMatching(t *testing.T) {
+	testPath := "/test/path"
+
+	tests := []struct {
+		name  string
+		route *route.Route
+	}{
+		{"NewRoute", NewRoute("test", nil, testPath, nil, 0, nil, "")},
+		{"NewRedirectRoute", NewRedirectRoute("test", nil, testPath)},
+		{"NewRouteExtAuthzDisabled", NewRouteExtAuthzDisabled("test", nil, testPath, nil, 0, nil, "")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prefix, ok := tt.route.GetMatch().GetPathSpecifier().(*route.RouteMatch_Prefix)
+			if !ok {
+				t.Fatal("route must use RouteMatch_Prefix for path matching")
+			}
+			if prefix.Prefix != testPath {
+				t.Errorf("got prefix %q, want %q", prefix.Prefix, testPath)
+			}
+		})
+	}
+}
