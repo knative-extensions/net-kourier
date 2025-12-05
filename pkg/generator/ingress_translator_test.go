@@ -18,6 +18,7 @@ package generator
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -2258,6 +2259,67 @@ func TestTranslateIngressWithDuplicateDomains(t *testing.T) {
 	}
 	if totalRoutes != 2 {
 		t.Errorf("Expected 2 routes total (app + ACME), got %d", totalRoutes)
+	}
+}
+
+// TestRouteOrderingByPathSpecificity verifies that routes are sorted by path
+// length (descending) so that more specific paths are matched first by Envoy.
+// This is critical because Envoy uses first-match-wins semantics.
+func TestRouteOrderingByPathSpecificity(t *testing.T) {
+	// Create routes with different path lengths
+	trafficRoute := envoy.NewRoute("traffic-route", nil, "/", nil, 0, nil, "")
+	acmeRoute := envoy.NewRoute("acme-route", nil, "/.well-known/acme-challenge/token123", nil, 0, nil, "")
+	apiRoute := envoy.NewRoute("api-route", nil, "/api/v1", nil, 0, nil, "")
+
+	hostMap := make(map[string]*route.VirtualHost)
+	host := "example.com"
+	domains := domainsForHost(host)
+
+	// Add routes in wrong order (least specific first)
+	addOrAppendVirtualHost(hostMap, host, "vhost", domains, []*route.Route{trafficRoute}, false, nil)
+	addOrAppendVirtualHost(hostMap, host, "vhost", domains, []*route.Route{acmeRoute}, false, nil)
+	addOrAppendVirtualHost(hostMap, host, "vhost", domains, []*route.Route{apiRoute}, false, nil)
+
+	vhosts := virtualHostMapToSlice(hostMap)
+
+	if len(vhosts) != 1 {
+		t.Fatalf("got %d vhosts, want 1", len(vhosts))
+	}
+
+	routes := vhosts[0].Routes
+	if len(routes) != 3 {
+		t.Fatalf("got %d routes, want 3", len(routes))
+	}
+
+	// Expect routes sorted by path length descending
+	want := []string{"acme-route", "api-route", "traffic-route"}
+	got := []string{routes[0].Name, routes[1].Name, routes[2].Name}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestRouteOrderingPreservesEqualLengthOrder verifies that routes with equal
+// path lengths maintain their relative order (stable sort).
+func TestRouteOrderingPreservesEqualLengthOrder(t *testing.T) {
+	route1 := envoy.NewRoute("route-a", nil, "/foo", nil, 0, nil, "")
+	route2 := envoy.NewRoute("route-b", nil, "/bar", nil, 0, nil, "")
+	route3 := envoy.NewRoute("route-c", nil, "/baz", nil, 0, nil, "")
+
+	hostMap := make(map[string]*route.VirtualHost)
+	host := "example.com"
+	domains := domainsForHost(host)
+
+	addOrAppendVirtualHost(hostMap, host, "vhost", domains, []*route.Route{route1, route2, route3}, false, nil)
+
+	vhosts := virtualHostMapToSlice(hostMap)
+	routes := vhosts[0].Routes
+
+	// Same path length, so original order preserved
+	want := []string{"route-a", "route-b", "route-c"}
+	got := []string{routes[0].Name, routes[1].Name, routes[2].Name}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 

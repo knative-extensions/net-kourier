@@ -333,9 +333,35 @@ func virtualHostMapToSlice(m map[string]*route.VirtualHost) []*route.VirtualHost
 
 	result := make([]*route.VirtualHost, 0, len(m))
 	for _, k := range keys {
-		result = append(result, m[k])
+		vh := m[k]
+		sortRoutesByPathSpecificity(vh.GetRoutes())
+		result = append(result, vh)
 	}
 	return result
+}
+
+// sortRoutesByPathSpecificity sorts routes so more specific paths come first.
+// Envoy uses first-match-wins, so longer prefix paths must precede shorter ones.
+// Without this sorting, a catch-all "/" route could match before "/.well-known/acme-challenge/..."
+// causing ACME HTTP-01 challenges to be misrouted to the application instead of the solver.
+func sortRoutesByPathSpecificity(routes []*route.Route) {
+	slices.SortStableFunc(routes, func(a, b *route.Route) int {
+		pathA := getRoutePrefix(a)
+		pathB := getRoutePrefix(b)
+		// Longer paths first (descending order)
+		return len(pathB) - len(pathA)
+	})
+}
+
+// getRoutePrefix extracts the prefix path from a route.
+// Currently, all routes created by pkg/envoy/api use prefix matching (see TestRoutesUsePrefixMatching).
+func getRoutePrefix(r *route.Route) string {
+	if match := r.GetMatch(); match != nil {
+		if prefix, ok := match.GetPathSpecifier().(*route.RouteMatch_Prefix); ok {
+			return prefix.Prefix
+		}
+	}
+	return ""
 }
 
 func (translator *IngressTranslator) translateIngressTLS(ingressTLS v1alpha1.IngressTLS, ingress *v1alpha1.Ingress) (*envoy.SNIMatch, error) {
