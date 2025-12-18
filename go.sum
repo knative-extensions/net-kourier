@@ -287,8 +287,8 @@ knative.dev/hack v0.0.0-20251126013634-1484a9e9b641 h1:N9Xqx3YLUNFN1WIc3UXTanK4j
 knative.dev/hack v0.0.0-20251126013634-1484a9e9b641/go.mod h1:L5RzHgbvam0u8QFHfzCX6MKxu/a/gIGEdaRBqNiVbl0=
 knative.dev/networking v0.0.0-20251217020127-11890a5dabea h1:CsVi1M+NbPIfvBPWI9DQOwlzBG6+w+mAfhUDqw1jeXM=
 knative.dev/networking v0.0.0-20251217020127-11890a5dabea/go.mod h1:gPzztUiSYDSB3yHx85xr4j2ZccEdiZDWlLsYHr7fQtg=
-knative.dev/pkg v0.0.0-20251216153728-9c8140b780d1 h1:pSZ4sRKm/Kq1ec+7Yhow6jUH0FKZjzrUHpPsy6Lu8pE=
-knative.dev/pkg v0.0.0-20251216153728-9c8140b780d1/go.mod h1:jU9OxeX3zL4W6aHpdMjMA/B7kgkm5JQv6PGMod2Qu/M=
+knative.dev/pkg v0.0.0-20251217214024-80c8bc434670 h1:MKgHnTvNprMn+Tr73CRB088PqR22q4KuVFIBTLFltwA=
+knative.dev/pkg v0.0.0-20251217214024-80c8bc434670/go.mod h1:jU9OxeX3zL4W6aHpdMjMA/B7kgkm5JQv6PGMod2Qu/M=
 sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 h1:gBQPwqORJ8d8/YNZWEjoZs7npUVDpVXUUOFfW6CgAqE=
 sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8/go.mod h1:mdzfpAEoE6DHQEN0uh9ZbOCuHbLK5wOm7dK4ctXE9Tg=
 sigs.k8s.io/randfill v1.0.0 h1:JfjMILfT8A6RbawdsK2JXGBR5AQVfd+9TbzrlneTyrU=
