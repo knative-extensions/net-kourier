@@ -26,7 +26,7 @@ require (
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	knative.dev/hack v0.0.0-20260212092700-0126b283bf20
 	knative.dev/networking v0.0.0-20260303015753-965e7c322093
-	knative.dev/pkg v0.0.0-20260302190359-1f39e94ef003
+	knative.dev/pkg v0.0.0-20260304131155-a902bbfa38de
 )
 
 require (
