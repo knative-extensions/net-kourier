@@ -14,7 +14,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pires/go-proxyproto v0.6.1
 	go.uber.org/zap v1.27.1
-	golang.org/x/sync v0.19.0
+	golang.org/x/sync v0.20.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
@@ -24,9 +24,9 @@ require (
 	k8s.io/client-go v0.35.2
 	k8s.io/code-generator v0.35.2
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
-	knative.dev/hack v0.0.0-20260212092700-0126b283bf20
-	knative.dev/networking v0.0.0-20260303015753-965e7c322093
-	knative.dev/pkg v0.0.0-20260304131155-a902bbfa38de
+	knative.dev/hack v0.0.0-20260310014051-c448fdb867e2
+	knative.dev/networking v0.0.0-20260310020845-64a6058c2d59
+	knative.dev/pkg v0.0.0-20260310013839-5504026dd1b6
 )
 
 require (
