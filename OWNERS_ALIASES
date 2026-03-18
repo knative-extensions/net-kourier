@@ -58,7 +58,6 @@ aliases:
   eventing-rabbitmq-approvers:
   - ikavgo
   eventing-redis-approvers:
-  - aavarghese
   - matzew
   eventing-reviewers:
   - Leo6Leo
