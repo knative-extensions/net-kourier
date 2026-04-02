@@ -46,6 +46,10 @@ type Reconciler struct {
 	// resyncConflicts triggers a filtered global resync to reenqueue all ingresses in
 	// a "Conflict" state.
 	resyncConflicts func()
+
+	// This channel is used to coordinate the initial setup of the xds server
+	// before we start reconciling ingresses
+	firstSyncFinished chan struct{}
 }
 
 var (
@@ -56,6 +60,8 @@ var (
 )
 
 func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {
+	<-r.firstSyncFinished
+
 	ing.SetDefaults(ctx)
 	before := ing.DeepCopy()
 

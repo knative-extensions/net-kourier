@@ -41,8 +41,6 @@ import (
 	"knative.dev/net-kourier/pkg/reconciler/ingress/config"
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
-	networkingClientSet "knative.dev/networking/pkg/client/clientset/versioned/typed/networking/v1alpha1"
-	knativeclient "knative.dev/networking/pkg/client/injection/client"
 	ingressinformer "knative.dev/networking/pkg/client/injection/informers/networking/v1alpha1/ingress"
 	v1alpha1ingress "knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	netconfig "knative.dev/networking/pkg/config"
@@ -79,7 +77,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	logger := logging.FromContext(ctx)
 
 	kubernetesClient := kubeclient.Get(ctx)
-	knativeClient := knativeclient.Get(ctx)
 	ingressInformer := ingressinformer.Get(ctx)
 	endpointSliceInformer := endpointsliceinformer.Get(ctx)
 	serviceInformer := serviceinformer.Get(ctx)
@@ -98,7 +95,8 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	r := &Reconciler{
-		caches: caches,
+		caches:            caches,
+		firstSyncFinished: make(chan struct{}),
 	}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
@@ -220,67 +218,6 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		logger.Fatalw("Failed to set snapshot", zap.Error(err))
 	}
 
-	// Get the current list of ingresses that are ready and seed the Envoy config with them.
-	ingressesToSync, err := getReadyIngresses(ctx, knativeClient.NetworkingV1alpha1())
-	if err != nil {
-		logger.Fatalw("Failed to fetch ready ingresses", zap.Error(err))
-	}
-	logger.Infof("Priming the config with %d ingresses", len(ingressesToSync))
-
-	// The startup translator uses clients instead of listeners to correctly list all
-	// resources at startup.
-	startupTranslator := generator.NewIngressTranslator(
-		func(ns, name string) (*corev1.Secret, error) {
-			return kubernetesClient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
-		},
-		func(label string) ([]*corev1.ConfigMap, error) {
-			selector, err := getLabelSelector(label)
-			if err != nil {
-				return nil, err
-			}
-			return nsConfigmapInformer.Lister().List(selector)
-		},
-		func(ns, name string) ([]*discoveryv1.EndpointSlice, error) {
-			selector := labels.SelectorFromSet(labels.Set{
-				discoveryv1.LabelServiceName: name,
-			})
-			sliceList, err := kubernetesClient.DiscoveryV1().EndpointSlices(ns).List(ctx, metav1.ListOptions{
-				LabelSelector: selector.String(),
-			})
-			if err != nil {
-				return nil, err
-			}
-			slices := make([]*discoveryv1.EndpointSlice, len(sliceList.Items))
-			for i := range sliceList.Items {
-				slices[i] = &sliceList.Items[i]
-			}
-			return slices, nil
-		},
-		func(ns, name string) (*corev1.Service, error) {
-			return kubernetesClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
-		},
-		impl.Tracker)
-
-	for _, ingress := range ingressesToSync {
-		if err := generator.UpdateInfoForIngress(
-			ctx, caches, ingress, &startupTranslator,
-		); err != nil {
-			logger.Fatalw("Failed prewarm ingress", zap.Error(err))
-		}
-	}
-	// Update the entire batch of ready ingresses at once.
-	if err := r.updateEnvoyConfig(ctx); err != nil {
-		logger.Fatalw("Failed to set initial envoy config", zap.Error(err))
-	}
-
-	// Let's start the management server **after** the configuration has been seeded.
-	go func() {
-		logger.Info("Starting Management Server on Port ", managementPort)
-		if err := envoyXdsServer.RunManagementServer(); err != nil {
-			logger.Fatalw("Failed to serve XDS Server", zap.Error(err))
-		}
-	}()
-
 	// Ingresses need to be filtered by ingress class, so Kourier does not
 	// react to nor modify ingresses created by other gateways.
 	ingressInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
@@ -355,17 +292,19 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		}),
 	})
 
+	go runXDSServer(ctx, r)
+
 	return impl
 }
 
-func getReadyIngresses(ctx context.Context, knativeClient networkingClientSet.NetworkingV1alpha1Interface) ([]*v1alpha1.Ingress, error) {
-	ingresses, err := knativeClient.Ingresses("").List(ctx, metav1.ListOptions{})
+func getReadyIngresses(ctx context.Context) ([]*v1alpha1.Ingress, error) {
+	ingressInformer := ingressinformer.Get(ctx)
+	ingresses, err := ingressInformer.Lister().List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
-	ingressesToWarm := make([]*v1alpha1.Ingress, 0, len(ingresses.Items))
-	for i := range ingresses.Items {
-		ingress := &ingresses.Items[i]
+	ingressesToWarm := make([]*v1alpha1.Ingress, 0, len(ingresses))
+	for _, ingress := range ingresses {
 		if isKourierIngress(ingress) &&
 			ingress.GetDeletionTimestamp() == nil && // Ignore ingresses that are already marked for deletion.
 			ingress.GetStatus().GetCondition(v1alpha1.IngressConditionNetworkConfigured).IsTrue() {
@@ -427,4 +366,50 @@ func getInitialConfig(ctx context.Context) (*config.Config, error) {
 		Kourier: kourierConfig,
 		Network: networkConfig,
 	}, nil
+}
+
+func runXDSServer(ctx context.Context, r *Reconciler) {
+	// Closing this channel will unblock the ingress reconciler
+	// until the initial set of ingresses has been processed at startup
+	defer close(r.firstSyncFinished)
+
+	logger := logging.FromContext(ctx)
+
+	syncedCallbacks := []cache.InformerSynced{
+		ingressinformer.Get(ctx).Informer().HasSynced,
+		endpointsliceinformer.Get(ctx).Informer().HasSynced,
+		serviceinformer.Get(ctx).Informer().HasSynced,
+		podinformer.Get(ctx).Informer().HasSynced,
+		getSecretInformer(ctx).Informer().HasSynced,
+		// this is filtered to SYSTEM_NAMESPACE
+		nsconfigmapinformer.Get(ctx).Informer().HasSynced,
+	}
+
+	cache.WaitForCacheSync(ctx.Done(), syncedCallbacks...)
+
+	// // Get the current list of ingresses that are ready and seed the Envoy config with them.
+	ingressesToSync, err := getReadyIngresses(ctx)
+	if err != nil {
+		logger.Fatalw("Failed to fetch ready ingresses", zap.Error(err))
+	}
+	logger.Infof("Priming the config with %d ingresses", len(ingressesToSync))
+
+	for _, ingress := range ingressesToSync {
+		err := generator.UpdateInfoForIngress(ctx, r.caches, ingress, r.ingressTranslator)
+		if err != nil {
+			logger.Fatalw("Failed prewarm ingress", zap.Error(err))
+		}
+	}
+	// Update the entire batch of ready ingresses at once.
+	if err := r.updateEnvoyConfig(ctx); err != nil {
+		logger.Fatalw("Failed to set initial envoy config", zap.Error(err))
+	}
+
+	// Let's start the management server **after** the configuration has been seeded.
+	go func() {
+		logger.Info("Starting Management Server on Port ", managementPort)
+		if err := r.xdsServer.RunManagementServer(); err != nil {
+			logger.Fatalw("Failed to serve XDS Server", zap.Error(err))
+		}
+	}()
 }
