@@ -170,10 +170,7 @@ func TestReconcile(t *testing.T) {
 			statusManager: status.NewProber(
 				nil, NewProbeTargetLister(logging.FromContext(ctx), ls.GetEndpointSlicesLister()), nil,
 			),
-			firstSyncFinished: make(chan struct{}),
 		}
-
-		close(r.firstSyncFinished)
 
 		rr := ingressreconciler.NewReconciler(ctx,
 			logging.FromContext(ctx), fakenetworkingclient.Get(ctx),

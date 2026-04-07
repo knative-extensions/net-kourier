@@ -94,10 +94,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		logger.Fatalw("Failed create new caches", zap.Error(err))
 	}
 
-	r := &Reconciler{
-		caches:            caches,
-		firstSyncFinished: make(chan struct{}),
-	}
+	r := &Reconciler{caches: caches}
 
 	impl := v1alpha1ingress.NewImpl(ctx, r, config.KourierIngressClassName, func(impl *controller.Impl) controller.Options {
 		configsToResync := []interface{}{
@@ -114,6 +111,13 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 			PromoteFilterFunc: isKourierIngress,
 		}
 	})
+
+	firstSyncFinished := make(chan struct{})
+
+	impl.Reconciler = &blockingReconciler{
+		leaderAwareReconciler: impl.Reconciler.(leaderAwareReconciler),
+		firstSyncFinished:     firstSyncFinished,
+	}
 
 	r.resyncConflicts = func() {
 		impl.FilteredGlobalResync(func(obj interface{}) bool {
@@ -292,7 +296,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		}),
 	})
 
-	go runXDSServer(ctx, r)
+	go runXDSServer(ctx, firstSyncFinished, r)
 
 	return impl
 }
@@ -368,11 +372,7 @@ func getInitialConfig(ctx context.Context) (*config.Config, error) {
 	}, nil
 }
 
-func runXDSServer(ctx context.Context, r *Reconciler) {
-	// Closing this channel will unblock the ingress reconciler
-	// until the initial set of ingresses has been processed at startup
-	defer close(r.firstSyncFinished)
-
+func runXDSServer(ctx context.Context, firstSyncFinished chan struct{}, r *Reconciler) {
 	logger := logging.FromContext(ctx)
 
 	syncedCallbacks := []cache.InformerSynced{
@@ -385,9 +385,10 @@ func runXDSServer(ctx context.Context, r *Reconciler) {
 		nsconfigmapinformer.Get(ctx).Informer().HasSynced,
 	}
 
+	// sharedmain panics when this fails so we don't need to handle it here
 	cache.WaitForCacheSync(ctx.Done(), syncedCallbacks...)
 
-	// // Get the current list of ingresses that are ready and seed the Envoy config with them.
+	// Get the current list of ingresses that are ready and seed the Envoy config with them.
 	ingressesToSync, err := getReadyIngresses(ctx)
 	if err != nil {
 		logger.Fatalw("Failed to fetch ready ingresses", zap.Error(err))
@@ -412,4 +413,7 @@ func runXDSServer(ctx context.Context, r *Reconciler) {
 			logger.Fatalw("Failed to serve XDS Server", zap.Error(err))
 		}
 	}()
+
+	// Closing this channel will unblock the ingress reconciler
+	close(firstSyncFinished)
 }
