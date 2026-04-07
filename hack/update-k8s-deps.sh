@@ -1,1 +1,0 @@
-../vendor/knative.dev/pkg/hack/update-k8s-deps.sh
