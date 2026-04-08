@@ -28,6 +28,7 @@ import (
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/client/injection/reconciler/networking/v1alpha1/ingress"
 	"knative.dev/networking/pkg/status"
+	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/reconciler"
 )
@@ -48,11 +49,35 @@ type Reconciler struct {
 	resyncConflicts func()
 }
 
+type leaderAwareReconciler interface {
+	controller.Reconciler
+	reconciler.LeaderAware
+}
+
+type blockingReconciler struct {
+	// This channel is used to coordinate the initial setup of the xds server
+	// before we start reconciling ingresses
+	firstSyncFinished chan struct{}
+
+	leaderAwareReconciler
+}
+
+func (b *blockingReconciler) Reconcile(ctx context.Context, key string) error {
+	select {
+	case <-b.firstSyncFinished:
+	case <-ctx.Done():
+		return nil
+	}
+	return b.leaderAwareReconciler.Reconcile(ctx, key)
+}
+
 var (
 	_ ingress.Interface              = (*Reconciler)(nil)
 	_ ingress.ReadOnlyInterface      = (*Reconciler)(nil)
 	_ ingress.Finalizer              = (*Reconciler)(nil)
 	_ reconciler.OnDeletionInterface = (*Reconciler)(nil)
+
+	_ reconciler.LeaderAware = (*blockingReconciler)(nil)
 )
 
 func (r *Reconciler) ReconcileKind(ctx context.Context, ing *v1alpha1.Ingress) reconciler.Event {

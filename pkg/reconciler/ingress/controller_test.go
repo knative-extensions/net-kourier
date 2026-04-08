@@ -28,6 +28,7 @@ import (
 	_ "knative.dev/pkg/client/injection/kube/informers/discovery/v1/endpointslice/fake"
 	_ "knative.dev/pkg/client/injection/kube/informers/factory/filtered/fake"
 	_ "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/configmap/fake"
+	"knative.dev/pkg/reconciler"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,6 +74,10 @@ func TestNew(t *testing.T) {
 
 	if c == nil {
 		t.Fatal("Expected NewController to return a non-nil value")
+	}
+
+	if _, ok := c.Reconciler.(reconciler.LeaderAware); !ok {
+		t.Fatal("expected default reconciler to be leader aware")
 	}
 }
 
