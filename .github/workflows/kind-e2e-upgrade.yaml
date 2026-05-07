@@ -52,7 +52,7 @@ jobs:
       with:
         k8s-version: ${{ matrix.k8s-version }}
         kind-worker-count: 1
-        cluster-suffix: "${CLUSTER_SUFFIX}"
+        cluster-suffix: c${{ github.run_id }}.local
 
     - name: Deploy certificates for upstream traffic
       if: matrix.upstream-traffic == 'tls'
