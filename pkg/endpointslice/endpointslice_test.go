@@ -144,7 +144,7 @@ func TestReadyAddressesFromSlice(t *testing.T) {
 			want: nil,
 		},
 		{
-			name: "IPv6 slice returns nil",
+			name: "IPv6 with ready endpoints",
 			slice: &discoveryv1.EndpointSlice{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-slice",
@@ -159,7 +159,7 @@ func TestReadyAddressesFromSlice(t *testing.T) {
 					},
 				},
 			},
-			want: nil,
+			want: []string{"2001:db8::1"},
 		},
 		{
 			name: "FQDN slice returns nil",
