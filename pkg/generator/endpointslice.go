@@ -28,9 +28,9 @@ import (
 
 // lbEndpointsForKubeEndpointSlices converts Kubernetes EndpointSlice resources
 // to Envoy LbEndpoints. It aggregates endpoints from multiple slices and filters
-// for IPv4 addressing mode and ready endpoints only.
+// for IP addressing mode and ready endpoints only.
 func lbEndpointsForKubeEndpointSlices(slices []*discoveryv1.EndpointSlice, targetPort int32) []*endpoint.LbEndpoint {
-	// Aggregate all ready IPv4 addresses from all slices
+	// Aggregate all ready addresses from all slices
 	allAddresses := sets.New[string]()
 	for _, slice := range slices {
 		addresses := endpointslice.ReadyAddressesFromSlice(slice)

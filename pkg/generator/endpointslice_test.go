@@ -157,7 +157,7 @@ func TestLbEndpointsForKubeEndpointSlices(t *testing.T) {
 			want:       1,
 		},
 		{
-			name: "filter IPv6 and FQDN addressing",
+			name: "include IPv4 and IPv6, filter FQDN",
 			slices: []*discoveryv1.EndpointSlice{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -205,9 +205,32 @@ func TestLbEndpointsForKubeEndpointSlices(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-svc-fqdn",
+						Namespace: "default",
+						Labels: map[string]string{
+							discoveryv1.LabelServiceName: "test-svc",
+						},
+					},
+					AddressType: discoveryv1.AddressTypeFQDN,
+					Endpoints: []discoveryv1.Endpoint{
+						{
+							Addresses: []string{"example.com"},
+							Conditions: discoveryv1.EndpointConditions{
+								Ready: ptr.To(true),
+							},
+						},
+					},
+					Ports: []discoveryv1.EndpointPort{
+						{
+							Port: ptr.To(int32(8080)),
+						},
+					},
+				},
 			},
 			targetPort: 8080,
-			want:       1, // only IPv4
+			want:       2, // IPv4 + IPv6 included, FQDN filtered
 		},
 		{
 			name:       "empty slices",

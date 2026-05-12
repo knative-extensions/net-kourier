@@ -45,8 +45,9 @@ data:
         - name: stats_listener
           address:
             socket_address:
-              address: 0.0.0.0
+              address: "::"
               port_value: 9000
+              ipv4_compat: true
           filter_chains:
             - filters:
                 - name: envoy.filters.network.http_connection_manager

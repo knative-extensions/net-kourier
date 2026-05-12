@@ -19,6 +19,8 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strconv"
 	"time"
 
 	v3Cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -191,7 +193,7 @@ func externalAuthzFilter(conf *ExternalAuthzConfig) *hcm.HttpFilter {
 		extAuthConfig.Services = &extAuthService.ExtAuthz_HttpService{
 			HttpService: &extAuthService.HttpService{
 				ServerUri: &core.HttpUri{
-					Uri: fmt.Sprintf("%s://%s:%d", conf.Protocol, conf.Host, conf.Port),
+					Uri: fmt.Sprintf("%s://%s", conf.Protocol, net.JoinHostPort(conf.Host, strconv.FormatUint(uint64(conf.Port), 10))),
 					HttpUpstreamType: &core.HttpUri_Cluster{
 						Cluster: extAuthzClusterName,
 					},

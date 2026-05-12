@@ -21,14 +21,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-// ReadyAddressesFromSlice extracts ready IPv4 addresses from an EndpointSlice.
-// Returns nil if the slice is non-IPv4 or has no ready endpoints.
+// ReadyAddressesFromSlice extracts ready IP addresses from an EndpointSlice.
+// Returns nil if the slice uses FQDN addressing or has no ready endpoints.
 //
 // Future consideration: A more sophisticated implementation could check Serving and
 // Terminating conditions to support graceful draining during rolling updates, similar
 // to Istio, Traefik, and MetalLB implementations.
 func ReadyAddressesFromSlice(slice *discoveryv1.EndpointSlice) sets.Set[string] {
-	if slice.AddressType != discoveryv1.AddressTypeIPv4 {
+	if slice.AddressType != discoveryv1.AddressTypeIPv4 && slice.AddressType != discoveryv1.AddressTypeIPv6 {
 		return nil
 	}
 

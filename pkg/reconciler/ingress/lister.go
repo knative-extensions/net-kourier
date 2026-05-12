@@ -55,7 +55,7 @@ func (l *gatewayPodTargetLister) ListProbeTargets(_ context.Context, ing *v1alph
 		return nil, fmt.Errorf("failed to list endpointslices for internal service: %w", err)
 	}
 
-	// Aggregate ready IPv4 addresses from all slices
+	// Aggregate ready addresses from all slices
 	allAddresses := sets.New[string]()
 	for _, slice := range slices {
 		addresses := endpointslice.ReadyAddressesFromSlice(slice)

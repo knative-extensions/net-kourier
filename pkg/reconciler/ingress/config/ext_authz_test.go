@@ -304,6 +304,39 @@ func Test_externalAuthZFilter_extAuthz(t *testing.T) {
 			},
 		},
 	}, {
+		name: "http with IPv6 host",
+		conf: &ExternalAuthzConfig{
+			Host:            "2001:db8::1",
+			Port:            8080,
+			MaxRequestBytes: 8192,
+			Timeout:         2000,
+			Protocol:        "http",
+		},
+		extAuthzWanted: &extAuthService.ExtAuthz{
+			TransportApiVersion: core.ApiVersion_V3,
+			WithRequestBody: &extAuthService.BufferSettings{
+				MaxRequestBytes:     8192,
+				AllowPartialMessage: true,
+			},
+			Services: &extAuthService.ExtAuthz_HttpService{
+				HttpService: &extAuthService.HttpService{
+					ServerUri: &core.HttpUri{
+						Uri: "http://[2001:db8::1]:8080",
+						HttpUpstreamType: &core.HttpUri_Cluster{
+							Cluster: extAuthzClusterName,
+						},
+						Timeout: durationpb.New(time.Duration(2000) * time.Millisecond),
+					},
+					AuthorizationRequest: &extAuthService.AuthorizationRequest{
+						HeadersToAdd: []*core.HeaderValue{{
+							Key:   "client",
+							Value: "kourier",
+						}},
+					},
+				},
+			},
+		},
+	}, {
 		name: "https with path prefix",
 		conf: &ExternalAuthzConfig{
 			Host:            "example.com",
