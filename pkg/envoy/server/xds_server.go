@@ -44,8 +44,7 @@ type XdsServer struct {
 	snapshotCache  cache.SnapshotCache
 }
 
-func NewXdsServer(managementPort uint, callbacks xds.Callbacks) *XdsServer {
-	ctx := context.Background()
+func NewXdsServer(ctx context.Context, managementPort uint, callbacks xds.Callbacks) *XdsServer {
 	snapshotCache := cache.NewSnapshotCache(true, cache.IDHash{}, nil)
 	srv := xds.NewServer(ctx, snapshotCache, callbacks)
 

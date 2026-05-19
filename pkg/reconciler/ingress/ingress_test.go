@@ -163,7 +163,7 @@ func TestReconcile(t *testing.T) {
 		c, _ := generator.NewCaches(ctx, kubeclient)
 
 		r := &Reconciler{
-			xdsServer:         server.NewXdsServer(18000, &xds.CallbackFuncs{}),
+			xdsServer:         server.NewXdsServer(ctx, 18000, &xds.CallbackFuncs{}),
 			caches:            c,
 			ingressTranslator: &it,
 			resyncConflicts:   func() {},
