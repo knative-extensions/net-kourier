@@ -56,7 +56,7 @@ aliases:
   - lberk
   - matzew
   eventing-rabbitmq-approvers:
-  - ikavgo
+  - deadtrickster
   eventing-redis-approvers:
   - matzew
   eventing-reviewers:
