@@ -25,8 +25,8 @@ require (
 	k8s.io/code-generator v0.35.5
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	knative.dev/hack v0.0.0-20260428014158-b2a37f1b6e7b
-	knative.dev/networking v0.0.0-20260521020427-3cf3413b35b8
-	knative.dev/pkg v0.0.0-20260520153225-91e8142be85c
+	knative.dev/networking v0.0.0-20260527020442-aa0666dcab3e
+	knative.dev/pkg v0.0.0-20260526162440-71f6ad65d251
 )
 
 require (
@@ -94,9 +94,9 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.36.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
