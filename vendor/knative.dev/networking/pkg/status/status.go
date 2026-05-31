@@ -385,6 +385,8 @@ func (m *Prober) processWorkItem() bool {
 		// Therefore, we can safely ignore any TLS certificate validation.
 		InsecureSkipVerify: true,
 	}
+	// Disable keep-alives to prevent connection leak since a new transport is created per work item.
+	transport.DisableKeepAlives = true
 	transport.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
 		// Requests with the IP as hostname and the Host header set do no pass client-side validation
 		// because the HTTP client validates that the hostname (not the Host header) matches the server
@@ -421,6 +423,7 @@ func (m *Prober) processWorkItem() bool {
 		item.logger.Errorf("Probing of %s failed, IP: %s:%s, ready: %t, error: %v (depth: %d)",
 			item.url, item.podIP, item.podPort, ok, err, m.workQueue.Len())
 	} else {
+		m.workQueue.Forget(obj)
 		m.onProbingSuccess(item.ingressState, item.podState)
 	}
 	return true
