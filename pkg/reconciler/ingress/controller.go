@@ -129,6 +129,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	envoyXdsServer := envoy.NewXdsServer(
+		ctx,
 		managementPort,
 		&xds.CallbackFuncs{
 			StreamRequestFunc: func(_ int64, req *v3.DiscoveryRequest) error {
