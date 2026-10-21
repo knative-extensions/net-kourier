@@ -28,7 +28,7 @@ import (
 	"knative.dev/networking/pkg/apis/networking"
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/status"
-	"knative.dev/pkg/kmeta"
+	"knative.dev/pkg/kmap"
 
 	"go.uber.org/zap/zaptest"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -60,7 +60,7 @@ func ing(name, ns string, opts ...ingressOption) *v1alpha1.Ingress {
 
 func withAnnotation(ann map[string]string) ingressOption {
 	return func(i *v1alpha1.Ingress) {
-		i.Annotations = kmeta.UnionMaps(i.Annotations, ann)
+		i.Annotations = kmap.Union(i.Annotations, ann)
 	}
 }
 

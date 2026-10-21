@@ -214,6 +214,7 @@ func (m *Prober) IsReady(ctx context.Context, ing *v1alpha1.Ingress) (bool, erro
 	// Get the probe targets and group them by IP
 	targets, err := m.targetLister.ListProbeTargets(ctx, ing)
 	if err != nil {
+		cancel()
 		return false, err
 	}
 	workItems := make(map[string][]*workItem)

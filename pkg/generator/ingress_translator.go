@@ -48,7 +48,7 @@ import (
 	"knative.dev/networking/pkg/apis/networking/v1alpha1"
 	"knative.dev/networking/pkg/certificates"
 	netconfig "knative.dev/networking/pkg/config"
-	"knative.dev/pkg/kmeta"
+	"knative.dev/pkg/kmap"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/system"
 	"knative.dev/pkg/tracker"
@@ -281,7 +281,7 @@ func (translator *IngressTranslator) translateIngress(ctx context.Context, ingre
 		for _, host := range hosts {
 			var contextExtensions map[string]string
 			if cfg.Kourier.ExternalAuthz.Enabled {
-				contextExtensions = kmeta.UnionMaps(map[string]string{
+				contextExtensions = kmap.Union(map[string]string{
 					"client":     "kourier",
 					"visibility": string(rule.Visibility),
 				}, ingress.GetLabels())

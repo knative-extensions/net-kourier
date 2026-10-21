@@ -17,8 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/apis"
 )
@@ -57,7 +55,7 @@ func (is *IngressStatus) MarkNetworkConfigured() {
 // resource of the given kind and name has already been created, and we do not own it.
 func (is *IngressStatus) MarkResourceNotOwned(kind, name string) {
 	ingressCondSet.Manage(is).MarkFalse(IngressConditionNetworkConfigured, "NotOwned",
-		fmt.Sprintf("There is an existing %s %q that we do not own.", kind, name))
+		"There is an existing %s %q that we do not own.", kind, name)
 }
 
 // MarkLoadBalancerReady marks the Ingress with IngressConditionLoadBalancerReady,
@@ -78,12 +76,12 @@ func (is *IngressStatus) MarkLoadBalancerNotReady() {
 
 // MarkLoadBalancerFailed marks the "IngressConditionLoadBalancerReady" condition to false.
 func (is *IngressStatus) MarkLoadBalancerFailed(reason, message string) {
-	ingressCondSet.Manage(is).MarkFalse(IngressConditionLoadBalancerReady, reason, message)
+	ingressCondSet.Manage(is).MarkFalse(IngressConditionLoadBalancerReady, reason, "%s", message)
 }
 
 // MarkIngressNotReady marks the "IngressConditionReady" condition to unknown.
 func (is *IngressStatus) MarkIngressNotReady(reason, message string) {
-	ingressCondSet.Manage(is).MarkUnknown(IngressConditionReady, reason, message)
+	ingressCondSet.Manage(is).MarkUnknown(IngressConditionReady, reason, "%s", message)
 }
 
 // IsReady returns true if the Status condition MetricConditionReady

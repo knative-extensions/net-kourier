@@ -17,8 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/apis"
 )
@@ -35,19 +33,19 @@ func (cs *CertificateStatus) MarkReady() {
 
 // MarkNotReady marks the certificate status as unknown.
 func (cs *CertificateStatus) MarkNotReady(reason, message string) {
-	certificateCondSet.Manage(cs).MarkUnknown(CertificateConditionReady, reason, message)
+	certificateCondSet.Manage(cs).MarkUnknown(CertificateConditionReady, reason, "%s", message)
 }
 
 // MarkFailed marks the certificate as not ready.
 func (cs *CertificateStatus) MarkFailed(reason, message string) {
-	certificateCondSet.Manage(cs).MarkFalse(CertificateConditionReady, reason, message)
+	certificateCondSet.Manage(cs).MarkFalse(CertificateConditionReady, reason, "%s", message)
 }
 
 // MarkResourceNotOwned changes the ready condition to false to reflect that we don't own the
 // resource of the given kind and name.
 func (cs *CertificateStatus) MarkResourceNotOwned(kind, name string) {
 	certificateCondSet.Manage(cs).MarkFalse(CertificateConditionReady, "NotOwned",
-		fmt.Sprintf("There is an existing %s %q that we do not own.", kind, name))
+		"There is an existing %s %q that we do not own.", kind, name)
 }
 
 // IsReady returns true is the Certificate is ready
