@@ -223,8 +223,8 @@ func createDialContextProxyProtocol(ctx context.Context, t *testing.T, ing *v1al
 	}
 
 	dial := network.NewBackoffDialer(dialBackoff)
-	if pkgTest.Flags.IngressEndpoint != "" {
-		t.Logf("ingressendpoint: %q", pkgTest.Flags.IngressEndpoint)
+	if pkgTest.Flags.IngressEndpoint != "" { //nolint:staticcheck // Shared e2e setup uses pkg/test.Flags.
+		t.Logf("ingressendpoint: %q", pkgTest.Flags.IngressEndpoint) //nolint:staticcheck // Shared e2e setup uses pkg/test.Flags.
 
 		// If we're using a manual --ingressendpoint then don't require
 		// "type: LoadBalancer", which may not play nice with KinD
@@ -235,7 +235,7 @@ func createDialContextProxyProtocol(ctx context.Context, t *testing.T, ing *v1al
 			}
 			for _, sp := range svc.Spec.Ports {
 				if strconv.Itoa(int(sp.Port)) == port {
-					conn, err := dial(ctx, "tcp", fmt.Sprintf("%s:%d", pkgTest.Flags.IngressEndpoint, sp.NodePort))
+					conn, err := dial(ctx, "tcp", fmt.Sprintf("%s:%d", pkgTest.Flags.IngressEndpoint, sp.NodePort)) //nolint:staticcheck // Shared e2e setup uses pkg/test.Flags.
 					if err != nil {
 						return nil, err
 					}
