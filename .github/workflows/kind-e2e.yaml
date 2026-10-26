@@ -17,8 +17,8 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.34.x
         - v1.35.x
+        - v1.36.x
 
         gateway:
         - docker.io/envoyproxy/envoy:v1.34-latest
@@ -44,12 +44,12 @@ jobs:
     - uses: ko-build/setup-ko@v0.6
 
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: ./src/knative.dev/net-kourier
 
     - name: Setup KinD
-      uses: chainguard-dev/actions/setup-kind@main
+      uses: chainguard-dev/actions/setup-kind@53668650c25af6e8864f1d1ddaa69ed4db4cdf09 # v1.6.42
       with:
         k8s-version: ${{ matrix.k8s-version }}
         kind-worker-count: 1
@@ -86,7 +86,7 @@ jobs:
         ./test/e2e-kind.sh
 
     # Collect debug logs on failure
-    - uses: chainguard-dev/actions/kind-diag@main
+    - uses: chainguard-dev/actions/kind-diag@53668650c25af6e8864f1d1ddaa69ed4db4cdf09 # v1.6.42
       if: ${{ failure() }}
       with:
         cluster-resources: nodes,namespaces,crds
