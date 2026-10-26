@@ -24,9 +24,9 @@ require (
 	k8s.io/client-go v0.36.5
 	k8s.io/code-generator v0.36.5
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
-	knative.dev/hack v0.0.0-20261021112836-4b87852b7bf9
-	knative.dev/networking v0.0.0-20261022013237-a03366070f59
-	knative.dev/pkg v0.0.0-20261022132244-2a1a4a3ea290
+	knative.dev/hack v0.0.0-20261023132104-4a15c76c8f70
+	knative.dev/networking v0.0.0-20261026130131-cfc431598730
+	knative.dev/pkg v0.0.0-20261026113028-cfa0ac991c5a
 )
 
 require (
@@ -74,7 +74,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.24.1 // indirect
+	github.com/prometheus/client_golang v1.25.0 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/otlptranslator v1.0.0 // indirect
