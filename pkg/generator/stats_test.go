@@ -58,7 +58,8 @@ func TestStatsListenerInSnapshot(t *testing.T) {
 			l, ok := snapshot.GetResources(resource.ListenerType)["stats_listener"].(*listener.Listener)
 			assert.Assert(t, ok, "stats listener must exist even without ingresses")
 			assert.NilError(t, l.ValidateAll())
-			addresses := []string{l.Address.GetSocketAddress().Address}
+			addresses := make([]string, 0, 1+len(l.AdditionalAddresses))
+			addresses = append(addresses, l.Address.GetSocketAddress().Address)
 			assert.Equal(t, l.Address.GetSocketAddress().GetPortValue(), uint32(9000))
 			for _, address := range l.AdditionalAddresses {
 				addresses = append(addresses, address.Address.GetSocketAddress().Address)
