@@ -242,7 +242,12 @@ func generateListenersAndRouteConfigsAndClusters(
 		return nil, nil, nil, err
 	}
 
-	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, localEnvoyListener}
+	stats, err := statsListener(cfg.Kourier.ListenIPAddresses)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	listeners := []cachetypes.Resource{externalHTTPEnvoyListener, localEnvoyListener, stats}
 	routes := []cachetypes.Resource{externalRouteConfig, localRouteConfig}
 	clusters := make([]cachetypes.Resource, 0, 1)
 
