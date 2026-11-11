@@ -41,47 +41,8 @@ data:
       cluster: kourier-knative
       id: 3scale-kourier-gateway
     static_resources:
-      listeners:
-        - name: stats_listener
-          address:
-            socket_address:
-              address: "::"
-              port_value: 9000
-              ipv4_compat: true
-          filter_chains:
-            - filters:
-                - name: envoy.filters.network.http_connection_manager
-                  typed_config:
-                    "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-                    stat_prefix: stats_server
-                    http_filters:
-                      - name: envoy.filters.http.router
-                        typed_config:
-                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-                    route_config:
-                      virtual_hosts:
-                        - name: admin_interface
-                          domains:
-                            - "*"
-                          routes:
-                            - match:
-                                safe_regex:
-                                  regex: '/(certs|stats(/prometheus)?|server_info|clusters|listeners|ready)?'
-                                headers:
-                                  - name: ':method'
-                                    string_match:
-                                      exact: GET
-                              route:
-                                cluster: service_stats
-                            - match:
-                                safe_regex:
-                                  regex: '/drain_listeners'
-                                headers:
-                                  - name: ':method'
-                                    string_match:
-                                      exact: POST
-                              route:
-                                cluster: service_stats
+      # The stats listener is delivered through LDS so it can honor
+      # config-kourier's listen-ip-addresses without requiring kernel IPv6 support.
       clusters:
         - name: service_stats
           connect_timeout: 0.250s
