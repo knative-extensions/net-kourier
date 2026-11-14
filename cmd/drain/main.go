@@ -32,14 +32,17 @@ func main() {
 		log.Fatal("DRAIN_TIME_SECONDS must be a non-negative integer")
 	}
 
-	err = drain(context.Background(), "http://127.0.0.1:9901/drain_listeners?graceful")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(seconds)*time.Second)
+	defer cancel()
+
+	err = drain(ctx, "http://127.0.0.1:9901/drain_listeners?graceful")
 	if err != nil {
 		log.Printf("Failed to drain Envoy: %v", err)
 	}
 
-	// Preserve the shutdown delay even if the admin request fails, allowing time
-	// for the terminating gateway to be removed from Service endpoints.
-	time.Sleep(time.Duration(seconds) * time.Second)
+	// Keep the gateway alive for the remainder of the drain window, even if the
+	// admin request fails, while Service endpoints are updated.
+	<-ctx.Done()
 	if err != nil {
 		os.Exit(1)
 	}
@@ -50,8 +53,7 @@ func drain(ctx context.Context, url string) error {
 	if err != nil {
 		return err
 	}
-	client := &http.Client{Timeout: 3 * time.Second}
-	response, err := client.Do(request)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return err
 	}
