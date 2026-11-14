@@ -27,7 +27,11 @@ import (
 )
 
 func main() {
-	seconds, err := strconv.Atoi(os.Getenv("DRAIN_TIME_SECONDS"))
+	drainTime := os.Getenv("DRAIN_TIME_SECONDS")
+	if drainTime == "" {
+		drainTime = "15"
+	}
+	seconds, err := strconv.Atoi(drainTime)
 	if err != nil || seconds < 0 {
 		log.Fatal("DRAIN_TIME_SECONDS must be a non-negative integer")
 	}
