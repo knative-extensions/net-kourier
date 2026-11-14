@@ -53,6 +53,7 @@ spec:
           command:
             - /usr/local/bin/envoy
           env:
+            # Used by Envoy's drain timer and the preStop helper's deadline.
             - name: DRAIN_TIME_SECONDS
               value: "15"
           image: docker.io/envoyproxy/envoy:v1.37-latest
@@ -128,7 +129,9 @@ spec:
             limits:
               cpu: "1"
               memory: 800Mi
-      # to ensure a graceful drain, terminationGracePeriodSeconds must be greater than DRAIN_TIME_SECONDS environment variable
+      # The grace period includes preStop. Keep it longer than DRAIN_TIME_SECONDS
+      # to leave time for Envoy to handle SIGTERM after the hook finishes;
+      # kubelet eventually sends SIGKILL if the grace period expires.
       terminationGracePeriodSeconds: 30
       volumes:
         - name: config-volume
