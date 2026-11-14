@@ -1,7 +1,4 @@
 defaultBaseImage: ghcr.io/wolfi-dev/static:alpine
-# Keep Envoy in the gateway image and add the preStop drain helper.
-baseImageOverrides:
-  knative.dev/net-kourier/cmd/drain: docker.io/envoyproxy/envoy:v1.37-latest
 builds:
   - id: drain
     main: ./cmd/drain
