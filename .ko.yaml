@@ -1,1 +1,7 @@
 defaultBaseImage: ghcr.io/wolfi-dev/static:alpine
+builds:
+  - id: drain
+    main: ./cmd/drain
+    ldflags:
+      - -s
+      - -w
