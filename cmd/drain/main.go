@@ -34,6 +34,8 @@ func main() {
 	seconds, err := strconv.Atoi(drainTime)
 	if err != nil || seconds < 0 {
 		log.Fatal("DRAIN_TIME_SECONDS must be a non-negative integer")
+	} else if seconds == 0 {
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(seconds)*time.Second)
