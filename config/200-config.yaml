@@ -39,6 +39,12 @@ data:
     # this example block and unindented to be in the data block
     # to actually change the configuration.
 
+    # Comma-separated IP addresses for gateway listeners, including the stats
+    # listener on port 9000. Defaults to IPv4; use "::" for IPv6 or
+    # "0.0.0.0,::" for dual-stack. IPv6 addresses require kernel IPv6 support.
+    # Stats become available after the gateway receives its LDS configuration.
+    listen-ip-addresses: "0.0.0.0"
+
     # Specifies whether requests reaching the Kourier gateway
     # in the context of services should be logged. Readiness
     # probes etc. must be configured via the bootstrap config.
