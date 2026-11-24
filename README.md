@@ -183,16 +183,20 @@ kubectl patch configmap/config-kourier \
 Kourier propagates W3C trace context headers (`traceparent`, `tracestate`, and `baggage`) to enable distributed tracing across services.
 
 ## Proxy Protocol Configuration
+
 Note: this is an experimental/alpha feature.
 
 To enable proxy protocol feature, run the following command to patch `config-kourier` ConfigMap:
+
 ```
 kubectl patch configmap/config-kourier \
   -n knative-serving \
   --type merge \
   -p '{"data":{"enable-proxy-protocol":"true"}}'
 ```
+
 Ensure that the file was updated successfully:
+
 ```
 kubectl get configmap config-kourier --namespace knative-serving --output yaml
 ```
@@ -200,12 +204,14 @@ kubectl get configmap config-kourier --namespace knative-serving --output yaml
 ### LoadBalancer configuration:
 
 We need to:
+
 - Use your LB provider annotation to enable proxy-protocol.
 - If you are planning to enable external-domain-tls, use your LB provider annotation to specify a custom name to use for the Load balancer,
   This is used to work around the issue of kube-proxy adding external LB address to node local iptables rule, which will break requests to an LB from in-cluster if the LB is expected to terminate SSL or proxy protocol.
 - Change the external Traffic Policy to `local` so the LB we'll preserve the client source IP and avoids a second hop for LoadBalancer.
 
 Example (Scaleway provider):
+
 ```
 apiVersion: v1
 kind: Service
@@ -234,10 +240,13 @@ spec:
 ```
 
 ## Tips
+
 Domain Mapping is configured to explicitly use `http2` protocol only. This behaviour can be disabled by adding the following annotation to the Domain Mapping resource
+
 ```
 kubectl annotate domainmapping <domain_mapping_name> kourier.knative.dev/disable-http2=true --namespace <namespace>
 ```
+
 A good use case for this configuration is `DomainMapping with Websocket`
 
 Note: This annotation is an experimental/alpha feature. We may change the annotation name in the future.
